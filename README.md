@@ -1,8 +1,11 @@
 # Prism3 Value
 
+[![CircleCI](https://circleci.com/gh/3-prism/prism3-rust-value.svg?style=shield)](https://circleci.com/gh/3-prism/prism3-rust-value)
+[![Coverage Status](https://coveralls.io/repos/github/3-prism/prism3-rust-value/badge.svg?branch=main)](https://coveralls.io/github/3-prism/prism3-rust-value?branch=main)
+[![Crates.io](https://img.shields.io/crates/v/prism3-value.svg?color=blue)](https://crates.io/crates/prism3-value)
+[![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
-[![Crates.io](https://img.shields.io/crates/v/prism3-value.svg)](https://crates.io/crates/prism3-value)
+[![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
 
 A type-safe value container framework built on `prism3_core::lang::DataType`, providing unified abstractions for single values, multi-values, and named values with generic construction/access/mutation, type conversion, and complete `serde` serialization support.
 

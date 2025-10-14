@@ -1,8 +1,11 @@
 # Prism3 Value
 
+[![CircleCI](https://circleci.com/gh/3-prism/prism3-rust-value.svg?style=shield)](https://circleci.com/gh/3-prism/prism3-rust-value)
+[![Coverage Status](https://coveralls.io/repos/github/3-prism/prism3-rust-value/badge.svg?branch=main)](https://coveralls.io/github/3-prism/prism3-rust-value?branch=main)
+[![Crates.io](https://img.shields.io/crates/v/prism3-value.svg?color=blue)](https://crates.io/crates/prism3-value)
+[![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
-[![Crates.io](https://img.shields.io/crates/v/prism3-value.svg)](https://crates.io/crates/prism3-value)
+[![English Documentation](https://img.shields.io/badge/docs-English-blue.svg)](README.md)
 
 基于 `prism3_core::lang::DataType` 的类型安全值容器框架，提供单值、多值与命名值的统一抽象，支持泛型构造/获取/设置与类型转换，并完整支持 `serde` 序列化。
 
