@@ -1,6 +1,6 @@
 [package]
 name = "prism3-value"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version = "1.70"
 authors = ["Hu Haixing <starfish.hu@gmail.com>"]
@@ -28,7 +28,7 @@ doctest = false
 
 [dependencies]
 # 核心依赖
-prism3-core = "0.1.0"
+prism3-core = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0.17"
