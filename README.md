@@ -7,13 +7,20 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
 
-A type-safe value container framework built on `prism3_core::lang::DataType`, providing unified abstractions for single values, multi-values, and named values with generic construction/access/mutation, type conversion, and complete `serde` serialization support.
-
-[中文文档](README.zh_CN.md)
+A type-safe value container framework built on `prism3_core::lang::DataType`, providing unified abstractions for single
+values, multi-values, and named values with generic construction/access/mutation, type conversion, and complete `serde`
+serialization support.
 
 ## Overview
 
-Prism3 Value provides a comprehensive solution for handling dynamically-typed values in a type-safe manner. It bridges the gap between static typing and runtime flexibility, offering powerful abstractions for value storage, retrieval, and conversion while maintaining Rust's safety guarantees.
+Prism3 Value provides a comprehensive solution for handling dynamically-typed values in a type-safe manner. It bridges
+the gap between static typing and runtime flexibility, offering powerful abstractions for value storage, retrieval, and
+conversion while maintaining Rust's safety guarantees.
+
+> **Configuration Object Support**: If you need configuration objects based on different types of multi-value designs,
+ consider using the [prism3-config](https://github.com/3-prism/prism3-rust-config) crate, which provides comprehensive
+ configuration management functionality. You can find more information on [GitHub](https://github.com/3-prism/prism3-rust-config)
+ and [crates.io](https://crates.io/crates/prism3-config).
 
 ## Features
 

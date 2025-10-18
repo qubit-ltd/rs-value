@@ -9,11 +9,13 @@
 
 基于 `prism3_core::lang::DataType` 的类型安全值容器框架，提供单值、多值与命名值的统一抽象，支持泛型构造/获取/设置与类型转换，并完整支持 `serde` 序列化。
 
-[English Documentation](README.md)
-
 ## 概述
 
-Prism3 Value 提供了以类型安全方式处理动态类型值的综合解决方案。它在静态类型和运行时灵活性之间架起桥梁，为值的存储、检索和转换提供强大的抽象，同时保持 Rust 的安全保证。
+Prism3 Value 提供了以类型安全方式处理动态类型值的综合解决方案。它在静态类型和运行时灵活性之间架起桥梁，为值的存储、检索和转换提供强大的抽象，
+同时保持 Rust 的安全保证。
+
+> **配置对象支持**: 如果您需要基于不同类型多值设计的配置对象，建议使用 [prism3-config](https://github.com/3-prism/prism3-rust-config) crate，
+它提供了完整的配置管理功能。您可以在 [GitHub](https://github.com/3-prism/prism3-rust-config) 和 [crates.io](https://crates.io/crates/prism3-config) 上找到更多信息。
 
 ## 特性
 
