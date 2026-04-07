@@ -1,7 +1,7 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025.
- *    3-Prism Co. Ltd.
+ *    Copyright (c) 2025 - 2026.
+ *    Haixing Hu, Qubit Co. Ltd.
  *
  *    All rights reserved.
  *
@@ -17,7 +17,7 @@
 use chrono::DateTime as UtcDateTime;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use prism3_core::lang::DataType;
-use prism3_value::{MultiValues, NamedMultiValues, NamedValue, Value};
+use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
 
 #[test]
 fn test_named_multi_value_creation() {

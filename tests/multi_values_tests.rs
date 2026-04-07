@@ -1,7 +1,7 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025.
- *    3-Prism Co. Ltd.
+ *    Copyright (c) 2025 - 2026.
+ *    Haixing Hu, Qubit Co. Ltd.
  *
  *    All rights reserved.
  *
@@ -17,7 +17,7 @@
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use prism3_core::lang::DataType;
-use prism3_value::{MultiValues, Value, ValueError};
+use qubit_value::{MultiValues, Value, ValueError};
 use std::str::FromStr;
 
 // ============================================================================
