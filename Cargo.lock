@@ -222,8 +222,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "prism3-value"
-version = "0.1.3"
+name = "proc-macro2"
+version = "1.0.101"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
+dependencies = [
+ "unicode-ident",
+]
+
+[[package]]
+name = "qubit-value"
+version = "0.2.0"
 dependencies = [
  "bigdecimal",
  "chrono",
@@ -235,15 +244,6 @@ dependencies = [
  "thiserror",
  "tracing",
  "uuid",
-]
-
-[[package]]
-name = "proc-macro2"
-version = "1.0.101"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
-dependencies = [
- "unicode-ident",
 ]
 
 [[package]]
