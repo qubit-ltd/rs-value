@@ -206,10 +206,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b3cff922bd51709b605d9ead9aa71031d81447142d828eb4a6eba76fe619f9b"
 
 [[package]]
-name = "prism3-core"
-version = "0.1.1"
+name = "proc-macro2"
+version = "1.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df2bd5c48e234c73c75358b55dc3a8a14a6d74f84175df63c10b58ad246af276"
+checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
+dependencies = [
+ "unicode-ident",
+]
+
+[[package]]
+name = "qubit-common"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7e5470d3788b83562cfbe3cc20b15714335140fdc2b5bf62ed38b810c75dc64"
 dependencies = [
  "bigdecimal",
  "chrono",
@@ -222,15 +231,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proc-macro2"
-version = "1.0.101"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
-dependencies = [
- "unicode-ident",
-]
-
-[[package]]
 name = "qubit-value"
 version = "0.2.0"
 dependencies = [
@@ -238,7 +238,7 @@ dependencies = [
  "chrono",
  "num-bigint",
  "num-traits",
- "prism3-core",
+ "qubit-common",
  "serde",
  "serde_json",
  "thiserror",

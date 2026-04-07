@@ -16,7 +16,7 @@
 
 use chrono::DateTime as UtcDateTime;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 use qubit_value::{NamedValue, Value};
 
 #[test]

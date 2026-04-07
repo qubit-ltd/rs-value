@@ -7,15 +7,15 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![English Documentation](https://img.shields.io/badge/docs-English-blue.svg)](README.md)
 
-基于 `prism3_core::lang::DataType` 的类型安全值容器框架，提供单值、多值与命名值的统一抽象，支持泛型构造/获取/设置与类型转换，并完整支持 `serde` 序列化。
+基于 `qubit_common::lang::DataType` 的类型安全值容器框架，提供单值、多值与命名值的统一抽象，支持泛型构造/获取/设置与类型转换，并完整支持 `serde` 序列化。
 
 ## 概述
 
 Qubit Value 提供了以类型安全方式处理动态类型值的综合解决方案。它在静态类型和运行时灵活性之间架起桥梁，为值的存储、检索和转换提供强大的抽象，
 同时保持 Rust 的安全保证。
 
-> **配置对象支持**: 如果您需要基于不同类型多值设计的配置对象，建议使用 [prism3-config](https://github.com/3-prism/prism3-rust-config) crate，
-它提供了完整的配置管理功能。您可以在 [GitHub](https://github.com/3-prism/prism3-rust-config) 和 [crates.io](https://crates.io/crates/prism3-config) 上找到更多信息。
+> **配置对象支持**: 如果您需要基于不同类型多值设计的配置对象，建议使用 [qubit-config](https://github.com/qubit-ltd/rust-config) crate，
+它提供了完整的配置管理功能。您可以在 [GitHub](https://github.com/qubit-ltd/rust-config) 和 [crates.io](https://crates.io/crates/qubit-config) 上找到更多信息。
 
 ## 特性
 
@@ -49,7 +49,7 @@ qubit-value = "0.2.0"
 
 ```rust
 use qubit_value::{Value, ValueError};
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 use num_bigint::BigInt;
 use bigdecimal::BigDecimal;
 use std::str::FromStr;
@@ -97,7 +97,7 @@ assert_eq!(any.get_string()?, "hello");
 
 ```rust
 use qubit_value::{MultiValues, ValueError};
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 use num_bigint::BigInt;
 use bigdecimal::BigDecimal;
 
@@ -246,7 +246,7 @@ assert_eq!(big_num, &BigInt::from(12345678901234567890i64));
 
 ```rust
 use qubit_value::{ValueError, ValueResult};
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 
 // 主要错误变体
 let no_value = ValueError::NoValue;
@@ -342,7 +342,7 @@ fn demo() -> ValueResult<()> { Ok(()) }
 
 ```toml
 [dependencies]
-prism3-core = "0.1.1"
+qubit-common = "0.3.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"

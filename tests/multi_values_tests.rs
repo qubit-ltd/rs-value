@@ -16,7 +16,7 @@
 
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 use qubit_value::{MultiValues, Value, ValueError};
 use std::str::FromStr;
 

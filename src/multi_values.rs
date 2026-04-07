@@ -21,7 +21,7 @@ use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use num_bigint::BigInt;
 use serde::{Deserialize, Serialize};
 
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 
 use super::error::{ValueError, ValueResult};
 use super::value::Value;

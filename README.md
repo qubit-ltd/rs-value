@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
 
-A type-safe value container framework built on `prism3_core::lang::DataType`, providing unified abstractions for single
+A type-safe value container framework built on `qubit_common::lang::DataType`, providing unified abstractions for single
 values, multi-values, and named values with generic construction/access/mutation, type conversion, and complete `serde`
 serialization support.
 
@@ -18,9 +18,9 @@ the gap between static typing and runtime flexibility, offering powerful abstrac
 conversion while maintaining Rust's safety guarantees.
 
 > **Configuration Object Support**: If you need configuration objects based on different types of multi-value designs,
- consider using the [prism3-config](https://github.com/3-prism/prism3-rust-config) crate, which provides comprehensive
- configuration management functionality. You can find more information on [GitHub](https://github.com/3-prism/prism3-rust-config)
- and [crates.io](https://crates.io/crates/prism3-config).
+ consider using the [qubit-config](https://github.com/qubit-ltd/rust-config) crate, which provides comprehensive
+ configuration management functionality. You can find more information on [GitHub](https://github.com/qubit-ltd/rust-config)
+ and [crates.io](https://crates.io/crates/qubit-config).
 
 ## Features
 
@@ -54,7 +54,7 @@ qubit-value = "0.2.0"
 
 ```rust
 use qubit_value::{Value, ValueError};
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 use num_bigint::BigInt;
 use bigdecimal::BigDecimal;
 use std::str::FromStr;
@@ -102,7 +102,7 @@ assert_eq!(any.get_string()?, "hello");
 
 ```rust
 use qubit_value::{MultiValues, ValueError};
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 use num_bigint::BigInt;
 use bigdecimal::BigDecimal;
 
@@ -251,7 +251,7 @@ assert_eq!(big_num, &BigInt::from(12345678901234567890i64));
 
 ```rust
 use qubit_value::{ValueError, ValueResult};
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 
 // Main error variants
 let no_value = ValueError::NoValue;
@@ -347,7 +347,7 @@ All types implement `Serialize`/`Deserialize`:
 
 ```toml
 [dependencies]
-prism3-core = "0.1.1"
+qubit-common = "0.3.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"

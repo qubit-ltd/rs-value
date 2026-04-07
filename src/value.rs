@@ -20,7 +20,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 
 use super::error::{ValueError, ValueResult};
 

@@ -11,7 +11,7 @@
 //! Covers the four generic entry points `set`/`add`/`get`/`get_first`, verifying all supported types and three parameter categories。
 
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 use qubit_value::MultiValues;
 
 // ------------------------------ set: Vec<T> ------------------------------

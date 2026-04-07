@@ -14,7 +14,7 @@
 //!
 //! Haixing Hu
 
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 use thiserror::Error;
 
 /// Value processing error type

@@ -17,7 +17,7 @@
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use num_bigint::BigInt;
-use prism3_core::lang::DataType;
+use qubit_common::lang::DataType;
 use qubit_value::{Value, ValueError};
 use std::str::FromStr;
 
