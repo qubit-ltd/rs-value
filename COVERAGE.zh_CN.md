@@ -32,7 +32,7 @@ cargo install cargo-llvm-cov
 ./coverage.sh help
 ```
 
-**注意**：脚本会自动使用 `--package prism3-value` 参数只统计当前 crate 的覆盖率，排除依赖项（如 `prism3-core`）。
+**注意**：脚本会自动使用 `--package qubit-value` 参数只统计当前 crate 的覆盖率，排除依赖项（如 `prism3-core`）。
 
 ### 使用 cargo 命令
 
@@ -43,22 +43,22 @@ cargo install cargo-llvm-cov
 cargo llvm-cov clean
 
 # 生成 HTML 报告并在浏览器中打开（仅当前 crate）
-cargo llvm-cov --package prism3-value --html --open
+cargo llvm-cov --package qubit-value --html --open
 
 # 生成文本格式报告（输出到终端）
-cargo llvm-cov --package prism3-value
+cargo llvm-cov --package qubit-value
 
 # 生成 LCOV 格式报告
-cargo llvm-cov --package prism3-value --lcov --output-path target/llvm-cov/lcov.info
+cargo llvm-cov --package qubit-value --lcov --output-path target/llvm-cov/lcov.info
 
 # 生成 JSON 格式报告
-cargo llvm-cov --package prism3-value --json --output-path target/llvm-cov/coverage.json
+cargo llvm-cov --package qubit-value --json --output-path target/llvm-cov/coverage.json
 
 # 生成 Cobertura XML 格式报告
-cargo llvm-cov --package prism3-value --cobertura --output-path target/llvm-cov/cobertura.xml
+cargo llvm-cov --package qubit-value --cobertura --output-path target/llvm-cov/cobertura.xml
 ```
 
-**重要提示**：使用 `--package prism3-value`（或 `-p prism3-value`）参数只测试当前包，排除依赖项（如 `prism3-core`）的覆盖率统计。
+**重要提示**：使用 `--package qubit-value`（或 `-p qubit-value`）参数只测试当前包，排除依赖项（如 `prism3-core`）的覆盖率统计。
 
 ## 报告位置
 
@@ -121,14 +121,14 @@ jobs:
 
       - name: Generate coverage
         run: |
-          cd prism3-value
+          cd rust-value
           cargo llvm-cov --lcov --output-path lcov.info
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v3
         with:
-          files: prism3-value/lcov.info
-          flags: prism3-value
+          files: rust-value/lcov.info
+          flags: qubit-value
 ```
 
 ## 常见问题
