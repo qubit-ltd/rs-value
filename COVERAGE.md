@@ -32,7 +32,7 @@ We provide a convenience script `coverage.sh` that can quickly generate coverage
 ./coverage.sh help
 ```
 
-**Note**: The script automatically uses `--package prism3-value` to only show coverage for the current crate, excluding dependencies (like `prism3-core`).
+**Note**: The script automatically uses `--package qubit-value` to only show coverage for the current crate, excluding dependencies (like `prism3-core`).
 
 ### Using cargo Commands
 
@@ -43,22 +43,22 @@ You can also use `cargo llvm-cov` commands directly:
 cargo llvm-cov clean
 
 # Generate HTML report and open in browser (only current crate)
-cargo llvm-cov --package prism3-value --html --open
+cargo llvm-cov --package qubit-value --html --open
 
 # Generate text format report (output to terminal)
-cargo llvm-cov --package prism3-value
+cargo llvm-cov --package qubit-value
 
 # Generate LCOV format report
-cargo llvm-cov --package prism3-value --lcov --output-path target/llvm-cov/lcov.info
+cargo llvm-cov --package qubit-value --lcov --output-path target/llvm-cov/lcov.info
 
 # Generate JSON format report
-cargo llvm-cov --package prism3-value --json --output-path target/llvm-cov/coverage.json
+cargo llvm-cov --package qubit-value --json --output-path target/llvm-cov/coverage.json
 
 # Generate Cobertura XML format report
-cargo llvm-cov --package prism3-value --cobertura --output-path target/llvm-cov/cobertura.xml
+cargo llvm-cov --package qubit-value --cobertura --output-path target/llvm-cov/cobertura.xml
 ```
 
-**Important**: Use `--package prism3-value` (or `-p prism3-value`) to only test the current package, excluding dependencies (like `prism3-core`) from coverage statistics.
+**Important**: Use `--package qubit-value` (or `-p qubit-value`) to only test the current package, excluding dependencies (like `prism3-core`) from coverage statistics.
 
 ## Report Locations
 
@@ -121,14 +121,14 @@ jobs:
 
       - name: Generate coverage
         run: |
-          cd prism3-value
+          cd rust-value
           cargo llvm-cov --lcov --output-path lcov.info
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v3
         with:
-          files: prism3-value/lcov.info
-          flags: prism3-value
+          files: rust-value/lcov.info
+          flags: qubit-value
 ```
 
 ## Common Issues

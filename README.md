@@ -1,8 +1,8 @@
-# Prism3 Value
+# Qubit Value
 
-[![CircleCI](https://circleci.com/gh/3-prism/prism3-rust-value.svg?style=shield)](https://circleci.com/gh/3-prism/prism3-rust-value)
-[![Coverage Status](https://coveralls.io/repos/github/3-prism/prism3-rust-value/badge.svg?branch=main)](https://coveralls.io/github/3-prism/prism3-rust-value?branch=main)
-[![Crates.io](https://img.shields.io/crates/v/prism3-value.svg?color=blue)](https://crates.io/crates/prism3-value)
+[![CircleCI](https://circleci.com/gh/qubit-ltd/rust-value.svg?style=shield)](https://circleci.com/gh/qubit-ltd/rust-value)
+[![Coverage Status](https://coveralls.io/repos/github/qubit-ltd/rust-value/badge.svg?branch=main)](https://coveralls.io/github/qubit-ltd/rust-value?branch=main)
+[![Crates.io](https://img.shields.io/crates/v/qubit-value.svg?color=blue)](https://crates.io/crates/qubit-value)
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
@@ -13,7 +13,7 @@ serialization support.
 
 ## Overview
 
-Prism3 Value provides a comprehensive solution for handling dynamically-typed values in a type-safe manner. It bridges
+Qubit Value provides a comprehensive solution for handling dynamically-typed values in a type-safe manner. It bridges
 the gap between static typing and runtime flexibility, offering powerful abstractions for value storage, retrieval, and
 conversion while maintaining Rust's safety guarantees.
 
@@ -45,7 +45,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-prism3-value = "0.1.0"
+qubit-value = "0.2.0"
 ```
 
 ## Usage Examples
@@ -53,7 +53,7 @@ prism3-value = "0.1.0"
 ### Single Value Operations
 
 ```rust
-use prism3_value::{Value, ValueError};
+use qubit_value::{Value, ValueError};
 use prism3_core::lang::DataType;
 use num_bigint::BigInt;
 use bigdecimal::BigDecimal;
@@ -101,7 +101,7 @@ assert_eq!(any.get_string()?, "hello");
 ### Multi-Value Operations
 
 ```rust
-use prism3_value::{MultiValues, ValueError};
+use qubit_value::{MultiValues, ValueError};
 use prism3_core::lang::DataType;
 use num_bigint::BigInt;
 use bigdecimal::BigDecimal;
@@ -161,7 +161,7 @@ assert_eq!(first_val, 1);
 ### Named Value Operations
 
 ```rust
-use prism3_value::{NamedValue, NamedMultiValues, Value, MultiValues};
+use qubit_value::{NamedValue, NamedMultiValues, Value, MultiValues};
 use num_bigint::BigInt;
 
 // Named single value with type inference
@@ -250,7 +250,7 @@ assert_eq!(big_num, &BigInt::from(12345678901234567890i64));
 ## Error Types
 
 ```rust
-use prism3_value::{ValueError, ValueResult};
+use qubit_value::{ValueError, ValueResult};
 use prism3_core::lang::DataType;
 
 // Main error variants
@@ -347,7 +347,7 @@ All types implement `Serialize`/`Deserialize`:
 
 ```toml
 [dependencies]
-prism3-core = { path = "external/prism3-rust-commons/prism3-core" }
+prism3-core = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
@@ -365,7 +365,7 @@ This project maintains comprehensive test coverage with detailed validation of a
 
 ## License
 
-Copyright (c) 2025 3-Prism Co. Ltd. All rights reserved.
+Copyright (c) 2025 - 2026 Haixing Hu, Qubit Co. Ltd. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -387,8 +387,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Author
 
-**Hu Haixing** - *3-Prism Co. Ltd.*
+**Haixing Hu** - *Qubit Co. Ltd.*
 
 ---
 
-For more information about the Prism3 ecosystem, visit our [GitHub homepage](https://github.com/3-prism).
+For more information about Qubit open source projects, visit our [GitHub organization](https://github.com/qubit-ltd).
