@@ -47,7 +47,7 @@ use super::value::Value;
 ///
 /// let named = NamedValue::new("flag", Value::Bool(true));
 /// // Call Value methods through Deref
-/// assert_eq!(named.as_bool().unwrap(), true);
+/// assert_eq!(named.to::<bool>().unwrap(), true);
 /// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NamedValue {
@@ -133,7 +133,7 @@ impl Deref for NamedValue {
 
     /// Dereference to the inner [`Value`]
     ///
-    /// Allows direct invocation of methods on [`Value`], for example: `named.as_i32()`.
+    /// Allows direct invocation of methods on [`Value`], for example: `named.to::<i32>()`.
     ///
     /// # Returns
     ///
@@ -146,7 +146,7 @@ impl Deref for NamedValue {
     ///
     /// let named = NamedValue::new("flag", Value::Bool(true));
     /// // Call Value methods through Deref
-    /// assert_eq!(named.as_bool().unwrap(), true);
+    /// assert_eq!(named.to::<bool>().unwrap(), true);
     /// ```
     fn deref(&self) -> &Self::Target {
         &self.value

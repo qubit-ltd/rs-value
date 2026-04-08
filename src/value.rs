@@ -24,13 +24,15 @@ use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
 
+use qubit_common::lang::argument::NumericArgument;
 use qubit_common::lang::DataType;
 
 use super::error::{ValueError, ValueResult};
 
 /// Single value container
 ///
-/// Uses an enum to represent different types of values, providing type-safe value storage and access.
+/// Uses an enum to represent different types of values, providing
+/// type-safe value storage and access.
 ///
 /// # Features
 ///
@@ -49,7 +51,7 @@ use super::error::{ValueError, ValueResult};
 /// assert_eq!(value.get_int32().unwrap(), 42);
 ///
 /// // Type conversion
-/// let converted = value.as_int64().unwrap();
+/// let converted = value.to::<i64>().unwrap();
 /// assert_eq!(converted, 42i64);
 ///
 /// // String value
@@ -133,7 +135,8 @@ pub enum Value {
 ///
 /// # Documentation Comment Support
 ///
-/// The macro automatically extracts preceding documentation comments, so you can add `///` comments before macro invocations.
+/// The macro automatically extracts preceding documentation comments, so
+/// you can add `///` comments before macro invocations.
 ///
 /// # Author
 ///
@@ -155,7 +158,8 @@ macro_rules! impl_get_value {
         }
     };
 
-    // Reference type: use conversion function to return reference, fixing lifetime issues
+    // Reference type: use conversion function to return reference,
+    // fixing lifetime issues
     ($(#[$attr:meta])* ref: $method:ident, $variant:ident, $ret_type:ty, $data_type:expr, $conversion:expr) => {
         $(#[$attr])*
         pub fn $method(&self) -> ValueResult<$ret_type> {
@@ -182,7 +186,8 @@ macro_rules! impl_get_value {
 ///
 /// # Documentation Comment Support
 ///
-/// The macro automatically extracts preceding documentation comments, so you can add `///` comments before macro invocations.
+/// The macro automatically extracts preceding documentation comments, so
+/// you can add `///` comments before macro invocations.
 ///
 /// # Author
 ///
@@ -211,7 +216,26 @@ macro_rules! impl_set_value {
 impl Value {
     /// Generic constructor method
     ///
-    /// Creates a `Value` from any supported type, avoiding direct use of enum variants.
+    /// Creates a `Value` from any supported type, avoiding direct use of
+    /// enum variants.
+    ///
+    /// # Supported Generic Types
+    ///
+    /// `Value::new<T>(value)` currently supports the following `T`:
+    ///
+    /// - `bool`
+    /// - `char`
+    /// - `i8`, `i16`, `i32`, `i64`, `i128`
+    /// - `u8`, `u16`, `u32`, `u64`, `u128`
+    /// - `f32`, `f64`
+    /// - `String`, `&str`
+    /// - `NaiveDate`, `NaiveTime`, `NaiveDateTime`, `DateTime<Utc>`
+    /// - `BigInt`, `BigDecimal`
+    /// - `isize`, `usize`
+    /// - `Duration`
+    /// - `Url`
+    /// - `HashMap<String, String>`
+    /// - `serde_json::Value`
     ///
     /// # Type Parameters
     ///
@@ -246,7 +270,30 @@ impl Value {
 
     /// Generic getter method
     ///
-    /// Automatically selects the correct getter method based on the target type, performing strict type checking.
+    /// Automatically selects the correct getter method based on the target
+    /// type, performing strict type checking.
+    ///
+    /// `get<T>()` performs strict type matching. It does not do cross-type conversion.
+    /// For example, `Value::Int32(42).get::<i64>()` fails, while
+    /// `Value::Int32(42).to::<i64>()` succeeds.
+    ///
+    /// # Supported Generic Types
+    ///
+    /// `Value::get<T>()` currently supports the following `T`:
+    ///
+    /// - `bool`
+    /// - `char`
+    /// - `i8`, `i16`, `i32`, `i64`, `i128`
+    /// - `u8`, `u16`, `u32`, `u64`, `u128`
+    /// - `f32`, `f64`
+    /// - `String`
+    /// - `NaiveDate`, `NaiveTime`, `NaiveDateTime`, `DateTime<Utc>`
+    /// - `BigInt`, `BigDecimal`
+    /// - `isize`, `usize`
+    /// - `Duration`
+    /// - `Url`
+    /// - `HashMap<String, String>`
+    /// - `serde_json::Value`
     ///
     /// # Type Parameters
     ///
@@ -254,7 +301,8 @@ impl Value {
     ///
     /// # Returns
     ///
-    /// If types match, returns the value of the corresponding type; otherwise returns an error
+    /// If types match, returns the value of the corresponding type;
+    /// otherwise returns an error
     ///
     /// # Example
     ///
@@ -288,9 +336,205 @@ impl Value {
         <Self as ValueGetter<T>>::get_value(self)
     }
 
+    /// Generic conversion method
+    ///
+    /// Converts the current value to the target type according to the conversion
+    /// rules defined by [`ValueConverter<T>`].
+    ///
+    /// # Supported Target Types And Source Variants
+    ///
+    /// `Value::to<T>()` currently supports the following target types:
+    ///
+    /// - `bool`
+    ///   - `Value::Bool`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+    ///     `Value::Int128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
+    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::String`, parsed as `bool`
+    /// - `char`
+    ///   - `Value::Char`
+    /// - `i8`
+    ///   - `Value::Int8`
+    /// - `i16`
+    ///   - `Value::Int16`
+    /// - `i32`
+    ///   - `Value::Int32`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int64`, `Value::Int128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
+    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::Float32`, `Value::Float64`
+    ///   - `Value::String`, parsed as `i32`
+    ///   - `Value::BigInteger`, `Value::BigDecimal`
+    /// - `i64`
+    ///   - `Value::Int64`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
+    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::Float32`, `Value::Float64`
+    ///   - `Value::String`, parsed as `i64`
+    ///   - `Value::BigInteger`, `Value::BigDecimal`
+    /// - `i128`
+    ///   - `Value::Int128`
+    /// - `u8`
+    ///   - `Value::UInt8`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+    ///     `Value::Int128`
+    ///   - `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
+    ///   - `Value::String`, parsed as `u8`
+    /// - `u16`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
+    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+    ///     `Value::Int128`
+    ///   - `Value::String`, parsed as `u16`
+    /// - `u32`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
+    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+    ///     `Value::Int128`
+    ///   - `Value::String`, parsed as `u32`
+    /// - `u64`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
+    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+    ///     `Value::Int128`
+    ///   - `Value::String`, parsed as `u64`
+    /// - `u128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
+    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+    ///     `Value::Int128`
+    ///   - `Value::String`, parsed as `u128`
+    /// - `f32`
+    ///   - `Value::Float32`, `Value::Float64`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+    ///     `Value::Int128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
+    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::String`, parsed as `f32`
+    ///   - `Value::BigInteger`, `Value::BigDecimal`
+    /// - `f64`
+    ///   - `Value::Float64`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+    ///     `Value::Int128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
+    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::Float32`
+    ///   - `Value::String`, parsed as `f64`
+    ///   - `Value::BigInteger`, `Value::BigDecimal`
+    /// - `String`
+    ///   - `Value::String`
+    ///   - `Value::Bool`, `Value::Char`
+    ///   - all integer and floating-point variants
+    ///   - `Value::Date`, `Value::Time`, `Value::DateTime`, `Value::Instant`
+    ///   - `Value::BigInteger`, `Value::BigDecimal`
+    ///   - `Value::IntSize`, `Value::UIntSize`
+    ///   - `Value::Duration`, formatted as `<nanoseconds>ns`
+    ///   - `Value::Url`
+    ///   - `Value::StringMap`, serialized as JSON text
+    ///   - `Value::Json`, serialized as JSON text
+    /// - `NaiveDate`
+    ///   - `Value::Date`
+    /// - `NaiveTime`
+    ///   - `Value::Time`
+    /// - `NaiveDateTime`
+    ///   - `Value::DateTime`
+    /// - `DateTime<Utc>`
+    ///   - `Value::Instant`
+    /// - `BigInt`
+    ///   - `Value::BigInteger`
+    /// - `BigDecimal`
+    ///   - `Value::BigDecimal`
+    /// - `isize`
+    ///   - `Value::IntSize`
+    /// - `usize`
+    ///   - `Value::UIntSize`
+    /// - `Duration`
+    ///   - `Value::Duration`
+    ///   - `Value::String`, parsed from `<nanoseconds>ns`
+    /// - `Url`
+    ///   - `Value::Url`
+    ///   - `Value::String`, parsed as URL text
+    /// - `HashMap<String, String>`
+    ///   - `Value::StringMap`
+    /// - `serde_json::Value`
+    ///   - `Value::Json`
+    ///   - `Value::String`, parsed as JSON text
+    ///   - `Value::StringMap`, converted to a JSON object
+    ///
+    /// Any target type not listed above is not supported by `Value::to<T>()`.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - The target type to convert to
+    ///
+    /// # Returns
+    ///
+    /// Returns the converted value on success, or an error if conversion is not
+    /// supported or fails.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use crate::util::value::Value;
+    ///
+    /// let value = Value::Int32(42);
+    ///
+    /// let num: i64 = value.to().unwrap();
+    /// assert_eq!(num, 42);
+    ///
+    /// let text: String = value.to().unwrap();
+    /// assert_eq!(text, "42");
+    /// ```
+    pub fn to<T>(&self) -> ValueResult<T>
+    where
+        Self: ValueConverter<T>,
+    {
+        <Self as ValueConverter<T>>::convert(self)
+    }
+
     /// Generic setter method
     ///
-    /// Automatically selects the correct setter method based on the target type, performing strict type checking.
+    /// Automatically selects the correct setter method based on the target
+    /// type, performing strict type checking.
+    ///
+    /// # Supported Generic Types
+    ///
+    /// `Value::set<T>(value)` currently supports the following `T`:
+    ///
+    /// - `bool`
+    /// - `char`
+    /// - `i8`, `i16`, `i32`, `i64`, `i128`
+    /// - `u8`, `u16`, `u32`, `u64`, `u128`
+    /// - `f32`, `f64`
+    /// - `String`, `&str`
+    /// - `NaiveDate`, `NaiveTime`, `NaiveDateTime`, `DateTime<Utc>`
+    /// - `BigInt`, `BigDecimal`
+    /// - `isize`, `usize`
+    /// - `Duration`
+    /// - `Url`
+    /// - `HashMap<String, String>`
+    /// - `serde_json::Value`
     ///
     /// # Type Parameters
     ///
@@ -423,7 +667,8 @@ impl Value {
 
     /// Set the data type
     ///
-    /// If the new type differs from the current type, clears the value and sets the new type.
+    /// If the new type differs from the current type, clears the value
+    /// and sets the new type.
     ///
     /// # Parameters
     ///
@@ -683,334 +928,6 @@ impl Value {
         /// assert_eq!(value.get_bigdecimal().unwrap(), BigDecimal::from(123.456));
         /// ```
         ref: get_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
-    }
-
-    // ========================================================================
-    // Type conversion getters (attempt conversion)
-    // ========================================================================
-
-    /// Convert to boolean value
-    ///
-    /// # Returns
-    ///
-    /// Attempts to convert the value to a boolean, supporting conversion from various types
-    ///
-    /// # Example
-    ///
-    /// ```rust,ignore
-    /// use crate::util::value::Value;
-    ///
-    /// let value = Value::Int32(1);
-    /// assert_eq!(value.as_bool().unwrap(), true);
-    ///
-    /// let value = Value::String("true".to_string());
-    /// assert_eq!(value.as_bool().unwrap(), true);
-    /// ```
-    pub fn as_bool(&self) -> ValueResult<bool> {
-        match self {
-            Value::Bool(v) => Ok(*v),
-            Value::Int8(v) => Ok(*v != 0),
-            Value::Int16(v) => Ok(*v != 0),
-            Value::Int32(v) => Ok(*v != 0),
-            Value::Int64(v) => Ok(*v != 0),
-            Value::Int128(v) => Ok(*v != 0),
-            Value::UInt8(v) => Ok(*v != 0),
-            Value::UInt16(v) => Ok(*v != 0),
-            Value::UInt32(v) => Ok(*v != 0),
-            Value::UInt64(v) => Ok(*v != 0),
-            Value::UInt128(v) => Ok(*v != 0),
-            Value::String(s) => s.parse::<bool>().map_err(|_| {
-                ValueError::ConversionError(format!("Cannot convert '{}' to boolean", s))
-            }),
-            Value::Empty(_) => Err(ValueError::NoValue),
-            _ => Err(ValueError::ConversionFailed {
-                from: self.data_type(),
-                to: DataType::Bool,
-            }),
-        }
-    }
-
-    /// Convert to int32 value
-    ///
-    /// # Returns
-    ///
-    /// Attempts to convert the value to i32, supporting conversion from various types
-    ///
-    /// # Example
-    ///
-    /// ```rust,ignore
-    /// use crate::util::value::Value;
-    ///
-    /// let value = Value::Int8(42);
-    /// assert_eq!(value.as_int32().unwrap(), 42);
-    ///
-    /// let value = Value::String("123".to_string());
-    /// assert_eq!(value.as_int32().unwrap(), 123);
-    /// ```
-    pub fn as_int32(&self) -> ValueResult<i32> {
-        match self {
-            Value::Int32(v) => Ok(*v),
-            Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
-            Value::Char(v) => Ok(*v as i32),
-            Value::Int8(v) => Ok(*v as i32),
-            Value::Int16(v) => Ok(*v as i32),
-            Value::Int64(v) => (*v)
-                .try_into()
-                .map_err(|_| ValueError::ConversionError("i64 value out of i32 range".to_string())),
-            Value::Int128(v) => (*v).try_into().map_err(|_| {
-                ValueError::ConversionError("i128 value out of i32 range".to_string())
-            }),
-            Value::UInt8(v) => Ok(*v as i32),
-            Value::UInt16(v) => Ok(*v as i32),
-            Value::UInt32(v) => (*v)
-                .try_into()
-                .map_err(|_| ValueError::ConversionError("u32 value out of i32 range".to_string())),
-            Value::UInt64(v) => (*v)
-                .try_into()
-                .map_err(|_| ValueError::ConversionError("u64 value out of i32 range".to_string())),
-            Value::UInt128(v) => (*v).try_into().map_err(|_| {
-                ValueError::ConversionError("u128 value out of i32 range".to_string())
-            }),
-            Value::Float32(v) => Ok(*v as i32),
-            Value::Float64(v) => Ok(*v as i32),
-            Value::String(s) => s
-                .parse::<i32>()
-                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to i32", s))),
-            Value::Empty(_) => Err(ValueError::NoValue),
-            Value::BigInteger(v) => v.to_i32().ok_or_else(|| {
-                ValueError::ConversionError("BigInteger value out of i32 range".to_string())
-            }),
-            Value::BigDecimal(v) => v.to_i32().ok_or_else(|| {
-                ValueError::ConversionError(
-                    "BigDecimal value cannot be converted to i32".to_string(),
-                )
-            }),
-            _ => Err(ValueError::ConversionFailed {
-                from: self.data_type(),
-                to: DataType::Int32,
-            }),
-        }
-    }
-
-    /// Convert to int64 value
-    ///
-    /// # Returns
-    ///
-    /// Attempts to convert the value to i64, supporting conversion from various types
-    ///
-    /// # Example
-    ///
-    /// ```rust,ignore
-    /// use crate::util::value::Value;
-    ///
-    /// let value = Value::Int32(42);
-    /// assert_eq!(value.as_int64().unwrap(), 42i64);
-    ///
-    /// let value = Value::Float64(123.456);
-    /// assert_eq!(value.as_int64().unwrap(), 123i64);
-    /// ```
-    pub fn as_int64(&self) -> ValueResult<i64> {
-        match self {
-            Value::Int64(v) => Ok(*v),
-            Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
-            Value::Char(v) => Ok(*v as i64),
-            Value::Int8(v) => Ok(*v as i64),
-            Value::Int16(v) => Ok(*v as i64),
-            Value::Int32(v) => Ok(*v as i64),
-            Value::Int128(v) => (*v).try_into().map_err(|_| {
-                ValueError::ConversionError("i128 value out of i64 range".to_string())
-            }),
-            Value::UInt8(v) => Ok(*v as i64),
-            Value::UInt16(v) => Ok(*v as i64),
-            Value::UInt32(v) => Ok(*v as i64),
-            Value::UInt64(v) => (*v)
-                .try_into()
-                .map_err(|_| ValueError::ConversionError("u64 value out of i64 range".to_string())),
-            Value::UInt128(v) => (*v).try_into().map_err(|_| {
-                ValueError::ConversionError("u128 value out of i64 range".to_string())
-            }),
-            Value::Float32(v) => Ok(*v as i64),
-            Value::Float64(v) => Ok(*v as i64),
-            Value::String(s) => s
-                .parse::<i64>()
-                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to i64", s))),
-            Value::Empty(_) => Err(ValueError::NoValue),
-            Value::BigInteger(v) => v.to_i64().ok_or_else(|| {
-                ValueError::ConversionError("BigInteger value out of i64 range".to_string())
-            }),
-            Value::BigDecimal(v) => v.to_i64().ok_or_else(|| {
-                ValueError::ConversionError(
-                    "BigDecimal value cannot be converted to i64".to_string(),
-                )
-            }),
-            _ => Err(ValueError::ConversionFailed {
-                from: self.data_type(),
-                to: DataType::Int64,
-            }),
-        }
-    }
-
-    /// Convert to float64 value
-    ///
-    /// # Returns
-    ///
-    /// Attempts to convert the value to f64, supporting conversion from various types
-    ///
-    /// # Example
-    ///
-    /// ```rust,ignore
-    /// use crate::util::value::Value;
-    ///
-    /// let value = Value::Int32(42);
-    /// assert_eq!(value.as_float64().unwrap(), 42.0);
-    ///
-    /// let value = Value::Bool(true);
-    /// assert_eq!(value.as_float64().unwrap(), 1.0);
-    /// ```
-    pub fn as_float64(&self) -> ValueResult<f64> {
-        match self {
-            Value::Float64(v) => Ok(*v),
-            Value::Bool(v) => Ok(if *v { 1.0 } else { 0.0 }),
-            Value::Char(v) => Ok(*v as u32 as f64),
-            Value::Float32(v) => Ok(*v as f64),
-            Value::Int8(v) => Ok(*v as f64),
-            Value::Int16(v) => Ok(*v as f64),
-            Value::Int32(v) => Ok(*v as f64),
-            Value::Int64(v) => Ok(*v as f64),
-            Value::Int128(v) => Ok(*v as f64),
-            Value::UInt8(v) => Ok(*v as f64),
-            Value::UInt16(v) => Ok(*v as f64),
-            Value::UInt32(v) => Ok(*v as f64),
-            Value::UInt64(v) => Ok(*v as f64),
-            Value::UInt128(v) => Ok(*v as f64),
-            Value::String(s) => s
-                .parse::<f64>()
-                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to f64", s))),
-            Value::Empty(_) => Err(ValueError::NoValue),
-            Value::BigInteger(v) => v.to_f64().ok_or_else(|| {
-                ValueError::ConversionError(
-                    "BigInteger value cannot be converted to f64".to_string(),
-                )
-            }),
-            Value::BigDecimal(v) => v.to_f64().ok_or_else(|| {
-                ValueError::ConversionError(
-                    "BigDecimal value cannot be converted to f64".to_string(),
-                )
-            }),
-            _ => Err(ValueError::ConversionFailed {
-                from: self.data_type(),
-                to: DataType::Float64,
-            }),
-        }
-    }
-
-    /// Convert to string
-    ///
-    /// # Returns
-    ///
-    /// Converts the value to its string representation
-    ///
-    /// # Example
-    ///
-    /// ```rust,ignore
-    /// use crate::util::value::Value;
-    ///
-    /// let value = Value::Int32(42);
-    /// assert_eq!(value.as_string().unwrap(), "42");
-    ///
-    /// let value = Value::Bool(true);
-    /// assert_eq!(value.as_string().unwrap(), "true");
-    /// ```
-    pub fn as_string(&self) -> ValueResult<String> {
-        match self {
-            Value::String(v) => Ok(v.clone()),
-            Value::Bool(v) => Ok(v.to_string()),
-            Value::Char(v) => Ok(v.to_string()),
-            Value::Int8(v) => Ok(v.to_string()),
-            Value::Int16(v) => Ok(v.to_string()),
-            Value::Int32(v) => Ok(v.to_string()),
-            Value::Int64(v) => Ok(v.to_string()),
-            Value::Int128(v) => Ok(v.to_string()),
-            Value::UInt8(v) => Ok(v.to_string()),
-            Value::UInt16(v) => Ok(v.to_string()),
-            Value::UInt32(v) => Ok(v.to_string()),
-            Value::UInt64(v) => Ok(v.to_string()),
-            Value::UInt128(v) => Ok(v.to_string()),
-            Value::Float32(v) => Ok(v.to_string()),
-            Value::Float64(v) => Ok(v.to_string()),
-            Value::Date(v) => Ok(v.to_string()),
-            Value::Time(v) => Ok(v.to_string()),
-            Value::DateTime(v) => Ok(v.to_string()),
-            Value::Instant(v) => Ok(v.to_rfc3339()),
-            Value::BigInteger(v) => Ok(v.to_string()),
-            Value::BigDecimal(v) => Ok(v.to_string()),
-            Value::IntSize(v) => Ok(v.to_string()),
-            Value::UIntSize(v) => Ok(v.to_string()),
-            Value::Duration(v) => Ok(format!("{}ns", v.as_nanos())),
-            Value::Url(v) => Ok(v.to_string()),
-            Value::StringMap(v) => serde_json::to_string(v)
-                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
-            Value::Json(v) => serde_json::to_string(v)
-                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
-            Value::Empty(_) => Err(ValueError::NoValue),
-        }
-    }
-
-    /// Convert to `Duration`
-    ///
-    /// Supports conversion from:
-    /// - `Value::Duration`
-    /// - `Value::String`, using the same `<nanoseconds>ns` format as `as_string()`
-    pub fn as_duration(&self) -> ValueResult<Duration> {
-        match self {
-            Value::Duration(v) => Ok(*v),
-            Value::String(s) => parse_duration_string(s),
-            Value::Empty(_) => Err(ValueError::NoValue),
-            _ => Err(ValueError::ConversionFailed {
-                from: self.data_type(),
-                to: DataType::Duration,
-            }),
-        }
-    }
-
-    /// Convert to `Url`
-    ///
-    /// Supports conversion from:
-    /// - `Value::Url`
-    /// - `Value::String`
-    pub fn as_url(&self) -> ValueResult<Url> {
-        match self {
-            Value::Url(v) => Ok(v.clone()),
-            Value::String(s) => Url::parse(s).map_err(|e| {
-                ValueError::ConversionError(format!("Cannot convert '{}' to Url: {}", s, e))
-            }),
-            Value::Empty(_) => Err(ValueError::NoValue),
-            _ => Err(ValueError::ConversionFailed {
-                from: self.data_type(),
-                to: DataType::Url,
-            }),
-        }
-    }
-
-    /// Convert to `serde_json::Value`
-    ///
-    /// Supports conversion from:
-    /// - `Value::Json`
-    /// - `Value::String`, parsed as JSON text
-    /// - `Value::StringMap`, converted to a JSON object
-    pub fn as_json(&self) -> ValueResult<serde_json::Value> {
-        match self {
-            Value::Json(v) => Ok(v.clone()),
-            Value::String(s) => serde_json::from_str(s)
-                .map_err(|e| ValueError::JsonDeserializationError(e.to_string())),
-            Value::StringMap(v) => serde_json::to_value(v)
-                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
-            Value::Empty(_) => Err(ValueError::NoValue),
-            _ => Err(ValueError::ConversionFailed {
-                from: self.data_type(),
-                to: DataType::Json,
-            }),
-        }
     }
 
     // ========================================================================
@@ -1364,7 +1281,8 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the Url; otherwise returns an error
+        /// If types match, returns a reference to the Url; otherwise
+        /// returns an error
         ref: get_url, Url, Url, DataType::Url, |v: &Url| v.clone()
     }
 
@@ -1373,8 +1291,10 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the HashMap<String, String>; otherwise returns an error
-        ref: get_string_map, StringMap, HashMap<String, String>, DataType::StringMap, |v: &HashMap<String, String>| v.clone()
+        /// If types match, returns a reference to the
+        /// `HashMap<String, String>`; otherwise returns an error
+        ref: get_string_map, StringMap, HashMap<String, String>, DataType::StringMap,
+            |v: &HashMap<String, String>| v.clone()
     }
 
     impl_get_value! {
@@ -1382,8 +1302,10 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the serde_json::Value; otherwise returns an error
-        ref: get_json, Json, serde_json::Value, DataType::Json, |v: &serde_json::Value| v.clone()
+        /// If types match, returns a reference to the `serde_json::Value`;
+        /// otherwise returns an error
+        ref: get_json, Json, serde_json::Value, DataType::Json,
+            |v: &serde_json::Value| v.clone()
     }
 
     impl_set_value! {
@@ -1441,7 +1363,8 @@ impl Value {
     ///
     /// # Returns
     ///
-    /// Returns `Ok(Value::Json(...))` on success, or an error if serialization fails
+    /// Returns `Ok(Value::Json(...))` on success, or an error if
+    /// serialization fails
     pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
         let json = serde_json::to_value(value)
             .map_err(|e| ValueError::JsonSerializationError(e.to_string()))?;
@@ -1458,7 +1381,8 @@ impl Value {
     ///
     /// # Returns
     ///
-    /// Returns `Ok(T)` on success, or an error if the value is not JSON or deserialization fails
+    /// Returns `Ok(T)` on success, or an error if the value is not JSON
+    /// or deserialization fails
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match self {
             Value::Json(v) => serde_json::from_value(v.clone())
@@ -1503,13 +1427,26 @@ fn parse_duration_string(s: &str) -> ValueResult<Duration> {
     Ok(Duration::new(secs as u64, nanos))
 }
 
+fn range_check<T>(value: T, min: T, max: T, target: &str) -> ValueResult<T>
+where
+    T: NumericArgument + Copy,
+{
+    value
+        .require_in_closed_range("value", min, max)
+        .map_err(|e| {
+            ValueError::ConversionError(format!("Cannot convert value to {}: {}", target, e))
+        })
+}
+
 // ============================================================================
-// Internal generic conversion traits (private, not exported, to avoid polluting the standard type namespace)
+// Internal generic conversion traits (private, not exported, to avoid
+// polluting the standard type namespace)
 // ============================================================================
 
 /// Internal trait: used to extract specific types from Value
 ///
-/// This trait is not exported in mod.rs, only used for internal implementation, to avoid polluting the standard type namespace
+/// This trait is not exported in mod.rs, only used for internal
+/// implementation, to avoid polluting the standard type namespace
 #[doc(hidden)]
 pub trait ValueGetter<T> {
     fn get_value(&self) -> ValueResult<T>;
@@ -1517,7 +1454,8 @@ pub trait ValueGetter<T> {
 
 /// Internal trait: used to create Value from types
 ///
-/// This trait is not exported in mod.rs, only used for internal implementation, to avoid polluting the standard type namespace
+/// This trait is not exported in mod.rs, only used for internal
+/// implementation, to avoid polluting the standard type namespace
 #[doc(hidden)]
 pub trait ValueConstructor<T> {
     fn from_type(value: T) -> Self;
@@ -1525,10 +1463,20 @@ pub trait ValueConstructor<T> {
 
 /// Internal trait: used to set specific types in Value
 ///
-/// This trait is not exported in mod.rs, only used for internal implementation, to avoid polluting the standard type namespace
+/// This trait is not exported in mod.rs, only used for internal
+/// implementation, to avoid polluting the standard type namespace
 #[doc(hidden)]
 pub trait ValueSetter<T> {
     fn set_value(&mut self, value: T) -> ValueResult<()>;
+}
+
+/// Internal trait: used to convert Value to target types
+///
+/// This trait powers `Value::to<T>()`. Each implementation must clearly define
+/// which source variants are accepted for the target type.
+#[doc(hidden)]
+pub trait ValueConverter<T> {
+    fn convert(&self) -> ValueResult<T>;
 }
 
 // ============================================================================
@@ -1552,6 +1500,17 @@ macro_rules! impl_value_traits {
         impl ValueConstructor<$type> for Value {
             fn from_type(value: $type) -> Self {
                 Value::$variant(value)
+            }
+        }
+    };
+}
+
+macro_rules! impl_strict_value_converter {
+    ($(#[$attr:meta])* $type:ty, $get_method:ident) => {
+        $(#[$attr])*
+        impl ValueConverter<$type> for Value {
+            fn convert(&self) -> ValueResult<$type> {
+                self.$get_method()
             }
         }
     };
@@ -1601,6 +1560,55 @@ impl ValueConstructor<String> for Value {
     }
 }
 
+/// Target type `String` supports conversion from:
+///
+/// - `Value::String`
+/// - `Value::Bool`, `Value::Char`
+/// - all integer and floating-point variants
+/// - `Value::Date`, `Value::Time`, `Value::DateTime`, `Value::Instant`
+/// - `Value::BigInteger`, `Value::BigDecimal`
+/// - `Value::IntSize`, `Value::UIntSize`
+/// - `Value::Duration`, formatted as `<nanoseconds>ns`
+/// - `Value::Url`
+/// - `Value::StringMap`, serialized as JSON text
+/// - `Value::Json`, serialized as JSON text
+impl ValueConverter<String> for Value {
+    fn convert(&self) -> ValueResult<String> {
+        match self {
+            Value::String(v) => Ok(v.clone()),
+            Value::Bool(v) => Ok(v.to_string()),
+            Value::Char(v) => Ok(v.to_string()),
+            Value::Int8(v) => Ok(v.to_string()),
+            Value::Int16(v) => Ok(v.to_string()),
+            Value::Int32(v) => Ok(v.to_string()),
+            Value::Int64(v) => Ok(v.to_string()),
+            Value::Int128(v) => Ok(v.to_string()),
+            Value::UInt8(v) => Ok(v.to_string()),
+            Value::UInt16(v) => Ok(v.to_string()),
+            Value::UInt32(v) => Ok(v.to_string()),
+            Value::UInt64(v) => Ok(v.to_string()),
+            Value::UInt128(v) => Ok(v.to_string()),
+            Value::Float32(v) => Ok(v.to_string()),
+            Value::Float64(v) => Ok(v.to_string()),
+            Value::Date(v) => Ok(v.to_string()),
+            Value::Time(v) => Ok(v.to_string()),
+            Value::DateTime(v) => Ok(v.to_string()),
+            Value::Instant(v) => Ok(v.to_rfc3339()),
+            Value::BigInteger(v) => Ok(v.to_string()),
+            Value::BigDecimal(v) => Ok(v.to_string()),
+            Value::IntSize(v) => Ok(v.to_string()),
+            Value::UIntSize(v) => Ok(v.to_string()),
+            Value::Duration(v) => Ok(format!("{}ns", v.as_nanos())),
+            Value::Url(v) => Ok(v.to_string()),
+            Value::StringMap(v) => serde_json::to_string(v)
+                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
+            Value::Json(v) => serde_json::to_string(v)
+                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
+            Value::Empty(_) => Err(ValueError::NoValue),
+        }
+    }
+}
+
 // Special handling for &str - convert to String
 impl ValueSetter<&str> for Value {
     fn set_value(&mut self, value: &str) -> ValueResult<()> {
@@ -1611,6 +1619,203 @@ impl ValueSetter<&str> for Value {
 impl ValueConstructor<&str> for Value {
     fn from_type(value: &str) -> Self {
         Value::String(value.to_string())
+    }
+}
+
+/// Target type `bool` supports conversion from:
+///
+/// - `Value::Bool`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+///   `Value::Int128`
+/// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+///   `Value::UInt128`
+/// - `Value::String`, parsed as `bool`
+impl ValueConverter<bool> for Value {
+    fn convert(&self) -> ValueResult<bool> {
+        match self {
+            Value::Bool(v) => Ok(*v),
+            Value::Int8(v) => Ok(*v != 0),
+            Value::Int16(v) => Ok(*v != 0),
+            Value::Int32(v) => Ok(*v != 0),
+            Value::Int64(v) => Ok(*v != 0),
+            Value::Int128(v) => Ok(*v != 0),
+            Value::UInt8(v) => Ok(*v != 0),
+            Value::UInt16(v) => Ok(*v != 0),
+            Value::UInt32(v) => Ok(*v != 0),
+            Value::UInt64(v) => Ok(*v != 0),
+            Value::UInt128(v) => Ok(*v != 0),
+            Value::String(s) => s.parse::<bool>().map_err(|_| {
+                ValueError::ConversionError(format!("Cannot convert '{}' to boolean", s))
+            }),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Bool,
+            }),
+        }
+    }
+}
+
+/// Target type `i32` supports conversion from:
+///
+/// - `Value::Int32`
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int64`, `Value::Int128`
+/// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+///   `Value::UInt128`
+/// - `Value::Float32`, `Value::Float64`
+/// - `Value::String`, parsed as `i32`
+/// - `Value::BigInteger`, `Value::BigDecimal`
+impl ValueConverter<i32> for Value {
+    fn convert(&self) -> ValueResult<i32> {
+        match self {
+            Value::Int32(v) => Ok(*v),
+            Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
+            Value::Char(v) => Ok(*v as i32),
+            Value::Int8(v) => Ok(*v as i32),
+            Value::Int16(v) => Ok(*v as i32),
+            Value::Int64(v) => (*v)
+                .try_into()
+                .map_err(|_| ValueError::ConversionError("i64 value out of i32 range".to_string())),
+            Value::Int128(v) => (*v).try_into().map_err(|_| {
+                ValueError::ConversionError("i128 value out of i32 range".to_string())
+            }),
+            Value::UInt8(v) => Ok(*v as i32),
+            Value::UInt16(v) => Ok(*v as i32),
+            Value::UInt32(v) => (*v)
+                .try_into()
+                .map_err(|_| ValueError::ConversionError("u32 value out of i32 range".to_string())),
+            Value::UInt64(v) => (*v)
+                .try_into()
+                .map_err(|_| ValueError::ConversionError("u64 value out of i32 range".to_string())),
+            Value::UInt128(v) => (*v).try_into().map_err(|_| {
+                ValueError::ConversionError("u128 value out of i32 range".to_string())
+            }),
+            Value::Float32(v) => Ok(*v as i32),
+            Value::Float64(v) => Ok(*v as i32),
+            Value::String(s) => s
+                .parse::<i32>()
+                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to i32", s))),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            Value::BigInteger(v) => v.to_i32().ok_or_else(|| {
+                ValueError::ConversionError("BigInteger value out of i32 range".to_string())
+            }),
+            Value::BigDecimal(v) => v.to_i32().ok_or_else(|| {
+                ValueError::ConversionError(
+                    "BigDecimal value cannot be converted to i32".to_string(),
+                )
+            }),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Int32,
+            }),
+        }
+    }
+}
+
+/// Target type `i64` supports conversion from:
+///
+/// - `Value::Int64`
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int128`
+/// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+///   `Value::UInt128`
+/// - `Value::Float32`, `Value::Float64`
+/// - `Value::String`, parsed as `i64`
+/// - `Value::BigInteger`, `Value::BigDecimal`
+impl ValueConverter<i64> for Value {
+    fn convert(&self) -> ValueResult<i64> {
+        match self {
+            Value::Int64(v) => Ok(*v),
+            Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
+            Value::Char(v) => Ok(*v as i64),
+            Value::Int8(v) => Ok(*v as i64),
+            Value::Int16(v) => Ok(*v as i64),
+            Value::Int32(v) => Ok(*v as i64),
+            Value::Int128(v) => (*v).try_into().map_err(|_| {
+                ValueError::ConversionError("i128 value out of i64 range".to_string())
+            }),
+            Value::UInt8(v) => Ok(*v as i64),
+            Value::UInt16(v) => Ok(*v as i64),
+            Value::UInt32(v) => Ok(*v as i64),
+            Value::UInt64(v) => (*v)
+                .try_into()
+                .map_err(|_| ValueError::ConversionError("u64 value out of i64 range".to_string())),
+            Value::UInt128(v) => (*v).try_into().map_err(|_| {
+                ValueError::ConversionError("u128 value out of i64 range".to_string())
+            }),
+            Value::Float32(v) => Ok(*v as i64),
+            Value::Float64(v) => Ok(*v as i64),
+            Value::String(s) => s
+                .parse::<i64>()
+                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to i64", s))),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            Value::BigInteger(v) => v.to_i64().ok_or_else(|| {
+                ValueError::ConversionError("BigInteger value out of i64 range".to_string())
+            }),
+            Value::BigDecimal(v) => v.to_i64().ok_or_else(|| {
+                ValueError::ConversionError(
+                    "BigDecimal value cannot be converted to i64".to_string(),
+                )
+            }),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Int64,
+            }),
+        }
+    }
+}
+
+/// Target type `f64` supports conversion from:
+///
+/// - `Value::Float64`
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+///   `Value::Int128`
+/// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+///   `Value::UInt128`
+/// - `Value::Float32`
+/// - `Value::String`, parsed as `f64`
+/// - `Value::BigInteger`, `Value::BigDecimal`
+impl ValueConverter<f64> for Value {
+    fn convert(&self) -> ValueResult<f64> {
+        match self {
+            Value::Float64(v) => Ok(*v),
+            Value::Bool(v) => Ok(if *v { 1.0 } else { 0.0 }),
+            Value::Char(v) => Ok(*v as u32 as f64),
+            Value::Float32(v) => Ok(*v as f64),
+            Value::Int8(v) => Ok(*v as f64),
+            Value::Int16(v) => Ok(*v as f64),
+            Value::Int32(v) => Ok(*v as f64),
+            Value::Int64(v) => Ok(*v as f64),
+            Value::Int128(v) => Ok(*v as f64),
+            Value::UInt8(v) => Ok(*v as f64),
+            Value::UInt16(v) => Ok(*v as f64),
+            Value::UInt32(v) => Ok(*v as f64),
+            Value::UInt64(v) => Ok(*v as f64),
+            Value::UInt128(v) => Ok(*v as f64),
+            Value::String(s) => s
+                .parse::<f64>()
+                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to f64", s))),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            Value::BigInteger(v) => v.to_f64().ok_or_else(|| {
+                ValueError::ConversionError(
+                    "BigInteger value cannot be converted to f64".to_string(),
+                )
+            }),
+            Value::BigDecimal(v) => v.to_f64().ok_or_else(|| {
+                ValueError::ConversionError(
+                    "BigDecimal value cannot be converted to f64".to_string(),
+                )
+            }),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Float64,
+            }),
+        }
     }
 }
 
@@ -1630,6 +1835,44 @@ impl ValueSetter<Url> for Value {
 impl ValueConstructor<Url> for Value {
     fn from_type(value: Url) -> Self {
         Value::Url(value)
+    }
+}
+
+/// Target type `Duration` supports conversion from:
+///
+/// - `Value::Duration`
+/// - `Value::String`, parsed from `<nanoseconds>ns`
+impl ValueConverter<Duration> for Value {
+    fn convert(&self) -> ValueResult<Duration> {
+        match self {
+            Value::Duration(v) => Ok(*v),
+            Value::String(s) => parse_duration_string(s),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Duration,
+            }),
+        }
+    }
+}
+
+/// Target type `Url` supports conversion from:
+///
+/// - `Value::Url`
+/// - `Value::String`, parsed as URL text
+impl ValueConverter<Url> for Value {
+    fn convert(&self) -> ValueResult<Url> {
+        match self {
+            Value::Url(v) => Ok(v.clone()),
+            Value::String(s) => Url::parse(s).map_err(|e| {
+                ValueError::ConversionError(format!("Cannot convert '{}' to Url: {}", s, e))
+            }),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Url,
+            }),
+        }
     }
 }
 
@@ -1670,3 +1913,484 @@ impl ValueConstructor<serde_json::Value> for Value {
         Value::Json(value)
     }
 }
+
+/// Target type `serde_json::Value` supports conversion from:
+///
+/// - `Value::Json`
+/// - `Value::String`, parsed as JSON text
+/// - `Value::StringMap`, converted to a JSON object
+impl ValueConverter<serde_json::Value> for Value {
+    fn convert(&self) -> ValueResult<serde_json::Value> {
+        match self {
+            Value::Json(v) => Ok(v.clone()),
+            Value::String(s) => serde_json::from_str(s)
+                .map_err(|e| ValueError::JsonDeserializationError(e.to_string())),
+            Value::StringMap(v) => serde_json::to_value(v)
+                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Json,
+            }),
+        }
+    }
+}
+
+impl_strict_value_converter!(
+    /// Target type `char` supports conversion from:
+    ///
+    /// - `Value::Char`
+    char,
+    get_char
+);
+impl_strict_value_converter!(
+    /// Target type `i8` supports conversion from:
+    ///
+    /// - `Value::Int8`
+    i8,
+    get_int8
+);
+impl_strict_value_converter!(
+    /// Target type `i16` supports conversion from:
+    ///
+    /// - `Value::Int16`
+    i16,
+    get_int16
+);
+impl_strict_value_converter!(
+    /// Target type `i128` supports conversion from:
+    ///
+    /// - `Value::Int128`
+    i128,
+    get_int128
+);
+/// Target type `u8` supports conversion from:
+///
+/// - `Value::UInt8`
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+///   `Value::Int128`
+/// - `Value::UInt16`, `Value::UInt32`, `Value::UInt64`, `Value::UInt128`
+/// - `Value::String`, parsed as `u8`
+impl ValueConverter<u8> for Value {
+    fn convert(&self) -> ValueResult<u8> {
+        match self {
+            Value::UInt8(v) => Ok(*v),
+            Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
+            Value::Char(v) => {
+                let code = range_check(*v as u32, u8::MIN as u32, u8::MAX as u32, "u8")?;
+                Ok(code as u8)
+            }
+            Value::Int8(v) => {
+                let n = range_check(*v, u8::MIN as i8, u8::MAX as i8, "u8")?;
+                Ok(n as u8)
+            }
+            Value::Int16(v) => {
+                let n = range_check(*v, u8::MIN as i16, u8::MAX as i16, "u8")?;
+                Ok(n as u8)
+            }
+            Value::Int32(v) => {
+                let n = range_check(*v, u8::MIN as i32, u8::MAX as i32, "u8")?;
+                Ok(n as u8)
+            }
+            Value::Int64(v) => {
+                let n = range_check(*v, u8::MIN as i64, u8::MAX as i64, "u8")?;
+                Ok(n as u8)
+            }
+            Value::Int128(v) => {
+                let n = range_check(*v, u8::MIN as i128, u8::MAX as i128, "u8")?;
+                Ok(n as u8)
+            }
+            Value::UInt16(v) => {
+                let n = range_check(*v, u8::MIN as u16, u8::MAX as u16, "u8")?;
+                Ok(n as u8)
+            }
+            Value::UInt32(v) => {
+                let n = range_check(*v, u8::MIN as u32, u8::MAX as u32, "u8")?;
+                Ok(n as u8)
+            }
+            Value::UInt64(v) => {
+                let n = range_check(*v, u8::MIN as u64, u8::MAX as u64, "u8")?;
+                Ok(n as u8)
+            }
+            Value::UInt128(v) => {
+                let n = range_check(*v, u8::MIN as u128, u8::MAX as u128, "u8")?;
+                Ok(n as u8)
+            }
+            Value::String(s) => s
+                .parse::<u8>()
+                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to u8", s))),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::UInt8,
+            }),
+        }
+    }
+}
+
+/// Target type `u16` supports conversion from:
+///
+/// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+///   `Value::UInt128`
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+///   `Value::Int128`
+/// - `Value::String`, parsed as `u16`
+impl ValueConverter<u16> for Value {
+    fn convert(&self) -> ValueResult<u16> {
+        match self {
+            Value::UInt8(v) => Ok((*v).into()),
+            Value::UInt16(v) => Ok(*v),
+            Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
+            Value::Char(v) => {
+                let code = range_check(*v as u32, u16::MIN as u32, u16::MAX as u32, "u16")?;
+                Ok(code as u16)
+            }
+            Value::Int8(v) => {
+                let n = range_check(*v, 0i8, i8::MAX, "u16")?;
+                Ok(n as u16)
+            }
+            Value::Int16(v) => {
+                let n = range_check(*v, u16::MIN as i16, u16::MAX as i16, "u16")?;
+                Ok(n as u16)
+            }
+            Value::Int32(v) => {
+                let n = range_check(*v, u16::MIN as i32, u16::MAX as i32, "u16")?;
+                Ok(n as u16)
+            }
+            Value::Int64(v) => {
+                let n = range_check(*v, u16::MIN as i64, u16::MAX as i64, "u16")?;
+                Ok(n as u16)
+            }
+            Value::Int128(v) => {
+                let n = range_check(*v, u16::MIN as i128, u16::MAX as i128, "u16")?;
+                Ok(n as u16)
+            }
+            Value::UInt32(v) => {
+                let n = range_check(*v, u16::MIN as u32, u16::MAX as u32, "u16")?;
+                Ok(n as u16)
+            }
+            Value::UInt64(v) => {
+                let n = range_check(*v, u16::MIN as u64, u16::MAX as u64, "u16")?;
+                Ok(n as u16)
+            }
+            Value::UInt128(v) => {
+                let n = range_check(*v, u16::MIN as u128, u16::MAX as u128, "u16")?;
+                Ok(n as u16)
+            }
+            Value::String(s) => s
+                .parse::<u16>()
+                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to u16", s))),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::UInt16,
+            }),
+        }
+    }
+}
+
+/// Target type `u32` supports conversion from:
+///
+/// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+///   `Value::UInt128`
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+///   `Value::Int128`
+/// - `Value::String`, parsed as `u32`
+impl ValueConverter<u32> for Value {
+    fn convert(&self) -> ValueResult<u32> {
+        match self {
+            Value::UInt8(v) => Ok((*v).into()),
+            Value::UInt16(v) => Ok((*v).into()),
+            Value::UInt32(v) => Ok(*v),
+            Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
+            Value::Char(v) => Ok(*v as u32),
+            Value::Int8(v) => {
+                let n = range_check(*v, 0i8, i8::MAX, "u32")?;
+                Ok(n as u32)
+            }
+            Value::Int16(v) => {
+                let n = range_check(*v, 0i16, i16::MAX, "u32")?;
+                Ok(n as u32)
+            }
+            Value::Int32(v) => {
+                let n = range_check(*v, u32::MIN as i32, u32::MAX as i32, "u32")?;
+                Ok(n as u32)
+            }
+            Value::Int64(v) => {
+                let n = range_check(*v, u32::MIN as i64, u32::MAX as i64, "u32")?;
+                Ok(n as u32)
+            }
+            Value::Int128(v) => {
+                let n = range_check(*v, u32::MIN as i128, u32::MAX as i128, "u32")?;
+                Ok(n as u32)
+            }
+            Value::UInt64(v) => {
+                let n = range_check(*v, u32::MIN as u64, u32::MAX as u64, "u32")?;
+                Ok(n as u32)
+            }
+            Value::UInt128(v) => {
+                let n = range_check(*v, u32::MIN as u128, u32::MAX as u128, "u32")?;
+                Ok(n as u32)
+            }
+            Value::String(s) => s
+                .parse::<u32>()
+                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to u32", s))),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::UInt32,
+            }),
+        }
+    }
+}
+
+/// Target type `u64` supports conversion from:
+///
+/// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+///   `Value::UInt128`
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+///   `Value::Int128`
+/// - `Value::String`, parsed as `u64`
+impl ValueConverter<u64> for Value {
+    fn convert(&self) -> ValueResult<u64> {
+        match self {
+            Value::UInt8(v) => Ok((*v).into()),
+            Value::UInt16(v) => Ok((*v).into()),
+            Value::UInt32(v) => Ok((*v).into()),
+            Value::UInt64(v) => Ok(*v),
+            Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
+            Value::Char(v) => Ok((*v as u32).into()),
+            Value::Int8(v) => {
+                let n = range_check(*v, 0i8, i8::MAX, "u64")?;
+                Ok(n as u64)
+            }
+            Value::Int16(v) => {
+                let n = range_check(*v, 0i16, i16::MAX, "u64")?;
+                Ok(n as u64)
+            }
+            Value::Int32(v) => {
+                let n = range_check(*v, 0i32, i32::MAX, "u64")?;
+                Ok(n as u64)
+            }
+            Value::Int64(v) => {
+                let n = range_check(*v, 0i64, i64::MAX, "u64")?;
+                Ok(n as u64)
+            }
+            Value::Int128(v) => {
+                let n = range_check(*v, 0i128, u64::MAX as i128, "u64")?;
+                Ok(n as u64)
+            }
+            Value::UInt128(v) => {
+                let n = range_check(*v, u64::MIN as u128, u64::MAX as u128, "u64")?;
+                Ok(n as u64)
+            }
+            Value::String(s) => s
+                .parse::<u64>()
+                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to u64", s))),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::UInt64,
+            }),
+        }
+    }
+}
+
+/// Target type `u128` supports conversion from:
+///
+/// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+///   `Value::UInt128`
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+///   `Value::Int128`
+/// - `Value::String`, parsed as `u128`
+impl ValueConverter<u128> for Value {
+    fn convert(&self) -> ValueResult<u128> {
+        match self {
+            Value::UInt8(v) => Ok((*v).into()),
+            Value::UInt16(v) => Ok((*v).into()),
+            Value::UInt32(v) => Ok((*v).into()),
+            Value::UInt64(v) => Ok((*v).into()),
+            Value::UInt128(v) => Ok(*v),
+            Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
+            Value::Char(v) => Ok((*v as u32).into()),
+            Value::Int8(v) => {
+                let n = range_check(*v, 0i8, i8::MAX, "u128")?;
+                Ok(n as u128)
+            }
+            Value::Int16(v) => {
+                let n = range_check(*v, 0i16, i16::MAX, "u128")?;
+                Ok(n as u128)
+            }
+            Value::Int32(v) => {
+                let n = range_check(*v, 0i32, i32::MAX, "u128")?;
+                Ok(n as u128)
+            }
+            Value::Int64(v) => {
+                let n = range_check(*v, 0i64, i64::MAX, "u128")?;
+                Ok(n as u128)
+            }
+            Value::Int128(v) => {
+                let n = range_check(*v, 0i128, i128::MAX, "u128")?;
+                Ok(n as u128)
+            }
+            Value::String(s) => s.parse::<u128>().map_err(|_| {
+                ValueError::ConversionError(format!("Cannot convert '{}' to u128", s))
+            }),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::UInt128,
+            }),
+        }
+    }
+}
+
+/// Target type `f32` supports conversion from:
+///
+/// - `Value::Float32`, `Value::Float64`
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
+///   `Value::Int128`
+/// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+///   `Value::UInt128`
+/// - `Value::String`, parsed as `f32`
+/// - `Value::BigInteger`, `Value::BigDecimal`
+impl ValueConverter<f32> for Value {
+    fn convert(&self) -> ValueResult<f32> {
+        match self {
+            Value::Float32(v) => Ok(*v),
+            Value::Float64(v) => {
+                if v.is_nan() || v.is_infinite() {
+                    Ok(*v as f32)
+                } else {
+                    let n = range_check(*v, f32::MIN as f64, f32::MAX as f64, "f32")?;
+                    Ok(n as f32)
+                }
+            }
+            Value::Bool(v) => Ok(if *v { 1.0 } else { 0.0 }),
+            Value::Char(v) => Ok(*v as u32 as f32),
+            Value::Int8(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::Int16(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::Int32(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::Int64(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::Int128(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::UInt8(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::UInt16(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::UInt32(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::UInt64(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::UInt128(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError("Cannot convert value to f32".to_string())
+            }),
+            Value::String(s) => s
+                .parse::<f32>()
+                .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to f32", s))),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            Value::BigInteger(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError(
+                    "BigInteger value cannot be converted to f32".to_string(),
+                )
+            }),
+            Value::BigDecimal(v) => v.to_f32().ok_or_else(|| {
+                ValueError::ConversionError(
+                    "BigDecimal value cannot be converted to f32".to_string(),
+                )
+            }),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Float32,
+            }),
+        }
+    }
+}
+impl_strict_value_converter!(
+    /// Target type `NaiveDate` supports conversion from:
+    ///
+    /// - `Value::Date`
+    NaiveDate,
+    get_date
+);
+impl_strict_value_converter!(
+    /// Target type `NaiveTime` supports conversion from:
+    ///
+    /// - `Value::Time`
+    NaiveTime,
+    get_time
+);
+impl_strict_value_converter!(
+    /// Target type `NaiveDateTime` supports conversion from:
+    ///
+    /// - `Value::DateTime`
+    NaiveDateTime,
+    get_datetime
+);
+impl_strict_value_converter!(
+    /// Target type `DateTime<Utc>` supports conversion from:
+    ///
+    /// - `Value::Instant`
+    DateTime<Utc>,
+    get_instant
+);
+impl_strict_value_converter!(
+    /// Target type `BigInt` supports conversion from:
+    ///
+    /// - `Value::BigInteger`
+    BigInt,
+    get_biginteger
+);
+impl_strict_value_converter!(
+    /// Target type `BigDecimal` supports conversion from:
+    ///
+    /// - `Value::BigDecimal`
+    BigDecimal,
+    get_bigdecimal
+);
+impl_strict_value_converter!(
+    /// Target type `isize` supports conversion from:
+    ///
+    /// - `Value::IntSize`
+    isize,
+    get_intsize
+);
+impl_strict_value_converter!(
+    /// Target type `usize` supports conversion from:
+    ///
+    /// - `Value::UIntSize`
+    usize,
+    get_uintsize
+);
+impl_strict_value_converter!(
+    /// Target type `HashMap<String, String>` supports conversion from:
+    ///
+    /// - `Value::StringMap`
+    HashMap<String, String>,
+    get_string_map
+);

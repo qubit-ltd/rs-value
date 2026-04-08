@@ -67,8 +67,8 @@ fn check_port(p: i32) -> bool { p > 1024 }
 assert!(check_port(v.get()?));  // 从函数签名推断为 i32
 
 // 跨类型转换
-assert_eq!(v.as_int64()?, 8080i64);
-assert_eq!(v.as_string()?, "8080".to_string());
+assert_eq!(v.to::<i64>()?, 8080i64);
+assert_eq!(v.to::<String>()?, "8080".to_string());
 
 // 大数类型与类型推断
 let big_int = Value::new(BigInt::from(12345678901234567890i64));

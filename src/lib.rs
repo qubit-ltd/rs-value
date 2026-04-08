@@ -37,7 +37,7 @@
 //! assert_eq!(value.get_int32().unwrap(), 42);
 //!
 //! // Type conversion
-//! let text = value.as_string().unwrap();
+//! let text = value.to::<String>().unwrap();
 //! assert_eq!(text, "42");
 //! ```
 //!
