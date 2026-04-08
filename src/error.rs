@@ -77,6 +77,14 @@ pub enum ValueError {
         /// Actual length
         len: usize,
     },
+
+    /// JSON serialization error
+    #[error("JSON serialization error: {0}")]
+    JsonSerializationError(String),
+
+    /// JSON deserialization error
+    #[error("JSON deserialization error: {0}")]
+    JsonDeserializationError(String),
 }
 
 /// Value processing result type

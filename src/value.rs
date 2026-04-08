@@ -18,7 +18,11 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::Duration;
+use url::Url;
 
 use qubit_common::lang::DataType;
 
@@ -103,6 +107,18 @@ pub enum Value {
     BigInteger(BigInt),
     /// Big decimal type
     BigDecimal(BigDecimal),
+    /// Platform-dependent signed integer (isize)
+    IntSize(isize),
+    /// Platform-dependent unsigned integer (usize)
+    UIntSize(usize),
+    /// Duration type (std::time::Duration)
+    Duration(Duration),
+    /// URL type (url::Url)
+    Url(Url),
+    /// String map type (HashMap<String, String>)
+    StringMap(HashMap<String, String>),
+    /// JSON value type (serde_json::Value)
+    Json(serde_json::Value),
 }
 
 // ============================================================================
@@ -356,6 +372,12 @@ impl Value {
             Value::Instant(_) => DataType::Instant,
             Value::BigInteger(_) => DataType::BigInteger,
             Value::BigDecimal(_) => DataType::BigDecimal,
+            Value::IntSize(_) => DataType::IntSize,
+            Value::UIntSize(_) => DataType::UIntSize,
+            Value::Duration(_) => DataType::Duration,
+            Value::Url(_) => DataType::Url,
+            Value::StringMap(_) => DataType::StringMap,
+            Value::Json(_) => DataType::Json,
         }
     }
 
@@ -922,6 +944,14 @@ impl Value {
             Value::Instant(v) => Ok(v.to_rfc3339()),
             Value::BigInteger(v) => Ok(v.to_string()),
             Value::BigDecimal(v) => Ok(v.to_string()),
+            Value::IntSize(v) => Ok(v.to_string()),
+            Value::UIntSize(v) => Ok(v.to_string()),
+            Value::Duration(v) => Ok(format!("{}ns", v.as_nanos())),
+            Value::Url(v) => Ok(v.to_string()),
+            Value::StringMap(v) => serde_json::to_string(v)
+                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
+            Value::Json(v) => serde_json::to_string(v)
+                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
             Value::Empty(_) => Err(ValueError::NoValue),
         }
     }
@@ -1244,6 +1274,145 @@ impl Value {
         /// ```
         owned: set_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal
     }
+
+    impl_get_value! {
+        /// Get isize value
+        ///
+        /// # Returns
+        ///
+        /// If types match, returns the isize value; otherwise returns an error
+        copy: get_intsize, IntSize, isize, DataType::IntSize
+    }
+
+    impl_get_value! {
+        /// Get usize value
+        ///
+        /// # Returns
+        ///
+        /// If types match, returns the usize value; otherwise returns an error
+        copy: get_uintsize, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_get_value! {
+        /// Get Duration value
+        ///
+        /// # Returns
+        ///
+        /// If types match, returns the Duration value; otherwise returns an error
+        copy: get_duration, Duration, Duration, DataType::Duration
+    }
+
+    impl_get_value! {
+        /// Get Url reference
+        ///
+        /// # Returns
+        ///
+        /// If types match, returns a reference to the Url; otherwise returns an error
+        ref: get_url, Url, Url, DataType::Url, |v: &Url| v.clone()
+    }
+
+    impl_get_value! {
+        /// Get StringMap reference
+        ///
+        /// # Returns
+        ///
+        /// If types match, returns a reference to the HashMap<String, String>; otherwise returns an error
+        ref: get_string_map, StringMap, HashMap<String, String>, DataType::StringMap, |v: &HashMap<String, String>| v.clone()
+    }
+
+    impl_get_value! {
+        /// Get Json value reference
+        ///
+        /// # Returns
+        ///
+        /// If types match, returns a reference to the serde_json::Value; otherwise returns an error
+        ref: get_json, Json, serde_json::Value, DataType::Json, |v: &serde_json::Value| v.clone()
+    }
+
+    impl_set_value! {
+        /// Set isize value
+        copy: set_intsize, IntSize, isize, DataType::IntSize
+    }
+
+    impl_set_value! {
+        /// Set usize value
+        copy: set_uintsize, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_set_value! {
+        /// Set Duration value
+        copy: set_duration, Duration, Duration, DataType::Duration
+    }
+
+    impl_set_value! {
+        /// Set Url value
+        owned: set_url, Url, Url, DataType::Url
+    }
+
+    impl_set_value! {
+        /// Set StringMap value
+        owned: set_string_map, StringMap, HashMap<String, String>, DataType::StringMap
+    }
+
+    impl_set_value! {
+        /// Set Json value
+        owned: set_json, Json, serde_json::Value, DataType::Json
+    }
+
+    /// Create a `Value` from a `serde_json::Value`
+    ///
+    /// # Parameters
+    ///
+    /// * `json` - The JSON value to wrap
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Value::Json` wrapping the given JSON value
+    pub fn from_json_value(json: serde_json::Value) -> Self {
+        Value::Json(json)
+    }
+
+    /// Create a `Value` from any serializable value by converting it to JSON
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Any type implementing `Serialize`
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - The value to serialize into JSON
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Value::Json(...))` on success, or an error if serialization fails
+    pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
+        let json = serde_json::to_value(value)
+            .map_err(|e| ValueError::JsonSerializationError(e.to_string()))?;
+        Ok(Value::Json(json))
+    }
+
+    /// Deserialize the inner JSON value into a target type
+    ///
+    /// Only works when `self` is `Value::Json(...)`.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - The target type implementing `DeserializeOwned`
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(T)` on success, or an error if the value is not JSON or deserialization fails
+    pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
+        match self {
+            Value::Json(v) => serde_json::from_value(v.clone())
+                .map_err(|e| ValueError::JsonDeserializationError(e.to_string())),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Json,
+            }),
+        }
+    }
 }
 
 impl Default for Value {
@@ -1327,6 +1496,9 @@ impl_value_traits!(NaiveDateTime, DateTime, get_datetime, set_datetime);
 impl_value_traits!(DateTime<Utc>, Instant, get_instant, set_instant);
 impl_value_traits!(BigInt, BigInteger, get_biginteger, set_biginteger);
 impl_value_traits!(BigDecimal, BigDecimal, get_bigdecimal, set_bigdecimal);
+impl_value_traits!(isize, IntSize, get_intsize, set_intsize);
+impl_value_traits!(usize, UIntSize, get_uintsize, set_uintsize);
+impl_value_traits!(Duration, Duration, get_duration, set_duration);
 
 // String needs cloning
 impl ValueGetter<String> for Value {
@@ -1357,5 +1529,62 @@ impl ValueSetter<&str> for Value {
 impl ValueConstructor<&str> for Value {
     fn from_type(value: &str) -> Self {
         Value::String(value.to_string())
+    }
+}
+
+// Url
+impl ValueGetter<Url> for Value {
+    fn get_value(&self) -> ValueResult<Url> {
+        self.get_url()
+    }
+}
+
+impl ValueSetter<Url> for Value {
+    fn set_value(&mut self, value: Url) -> ValueResult<()> {
+        self.set_url(value)
+    }
+}
+
+impl ValueConstructor<Url> for Value {
+    fn from_type(value: Url) -> Self {
+        Value::Url(value)
+    }
+}
+
+// HashMap<String, String>
+impl ValueGetter<HashMap<String, String>> for Value {
+    fn get_value(&self) -> ValueResult<HashMap<String, String>> {
+        self.get_string_map()
+    }
+}
+
+impl ValueSetter<HashMap<String, String>> for Value {
+    fn set_value(&mut self, value: HashMap<String, String>) -> ValueResult<()> {
+        self.set_string_map(value)
+    }
+}
+
+impl ValueConstructor<HashMap<String, String>> for Value {
+    fn from_type(value: HashMap<String, String>) -> Self {
+        Value::StringMap(value)
+    }
+}
+
+// serde_json::Value
+impl ValueGetter<serde_json::Value> for Value {
+    fn get_value(&self) -> ValueResult<serde_json::Value> {
+        self.get_json()
+    }
+}
+
+impl ValueSetter<serde_json::Value> for Value {
+    fn set_value(&mut self, value: serde_json::Value) -> ValueResult<()> {
+        self.set_json(value)
+    }
+}
+
+impl ValueConstructor<serde_json::Value> for Value {
+    fn from_type(value: serde_json::Value) -> Self {
+        Value::Json(value)
     }
 }

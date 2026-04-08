@@ -20,6 +20,9 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use num_bigint::BigInt;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::Duration;
+use url::Url;
 
 use qubit_common::lang::DataType;
 
@@ -106,6 +109,18 @@ pub enum MultiValues {
     BigInteger(Vec<BigInt>),
     /// Big decimal list
     BigDecimal(Vec<BigDecimal>),
+    /// isize list
+    IntSize(Vec<isize>),
+    /// usize list
+    UIntSize(Vec<usize>),
+    /// Duration list
+    Duration(Vec<Duration>),
+    /// Url list
+    Url(Vec<Url>),
+    /// StringMap list
+    StringMap(Vec<HashMap<String, String>>),
+    /// Json list
+    Json(Vec<serde_json::Value>),
 }
 
 // ============================================================================
@@ -615,6 +630,12 @@ impl MultiValues {
             MultiValues::Instant(_) => DataType::Instant,
             MultiValues::BigInteger(_) => DataType::BigInteger,
             MultiValues::BigDecimal(_) => DataType::BigDecimal,
+            MultiValues::IntSize(_) => DataType::IntSize,
+            MultiValues::UIntSize(_) => DataType::UIntSize,
+            MultiValues::Duration(_) => DataType::Duration,
+            MultiValues::Url(_) => DataType::Url,
+            MultiValues::StringMap(_) => DataType::StringMap,
+            MultiValues::Json(_) => DataType::Json,
         }
     }
 
@@ -659,6 +680,12 @@ impl MultiValues {
             MultiValues::Instant(v) => v.len(),
             MultiValues::BigInteger(v) => v.len(),
             MultiValues::BigDecimal(v) => v.len(),
+            MultiValues::IntSize(v) => v.len(),
+            MultiValues::UIntSize(v) => v.len(),
+            MultiValues::Duration(v) => v.len(),
+            MultiValues::Url(v) => v.len(),
+            MultiValues::StringMap(v) => v.len(),
+            MultiValues::Json(v) => v.len(),
         }
     }
 
@@ -719,6 +746,12 @@ impl MultiValues {
             MultiValues::Instant(v) => v.clear(),
             MultiValues::BigInteger(v) => v.clear(),
             MultiValues::BigDecimal(v) => v.clear(),
+            MultiValues::IntSize(v) => v.clear(),
+            MultiValues::UIntSize(v) => v.clear(),
+            MultiValues::Duration(v) => v.clear(),
+            MultiValues::Url(v) => v.clear(),
+            MultiValues::StringMap(v) => v.clear(),
+            MultiValues::Json(v) => v.clear(),
         }
     }
 
@@ -948,6 +981,36 @@ impl MultiValues {
         ref: get_first_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
     }
 
+    impl_get_first_value! {
+        /// Get the first isize value
+        copy: get_first_intsize, IntSize, isize, DataType::IntSize
+    }
+
+    impl_get_first_value! {
+        /// Get the first usize value
+        copy: get_first_uintsize, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_get_first_value! {
+        /// Get the first Duration value
+        copy: get_first_duration, Duration, Duration, DataType::Duration
+    }
+
+    impl_get_first_value! {
+        /// Get the first Url value
+        ref: get_first_url, Url, Url, DataType::Url, |v: &Url| v.clone()
+    }
+
+    impl_get_first_value! {
+        /// Get the first StringMap value
+        ref: get_first_string_map, StringMap, HashMap<String, String>, DataType::StringMap, |v: &HashMap<String, String>| v.clone()
+    }
+
+    impl_get_first_value! {
+        /// Get the first Json value
+        ref: get_first_json, Json, serde_json::Value, DataType::Json, |v: &serde_json::Value| v.clone()
+    }
+
     // ========================================================================
     // Get all values (type checking)
     // ========================================================================
@@ -1148,6 +1211,36 @@ impl MultiValues {
         ///
         /// If types match, returns a reference to the big decimal array; otherwise returns an error
         vec: get_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
+    }
+
+    impl_get_multi_values! {
+        /// Get reference to all isize values
+        slice: get_intsizes, IntSize, isize, DataType::IntSize
+    }
+
+    impl_get_multi_values! {
+        /// Get reference to all usize values
+        slice: get_uintsizes, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_get_multi_values! {
+        /// Get reference to all Duration values
+        slice: get_durations, Duration, Duration, DataType::Duration
+    }
+
+    impl_get_multi_values! {
+        /// Get reference to all Url values
+        vec: get_urls, Url, Url, DataType::Url
+    }
+
+    impl_get_multi_values! {
+        /// Get reference to all StringMap values
+        vec: get_string_maps, StringMap, HashMap<String, String>, DataType::StringMap
+    }
+
+    impl_get_multi_values! {
+        /// Get reference to all Json values
+        vec: get_jsons, Json, serde_json::Value, DataType::Json
     }
 
     // ========================================================================
@@ -1447,6 +1540,36 @@ impl MultiValues {
         set_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
+    impl_set_multi_values! {
+        /// Set all isize values
+        set_intsizes, IntSize, isize, DataType::IntSize
+    }
+
+    impl_set_multi_values! {
+        /// Set all usize values
+        set_uintsizes, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_set_multi_values! {
+        /// Set all Duration values
+        set_durations, Duration, Duration, DataType::Duration
+    }
+
+    impl_set_multi_values! {
+        /// Set all Url values
+        set_urls, Url, Url, DataType::Url
+    }
+
+    impl_set_multi_values! {
+        /// Set all StringMap values
+        set_string_maps, StringMap, HashMap<String, String>, DataType::StringMap
+    }
+
+    impl_set_multi_values! {
+        /// Set all Json values
+        set_jsons, Json, serde_json::Value, DataType::Json
+    }
+
     // ========================================================================
     // Set all values via slice operations
     // ========================================================================
@@ -1722,6 +1845,36 @@ impl MultiValues {
         ///
         /// If setting succeeds, returns `Ok(())`; otherwise returns an error
         set_bigdecimals_slice, BigDecimal, BigDecimal, DataType::BigDecimal
+    }
+
+    impl_set_multi_values_slice! {
+        /// Set all isize values via slice
+        set_intsizes_slice, IntSize, isize, DataType::IntSize
+    }
+
+    impl_set_multi_values_slice! {
+        /// Set all usize values via slice
+        set_uintsizes_slice, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_set_multi_values_slice! {
+        /// Set all Duration values via slice
+        set_durations_slice, Duration, Duration, DataType::Duration
+    }
+
+    impl_set_multi_values_slice! {
+        /// Set all Url values via slice
+        set_urls_slice, Url, Url, DataType::Url
+    }
+
+    impl_set_multi_values_slice! {
+        /// Set all StringMap values via slice
+        set_string_maps_slice, StringMap, HashMap<String, String>, DataType::StringMap
+    }
+
+    impl_set_multi_values_slice! {
+        /// Set all Json values via slice
+        set_jsons_slice, Json, serde_json::Value, DataType::Json
     }
 
     // ========================================================================
@@ -2021,6 +2174,36 @@ impl MultiValues {
         set_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
+    impl_set_single_value! {
+        /// Set single isize value
+        set_intsize, IntSize, isize, DataType::IntSize
+    }
+
+    impl_set_single_value! {
+        /// Set single usize value
+        set_uintsize, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_set_single_value! {
+        /// Set single Duration value
+        set_duration, Duration, Duration, DataType::Duration
+    }
+
+    impl_set_single_value! {
+        /// Set single Url value
+        set_url, Url, Url, DataType::Url
+    }
+
+    impl_set_single_value! {
+        /// Set single StringMap value
+        set_string_map, StringMap, HashMap<String, String>, DataType::StringMap
+    }
+
+    impl_set_single_value! {
+        /// Set single Json value
+        set_json, Json, serde_json::Value, DataType::Json
+    }
+
     // ========================================================================
     // Add value operations
     // ========================================================================
@@ -2306,6 +2489,36 @@ impl MultiValues {
         ///
         /// If types match, returns `Ok(())`; otherwise returns an error
         add_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal
+    }
+
+    impl_add_single_value! {
+        /// Add an isize value
+        add_intsize, IntSize, isize, DataType::IntSize
+    }
+
+    impl_add_single_value! {
+        /// Add a usize value
+        add_uintsize, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_add_single_value! {
+        /// Add a Duration value
+        add_duration, Duration, Duration, DataType::Duration
+    }
+
+    impl_add_single_value! {
+        /// Add a Url value
+        add_url, Url, Url, DataType::Url
+    }
+
+    impl_add_single_value! {
+        /// Add a StringMap value
+        add_string_map, StringMap, HashMap<String, String>, DataType::StringMap
+    }
+
+    impl_add_single_value! {
+        /// Add a Json value
+        add_json, Json, serde_json::Value, DataType::Json
     }
 
     // ========================================================================
@@ -2605,6 +2818,36 @@ impl MultiValues {
         add_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
+    impl_add_multi_values! {
+        /// Add multiple isize values
+        add_intsizes, IntSize, isize, DataType::IntSize
+    }
+
+    impl_add_multi_values! {
+        /// Add multiple usize values
+        add_uintsizes, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_add_multi_values! {
+        /// Add multiple Duration values
+        add_durations, Duration, Duration, DataType::Duration
+    }
+
+    impl_add_multi_values! {
+        /// Add multiple Url values
+        add_urls, Url, Url, DataType::Url
+    }
+
+    impl_add_multi_values! {
+        /// Add multiple StringMap values
+        add_string_maps, StringMap, HashMap<String, String>, DataType::StringMap
+    }
+
+    impl_add_multi_values! {
+        /// Add multiple Json values
+        add_jsons, Json, serde_json::Value, DataType::Json
+    }
+
     // ========================================================================
     // Add multiple values via slice operations
     // ========================================================================
@@ -2882,6 +3125,36 @@ impl MultiValues {
         add_bigdecimals_slice, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
+    impl_add_multi_values_slice! {
+        /// Add multiple isize values via slice
+        add_intsizes_slice, IntSize, isize, DataType::IntSize
+    }
+
+    impl_add_multi_values_slice! {
+        /// Add multiple usize values via slice
+        add_uintsizes_slice, UIntSize, usize, DataType::UIntSize
+    }
+
+    impl_add_multi_values_slice! {
+        /// Add multiple Duration values via slice
+        add_durations_slice, Duration, Duration, DataType::Duration
+    }
+
+    impl_add_multi_values_slice! {
+        /// Add multiple Url values via slice
+        add_urls_slice, Url, Url, DataType::Url
+    }
+
+    impl_add_multi_values_slice! {
+        /// Add multiple StringMap values via slice
+        add_string_maps_slice, StringMap, HashMap<String, String>, DataType::StringMap
+    }
+
+    impl_add_multi_values_slice! {
+        /// Add multiple Json values via slice
+        add_jsons_slice, Json, serde_json::Value, DataType::Json
+    }
+
     /// Merge another multiple values
     ///
     /// Append all values from another multiple values to the current multiple values
@@ -2934,6 +3207,12 @@ impl MultiValues {
             (MultiValues::Instant(v), MultiValues::Instant(o)) => v.extend_from_slice(o),
             (MultiValues::BigInteger(v), MultiValues::BigInteger(o)) => v.extend_from_slice(o),
             (MultiValues::BigDecimal(v), MultiValues::BigDecimal(o)) => v.extend_from_slice(o),
+            (MultiValues::IntSize(v), MultiValues::IntSize(o)) => v.extend_from_slice(o),
+            (MultiValues::UIntSize(v), MultiValues::UIntSize(o)) => v.extend_from_slice(o),
+            (MultiValues::Duration(v), MultiValues::Duration(o)) => v.extend_from_slice(o),
+            (MultiValues::Url(v), MultiValues::Url(o)) => v.extend_from_slice(o),
+            (MultiValues::StringMap(v), MultiValues::StringMap(o)) => v.extend(o.iter().cloned()),
+            (MultiValues::Json(v), MultiValues::Json(o)) => v.extend(o.iter().cloned()),
             (MultiValues::Empty(_), _) => {}
             _ => unreachable!(),
         }
@@ -2973,6 +3252,12 @@ impl From<Value> for MultiValues {
             Value::Instant(v) => MultiValues::Instant(vec![v]),
             Value::BigInteger(v) => MultiValues::BigInteger(vec![v]),
             Value::BigDecimal(v) => MultiValues::BigDecimal(vec![v]),
+            Value::IntSize(v) => MultiValues::IntSize(vec![v]),
+            Value::UIntSize(v) => MultiValues::UIntSize(vec![v]),
+            Value::Duration(v) => MultiValues::Duration(vec![v]),
+            Value::Url(v) => MultiValues::Url(vec![v]),
+            Value::StringMap(v) => MultiValues::StringMap(vec![v]),
+            Value::Json(v) => MultiValues::Json(vec![v]),
         }
     }
 }
@@ -3268,6 +3553,12 @@ impl_multi_value_traits!(NaiveDateTime, DateTime, DataType::DateTime);
 impl_multi_value_traits!(DateTime<Utc>, Instant, DataType::Instant);
 impl_multi_value_traits!(BigInt, BigInteger, DataType::BigInteger);
 impl_multi_value_traits!(BigDecimal, BigDecimal, DataType::BigDecimal);
+impl_multi_value_traits!(isize, IntSize, DataType::IntSize);
+impl_multi_value_traits!(usize, UIntSize, DataType::UIntSize);
+impl_multi_value_traits!(Duration, Duration, DataType::Duration);
+impl_multi_value_traits!(Url, Url, DataType::Url);
+impl_multi_value_traits!(HashMap<String, String>, StringMap, DataType::StringMap);
+impl_multi_value_traits!(serde_json::Value, Json, DataType::Json);
 
 // Convenience adaptation: &str supported as input type for String
 impl MultiValuesSetArg<'_> for &str {

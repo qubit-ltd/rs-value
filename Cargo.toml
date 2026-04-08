@@ -28,7 +28,7 @@ doctest = false
 
 [dependencies]
 # 核心依赖
-qubit-common = "0.3.0"
+qubit-common = "0.4.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0.17"
@@ -39,6 +39,9 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # UUID 支持
 uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# URL 支持
+url = { version = "2.0", features = ["serde"] }
 
 # 数值处理
 num-traits = "0.2"
