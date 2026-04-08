@@ -956,6 +956,63 @@ impl Value {
         }
     }
 
+    /// Convert to `Duration`
+    ///
+    /// Supports conversion from:
+    /// - `Value::Duration`
+    /// - `Value::String`, using the same `<nanoseconds>ns` format as `as_string()`
+    pub fn as_duration(&self) -> ValueResult<Duration> {
+        match self {
+            Value::Duration(v) => Ok(*v),
+            Value::String(s) => parse_duration_string(s),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Duration,
+            }),
+        }
+    }
+
+    /// Convert to `Url`
+    ///
+    /// Supports conversion from:
+    /// - `Value::Url`
+    /// - `Value::String`
+    pub fn as_url(&self) -> ValueResult<Url> {
+        match self {
+            Value::Url(v) => Ok(v.clone()),
+            Value::String(s) => Url::parse(s).map_err(|e| {
+                ValueError::ConversionError(format!("Cannot convert '{}' to Url: {}", s, e))
+            }),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Url,
+            }),
+        }
+    }
+
+    /// Convert to `serde_json::Value`
+    ///
+    /// Supports conversion from:
+    /// - `Value::Json`
+    /// - `Value::String`, parsed as JSON text
+    /// - `Value::StringMap`, converted to a JSON object
+    pub fn as_json(&self) -> ValueResult<serde_json::Value> {
+        match self {
+            Value::Json(v) => Ok(v.clone()),
+            Value::String(s) => serde_json::from_str(s)
+                .map_err(|e| ValueError::JsonDeserializationError(e.to_string())),
+            Value::StringMap(v) => serde_json::to_value(v)
+                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::ConversionFailed {
+                from: self.data_type(),
+                to: DataType::Json,
+            }),
+        }
+    }
+
     // ========================================================================
     // Type-setting setters (strict type matching)
     // ========================================================================
@@ -1419,6 +1476,31 @@ impl Default for Value {
     fn default() -> Self {
         Value::Empty(DataType::String)
     }
+}
+
+fn parse_duration_string(s: &str) -> ValueResult<Duration> {
+    let trimmed = s.trim();
+    let nanos_text = trimmed.strip_suffix("ns").ok_or_else(|| {
+        ValueError::ConversionError(format!(
+            "Cannot convert '{}' to Duration: expected '<nanoseconds>ns'",
+            s
+        ))
+    })?;
+    let total_nanos = nanos_text.parse::<u128>().map_err(|_| {
+        ValueError::ConversionError(format!(
+            "Cannot convert '{}' to Duration: invalid nanoseconds value",
+            s
+        ))
+    })?;
+    let secs = total_nanos / 1_000_000_000;
+    if secs > u64::MAX as u128 {
+        return Err(ValueError::ConversionError(format!(
+            "Cannot convert '{}' to Duration: value out of range",
+            s
+        )));
+    }
+    let nanos = (total_nanos % 1_000_000_000) as u32;
+    Ok(Duration::new(secs as u64, nanos))
 }
 
 // ============================================================================

@@ -228,6 +228,25 @@ fn test_value_duration_as_string_nanoseconds() {
 }
 
 #[test]
+fn test_value_duration_as_duration_from_duration() {
+    let d = Duration::from_secs(3);
+    let v = Value::Duration(d);
+    assert_eq!(v.as_duration().unwrap(), d);
+}
+
+#[test]
+fn test_value_duration_as_duration_from_string() {
+    let v = Value::String("1500000000ns".to_string());
+    assert_eq!(v.as_duration().unwrap(), Duration::from_nanos(1_500_000_000));
+}
+
+#[test]
+fn test_value_duration_as_duration_invalid_string() {
+    let v = Value::String("1.5s".to_string());
+    assert!(matches!(v.as_duration(), Err(ValueError::ConversionError(_))));
+}
+
+#[test]
 fn test_value_duration_zero() {
     let v = Value::Duration(Duration::ZERO);
     assert_eq!(v.get_duration().unwrap(), Duration::ZERO);
@@ -315,6 +334,26 @@ fn test_value_url_as_string() {
     let url = Url::parse("https://example.com/path").unwrap();
     let v = Value::Url(url.clone());
     assert_eq!(v.as_string().unwrap(), url.to_string());
+}
+
+#[test]
+fn test_value_url_as_url_from_url() {
+    let url = Url::parse("https://example.com/path").unwrap();
+    let v = Value::Url(url.clone());
+    assert_eq!(v.as_url().unwrap(), url);
+}
+
+#[test]
+fn test_value_url_as_url_from_string() {
+    let url = Url::parse("https://example.com/path?q=1").unwrap();
+    let v = Value::String(url.to_string());
+    assert_eq!(v.as_url().unwrap(), url);
+}
+
+#[test]
+fn test_value_url_as_url_invalid_string() {
+    let v = Value::String("not-a-url".to_string());
+    assert!(matches!(v.as_url(), Err(ValueError::ConversionError(_))));
 }
 
 #[test]
@@ -510,6 +549,37 @@ fn test_value_json_as_string() {
     let s = v.as_string().unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&s).unwrap();
     assert_eq!(parsed, j);
+}
+
+#[test]
+fn test_value_json_as_json_from_json() {
+    let j = serde_json::json!({"x": 1});
+    let v = Value::Json(j.clone());
+    assert_eq!(v.as_json().unwrap(), j);
+}
+
+#[test]
+fn test_value_json_as_json_from_string() {
+    let j = serde_json::json!({"x": 1, "tags": ["a", "b"]});
+    let v = Value::String(r#"{"x":1,"tags":["a","b"]}"#.to_string());
+    assert_eq!(v.as_json().unwrap(), j);
+}
+
+#[test]
+fn test_value_json_as_json_from_stringmap() {
+    let map = make_map(&[("host", "localhost"), ("port", "8080")]);
+    let v = Value::StringMap(map.clone());
+    let json = v.as_json().unwrap();
+    assert_eq!(json, serde_json::to_value(map).unwrap());
+}
+
+#[test]
+fn test_value_json_as_json_invalid_string() {
+    let v = Value::String("{invalid json}".to_string());
+    assert!(matches!(
+        v.as_json(),
+        Err(ValueError::JsonDeserializationError(_))
+    ));
 }
 
 #[test]
