@@ -1801,16 +1801,8 @@ impl ValueConverter<f64> for Value {
                 .parse::<f64>()
                 .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to f64", s))),
             Value::Empty(_) => Err(ValueError::NoValue),
-            Value::BigInteger(v) => v.to_f64().ok_or_else(|| {
-                ValueError::ConversionError(
-                    "BigInteger value cannot be converted to f64".to_string(),
-                )
-            }),
-            Value::BigDecimal(v) => v.to_f64().ok_or_else(|| {
-                ValueError::ConversionError(
-                    "BigDecimal value cannot be converted to f64".to_string(),
-                )
-            }),
+            Value::BigInteger(v) => Ok(v.to_f64().unwrap_or(f64::INFINITY)),
+            Value::BigDecimal(v) => Ok(v.to_f64().unwrap_or(f64::INFINITY)),
             _ => Err(ValueError::ConversionFailed {
                 from: self.data_type(),
                 to: DataType::Float64,
@@ -1983,7 +1975,7 @@ impl ValueConverter<u8> for Value {
                 Ok(code as u8)
             }
             Value::Int8(v) => {
-                let n = range_check(*v, u8::MIN as i8, u8::MAX as i8, "u8")?;
+                let n = range_check(*v, 0i8, i8::MAX, "u8")?;
                 Ok(n as u8)
             }
             Value::Int16(v) => {
@@ -2054,7 +2046,7 @@ impl ValueConverter<u16> for Value {
                 Ok(n as u16)
             }
             Value::Int16(v) => {
-                let n = range_check(*v, u16::MIN as i16, u16::MAX as i16, "u16")?;
+                let n = range_check(*v, 0i16, i16::MAX, "u16")?;
                 Ok(n as u16)
             }
             Value::Int32(v) => {
@@ -2119,7 +2111,7 @@ impl ValueConverter<u32> for Value {
                 Ok(n as u32)
             }
             Value::Int32(v) => {
-                let n = range_check(*v, u32::MIN as i32, u32::MAX as i32, "u32")?;
+                let n = range_check(*v, 0i32, i32::MAX, "u32")?;
                 Ok(n as u32)
             }
             Value::Int64(v) => {
@@ -2280,50 +2272,22 @@ impl ValueConverter<f32> for Value {
             }
             Value::Bool(v) => Ok(if *v { 1.0 } else { 0.0 }),
             Value::Char(v) => Ok(*v as u32 as f32),
-            Value::Int8(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
-            Value::Int16(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
-            Value::Int32(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
-            Value::Int64(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
-            Value::Int128(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
-            Value::UInt8(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
-            Value::UInt16(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
-            Value::UInt32(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
-            Value::UInt64(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
-            Value::UInt128(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError("Cannot convert value to f32".to_string())
-            }),
+            Value::Int8(v) => Ok(*v as f32),
+            Value::Int16(v) => Ok(*v as f32),
+            Value::Int32(v) => Ok(*v as f32),
+            Value::Int64(v) => Ok(*v as f32),
+            Value::Int128(v) => Ok(*v as f32),
+            Value::UInt8(v) => Ok(*v as f32),
+            Value::UInt16(v) => Ok(*v as f32),
+            Value::UInt32(v) => Ok(*v as f32),
+            Value::UInt64(v) => Ok(*v as f32),
+            Value::UInt128(v) => Ok(*v as f32),
             Value::String(s) => s
                 .parse::<f32>()
                 .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to f32", s))),
             Value::Empty(_) => Err(ValueError::NoValue),
-            Value::BigInteger(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError(
-                    "BigInteger value cannot be converted to f32".to_string(),
-                )
-            }),
-            Value::BigDecimal(v) => v.to_f32().ok_or_else(|| {
-                ValueError::ConversionError(
-                    "BigDecimal value cannot be converted to f32".to_string(),
-                )
-            }),
+            Value::BigInteger(v) => Ok(v.to_f32().unwrap_or(f32::INFINITY)),
+            Value::BigDecimal(v) => Ok(v.to_f32().unwrap_or(f32::INFINITY)),
             _ => Err(ValueError::ConversionFailed {
                 from: self.data_type(),
                 to: DataType::Float32,
