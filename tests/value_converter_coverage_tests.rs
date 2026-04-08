@@ -784,7 +784,8 @@ fn test_to_u128_wrong_type() {
 
 #[test]
 fn test_to_f32_from_float32() {
-    assert_eq!(Value::Float32(3.14f32).to::<f32>().unwrap(), 3.14f32);
+    let x = 2.25f32;
+    assert_eq!(Value::Float32(x).to::<f32>().unwrap(), x);
 }
 
 #[test]
@@ -875,8 +876,8 @@ fn test_to_f32_from_uint128() {
 #[test]
 fn test_to_f32_from_string_valid() {
     assert_eq!(
-        Value::String("3.14".to_string()).to::<f32>().unwrap(),
-        3.14f32
+        Value::String("2.25".to_string()).to::<f32>().unwrap(),
+        2.25f32
     );
 }
 
@@ -911,9 +912,9 @@ fn test_to_f32_from_biginteger_huge_becomes_infinity() {
 fn test_to_f32_from_bigdecimal_normal() {
     use bigdecimal::BigDecimal;
     use std::str::FromStr;
-    let bd = BigDecimal::from_str("3.14").unwrap();
+    let bd = BigDecimal::from_str("2.25").unwrap();
     let result = Value::BigDecimal(bd).to::<f32>().unwrap();
-    assert!((result - 3.14f32).abs() < 1e-5);
+    assert!((result - 2.25f32).abs() < 1e-5);
 }
 
 #[test]
@@ -946,9 +947,9 @@ fn test_to_f64_from_biginteger_huge_becomes_infinity() {
 fn test_to_f64_from_bigdecimal_normal() {
     use bigdecimal::BigDecimal;
     use std::str::FromStr;
-    let bd = BigDecimal::from_str("3.14159").unwrap();
+    let bd = BigDecimal::from_str("2.25").unwrap();
     let result = Value::BigDecimal(bd).to::<f64>().unwrap();
-    assert!((result - 3.14159f64).abs() < 1e-10);
+    assert!((result - 2.25f64).abs() < 1e-10);
 }
 
 // ============================================================================
