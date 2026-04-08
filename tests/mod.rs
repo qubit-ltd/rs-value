@@ -18,5 +18,6 @@ mod multi_values_tests;
 mod multi_values_v030_tests;
 mod named_multi_values_tests;
 mod named_value_tests;
+mod value_converter_coverage_tests;
 mod value_tests;
 mod value_v030_tests;
