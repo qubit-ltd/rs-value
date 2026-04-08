@@ -72,8 +72,8 @@ fn check_port(p: i32) -> bool { p > 1024 }
 assert!(check_port(v.get()?));  // Inferred as i32 from function signature
 
 // Cross-type conversion
-assert_eq!(v.as_int64()?, 8080i64);
-assert_eq!(v.as_string()?, "8080".to_string());
+assert_eq!(v.to::<i64>()?, 8080i64);
+assert_eq!(v.to::<String>()?, "8080".to_string());
 
 // Big number with type inference
 let big_int = Value::new(BigInt::from(12345678901234567890i64));

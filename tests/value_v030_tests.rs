@@ -88,7 +88,7 @@ fn test_value_intsize_generic_set() {
 #[test]
 fn test_value_intsize_as_string() {
     let v = Value::IntSize(-42isize);
-    assert_eq!(v.as_string().unwrap(), "-42");
+    assert_eq!(v.to::<String>().unwrap(), "-42");
 }
 
 #[test]
@@ -150,7 +150,7 @@ fn test_value_uintsize_generic_new() {
 #[test]
 fn test_value_uintsize_as_string() {
     let v = Value::UIntSize(1024usize);
-    assert_eq!(v.as_string().unwrap(), "1024");
+    assert_eq!(v.to::<String>().unwrap(), "1024");
 }
 
 #[test]
@@ -224,33 +224,39 @@ fn test_value_duration_generic_set() {
 fn test_value_duration_as_string_nanoseconds() {
     let d = Duration::from_nanos(1_500_000_000);
     let v = Value::Duration(d);
-    assert_eq!(v.as_string().unwrap(), "1500000000ns");
+    assert_eq!(v.to::<String>().unwrap(), "1500000000ns");
 }
 
 #[test]
 fn test_value_duration_as_duration_from_duration() {
     let d = Duration::from_secs(3);
     let v = Value::Duration(d);
-    assert_eq!(v.as_duration().unwrap(), d);
+    assert_eq!(v.to::<Duration>().unwrap(), d);
 }
 
 #[test]
 fn test_value_duration_as_duration_from_string() {
     let v = Value::String("1500000000ns".to_string());
-    assert_eq!(v.as_duration().unwrap(), Duration::from_nanos(1_500_000_000));
+    assert_eq!(
+        v.to::<Duration>().unwrap(),
+        Duration::from_nanos(1_500_000_000)
+    );
 }
 
 #[test]
 fn test_value_duration_as_duration_invalid_string() {
     let v = Value::String("1.5s".to_string());
-    assert!(matches!(v.as_duration(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        v.to::<Duration>(),
+        Err(ValueError::ConversionError(_))
+    ));
 }
 
 #[test]
 fn test_value_duration_zero() {
     let v = Value::Duration(Duration::ZERO);
     assert_eq!(v.get_duration().unwrap(), Duration::ZERO);
-    assert_eq!(v.as_string().unwrap(), "0ns");
+    assert_eq!(v.to::<String>().unwrap(), "0ns");
 }
 
 #[test]
@@ -333,27 +339,27 @@ fn test_value_url_generic_set() {
 fn test_value_url_as_string() {
     let url = Url::parse("https://example.com/path").unwrap();
     let v = Value::Url(url.clone());
-    assert_eq!(v.as_string().unwrap(), url.to_string());
+    assert_eq!(v.to::<String>().unwrap(), url.to_string());
 }
 
 #[test]
 fn test_value_url_as_url_from_url() {
     let url = Url::parse("https://example.com/path").unwrap();
     let v = Value::Url(url.clone());
-    assert_eq!(v.as_url().unwrap(), url);
+    assert_eq!(v.to::<Url>().unwrap(), url);
 }
 
 #[test]
 fn test_value_url_as_url_from_string() {
     let url = Url::parse("https://example.com/path?q=1").unwrap();
     let v = Value::String(url.to_string());
-    assert_eq!(v.as_url().unwrap(), url);
+    assert_eq!(v.to::<Url>().unwrap(), url);
 }
 
 #[test]
 fn test_value_url_as_url_invalid_string() {
     let v = Value::String("not-a-url".to_string());
-    assert!(matches!(v.as_url(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(v.to::<Url>(), Err(ValueError::ConversionError(_))));
 }
 
 #[test]
@@ -450,7 +456,7 @@ fn test_value_stringmap_generic_set() {
 fn test_value_stringmap_as_string_is_json() {
     let m = make_map(&[("k", "v")]);
     let v = Value::StringMap(m.clone());
-    let s = v.as_string().unwrap();
+    let s = v.to::<String>().unwrap();
     let parsed: HashMap<String, String> = serde_json::from_str(&s).unwrap();
     assert_eq!(parsed, m);
 }
@@ -546,7 +552,7 @@ fn test_value_json_from_json_value() {
 fn test_value_json_as_string() {
     let j = serde_json::json!({"x": 1});
     let v = Value::Json(j.clone());
-    let s = v.as_string().unwrap();
+    let s = v.to::<String>().unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&s).unwrap();
     assert_eq!(parsed, j);
 }
@@ -555,21 +561,21 @@ fn test_value_json_as_string() {
 fn test_value_json_as_json_from_json() {
     let j = serde_json::json!({"x": 1});
     let v = Value::Json(j.clone());
-    assert_eq!(v.as_json().unwrap(), j);
+    assert_eq!(v.to::<serde_json::Value>().unwrap(), j);
 }
 
 #[test]
 fn test_value_json_as_json_from_string() {
     let j = serde_json::json!({"x": 1, "tags": ["a", "b"]});
     let v = Value::String(r#"{"x":1,"tags":["a","b"]}"#.to_string());
-    assert_eq!(v.as_json().unwrap(), j);
+    assert_eq!(v.to::<serde_json::Value>().unwrap(), j);
 }
 
 #[test]
 fn test_value_json_as_json_from_stringmap() {
     let map = make_map(&[("host", "localhost"), ("port", "8080")]);
     let v = Value::StringMap(map.clone());
-    let json = v.as_json().unwrap();
+    let json = v.to::<serde_json::Value>().unwrap();
     assert_eq!(json, serde_json::to_value(map).unwrap());
 }
 
@@ -577,9 +583,37 @@ fn test_value_json_as_json_from_stringmap() {
 fn test_value_json_as_json_invalid_string() {
     let v = Value::String("{invalid json}".to_string());
     assert!(matches!(
-        v.as_json(),
+        v.to::<serde_json::Value>(),
         Err(ValueError::JsonDeserializationError(_))
     ));
+}
+
+#[test]
+fn test_value_to_duration() {
+    let v = Value::String("42ns".to_string());
+    let got: Duration = v.to().unwrap();
+    assert_eq!(got, Duration::from_nanos(42));
+}
+
+#[test]
+fn test_value_to_url() {
+    let v = Value::String("https://example.com/path".to_string());
+    let got: Url = v.to().unwrap();
+    assert_eq!(got, Url::parse("https://example.com/path").unwrap());
+}
+
+#[test]
+fn test_value_to_json() {
+    let v = Value::String(r#"{"name":"qubit"}"#.to_string());
+    let got: serde_json::Value = v.to().unwrap();
+    assert_eq!(got, serde_json::json!({"name": "qubit"}));
+}
+
+#[test]
+fn test_value_to_string() {
+    let v = Value::Duration(Duration::from_nanos(7));
+    let got: String = v.to().unwrap();
+    assert_eq!(got, "7ns");
 }
 
 #[test]
