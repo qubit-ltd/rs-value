@@ -31,14 +31,15 @@ use super::value::Value;
 
 /// Multiple values container
 ///
-/// Uses an enum to represent multiple values of different types, providing type-safe storage and access for multiple values.
+/// Uses an enum to represent multiple values of different types, providing
+/// type-safe storage and access for multiple values.
 ///
 /// # Features
 ///
-/// - Supports collections of multiple basic data types
-/// - Provides two sets of APIs for type checking and type conversion
-/// - Supports unified access to single and multiple values
-/// - Automatic memory management
+/// - Supports collections of multiple basic data types.
+/// - Provides two sets of APIs for type checking and type conversion.
+/// - Supports unified access to single and multiple values.
+/// - Automatic memory management.
 ///
 /// # Example
 ///
@@ -91,10 +92,18 @@ pub enum MultiValues {
     UInt64(Vec<u64>),
     /// u128 list
     UInt128(Vec<u128>),
+    /// isize list
+    IntSize(Vec<isize>),
+    /// usize list
+    UIntSize(Vec<usize>),
     /// f32 list
     Float32(Vec<f32>),
     /// f64 list
     Float64(Vec<f64>),
+    /// Big integer list
+    BigInteger(Vec<BigInt>),
+    /// Big decimal list
+    BigDecimal(Vec<BigDecimal>),
     /// String list
     String(Vec<String>),
     /// Date list
@@ -105,14 +114,6 @@ pub enum MultiValues {
     DateTime(Vec<NaiveDateTime>),
     /// UTC instant list
     Instant(Vec<DateTime<Utc>>),
-    /// Big integer list
-    BigInteger(Vec<BigInt>),
-    /// Big decimal list
-    BigDecimal(Vec<BigDecimal>),
-    /// isize list
-    IntSize(Vec<isize>),
-    /// usize list
-    UIntSize(Vec<usize>),
     /// Duration list
     Duration(Vec<Duration>),
     /// Url list
@@ -129,11 +130,13 @@ pub enum MultiValues {
 
 /// Unified multiple values getter generation macro
 ///
-/// Generates `get_[xxx]s` methods for `MultiValues`, returning a reference to value slices.
+/// Generates `get_[xxx]s` methods for `MultiValues`, returning a reference to
+/// value slices.
 ///
 /// # Documentation Comment Support
 ///
-/// The macro automatically extracts preceding documentation comments, so you can add `///` comments before macro invocations.
+/// The macro automatically extracts preceding documentation comments, so you
+/// can add `///` comments before macro invocations.
 ///
 /// # Author
 ///
@@ -173,11 +176,13 @@ macro_rules! impl_get_multi_values {
 
 /// Unified multiple values get_first method generation macro
 ///
-/// Generates `get_first_[xxx]` methods for `MultiValues`, used to get the first value.
+/// Generates `get_first_[xxx]` methods for `MultiValues`, used to get the first
+/// value.
 ///
 /// # Documentation Comment Support
 ///
-/// The macro automatically extracts preceding documentation comments, so you can add `///` comments before macro invocations.
+/// The macro automatically extracts preceding documentation comments, so you
+/// can add `///` comments before macro invocations.
 ///
 /// # Author
 ///
@@ -224,7 +229,8 @@ macro_rules! impl_get_first_value {
 ///
 /// # Documentation Comment Support
 ///
-/// The macro automatically extracts preceding documentation comments, so you can add `///` comments before macro invocations.
+/// The macro automatically extracts preceding documentation comments, so you
+/// can add `///` comments before macro invocations.
 ///
 /// # Author
 ///
@@ -258,7 +264,8 @@ macro_rules! impl_add_single_value {
 ///
 /// # Documentation Comment Support
 ///
-/// The macro automatically extracts preceding documentation comments, so you can add `///` comments before macro invocations.
+/// The macro automatically extracts preceding documentation comments, so you
+/// can add `///` comments before macro invocations.
 ///
 /// # Author
 ///
@@ -288,7 +295,8 @@ macro_rules! impl_add_multi_values {
 
 /// Unified multiple values add from slice method generation macro
 ///
-/// Generates `add_[xxx]s_slice` methods for `MultiValues`, used to append multiple values at once from a slice.
+/// Generates `add_[xxx]s_slice` methods for `MultiValues`, used to append
+/// multiple values at once from a slice.
 ///
 /// # Author
 ///
@@ -318,11 +326,13 @@ macro_rules! impl_add_multi_values_slice {
 
 /// Unified multiple values single value set method generation macro
 ///
-/// Generates `set_[xxx]` methods for `MultiValues`, used to set a single value (replacing the entire list).
+/// Generates `set_[xxx]` methods for `MultiValues`, used to set a single value
+/// (replacing the entire list).
 ///
 /// # Documentation Comment Support
 ///
-/// The macro automatically extracts preceding documentation comments, so you can add `///` comments before macro invocations.
+/// The macro automatically extracts preceding documentation comments, so you
+/// can add `///` comments before macro invocations.
 ///
 /// # Author
 ///
@@ -340,11 +350,13 @@ macro_rules! impl_set_single_value {
 
 /// Unified multiple values set method generation macro
 ///
-/// Generates `set_[xxx]s` methods for `MultiValues`, used to set the entire value list.
+/// Generates `set_[xxx]s` methods for `MultiValues`, used to set the entire
+/// value list.
 ///
 /// # Documentation Comment Support
 ///
-/// The macro automatically extracts preceding documentation comments, so you can add `///` comments before macro invocations.
+/// The macro automatically extracts preceding documentation comments, so you
+/// can add `///` comments before macro invocations.
 ///
 /// # Author
 ///
@@ -362,12 +374,16 @@ macro_rules! impl_set_multi_values {
 
 /// Unified multiple values set (slice) method generation macro
 ///
-/// Generates `set_[xxx]s_slice` methods for `MultiValues`, used to set the entire value list from a slice.
-/// This method directly replaces the internally stored list without type matching checks, behaving consistently with `set_[xxx]s`.
+/// Generates `set_[xxx]s_slice` methods for `MultiValues`, used to set the
+/// entire value list from a slice.
+///
+/// This method directly replaces the internally stored list without type
+/// matching checks, behaving consistently with `set_[xxx]s`.
 ///
 /// # Documentation Comment Support
 ///
-/// The macro automatically extracts preceding documentation comments, so you can add `///` comments before macro invocations.
+/// The macro automatically extracts preceding documentation comments, so you
+/// can add `///` comments before macro invocations.
 ///
 /// # Author
 ///
@@ -386,7 +402,8 @@ macro_rules! impl_set_multi_values_slice {
 impl MultiValues {
     /// Generic constructor method
     ///
-    /// Creates `MultiValues` from `Vec<T>`, avoiding direct use of enum variants.
+    /// Creates `MultiValues` from `Vec<T>`, avoiding direct use of enum
+    /// variants.
     ///
     /// # Type Parameters
     ///
@@ -408,10 +425,6 @@ impl MultiValues {
     /// // Strings
     /// let mv = MultiValues::new(vec!["a".to_string(), "b".to_string()]);
     /// assert_eq!(mv.count(), 2);
-    ///
-    /// // Byte arrays
-    /// let mv = MultiValues::new(vec![vec![1u8, 2], vec![3, 4]]);
-    /// assert_eq!(mv.count(), 2);
     /// ```
     pub fn new<T>(values: Vec<T>) -> Self
     where
@@ -422,15 +435,16 @@ impl MultiValues {
 
     /// Generic getter method for multiple values
     ///
-    /// Automatically selects the correct getter method based on the target type, performing strict type checking.
+    /// Automatically selects the correct getter method based on the target
+    /// type, performing strict type checking.
     ///
     /// # Type Parameters
     ///
-    /// * `T` - The target element type to retrieve
+    /// * `T` - The target element type to retrieve.
     ///
     /// # Returns
     ///
-    /// If types match, returns the list of values; otherwise returns an error
+    /// If types match, returns the list of values; otherwise returns an error.
     ///
     /// # Example
     ///
@@ -456,15 +470,17 @@ impl MultiValues {
 
     /// Generic getter method for the first value
     ///
-    /// Automatically selects the correct getter method based on the target type, performing strict type checking.
+    /// Automatically selects the correct getter method based on the target type,
+    /// performing strict type checking.
     ///
     /// # Type Parameters
     ///
-    /// * `T` - The target element type to retrieve
+    /// * `T` - The target element type to retrieve.
     ///
     /// # Returns
     ///
-    /// If types match and a value exists, returns the first value; otherwise returns an error
+    /// If types match and a value exists, returns the first value; otherwise
+    /// returns an error.
     ///
     /// # Example
     ///
@@ -495,8 +511,11 @@ impl MultiValues {
 
     /// Generic setter method
     ///
-    /// Automatically selects the optimal setter path based on the input type, replacing the entire list with strict type checking.
-    /// Supports three input forms, all unified to this method via internal dispatch traits:
+    /// Automatically selects the optimal setter path based on the input type,
+    /// replacing the entire list with strict type checking.
+    ///
+    /// Supports three input forms, all unified to this method via internal
+    /// dispatch traits:
     ///
     /// - `Vec<T>`: Takes `set_values(Vec<T>)` path with zero additional allocation
     /// - `&[T]`: Takes `set_values_slice(&[T])` path
@@ -508,11 +527,12 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `values` - The value collection to set, can be `Vec<T>`, `&[T]`, or a single `T`
+    /// * `values` - The value collection to set, can be `Vec<T>`, `&[T]`, or a
+    /// single `T`
     ///
     /// # Returns
     ///
-    /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+    /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
     ///
     /// # Example
     ///
@@ -553,7 +573,9 @@ impl MultiValues {
 
     /// Generic add method
     ///
-    /// Automatically selects the optimal add path based on the input type, appending elements to the existing list with strict type checking.
+    /// Automatically selects the optimal add path based on the input type,
+    /// appending elements to the existing list with strict type checking.
+    ///
     /// Supports three input forms:
     ///
     /// - `T`: Takes `add_value(T)` path, appending a single element
@@ -757,7 +779,8 @@ impl MultiValues {
 
     /// Set the data type
     ///
-    /// If the new type differs from the current type, clears all values and sets the new type.
+    /// If the new type differs from the current type, clears all values and
+    /// sets the new type.
     ///
     /// # Parameters
     ///
@@ -784,11 +807,12 @@ impl MultiValues {
     // ========================================================================
 
     impl_get_first_value! {
-        /// Get the first boolean value
+        /// Get the first boolean value.
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first boolean value; otherwise returns an error
+        /// If types match and a value exists, returns the first boolean value;
+        /// otherwise returns an error.
         ///
         /// # Example
         ///
@@ -806,7 +830,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first character value; otherwise returns an error
+        /// If types match and a value exists, returns the first character value;
+        /// otherwise returns an error.
         copy: get_first_char, Char, char, DataType::Char
     }
 
@@ -815,7 +840,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int8 value; otherwise returns an error
+        /// If types match and a value exists, returns the first int8 value;
+        /// otherwise returns an error
         copy: get_first_int8, Int8, i8, DataType::Int8
     }
 
@@ -824,7 +850,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int16 value; otherwise returns an error
+        /// If types match and a value exists, returns the first int16 value;
+        /// otherwise returns an error
         copy: get_first_int16, Int16, i16, DataType::Int16
     }
 
@@ -833,7 +860,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int32 value; otherwise returns an error
+        /// If types match and a value exists, returns the first int32 value;
+        /// otherwise returns an error
         copy: get_first_int32, Int32, i32, DataType::Int32
     }
 
@@ -842,7 +870,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int64 value; otherwise returns an error
+        /// If types match and a value exists, returns the first int64 value;
+        /// otherwise returns an error
         copy: get_first_int64, Int64, i64, DataType::Int64
     }
 
@@ -851,7 +880,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int128 value; otherwise returns an error
+        /// If types match and a value exists, returns the first int128 value;
+        /// otherwise returns an error
         copy: get_first_int128, Int128, i128, DataType::Int128
     }
 
@@ -860,7 +890,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint8 value; otherwise returns an error
+        /// If types match and a value exists, returns the first uint8 value;
+        /// otherwise returns an error
         copy: get_first_uint8, UInt8, u8, DataType::UInt8
     }
 
@@ -869,7 +900,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint16 value; otherwise returns an error
+        /// If types match and a value exists, returns the first uint16 value;
+        /// otherwise returns an error
         copy: get_first_uint16, UInt16, u16, DataType::UInt16
     }
 
@@ -878,7 +910,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint32 value; otherwise returns an error
+        /// If types match and a value exists, returns the first uint32 value;
+        /// otherwise returns an error
         copy: get_first_uint32, UInt32, u32, DataType::UInt32
     }
 
@@ -887,7 +920,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint64 value; otherwise returns an error
+        /// If types match and a value exists, returns the first uint64 value;
+        /// otherwise returns an error
         copy: get_first_uint64, UInt64, u64, DataType::UInt64
     }
 
@@ -896,7 +930,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint128 value; otherwise returns an error
+        /// If types match and a value exists, returns the first uint128 value;
+        /// otherwise returns an error
         copy: get_first_uint128, UInt128, u128, DataType::UInt128
     }
 
@@ -905,7 +940,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first float32 value; otherwise returns an error
+        /// If types match and a value exists, returns the first float32 value;
+        /// otherwise returns an error
         copy: get_first_float32, Float32, f32, DataType::Float32
     }
 
@@ -914,7 +950,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first float64 value; otherwise returns an error
+        /// If types match and a value exists, returns the first float64 value;
+        /// otherwise returns an error
         copy: get_first_float64, Float64, f64, DataType::Float64
     }
 
@@ -923,7 +960,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns a reference to the first string; otherwise returns an error
+        /// If types match and a value exists, returns a reference to the first
+        /// string; otherwise returns an error
         ref: get_first_string, String, &str, DataType::String, |s: &String| s.as_str()
     }
 
@@ -932,7 +970,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first date value; otherwise returns an error
+        /// If types match and a value exists, returns the first date value;
+        /// otherwise returns an error
         copy: get_first_date, Date, NaiveDate, DataType::Date
     }
 
@@ -941,7 +980,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first time value; otherwise returns an error
+        /// If types match and a value exists, returns the first time value;
+        /// otherwise returns an error
         copy: get_first_time, Time, NaiveTime, DataType::Time
     }
 
@@ -950,7 +990,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first datetime value; otherwise returns an error
+        /// If types match and a value exists, returns the first datetime value;
+        /// otherwise returns an error
         copy: get_first_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -959,7 +1000,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first UTC instant value; otherwise returns an error
+        /// If types match and a value exists, returns the first UTC instant
+        /// value; otherwise returns an error
         copy: get_first_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -968,7 +1010,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first big integer value; otherwise returns an error
+        /// If types match and a value exists, returns the first big integer
+        /// value; otherwise returns an error
         ref: get_first_biginteger, BigInteger, BigInt, DataType::BigInteger, |v: &BigInt| v.clone()
     }
 
@@ -977,7 +1020,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first big decimal value; otherwise returns an error
+        /// If types match and a value exists, returns the first big decimal
+        /// value; otherwise returns an error
         ref: get_first_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
     }
 
@@ -1020,7 +1064,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the boolean value array; otherwise returns an error
+        /// If types match, returns a reference to the boolean value array;
+        /// otherwise returns an error
         ///
         /// # Example
         ///
@@ -1038,7 +1083,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the character value array; otherwise returns an error
+        /// If types match, returns a reference to the character value array;
+        /// otherwise returns an error
         slice: get_chars, Char, char, DataType::Char
     }
 
@@ -1047,7 +1093,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int8 value array; otherwise returns an error
+        /// If types match, returns a reference to the int8 value array;
+        /// otherwise returns an error
         slice: get_int8s, Int8, i8, DataType::Int8
     }
 
@@ -1056,7 +1103,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int16 value array; otherwise returns an error
+        /// If types match, returns a reference to the int16 value array;
+        /// otherwise returns an error
         slice: get_int16s, Int16, i16, DataType::Int16
     }
 
@@ -1065,7 +1113,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int32 value array; otherwise returns an error
+        /// If types match, returns a reference to the int32 value array;
+        /// otherwise returns an error
         slice: get_int32s, Int32, i32, DataType::Int32
     }
 
@@ -1074,7 +1123,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int64 value array; otherwise returns an error
+        /// If types match, returns a reference to the int64 value array;
+        /// otherwise returns an error
         slice: get_int64s, Int64, i64, DataType::Int64
     }
 
@@ -1083,7 +1133,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int128 value array; otherwise returns an error
+        /// If types match, returns a reference to the int128 value array;
+        /// otherwise returns an error
         slice: get_int128s, Int128, i128, DataType::Int128
     }
 
@@ -1092,7 +1143,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint8 value array; otherwise returns an error
+        /// If types match, returns a reference to the uint8 value array;
+        /// otherwise returns an error
         slice: get_uint8s, UInt8, u8, DataType::UInt8
     }
 
@@ -1101,7 +1153,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint16 value array; otherwise returns an error
+        /// If types match, returns a reference to the uint16 value array;
+        /// otherwise returns an error
         slice: get_uint16s, UInt16, u16, DataType::UInt16
     }
 
@@ -1110,7 +1163,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint32 value array; otherwise returns an error
+        /// If types match, returns a reference to the uint32 value array;
+        /// otherwise returns an error
         slice: get_uint32s, UInt32, u32, DataType::UInt32
     }
 
@@ -1119,7 +1173,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint64 value array; otherwise returns an error
+        /// If types match, returns a reference to the uint64 value array;
+        /// otherwise returns an error
         slice: get_uint64s, UInt64, u64, DataType::UInt64
     }
 
@@ -1128,7 +1183,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint128 value array; otherwise returns an error
+        /// If types match, returns a reference to the uint128 value array;
+        /// otherwise returns an error
         slice: get_uint128s, UInt128, u128, DataType::UInt128
     }
 
@@ -1137,7 +1193,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the float32 value array; otherwise returns an error
+        /// If types match, returns a reference to the float32 value array;
+        /// otherwise returns an error
         slice: get_float32s, Float32, f32, DataType::Float32
     }
 
@@ -1146,7 +1203,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the float64 value array; otherwise returns an error
+        /// If types match, returns a reference to the float64 value array;
+        /// otherwise returns an error
         slice: get_float64s, Float64, f64, DataType::Float64
     }
 
@@ -1155,7 +1213,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the string array; otherwise returns an error
+        /// If types match, returns a reference to the string array; otherwise
+        /// returns an error
         vec: get_strings, String, String, DataType::String
     }
 
@@ -1164,7 +1223,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the date value array; otherwise returns an error
+        /// If types match, returns a reference to the date value array;
+        /// otherwise returns an error
         slice: get_dates, Date, NaiveDate, DataType::Date
     }
 
@@ -1173,7 +1233,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the time value array; otherwise returns an error
+        /// If types match, returns a reference to the time value array;
+        /// otherwise returns an error
         slice: get_times, Time, NaiveTime, DataType::Time
     }
 
@@ -1182,7 +1243,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the datetime value array; otherwise returns an error
+        /// If types match, returns a reference to the datetime value array;
+        /// otherwise returns an error
         slice: get_datetimes, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -1191,7 +1253,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the UTC instant value array; otherwise returns an error
+        /// If types match, returns a reference to the UTC instant value array;
+        /// otherwise returns an error
         slice: get_instants, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -1200,7 +1263,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the big integer array; otherwise returns an error
+        /// If types match, returns a reference to the big integer array;
+        /// otherwise returns an error
         vec: get_bigintegers, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -1209,7 +1273,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the big decimal array; otherwise returns an error
+        /// If types match, returns a reference to the big decimal array;
+        /// otherwise returns an error
         vec: get_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
@@ -3263,7 +3328,8 @@ impl From<Value> for MultiValues {
 }
 
 // ============================================================================
-// Internal generic conversion traits (private, not exported, to avoid polluting the standard type namespace)
+// Internal generic conversion traits (private, not exported, to avoid polluting
+// the standard type namespace).
 // ============================================================================
 
 /// Internal trait: used to extract multiple values from MultiValues
@@ -3340,7 +3406,8 @@ pub trait MultiValuesAddArg<'a> {
     fn apply_add(self, target: &mut MultiValues) -> ValueResult<()>;
 }
 
-/// Internal trait: used to append multiple values to MultiValues via slice (calls add_[xxx]s_slice by type)
+/// Internal trait: used to append multiple values to MultiValues via slice
+/// (calls add_[xxx]s_slice by type)
 #[doc(hidden)]
 pub(crate) trait MultiValuesMultiAdderSlice<T> {
     fn add_values_slice(&mut self, values: &[T]) -> ValueResult<()>;
@@ -3348,7 +3415,8 @@ pub(crate) trait MultiValuesMultiAdderSlice<T> {
 
 /// Internal trait: used to create MultiValues from Vec<T>
 ///
-/// This trait is not exported in mod.rs, only used for internal implementation, to avoid polluting the standard type namespace
+/// This trait is not exported in mod.rs, only used for internal implementation,
+/// to avoid polluting the standard type namespace
 #[doc(hidden)]
 pub(crate) trait MultiValuesConstructor<T> {
     fn from_vec(values: Vec<T>) -> Self;
@@ -3393,7 +3461,8 @@ macro_rules! impl_multi_value_traits {
             }
         }
 
-        // Generic From implementation for SetParam is at the top level, not repeated here for specific types
+        // Generic From implementation for SetParam is at the top level, not
+        // repeated here for specific types.
 
         impl MultiValuesSetterSlice<$type> for MultiValues {
             fn set_values_slice(&mut self, values: &[$type]) -> ValueResult<()> {
