@@ -528,7 +528,7 @@ impl MultiValues {
     /// # Parameters
     ///
     /// * `values` - The value collection to set, can be `Vec<T>`, `&[T]`, or a
-    /// single `T`
+    ///   single `T`
     ///
     /// # Returns
     ///
