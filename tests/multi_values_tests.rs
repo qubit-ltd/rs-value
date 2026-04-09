@@ -412,7 +412,6 @@ fn test_multi_value_new() {
     assert_eq!(mv.count(), 2);
     assert_eq!(mv.data_type(), DataType::String);
 
-    // u8 now supports new
     let mv = MultiValues::new(vec![1u8, 2, 3, 4]);
     assert_eq!(mv.count(), 4);
     assert_eq!(mv.data_type(), DataType::UInt8);
@@ -445,6 +444,9 @@ fn test_multi_value_generic_get_first() {
         mv.get_first::<String>(),
         Err(ValueError::TypeMismatch { .. })
     ));
+
+    let mv = MultiValues::UInt8(vec![11u8, 22u8]);
+    assert_eq!(mv.get_first::<u8>().unwrap(), 11u8);
 }
 
 #[test]
@@ -480,10 +482,9 @@ fn test_multi_value_generic_set() {
     mv.set(vec![true, false, true]).unwrap();
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
-    // u8 now supports generic methods
     let mut mv = MultiValues::Empty(DataType::UInt8);
     mv.set(vec![1u8, 2, 3]).unwrap();
-    assert_eq!(mv.get_uint8s().unwrap(), &[1, 2, 3]);
+    assert_eq!(mv.get::<u8>().unwrap(), vec![1u8, 2, 3]);
 }
 
 #[test]
@@ -634,10 +635,9 @@ fn test_multi_value_generic_single_set() {
     mv.set(true).unwrap();
     assert_eq!(mv.get_bools().unwrap(), &[true]);
 
-    // u8 now supports generic single value set
     let mut mv = MultiValues::Empty(DataType::UInt8);
     mv.set(42u8).unwrap();
-    assert_eq!(mv.get_uint8s().unwrap(), &[42]);
+    assert_eq!(mv.get::<u8>().unwrap(), vec![42u8]);
 }
 
 #[test]
@@ -703,10 +703,9 @@ fn test_multi_value_generic_add() {
     mv.add(false).unwrap();
     assert_eq!(mv.get_bools().unwrap(), &[true, false]);
 
-    // u8 now supports generic add
     let mut mv = MultiValues::UInt8(vec![1, 2, 3]);
     mv.add(4u8).unwrap();
-    assert_eq!(mv.get_uint8s().unwrap(), &[1, 2, 3, 4]);
+    assert_eq!(mv.get::<u8>().unwrap(), vec![1u8, 2, 3, 4]);
 
     // Test adding from empty value
     let mut mv = MultiValues::Empty(DataType::Int32);
@@ -745,7 +744,6 @@ fn test_multi_value_generic_add_all_types() {
     mv.add(2000000000i64).unwrap();
     assert_eq!(mv.get_int64s().unwrap(), &[1000000000, 2000000000]);
 
-    // Note: u8 does not support generic add, as Vec<u8> is used for byte arrays
     let mut mv = MultiValues::UInt8(vec![255u8]);
     mv.add_uint8(128u8).unwrap();
     assert_eq!(mv.get_uint8s().unwrap(), &[255, 128]);
@@ -806,10 +804,9 @@ fn test_multi_value_generic_multi_add() {
     mv.add(vec![false, true]).unwrap();
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
-    // u8 now supports generic batch add
     let mut mv = MultiValues::UInt8(vec![1]);
     mv.add(vec![2u8, 3, 4]).unwrap();
-    assert_eq!(mv.get_uint8s().unwrap(), &[1, 2, 3, 4]);
+    assert_eq!(mv.get::<u8>().unwrap(), vec![1u8, 2, 3, 4]);
 
     // Test adding from empty value
     let mut mv = MultiValues::Empty(DataType::Int32);

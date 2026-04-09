@@ -50,9 +50,8 @@ fn test_generic_set_vec_all_types() {
     assert_eq!(mv.get_int128s().unwrap(), &[1, 2]);
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    // Note: u8 does not support generic set, as Vec<u8> is used for byte arrays
-    mv.set_uint8s(vec![1u8, 2]).unwrap();
-    assert_eq!(mv.get_uint8s().unwrap(), &[1, 2]);
+    mv.set(vec![1u8, 2, 3]).unwrap();
+    assert_eq!(mv.get::<u8>().unwrap(), vec![1u8, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::UInt16);
     mv.set(vec![1u16, 2]).unwrap();
@@ -83,11 +82,6 @@ fn test_generic_set_vec_all_types() {
     let mut mv = MultiValues::Empty(DataType::String);
     mv.set(vec!["a".to_string(), "b".to_string()]).unwrap();
     assert_eq!(mv.get_strings().unwrap(), &["a", "b"]);
-
-    // u8 now supports generic set
-    let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.set(vec![1u8, 2, 3]).unwrap();
-    assert_eq!(mv.get_uint8s().unwrap(), &[1, 2, 3]);
 
     // date/time
     let d1 = NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
@@ -136,11 +130,10 @@ fn test_generic_set_slice_all_types() {
     mv.set(&s[..]).unwrap();
     assert_eq!(mv.get_strings().unwrap(), &["x", "y"]);
 
-    // u8 now supports generic set slice
     let mut mv = MultiValues::Empty(DataType::UInt8);
     let b = vec![9u8, 8, 7, 6];
     mv.set(&b[..]).unwrap();
-    assert_eq!(mv.get_uint8s().unwrap(), &b);
+    assert_eq!(mv.get::<u8>().unwrap(), b);
 }
 
 // ------------------------------ set: single T ------------------------------
@@ -154,6 +147,10 @@ fn test_generic_set_single_all_types() {
     let mut mv = MultiValues::Empty(DataType::String);
     mv.set("ok".to_string()).unwrap();
     assert_eq!(mv.get_strings().unwrap(), &["ok"]);
+
+    let mut mv = MultiValues::Empty(DataType::UInt8);
+    mv.set(42u8).unwrap();
+    assert_eq!(mv.get::<u8>().unwrap(), vec![42u8]);
 }
 
 // ------------------------------ add: T/Vec/&[T] ------------------------------
@@ -167,6 +164,10 @@ fn test_generic_add_single_all_types() {
     let mut mv = MultiValues::String(vec!["a".to_string()]);
     mv.add("b".to_string()).unwrap();
     assert_eq!(mv.get_strings().unwrap(), &["a", "b"]);
+
+    let mut mv = MultiValues::UInt8(vec![5u8]);
+    mv.add(6u8).unwrap();
+    assert_eq!(mv.get::<u8>().unwrap(), vec![5u8, 6u8]);
 }
 
 #[test]
@@ -175,10 +176,9 @@ fn test_generic_add_vec_all_types() {
     mv.add(vec![2u16, 3]).unwrap();
     assert_eq!(mv.get_uint16s().unwrap(), &[1, 2, 3]);
 
-    // u8 now supports generic add Vec
     let mut mv = MultiValues::UInt8(vec![1u8]);
     mv.add(vec![2u8, 3]).unwrap();
-    assert_eq!(mv.get_uint8s().unwrap(), &[1, 2, 3]);
+    assert_eq!(mv.get::<u8>().unwrap(), vec![1u8, 2, 3]);
 }
 
 #[test]
@@ -188,11 +188,10 @@ fn test_generic_add_slice_all_types() {
     mv.add(&more[..]).unwrap();
     assert_eq!(mv.get_float32s().unwrap(), &[1.0, 2.0, 3.0]);
 
-    // u8 now supports generic add slice
     let mut mv = MultiValues::UInt8(vec![1u8]);
     let more = [2u8, 3u8, 4u8];
     mv.add(&more[..]).unwrap();
-    assert_eq!(mv.get_uint8s().unwrap(), &[1, 2, 3, 4]);
+    assert_eq!(mv.get::<u8>().unwrap(), vec![1u8, 2, 3, 4]);
 }
 
 // ------------------------------ get / get_first ------------------------------
@@ -207,10 +206,8 @@ fn test_generic_get_all_types() {
     let got: Vec<String> = mv.get().unwrap();
     assert_eq!(got, vec!["s".to_string()]);
 
-    // u8 now supports generic get
     let mv = MultiValues::UInt8(vec![1u8, 2u8]);
-    let got: Vec<u8> = mv.get().unwrap();
-    assert_eq!(got, vec![1u8, 2u8]);
+    assert_eq!(mv.get::<u8>().unwrap(), vec![1u8, 2u8]);
 }
 
 #[test]
@@ -222,4 +219,7 @@ fn test_generic_get_first_all_types() {
     let mv = MultiValues::String(vec!["x".to_string(), "y".to_string()]);
     let first: String = mv.get_first().unwrap();
     assert_eq!(first, "x");
+
+    let mv = MultiValues::UInt8(vec![11u8, 22u8]);
+    assert_eq!(mv.get_first::<u8>().unwrap(), 11u8);
 }

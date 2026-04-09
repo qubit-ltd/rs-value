@@ -91,10 +91,18 @@ pub enum Value {
     UInt64(u64),
     /// 128-bit unsigned integer
     UInt128(u128),
+    /// Platform-dependent signed integer (isize)
+    IntSize(isize),
+    /// Platform-dependent unsigned integer (usize)
+    UIntSize(usize),
     /// 32-bit floating point number
     Float32(f32),
     /// 64-bit floating point number
     Float64(f64),
+    /// Big integer type
+    BigInteger(BigInt),
+    /// Big decimal type
+    BigDecimal(BigDecimal),
     /// String
     String(String),
     /// Date
@@ -105,14 +113,6 @@ pub enum Value {
     DateTime(NaiveDateTime),
     /// UTC instant
     Instant(DateTime<Utc>),
-    /// Big integer type
-    BigInteger(BigInt),
-    /// Big decimal type
-    BigDecimal(BigDecimal),
-    /// Platform-dependent signed integer (isize)
-    IntSize(isize),
-    /// Platform-dependent unsigned integer (usize)
-    UIntSize(usize),
     /// Duration type (std::time::Duration)
     Duration(Duration),
     /// URL type (url::Url)
@@ -273,7 +273,9 @@ impl Value {
     /// Automatically selects the correct getter method based on the target
     /// type, performing strict type checking.
     ///
-    /// `get<T>()` performs strict type matching. It does not do cross-type conversion.
+    /// `get<T>()` performs strict type matching. It does not do cross-type
+    /// conversion.
+    ///
     /// For example, `Value::Int32(42).get::<i64>()` fails, while
     /// `Value::Int32(42).to::<i64>()` succeeds.
     ///
@@ -699,7 +701,8 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the boolean value; otherwise returns an error
+        /// If types match, returns the boolean value; otherwise returns an
+        /// error.
         ///
         /// # Example
         ///
@@ -717,7 +720,8 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the character value; otherwise returns an error
+        /// If types match, returns the character value; otherwise returns an
+        /// error.
         ///
         /// # Example
         ///
@@ -735,7 +739,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the int8 value; otherwise returns an error
+        /// If types match, returns the int8 value; otherwise returns an error.
         copy: get_int8, Int8, i8, DataType::Int8
     }
 
@@ -753,7 +757,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the int32 value; otherwise returns an error
+        /// If types match, returns the int32 value; otherwise returns an error.
         copy: get_int32, Int32, i32, DataType::Int32
     }
 
@@ -771,7 +775,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the int128 value; otherwise returns an error
+        /// If types match, returns the int128 value; otherwise returns an error.
         copy: get_int128, Int128, i128, DataType::Int128
     }
 
@@ -789,7 +793,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the uint16 value; otherwise returns an error
+        /// If types match, returns the uint16 value; otherwise returns an error.
         copy: get_uint16, UInt16, u16, DataType::UInt16
     }
 
@@ -798,7 +802,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the uint32 value; otherwise returns an error
+        /// If types match, returns the uint32 value; otherwise returns an error.
         copy: get_uint32, UInt32, u32, DataType::UInt32
     }
 
@@ -807,7 +811,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the uint64 value; otherwise returns an error
+        /// If types match, returns the uint64 value; otherwise returns an error.
         copy: get_uint64, UInt64, u64, DataType::UInt64
     }
 
@@ -825,7 +829,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the float32 value; otherwise returns an error
+        /// If types match, returns the float32 value; otherwise returns an error.
         copy: get_float32, Float32, f32, DataType::Float32
     }
 
@@ -843,7 +847,8 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the string; otherwise returns an error
+        /// If types match, returns a reference to the string; otherwise returns
+        /// an error.
         ///
         /// # Example
         ///
@@ -861,7 +866,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the date value; otherwise returns an error
+        /// If types match, returns the date value; otherwise returns an error.
         copy: get_date, Date, NaiveDate, DataType::Date
     }
 
@@ -870,7 +875,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the time value; otherwise returns an error
+        /// If types match, returns the time value; otherwise returns an error.
         copy: get_time, Time, NaiveTime, DataType::Time
     }
 
@@ -879,7 +884,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the datetime value; otherwise returns an error
+        /// If types match, returns the datetime value; otherwise returns an error.
         copy: get_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -888,7 +893,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the UTC instant value; otherwise returns an error
+        /// If types match, returns the UTC instant value; otherwise returns an error.
         copy: get_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -897,7 +902,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the big integer value; otherwise returns an error
+        /// If types match, returns the big integer value; otherwise returns an error.
         ///
         /// # Example
         ///
@@ -916,7 +921,8 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the big decimal value; otherwise returns an error
+        /// If types match, returns the big decimal value; otherwise returns an
+        /// error.
         ///
         /// # Example
         ///
@@ -943,7 +949,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         ///
         /// # Example
         ///
@@ -966,7 +972,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_char, Char, char, DataType::Char
     }
 
@@ -979,7 +985,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_int8, Int8, i8, DataType::Int8
     }
 
@@ -992,7 +998,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_int16, Int16, i16, DataType::Int16
     }
 
@@ -1005,7 +1011,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_int32, Int32, i32, DataType::Int32
     }
 
@@ -1018,7 +1024,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_int64, Int64, i64, DataType::Int64
     }
 
@@ -1031,7 +1037,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_int128, Int128, i128, DataType::Int128
     }
 
@@ -1044,7 +1050,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_uint8, UInt8, u8, DataType::UInt8
     }
 
@@ -1057,7 +1063,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_uint16, UInt16, u16, DataType::UInt16
     }
 
@@ -1070,7 +1076,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_uint32, UInt32, u32, DataType::UInt32
     }
 
@@ -1083,7 +1089,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_uint64, UInt64, u64, DataType::UInt64
     }
 
@@ -1096,7 +1102,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_uint128, UInt128, u128, DataType::UInt128
     }
 
@@ -1109,7 +1115,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_float32, Float32, f32, DataType::Float32
     }
 
@@ -1122,7 +1128,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_float64, Float64, f64, DataType::Float64
     }
 
@@ -1135,7 +1141,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         ///
         /// # Example
         ///
@@ -1158,7 +1164,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_date, Date, NaiveDate, DataType::Date
     }
 
@@ -1171,7 +1177,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_time, Time, NaiveTime, DataType::Time
     }
 
@@ -1184,7 +1190,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -1197,7 +1203,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         copy: set_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -1210,7 +1216,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         ///
         /// # Example
         ///
@@ -1234,7 +1240,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
         ///
         /// # Example
         ///
@@ -1254,7 +1260,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the isize value; otherwise returns an error
+        /// If types match, returns the isize value; otherwise returns an error.
         copy: get_intsize, IntSize, isize, DataType::IntSize
     }
 
@@ -1263,7 +1269,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the usize value; otherwise returns an error
+        /// If types match, returns the usize value; otherwise returns an error.
         copy: get_uintsize, UIntSize, usize, DataType::UIntSize
     }
 
@@ -1272,7 +1278,8 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the Duration value; otherwise returns an error
+        /// If types match, returns the Duration value; otherwise returns an
+        /// error.
         copy: get_duration, Duration, Duration, DataType::Duration
     }
 
@@ -1281,8 +1288,8 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the Url; otherwise
-        /// returns an error
+        /// If types match, returns a reference to the Url; otherwise returns an
+        /// error.
         ref: get_url, Url, Url, DataType::Url, |v: &Url| v.clone()
     }
 
@@ -1291,8 +1298,8 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the
-        /// `HashMap<String, String>`; otherwise returns an error
+        /// If types match, returns a reference to the `HashMap<String, String>`;
+        /// otherwise returns an error.
         ref: get_string_map, StringMap, HashMap<String, String>, DataType::StringMap,
             |v: &HashMap<String, String>| v.clone()
     }
@@ -1303,7 +1310,7 @@ impl Value {
         /// # Returns
         ///
         /// If types match, returns a reference to the `serde_json::Value`;
-        /// otherwise returns an error
+        /// otherwise returns an error.
         ref: get_json, Json, serde_json::Value, DataType::Json,
             |v: &serde_json::Value| v.clone()
     }
@@ -1338,51 +1345,51 @@ impl Value {
         owned: set_json, Json, serde_json::Value, DataType::Json
     }
 
-    /// Create a `Value` from a `serde_json::Value`
+    /// Create a `Value` from a `serde_json::Value`.
     ///
     /// # Parameters
     ///
-    /// * `json` - The JSON value to wrap
+    /// * `json` - The JSON value to wrap.
     ///
     /// # Returns
     ///
-    /// Returns a `Value::Json` wrapping the given JSON value
+    /// Returns a `Value::Json` wrapping the given JSON value.
     pub fn from_json_value(json: serde_json::Value) -> Self {
         Value::Json(json)
     }
 
-    /// Create a `Value` from any serializable value by converting it to JSON
+    /// Create a `Value` from any serializable value by converting it to JSON.
     ///
     /// # Type Parameters
     ///
-    /// * `T` - Any type implementing `Serialize`
+    /// * `T` - Any type implementing `Serialize`.
     ///
     /// # Parameters
     ///
-    /// * `value` - The value to serialize into JSON
+    /// * `value` - The value to serialize into JSON.
     ///
     /// # Returns
     ///
     /// Returns `Ok(Value::Json(...))` on success, or an error if
-    /// serialization fails
+    /// serialization fails.
     pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
         let json = serde_json::to_value(value)
             .map_err(|e| ValueError::JsonSerializationError(e.to_string()))?;
         Ok(Value::Json(json))
     }
 
-    /// Deserialize the inner JSON value into a target type
+    /// Deserialize the inner JSON value into a target type.
     ///
     /// Only works when `self` is `Value::Json(...)`.
     ///
     /// # Type Parameters
     ///
-    /// * `T` - The target type implementing `DeserializeOwned`
+    /// * `T` - The target type implementing `DeserializeOwned`.
     ///
     /// # Returns
     ///
     /// Returns `Ok(T)` on success, or an error if the value is not JSON
-    /// or deserialization fails
+    /// or deserialization fails.
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match self {
             Value::Json(v) => serde_json::from_value(v.clone())
@@ -1443,28 +1450,28 @@ where
 // polluting the standard type namespace)
 // ============================================================================
 
-/// Internal trait: used to extract specific types from Value
+/// Internal trait: used to extract specific types from Value.
 ///
 /// This trait is not exported in mod.rs, only used for internal
-/// implementation, to avoid polluting the standard type namespace
+/// implementation, to avoid polluting the standard type namespace.
 #[doc(hidden)]
 pub trait ValueGetter<T> {
     fn get_value(&self) -> ValueResult<T>;
 }
 
-/// Internal trait: used to create Value from types
+/// Internal trait: used to create Value from types.
 ///
 /// This trait is not exported in mod.rs, only used for internal
-/// implementation, to avoid polluting the standard type namespace
+/// implementation, to avoid polluting the standard type namespace.
 #[doc(hidden)]
 pub trait ValueConstructor<T> {
     fn from_type(value: T) -> Self;
 }
 
-/// Internal trait: used to set specific types in Value
+/// Internal trait: used to set specific types in Value.
 ///
 /// This trait is not exported in mod.rs, only used for internal
-/// implementation, to avoid polluting the standard type namespace
+/// implementation, to avoid polluting the standard type namespace.
 #[doc(hidden)]
 pub trait ValueSetter<T> {
     fn set_value(&mut self, value: T) -> ValueResult<()>;

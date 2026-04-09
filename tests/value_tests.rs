@@ -892,11 +892,11 @@ fn test_value_as_int64_uint128_conversion() {
 
 #[test]
 fn test_value_as_float64_conversions() {
-    // Test Int128 to f64 - now supports conversion
+    // Test Int128 to f64 conversion
     let value = Value::Int128(999999);
     assert_eq!(value.to::<f64>().unwrap(), 999999.0);
 
-    // Test UInt128 to f64 - now supports conversion
+    // Test UInt128 to f64 conversion
     let value = Value::UInt128(123456);
     assert_eq!(value.to::<f64>().unwrap(), 123456.0);
 
@@ -1421,7 +1421,7 @@ fn test_as_int64_small_uint128_conversion_failed() {
 
 #[test]
 fn test_as_float64_int128_conversion_failed() {
-    // Test Int128 to f64 - now supports conversion
+    // Test Int128 to f64 conversion
     let value = Value::Int128(100);
     assert_eq!(value.to::<f64>().unwrap(), 100.0);
 
@@ -1432,7 +1432,7 @@ fn test_as_float64_int128_conversion_failed() {
 
 #[test]
 fn test_as_float64_uint128_conversion_failed() {
-    // Test UInt128 to f64 - now supports conversion
+    // Test UInt128 to f64 conversion
     let value = Value::UInt128(100);
     assert_eq!(value.to::<f64>().unwrap(), 100.0);
 
