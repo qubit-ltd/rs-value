@@ -79,6 +79,7 @@ impl NamedValue {
     /// let named = NamedValue::new("timeout", Value::Int32(30));
     /// assert_eq!(named.name(), "timeout");
     /// ```
+    #[inline]
     pub fn new(name: impl Into<String>, value: Value) -> Self {
         Self {
             name: name.into(),
@@ -102,6 +103,7 @@ impl NamedValue {
     /// let named = NamedValue::new("host", Value::String("localhost".to_string()));
     /// assert_eq!(named.name(), "host");
     /// ```
+    #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -123,6 +125,7 @@ impl NamedValue {
     /// named.set_name("new_name");
     /// assert_eq!(named.name(), "new_name");
     /// ```
+    #[inline]
     pub fn set_name(&mut self, name: impl Into<String>) {
         self.name = name.into();
     }
@@ -148,6 +151,7 @@ impl Deref for NamedValue {
     /// // Call Value methods through Deref
     /// assert_eq!(named.to::<bool>().unwrap(), true);
     /// ```
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.value
     }
@@ -161,6 +165,7 @@ impl DerefMut for NamedValue {
     /// # Returns
     ///
     /// Returns a mutable reference `&mut Value` to the inner value.
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }

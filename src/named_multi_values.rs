@@ -96,6 +96,7 @@ impl NamedMultiValues {
     /// );
     /// assert_eq!(named.name(), "servers");
     /// ```
+    #[inline]
     pub fn new(name: impl Into<String>, value: MultiValues) -> Self {
         Self {
             name: name.into(),
@@ -117,6 +118,7 @@ impl NamedMultiValues {
     /// let named = NamedMultiValues::new("items", MultiValues::Int32(vec![1, 2, 3]));
     /// assert_eq!(named.name(), "items");
     /// ```
+    #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -142,6 +144,7 @@ impl NamedMultiValues {
     /// named.set_name("new");
     /// assert_eq!(named.name(), "new");
     /// ```
+    #[inline]
     pub fn set_name(&mut self, name: impl Into<String>) {
         self.name = name.into();
     }
@@ -153,6 +156,7 @@ impl NamedMultiValues {
 impl Deref for NamedMultiValues {
     type Target = MultiValues;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.value
     }
@@ -160,6 +164,7 @@ impl Deref for NamedMultiValues {
 
 /// Transparently delegate mutable methods to the inner `MultiValues` through `DerefMut`.
 impl DerefMut for NamedMultiValues {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }
@@ -169,6 +174,7 @@ impl From<NamedValue> for NamedMultiValues {
     /// Construct `NamedMultiValues` from `NamedValue`
     ///
     /// Reuses the name and promotes the single value to a `MultiValues` containing only one element.
+    #[inline]
     fn from(named: NamedValue) -> Self {
         // Cannot directly access private fields, use public API and cloning instead
         let name = named.name().to_string();

@@ -146,6 +146,7 @@ macro_rules! impl_get_multi_values {
     // Simple type: return slice reference
     ($(#[$attr:meta])* slice: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v),
@@ -161,6 +162,7 @@ macro_rules! impl_get_multi_values {
     // Complex type: return Vec reference (e.g., Vec<String>, Vec<Vec<u8>>)
     ($(#[$attr:meta])* vec: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v.as_slice()),
@@ -192,6 +194,7 @@ macro_rules! impl_get_first_value {
     // Copy type: directly return value
     ($(#[$attr:meta])* copy: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&self) -> ValueResult<$type> {
             match self {
                 MultiValues::$variant(v) if !v.is_empty() => Ok(v[0]),
@@ -207,6 +210,7 @@ macro_rules! impl_get_first_value {
     // Reference type: return reference
     ($(#[$attr:meta])* ref: $method:ident, $variant:ident, $ret_type:ty, $data_type:expr, $conversion:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match self {
                 MultiValues::$variant(v) if !v.is_empty() => {
@@ -239,6 +243,7 @@ macro_rules! impl_get_first_value {
 macro_rules! impl_add_single_value {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&mut self, value: $type) -> ValueResult<()> {
             match self {
                 MultiValues::$variant(v) => {
@@ -274,6 +279,7 @@ macro_rules! impl_add_single_value {
 macro_rules! impl_add_multi_values {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&mut self, values: Vec<$type>) -> ValueResult<()> {
             match self {
                 MultiValues::$variant(v) => {
@@ -305,6 +311,7 @@ macro_rules! impl_add_multi_values {
 macro_rules! impl_add_multi_values_slice {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&mut self, values: &[$type]) -> ValueResult<()> {
             match self {
                 MultiValues::$variant(v) => {
@@ -426,6 +433,7 @@ impl MultiValues {
     /// let mv = MultiValues::new(vec!["a".to_string(), "b".to_string()]);
     /// assert_eq!(mv.count(), 2);
     /// ```
+    #[inline]
     pub fn new<T>(values: Vec<T>) -> Self
     where
         Self: MultiValuesConstructor<T>,
@@ -461,6 +469,7 @@ impl MultiValues {
     /// let nums = multi.get::<i32>().unwrap();
     /// assert_eq!(nums, vec![1, 2, 3]);
     /// ```
+    #[inline]
     pub fn get<T>(&self) -> ValueResult<Vec<T>>
     where
         Self: MultiValuesGetter<T>,
@@ -502,6 +511,7 @@ impl MultiValues {
     /// let first: String = multi.get_first().unwrap();
     /// assert_eq!(first, "hello");
     /// ```
+    #[inline]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
         Self: MultiValuesFirstGetter<T>,
@@ -561,6 +571,7 @@ impl MultiValues {
     /// mv.set(vec!["hello".to_string(), "world".to_string()]).unwrap();
     /// assert_eq!(mv.get_strings().unwrap(), &["hello", "world"]);
     /// ```
+    #[inline]
     pub fn set<'a, S>(&mut self, values: S) -> ValueResult<()>
     where
         S: MultiValuesSetArg<'a>,
@@ -606,6 +617,7 @@ impl MultiValues {
     /// mv.add(slice).unwrap();
     /// assert_eq!(mv.get_int32s().unwrap(), &[42, 100, 200, 300, 400, 500]);
     /// ```
+    #[inline]
     pub fn add<'a, S>(&mut self, values: S) -> ValueResult<()>
     where
         S: MultiValuesAddArg<'a>,
@@ -628,6 +640,7 @@ impl MultiValues {
     /// let values = MultiValues::Int32(vec![1, 2, 3]);
     /// assert_eq!(values.data_type(), DataType::Int32);
     /// ```
+    #[inline]
     pub fn data_type(&self) -> DataType {
         match self {
             MultiValues::Empty(dt) => *dt,
@@ -678,6 +691,7 @@ impl MultiValues {
     /// let empty = MultiValues::Empty(DataType::String);
     /// assert_eq!(empty.count(), 0);
     /// ```
+    #[inline]
     pub fn count(&self) -> usize {
         match self {
             MultiValues::Empty(_) => 0,
@@ -728,6 +742,7 @@ impl MultiValues {
     /// let empty = MultiValues::Empty(DataType::String);
     /// assert!(empty.is_empty());
     /// ```
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.count() == 0
     }
@@ -744,6 +759,7 @@ impl MultiValues {
     /// assert!(values.is_empty());
     /// assert_eq!(values.data_type(), DataType::Int32);
     /// ```
+    #[inline]
     pub fn clear(&mut self) {
         match self {
             MultiValues::Empty(_) => {}
@@ -796,6 +812,7 @@ impl MultiValues {
     /// assert!(values.is_empty());
     /// assert_eq!(values.data_type(), DataType::String);
     /// ```
+    #[inline]
     pub fn set_type(&mut self, data_type: DataType) {
         if self.data_type() != data_type {
             *self = MultiValues::Empty(data_type);
@@ -3287,6 +3304,7 @@ impl MultiValues {
 }
 
 impl Default for MultiValues {
+    #[inline]
     fn default() -> Self {
         MultiValues::Empty(DataType::String)
     }
@@ -3429,6 +3447,7 @@ pub(crate) trait MultiValuesConstructor<T> {
 macro_rules! impl_multi_value_traits {
     ($type:ty, $variant:ident, $data_type:expr) => {
         impl MultiValuesGetter<$type> for MultiValues {
+            #[inline]
             fn get_values(&self) -> ValueResult<Vec<$type>> {
                 match self {
                     MultiValues::$variant(v) => Ok(v.clone()),
@@ -3442,6 +3461,7 @@ macro_rules! impl_multi_value_traits {
         }
 
         impl MultiValuesFirstGetter<$type> for MultiValues {
+            #[inline]
             fn get_first_value(&self) -> ValueResult<$type> {
                 match self {
                     MultiValues::$variant(v) if !v.is_empty() => Ok(v[0].clone()),
@@ -3455,6 +3475,7 @@ macro_rules! impl_multi_value_traits {
         }
 
         impl MultiValuesSetter<$type> for MultiValues {
+            #[inline]
             fn set_values(&mut self, values: Vec<$type>) -> ValueResult<()> {
                 *self = MultiValues::$variant(values);
                 Ok(())
@@ -3465,6 +3486,7 @@ macro_rules! impl_multi_value_traits {
         // repeated here for specific types.
 
         impl MultiValuesSetterSlice<$type> for MultiValues {
+            #[inline]
             fn set_values_slice(&mut self, values: &[$type]) -> ValueResult<()> {
                 // Equivalent to set_[xxx]s_slice: replace entire list with slice
                 *self = MultiValues::$variant(values.to_vec());
@@ -3473,6 +3495,7 @@ macro_rules! impl_multi_value_traits {
         }
 
         impl MultiValuesSingleSetter<$type> for MultiValues {
+            #[inline]
             fn set_single_value(&mut self, value: $type) -> ValueResult<()> {
                 *self = MultiValues::$variant(vec![value]);
                 Ok(())
@@ -3480,6 +3503,7 @@ macro_rules! impl_multi_value_traits {
         }
 
         impl MultiValuesAdder<$type> for MultiValues {
+            #[inline]
             fn add_value(&mut self, value: $type) -> ValueResult<()> {
                 match self {
                     MultiValues::$variant(v) => {
@@ -3502,6 +3526,7 @@ macro_rules! impl_multi_value_traits {
         impl<'a> MultiValuesSetArg<'a> for Vec<$type> {
             type Item = $type;
 
+            #[inline]
             fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
                 <MultiValues as MultiValuesSetter<$type>>::set_values(target, self)
             }
@@ -3513,6 +3538,7 @@ macro_rules! impl_multi_value_traits {
         {
             type Item = $type;
 
+            #[inline]
             fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
                 <MultiValues as MultiValuesSetterSlice<$type>>::set_values_slice(target, self)
             }
@@ -3521,12 +3547,14 @@ macro_rules! impl_multi_value_traits {
         impl<'a> MultiValuesSetArg<'a> for $type {
             type Item = $type;
 
+            #[inline]
             fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
                 <MultiValues as MultiValuesSingleSetter<$type>>::set_single_value(target, self)
             }
         }
 
         impl MultiValuesMultiAdder<$type> for MultiValues {
+            #[inline]
             fn add_values(&mut self, values: Vec<$type>) -> ValueResult<()> {
                 match self {
                     MultiValues::$variant(v) => {
@@ -3546,6 +3574,7 @@ macro_rules! impl_multi_value_traits {
         }
 
         impl MultiValuesMultiAdderSlice<$type> for MultiValues {
+            #[inline]
             fn add_values_slice(&mut self, values: &[$type]) -> ValueResult<()> {
                 match self {
                     MultiValues::$variant(v) => {
@@ -3568,6 +3597,7 @@ macro_rules! impl_multi_value_traits {
         impl<'a> MultiValuesAddArg<'a> for $type {
             type Item = $type;
 
+            #[inline]
             fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
                 <MultiValues as MultiValuesAdder<$type>>::add_value(target, self)
             }
@@ -3576,6 +3606,7 @@ macro_rules! impl_multi_value_traits {
         impl<'a> MultiValuesAddArg<'a> for Vec<$type> {
             type Item = $type;
 
+            #[inline]
             fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
                 <MultiValues as MultiValuesMultiAdder<$type>>::add_values(target, self)
             }
@@ -3587,12 +3618,14 @@ macro_rules! impl_multi_value_traits {
         {
             type Item = $type;
 
+            #[inline]
             fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
                 <MultiValues as MultiValuesMultiAdderSlice<$type>>::add_values_slice(target, self)
             }
         }
 
         impl MultiValuesConstructor<$type> for MultiValues {
+            #[inline]
             fn from_vec(values: Vec<$type>) -> Self {
                 MultiValues::$variant(values)
             }
@@ -3633,6 +3666,7 @@ impl_multi_value_traits!(serde_json::Value, Json, DataType::Json);
 impl MultiValuesSetArg<'_> for &str {
     type Item = String;
 
+    #[inline]
     fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
         <MultiValues as MultiValuesSingleSetter<String>>::set_single_value(target, self.to_string())
     }
@@ -3641,6 +3675,7 @@ impl MultiValuesSetArg<'_> for &str {
 impl MultiValuesSetArg<'_> for Vec<&str> {
     type Item = String;
 
+    #[inline]
     fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
         let owned: Vec<String> = self.into_iter().map(|s| s.to_string()).collect();
         <MultiValues as MultiValuesSetter<String>>::set_values(target, owned)
@@ -3650,6 +3685,7 @@ impl MultiValuesSetArg<'_> for Vec<&str> {
 impl<'b> MultiValuesSetArg<'_> for &'b [&'b str] {
     type Item = String;
 
+    #[inline]
     fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
         let owned: Vec<String> = self.iter().map(|s| (*s).to_string()).collect();
         <MultiValues as MultiValuesSetter<String>>::set_values(target, owned)
@@ -3659,6 +3695,7 @@ impl<'b> MultiValuesSetArg<'_> for &'b [&'b str] {
 impl MultiValuesAddArg<'_> for &str {
     type Item = String;
 
+    #[inline]
     fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
         <MultiValues as MultiValuesAdder<String>>::add_value(target, self.to_string())
     }
@@ -3667,6 +3704,7 @@ impl MultiValuesAddArg<'_> for &str {
 impl MultiValuesAddArg<'_> for Vec<&str> {
     type Item = String;
 
+    #[inline]
     fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
         let owned: Vec<String> = self.into_iter().map(|s| s.to_string()).collect();
         <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
@@ -3676,6 +3714,7 @@ impl MultiValuesAddArg<'_> for Vec<&str> {
 impl<'b> MultiValuesAddArg<'_> for &'b [&'b str] {
     type Item = String;
 
+    #[inline]
     fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
         let owned: Vec<String> = self.iter().map(|s| (*s).to_string()).collect();
         <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)

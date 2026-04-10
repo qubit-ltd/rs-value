@@ -146,6 +146,7 @@ macro_rules! impl_get_value {
     // Copy type: directly dereference and return
     ($(#[$attr:meta])* copy: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&self) -> ValueResult<$type> {
             match self {
                 Value::$variant(v) => Ok(*v),
@@ -162,6 +163,7 @@ macro_rules! impl_get_value {
     // fixing lifetime issues
     ($(#[$attr:meta])* ref: $method:ident, $variant:ident, $ret_type:ty, $data_type:expr, $conversion:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match self {
                 Value::$variant(v) => {
@@ -197,6 +199,7 @@ macro_rules! impl_set_value {
     // Copy type: directly set the value
     ($(#[$attr:meta])* copy: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&mut self, value: $type) -> ValueResult<()> {
             *self = Value::$variant(value);
             Ok(())
@@ -206,6 +209,7 @@ macro_rules! impl_set_value {
     // Owned type: set the owned value
     ($(#[$attr:meta])* owned: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[inline]
         pub fn $method(&mut self, value: $type) -> ValueResult<()> {
             *self = Value::$variant(value);
             Ok(())
@@ -261,6 +265,7 @@ impl Value {
     /// let v = Value::new("hello".to_string());
     /// assert_eq!(v.get_string().unwrap(), "hello");
     /// ```
+    #[inline]
     pub fn new<T>(value: T) -> Self
     where
         Self: ValueConstructor<T>,
@@ -331,6 +336,7 @@ impl Value {
     /// let b: bool = flag.get().unwrap();
     /// assert_eq!(b, true);
     /// ```
+    #[inline]
     pub fn get<T>(&self) -> ValueResult<T>
     where
         Self: ValueGetter<T>,
@@ -508,6 +514,7 @@ impl Value {
     /// let text: String = value.to().unwrap();
     /// assert_eq!(text, "42");
     /// ```
+    #[inline]
     pub fn to<T>(&self) -> ValueResult<T>
     where
         Self: ValueConverter<T>,
@@ -570,6 +577,7 @@ impl Value {
     /// text.set("hello".to_string()).unwrap();
     /// assert_eq!(text.get_string().unwrap(), "hello");
     /// ```
+    #[inline]
     pub fn set<T>(&mut self, value: T) -> ValueResult<()>
     where
         Self: ValueSetter<T>,
@@ -594,6 +602,7 @@ impl Value {
     /// let empty = Value::Empty(DataType::String);
     /// assert_eq!(empty.data_type(), DataType::String);
     /// ```
+    #[inline]
     pub fn data_type(&self) -> DataType {
         match self {
             Value::Empty(dt) => *dt,
@@ -644,6 +653,7 @@ impl Value {
     /// let empty = Value::Empty(DataType::String);
     /// assert!(empty.is_empty());
     /// ```
+    #[inline]
     pub fn is_empty(&self) -> bool {
         matches!(self, Value::Empty(_))
     }
@@ -662,6 +672,7 @@ impl Value {
     /// assert!(value.is_empty());
     /// assert_eq!(value.data_type(), DataType::Int32);
     /// ```
+    #[inline]
     pub fn clear(&mut self) {
         let dt = self.data_type();
         *self = Value::Empty(dt);
@@ -686,6 +697,7 @@ impl Value {
     /// assert!(value.is_empty());
     /// assert_eq!(value.data_type(), DataType::String);
     /// ```
+    #[inline]
     pub fn set_type(&mut self, data_type: DataType) {
         if self.data_type() != data_type {
             *self = Value::Empty(data_type);
@@ -1354,6 +1366,7 @@ impl Value {
     /// # Returns
     ///
     /// Returns a `Value::Json` wrapping the given JSON value.
+    #[inline]
     pub fn from_json_value(json: serde_json::Value) -> Self {
         Value::Json(json)
     }
@@ -1404,6 +1417,7 @@ impl Value {
 }
 
 impl Default for Value {
+    #[inline]
     fn default() -> Self {
         Value::Empty(DataType::String)
     }
@@ -1493,18 +1507,21 @@ pub trait ValueConverter<T> {
 macro_rules! impl_value_traits {
     ($type:ty, $variant:ident, $get_method:ident, $set_method:ident) => {
         impl ValueGetter<$type> for Value {
+            #[inline]
             fn get_value(&self) -> ValueResult<$type> {
                 self.$get_method()
             }
         }
 
         impl ValueSetter<$type> for Value {
+            #[inline]
             fn set_value(&mut self, value: $type) -> ValueResult<()> {
                 self.$set_method(value)
             }
         }
 
         impl ValueConstructor<$type> for Value {
+            #[inline]
             fn from_type(value: $type) -> Self {
                 Value::$variant(value)
             }
@@ -1516,6 +1533,7 @@ macro_rules! impl_strict_value_converter {
     ($(#[$attr:meta])* $type:ty, $get_method:ident) => {
         $(#[$attr])*
         impl ValueConverter<$type> for Value {
+            #[inline]
             fn convert(&self) -> ValueResult<$type> {
                 self.$get_method()
             }
@@ -1550,18 +1568,21 @@ impl_value_traits!(Duration, Duration, get_duration, set_duration);
 
 // String needs cloning
 impl ValueGetter<String> for Value {
+    #[inline]
     fn get_value(&self) -> ValueResult<String> {
         self.get_string().map(|s| s.to_string())
     }
 }
 
 impl ValueSetter<String> for Value {
+    #[inline]
     fn set_value(&mut self, value: String) -> ValueResult<()> {
         self.set_string(value)
     }
 }
 
 impl ValueConstructor<String> for Value {
+    #[inline]
     fn from_type(value: String) -> Self {
         Value::String(value)
     }
@@ -1618,12 +1639,14 @@ impl ValueConverter<String> for Value {
 
 // Special handling for &str - convert to String
 impl ValueSetter<&str> for Value {
+    #[inline]
     fn set_value(&mut self, value: &str) -> ValueResult<()> {
         self.set_string(value.to_string())
     }
 }
 
 impl ValueConstructor<&str> for Value {
+    #[inline]
     fn from_type(value: &str) -> Self {
         Value::String(value.to_string())
     }
@@ -1820,18 +1843,21 @@ impl ValueConverter<f64> for Value {
 
 // Url
 impl ValueGetter<Url> for Value {
+    #[inline]
     fn get_value(&self) -> ValueResult<Url> {
         self.get_url()
     }
 }
 
 impl ValueSetter<Url> for Value {
+    #[inline]
     fn set_value(&mut self, value: Url) -> ValueResult<()> {
         self.set_url(value)
     }
 }
 
 impl ValueConstructor<Url> for Value {
+    #[inline]
     fn from_type(value: Url) -> Self {
         Value::Url(value)
     }
@@ -1877,18 +1903,21 @@ impl ValueConverter<Url> for Value {
 
 // HashMap<String, String>
 impl ValueGetter<HashMap<String, String>> for Value {
+    #[inline]
     fn get_value(&self) -> ValueResult<HashMap<String, String>> {
         self.get_string_map()
     }
 }
 
 impl ValueSetter<HashMap<String, String>> for Value {
+    #[inline]
     fn set_value(&mut self, value: HashMap<String, String>) -> ValueResult<()> {
         self.set_string_map(value)
     }
 }
 
 impl ValueConstructor<HashMap<String, String>> for Value {
+    #[inline]
     fn from_type(value: HashMap<String, String>) -> Self {
         Value::StringMap(value)
     }
@@ -1896,18 +1925,21 @@ impl ValueConstructor<HashMap<String, String>> for Value {
 
 // serde_json::Value
 impl ValueGetter<serde_json::Value> for Value {
+    #[inline]
     fn get_value(&self) -> ValueResult<serde_json::Value> {
         self.get_json()
     }
 }
 
 impl ValueSetter<serde_json::Value> for Value {
+    #[inline]
     fn set_value(&mut self, value: serde_json::Value) -> ValueResult<()> {
         self.set_json(value)
     }
 }
 
 impl ValueConstructor<serde_json::Value> for Value {
+    #[inline]
     fn from_type(value: serde_json::Value) -> Self {
         Value::Json(value)
     }
