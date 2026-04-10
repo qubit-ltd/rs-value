@@ -1,4 +1,12 @@
 #!/bin/bash
+################################################################################
+#
+#    Copyright (c) 2026.
+#    Haixing Hu, Qubit Co. Ltd.
+#
+#    All rights reserved.
+#
+################################################################################
 #
 # Code coverage testing script
 # Uses cargo-llvm-cov to generate code coverage reports
@@ -24,10 +32,28 @@ fi
 CURRENT_CRATE_DIR=$(pwd)
 echo "📁 Coverage will only include files in: $CURRENT_CRATE_DIR"
 
-# Build regex pattern to exclude third-party code
-# Exclude: cargo registry and rustup
-EXCLUDE_PATTERN="(\.cargo/registry|\.rustup/)"
-echo "🚫 Excluding: .cargo/registry and .rustup"
+# Build regex pattern to exclude third-party code and other workspace members
+CURRENT_CRATE_NAME=$(basename "$CURRENT_CRATE_DIR")
+WORKSPACE_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+
+# Create list of other workspace crates to exclude (any sibling directory)
+OTHER_CRATES=""
+for crate_dir in "$WORKSPACE_ROOT"/*/; do
+    [ -d "$crate_dir" ] || continue
+    crate_name=$(basename "$crate_dir")
+    if [ "$crate_name" != "$CURRENT_CRATE_NAME" ]; then
+        if [ -z "$OTHER_CRATES" ]; then
+            OTHER_CRATES="$crate_name"
+        else
+            OTHER_CRATES="$OTHER_CRATES|$crate_name"
+        fi
+    fi
+done
+
+# Exclude: cargo registry, rustup, and other workspace crates
+# Using simple alternation for clarity
+EXCLUDE_PATTERN="(\.cargo/registry|\.rustup/|/($OTHER_CRATES)/)"
+echo "🚫 Excluding: .cargo/registry, .rustup, and other workspace members"
 
 # Parse arguments, check if cleanup is needed
 CLEAN_FLAG=""
