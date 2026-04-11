@@ -1,8 +1,8 @@
-# `rust-value` `v0.3.0` 设计文档
+# `rs-value` `v0.3.0` 设计文档
 
 ## 文档信息
 
-- 文档名称：`rust-value v0.3.0 设计文档`
+- 文档名称：`rs-value v0.3.0 设计文档`
 - 文档版本：`v1.0`
 - 创建日期：`2026-04-09`
 - 当前版本：`0.2.0`
@@ -173,7 +173,7 @@
 
 `qubit-http` 仍不应直接依赖 `HeaderMap` 进入 `qubit-value`。推荐链路为：
 
-1. `rust-config` 读取 `HashMap<String, String>` 或 `Json`
+1. `rs-config`（`qubit-config` crate）读取 `HashMap<String, String>` 或 `Json`
 2. `rust-http` 在适配层把它转换为 `HeaderMap`
 
 这样既能满足配置需求，又不破坏 `qubit-value` 的通用性边界。

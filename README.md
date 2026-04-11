@@ -1,7 +1,7 @@
 # Qubit Value
 
-[![CircleCI](https://circleci.com/gh/qubit-ltd/rust-value.svg?style=shield)](https://circleci.com/gh/qubit-ltd/rust-value)
-[![Coverage Status](https://coveralls.io/repos/github/qubit-ltd/rust-value/badge.svg?branch=main)](https://coveralls.io/github/qubit-ltd/rust-value?branch=main)
+[![CircleCI](https://circleci.com/gh/qubit-ltd/rs-value.svg?style=shield)](https://circleci.com/gh/qubit-ltd/rs-value)
+[![Coverage Status](https://coveralls.io/repos/github/qubit-ltd/rs-value/badge.svg?branch=main)](https://coveralls.io/github/qubit-ltd/rs-value?branch=main)
 [![Crates.io](https://img.shields.io/crates/v/qubit-value.svg?color=blue)](https://crates.io/crates/qubit-value)
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
@@ -21,9 +21,9 @@ and conversion while maintaining Rust's safety guarantees.
 
 > **Configuration Object Support**: If you need configuration objects based on
 > different types of multi-value designs, consider using the
-> [qubit-config](https://github.com/qubit-ltd/rust-config) crate, which provides
+> [qubit-config](https://github.com/qubit-ltd/rs-config) crate, which provides
 > comprehensive configuration management functionality. You can find more
-> information on [GitHub](https://github.com/qubit-ltd/rust-config) and
+> information on [GitHub](https://github.com/qubit-ltd/rs-config) and
 > [crates.io](https://crates.io/crates/qubit-config).
 
 ## Features
