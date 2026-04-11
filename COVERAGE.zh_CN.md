@@ -121,13 +121,13 @@ jobs:
 
       - name: Generate coverage
         run: |
-          cd rust-value
+          cd rs-value
           cargo llvm-cov --lcov --output-path lcov.info
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v3
         with:
-          files: rust-value/lcov.info
+          files: rs-value/lcov.info
           flags: qubit-value
 ```
 
