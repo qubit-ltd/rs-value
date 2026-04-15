@@ -1,6 +1,6 @@
 [package]
 name = "qubit-value"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2021"
 rust-version = "1.70"
 authors = ["Haixing Hu <starfish.hu@gmail.com>"]
@@ -27,23 +27,15 @@ name = "qubit_value"
 doctest = false
 
 [dependencies]
-# 核心依赖
-qubit-common = "0.5.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-thiserror = "2.0.17"
+thiserror = "2.0"
 tracing = "0.1"
-
-# 时间处理
 chrono = { version = "0.4", features = ["serde"] }
-
-# UUID 支持
-uuid = { version = "1.0", features = ["v4", "serde"] }
-
-# URL 支持
-url = { version = "2.0", features = ["serde"] }
-
-# 数值处理
+uuid = { version = "1.23", features = ["v4", "serde"] }
+url = { version = "2.5", features = ["serde"] }
 num-traits = "0.2"
 num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
+
+qubit-common = "0.5"
