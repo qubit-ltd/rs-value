@@ -3306,3 +3306,15 @@ fn test_multi_values_to_value_on_empty_preserves_type() {
     let empty_vec = MultiValues::Int32(vec![]);
     assert_eq!(empty_vec.to_value(), Value::Empty(DataType::Int32));
 }
+
+#[test]
+fn test_multi_values_set_retypes_existing_values() {
+    let mut mv = MultiValues::Int32(vec![1, 2, 3]);
+    mv.set(vec!["a".to_string(), "b".to_string()]).unwrap();
+    assert_eq!(mv.data_type(), DataType::String);
+    assert_eq!(mv.get_strings().unwrap(), &["a", "b"]);
+
+    mv.set(true).unwrap();
+    assert_eq!(mv.data_type(), DataType::Bool);
+    assert_eq!(mv.get_bools().unwrap(), &[true]);
+}

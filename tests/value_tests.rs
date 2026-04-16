@@ -54,6 +54,18 @@ fn test_value_set_type() {
 }
 
 #[test]
+fn test_value_set_retypes_existing_value() {
+    let mut v = Value::Int32(42);
+    v.set("hello".to_string()).unwrap();
+    assert_eq!(v.data_type(), DataType::String);
+    assert_eq!(v.get_string().unwrap(), "hello");
+
+    v.set(true).unwrap();
+    assert_eq!(v.data_type(), DataType::Bool);
+    assert!(v.get_bool().unwrap());
+}
+
+#[test]
 fn test_value_type_check() {
     let v = Value::Bool(true);
     assert!(v.get_bool().unwrap());

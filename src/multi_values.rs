@@ -522,7 +522,10 @@ impl MultiValues {
     /// Generic setter method
     ///
     /// Automatically selects the optimal setter path based on the input type,
-    /// replacing the entire list with strict type checking.
+    /// replacing the entire list.
+    ///
+    /// This operation updates the stored type to the input element type and
+    /// does not validate runtime compatibility with the previous variant.
     ///
     /// Supports three input forms, all unified to this method via internal
     /// dispatch traits:

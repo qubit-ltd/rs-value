@@ -525,7 +525,10 @@ impl Value {
     /// Generic setter method
     ///
     /// Automatically selects the correct setter method based on the target
-    /// type, performing strict type checking.
+    /// type and replaces the current value.
+    ///
+    /// This operation updates the stored type to `T` when needed. It does not
+    /// perform runtime type-mismatch validation against the previous variant.
     ///
     /// # Supported Generic Types
     ///
