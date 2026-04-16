@@ -1462,6 +1462,90 @@ where
         })
 }
 
+fn checked_float_to_i32(value: f64, source: &str) -> ValueResult<i32> {
+    if !value.is_finite() {
+        return Err(ValueError::ConversionError(format!(
+            "Cannot convert non-finite {} value to i32",
+            source
+        )));
+    }
+    if value < i32::MIN as f64 || value > i32::MAX as f64 {
+        return Err(ValueError::ConversionError(format!(
+            "{} value out of i32 range",
+            source
+        )));
+    }
+    Ok(value as i32)
+}
+
+fn checked_float_to_i64(value: f64, source: &str) -> ValueResult<i64> {
+    if !value.is_finite() {
+        return Err(ValueError::ConversionError(format!(
+            "Cannot convert non-finite {} value to i64",
+            source
+        )));
+    }
+    if value < i64::MIN as f64 || value > i64::MAX as f64 {
+        return Err(ValueError::ConversionError(format!(
+            "{} value out of i64 range",
+            source
+        )));
+    }
+    Ok(value as i64)
+}
+
+fn checked_bigint_to_f32(value: &BigInt) -> ValueResult<f32> {
+    let converted = value.to_f32().ok_or_else(|| {
+        ValueError::ConversionError("BigInteger value cannot be converted to f32".to_string())
+    })?;
+    if converted.is_finite() {
+        Ok(converted)
+    } else {
+        Err(ValueError::ConversionError(
+            "BigInteger value out of f32 range".to_string(),
+        ))
+    }
+}
+
+fn checked_bigdecimal_to_f32(value: &BigDecimal) -> ValueResult<f32> {
+    let converted = value.to_f32().ok_or_else(|| {
+        ValueError::ConversionError("BigDecimal value cannot be converted to f32".to_string())
+    })?;
+    if converted.is_finite() {
+        Ok(converted)
+    } else {
+        Err(ValueError::ConversionError(
+            "BigDecimal value out of f32 range".to_string(),
+        ))
+    }
+}
+
+fn checked_bigint_to_f64(value: &BigInt) -> ValueResult<f64> {
+    let converted = value.to_f64().ok_or_else(|| {
+        ValueError::ConversionError("BigInteger value cannot be converted to f64".to_string())
+    })?;
+    if converted.is_finite() {
+        Ok(converted)
+    } else {
+        Err(ValueError::ConversionError(
+            "BigInteger value out of f64 range".to_string(),
+        ))
+    }
+}
+
+fn checked_bigdecimal_to_f64(value: &BigDecimal) -> ValueResult<f64> {
+    let converted = value.to_f64().ok_or_else(|| {
+        ValueError::ConversionError("BigDecimal value cannot be converted to f64".to_string())
+    })?;
+    if converted.is_finite() {
+        Ok(converted)
+    } else {
+        Err(ValueError::ConversionError(
+            "BigDecimal value out of f64 range".to_string(),
+        ))
+    }
+}
+
 // ============================================================================
 // Internal generic conversion traits (private, not exported, to avoid
 // polluting the standard type namespace)
@@ -1725,8 +1809,8 @@ impl ValueConverter<i32> for Value {
             Value::UInt128(v) => (*v).try_into().map_err(|_| {
                 ValueError::ConversionError("u128 value out of i32 range".to_string())
             }),
-            Value::Float32(v) => Ok(*v as i32),
-            Value::Float64(v) => Ok(*v as i32),
+            Value::Float32(v) => checked_float_to_i32(*v as f64, "f32"),
+            Value::Float64(v) => checked_float_to_i32(*v, "f64"),
             Value::String(s) => s
                 .parse::<i32>()
                 .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to i32", s))),
@@ -1779,8 +1863,8 @@ impl ValueConverter<i64> for Value {
             Value::UInt128(v) => (*v).try_into().map_err(|_| {
                 ValueError::ConversionError("u128 value out of i64 range".to_string())
             }),
-            Value::Float32(v) => Ok(*v as i64),
-            Value::Float64(v) => Ok(*v as i64),
+            Value::Float32(v) => checked_float_to_i64(*v as f64, "f32"),
+            Value::Float64(v) => checked_float_to_i64(*v, "f64"),
             Value::String(s) => s
                 .parse::<i64>()
                 .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to i64", s))),
@@ -1834,8 +1918,8 @@ impl ValueConverter<f64> for Value {
                 .parse::<f64>()
                 .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to f64", s))),
             Value::Empty(_) => Err(ValueError::NoValue),
-            Value::BigInteger(v) => Ok(v.to_f64().unwrap_or(f64::INFINITY)),
-            Value::BigDecimal(v) => Ok(v.to_f64().unwrap_or(f64::INFINITY)),
+            Value::BigInteger(v) => checked_bigint_to_f64(v),
+            Value::BigDecimal(v) => checked_bigdecimal_to_f64(v),
             _ => Err(ValueError::ConversionFailed {
                 from: self.data_type(),
                 to: DataType::Float64,
@@ -2328,8 +2412,8 @@ impl ValueConverter<f32> for Value {
                 .parse::<f32>()
                 .map_err(|_| ValueError::ConversionError(format!("Cannot convert '{}' to f32", s))),
             Value::Empty(_) => Err(ValueError::NoValue),
-            Value::BigInteger(v) => Ok(v.to_f32().unwrap_or(f32::INFINITY)),
-            Value::BigDecimal(v) => Ok(v.to_f32().unwrap_or(f32::INFINITY)),
+            Value::BigInteger(v) => checked_bigint_to_f32(v),
+            Value::BigDecimal(v) => checked_bigdecimal_to_f32(v),
             _ => Err(ValueError::ConversionFailed {
                 from: self.data_type(),
                 to: DataType::Float32,

@@ -1008,13 +1008,13 @@ fn test_big_type_conversions_for_coverage() {
     assert!((v.to::<f64>().unwrap() - 12345.0).abs() < f64::EPSILON);
     let large_big_int_str = "1".repeat(400);
     let v_overflow = Value::BigInteger(BigInt::from_str(&large_big_int_str).unwrap());
-    assert_eq!(v_overflow.to::<f64>().unwrap(), f64::INFINITY);
+    assert!(v_overflow.to::<f64>().is_err());
 
     // BigDecimal -> as_float64
     let v = Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
     assert!((v.to::<f64>().unwrap() - 123.456).abs() < f64::EPSILON);
     let v_overflow = Value::BigDecimal(BigDecimal::from_str("1.0e400").unwrap());
-    assert_eq!(v_overflow.to::<f64>().unwrap(), f64::INFINITY);
+    assert!(v_overflow.to::<f64>().is_err());
 }
 
 #[test]
@@ -1364,13 +1364,8 @@ fn test_as_float64_conversion_errors() {
         _ => panic!("Expected ConversionError for string parse failure"),
     }
 
-    // Test BigInteger conversion failure ConversionError (although it actually returns INFINITY)
-    // Testing a scenario that may cause conversion failure
-    // Note: to_f64() returns None or INFINITY for very large values
-    // We need to find a case that returns None
-
-    // Test BigDecimal conversion failure ConversionError
-    // Similarly, to_f64() may return None
+    // BigInteger / BigDecimal overflow error cases are covered by dedicated
+    // tests below.
 }
 
 #[test]
@@ -1912,18 +1907,14 @@ fn test_as_float64_string_parse_error() {
 fn test_as_float64_biginteger_conversion_error() {
     use std::str::FromStr;
 
-    // Test BigInteger conversion failure cases
-    // Note: Very large BigInteger may convert to f64::INFINITY instead of returning error
-
     // BigInteger within normal range should convert successfully
     let value = Value::BigInteger(BigInt::from(12345));
     assert_eq!(value.to::<f64>().unwrap(), 12345.0);
 
-    // Very large BigInteger will convert to INFINITY
+    // Very large BigInteger should fail instead of degrading to INFINITY
     let large_big_int = BigInt::from_str(&"9".repeat(400)).unwrap();
     let value = Value::BigInteger(large_big_int);
-    let result = value.to::<f64>().unwrap();
-    assert!(result.is_infinite() && result.is_sign_positive());
+    assert!(value.to::<f64>().is_err());
 
     // Test negative numbers
     let value_negative = Value::BigInteger(BigInt::from(-999999));
@@ -1934,23 +1925,19 @@ fn test_as_float64_biginteger_conversion_error() {
 fn test_as_float64_bigdecimal_conversion_error() {
     use std::str::FromStr;
 
-    // Test BigDecimal conversion failure cases
-
     // BigDecimal within normal range should convert successfully
     let value = Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
     assert!((value.to::<f64>().unwrap() - 123.456).abs() < 1e-10);
 
-    // Very large BigDecimal will convert to INFINITY
+    // Very large BigDecimal should fail instead of degrading to INFINITY
     let large_big_decimal = BigDecimal::from_str("1.0e400").unwrap();
     let value = Value::BigDecimal(large_big_decimal);
-    let result = value.to::<f64>().unwrap();
-    assert!(result.is_infinite() && result.is_sign_positive());
+    assert!(value.to::<f64>().is_err());
 
-    // Very small BigDecimal (negative) will convert to NEG_INFINITY
+    // Very small BigDecimal (negative exponent with huge magnitude) should fail
     let small_big_decimal = BigDecimal::from_str("-1.0e400").unwrap();
     let value = Value::BigDecimal(small_big_decimal);
-    let result = value.to::<f64>().unwrap();
-    assert!(result.is_infinite() && result.is_sign_negative());
+    assert!(value.to::<f64>().is_err());
 
     // Test high precision decimals
     let value = Value::BigDecimal(BigDecimal::from_str("0.123456789012345").unwrap());
@@ -2292,6 +2279,26 @@ fn test_float_to_int64_conversions() {
     assert_eq!(f64_val.to::<i64>().unwrap(), 123);
 }
 
+#[test]
+fn test_float_to_int_conversions_reject_non_finite_values() {
+    assert!(Value::Float64(f64::INFINITY).to::<i32>().is_err());
+    assert!(Value::Float64(f64::NEG_INFINITY).to::<i32>().is_err());
+    assert!(Value::Float64(f64::NAN).to::<i32>().is_err());
+
+    assert!(Value::Float32(f32::INFINITY).to::<i64>().is_err());
+    assert!(Value::Float32(f32::NEG_INFINITY).to::<i64>().is_err());
+    assert!(Value::Float32(f32::NAN).to::<i64>().is_err());
+}
+
+#[test]
+fn test_float_to_int_conversions_reject_out_of_range_values() {
+    assert!(Value::Float64(i32::MAX as f64 + 1.0).to::<i32>().is_err());
+    assert!(Value::Float64(i32::MIN as f64 - 1.0).to::<i32>().is_err());
+
+    assert!(Value::Float64(i64::MAX as f64 * 2.0).to::<i64>().is_err());
+    assert!(Value::Float64(i64::MIN as f64 * 2.0).to::<i64>().is_err());
+}
+
 /// Test UInt128 to i64 out of range
 #[test]
 fn test_uint128_to_int64_overflow() {
@@ -2483,9 +2490,7 @@ fn test_as_float64_string_parse_failed() {
     assert!(result.is_err());
 }
 
-/// Test cases where BigInteger cannot convert to f64 in as_float64 function
-/// Note: Actually BigInteger to_f64() returns Some(f64::INFINITY) for very large numbers
-/// Here we test boundary cases that return None (if any exist)
+/// Test cases where BigInteger conversion to f64 should fail on overflow.
 #[test]
 fn test_as_float64_biginteger_conversion_edge_cases() {
     use std::str::FromStr;
@@ -2494,21 +2499,17 @@ fn test_as_float64_biginteger_conversion_edge_cases() {
     let normal_value = Value::BigInteger(BigInt::from(12345));
     assert_eq!(normal_value.to::<f64>().unwrap(), 12345.0);
 
-    // Very large BigInteger will convert to INFINITY (instead of returning error)
+    // Very large BigInteger should fail
     let huge_bigint = BigInt::from_str(&"9".repeat(400)).unwrap();
     let value = Value::BigInteger(huge_bigint);
     let result = value.to::<f64>();
-    assert!(result.is_ok());
-    let float_result = result.unwrap();
-    assert!(float_result.is_infinite() && float_result.is_sign_positive());
+    assert!(result.is_err());
 
-    // Negative very large BigInteger will convert to NEG_INFINITY
+    // Negative very large BigInteger should also fail
     let neg_huge_bigint = BigInt::from_str(&format!("-{}", "9".repeat(400))).unwrap();
     let value = Value::BigInteger(neg_huge_bigint);
     let result = value.to::<f64>();
-    assert!(result.is_ok());
-    let float_result = result.unwrap();
-    assert!(float_result.is_infinite() && float_result.is_sign_negative());
+    assert!(result.is_err());
 
     // Zero value BigInteger
     let zero_bigint = BigInt::from(0);
@@ -2516,8 +2517,7 @@ fn test_as_float64_biginteger_conversion_edge_cases() {
     assert_eq!(value.to::<f64>().unwrap(), 0.0);
 }
 
-/// Test cases where BigDecimal cannot convert to f64 in as_float64 function
-/// Note: Similar to BigInteger, BigDecimal to_f64() returns INFINITY for very large numbers
+/// Test cases where BigDecimal conversion to f64 should fail on overflow.
 #[test]
 fn test_as_float64_bigdecimal_conversion_edge_cases() {
     use std::str::FromStr;
@@ -2526,21 +2526,17 @@ fn test_as_float64_bigdecimal_conversion_edge_cases() {
     let normal_value = Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
     assert!((normal_value.to::<f64>().unwrap() - 123.456).abs() < 1e-10);
 
-    // Very large BigDecimal will convert to INFINITY
+    // Very large BigDecimal should fail
     let huge_decimal = BigDecimal::from_str("1e400").unwrap();
     let value = Value::BigDecimal(huge_decimal);
     let result = value.to::<f64>();
-    assert!(result.is_ok());
-    let float_result = result.unwrap();
-    assert!(float_result.is_infinite() && float_result.is_sign_positive());
+    assert!(result.is_err());
 
-    // Negative very large BigDecimal will convert to NEG_INFINITY
+    // Negative very large BigDecimal should also fail
     let neg_huge_decimal = BigDecimal::from_str("-1e400").unwrap();
     let value = Value::BigDecimal(neg_huge_decimal);
     let result = value.to::<f64>();
-    assert!(result.is_ok());
-    let float_result = result.unwrap();
-    assert!(float_result.is_infinite() && float_result.is_sign_negative());
+    assert!(result.is_err());
 
     // Very small positive BigDecimal (close to zero)
     let tiny_decimal = BigDecimal::from_str("1e-400").unwrap();

@@ -900,12 +900,10 @@ fn test_to_f32_from_biginteger_normal() {
 }
 
 #[test]
-fn test_to_f32_from_biginteger_huge_becomes_infinity() {
+fn test_to_f32_from_biginteger_huge_out_of_range() {
     use num_bigint::BigInt;
-    // 极大值：to_f32() 返回 Some(INFINITY)，unwrap_or 不触发，结果为 INFINITY
     let huge = BigInt::from(2u64).pow(1100);
-    let result = Value::BigInteger(huge).to::<f32>().unwrap();
-    assert!(result.is_infinite());
+    assert!(Value::BigInteger(huge).to::<f32>().is_err());
 }
 
 #[test]
@@ -915,6 +913,14 @@ fn test_to_f32_from_bigdecimal_normal() {
     let bd = BigDecimal::from_str("2.25").unwrap();
     let result = Value::BigDecimal(bd).to::<f32>().unwrap();
     assert!((result - 2.25f32).abs() < 1e-5);
+}
+
+#[test]
+fn test_to_f32_from_bigdecimal_huge_out_of_range() {
+    use bigdecimal::BigDecimal;
+    use std::str::FromStr;
+    let huge = BigDecimal::from_str("1e1000").unwrap();
+    assert!(Value::BigDecimal(huge).to::<f32>().is_err());
 }
 
 #[test]
@@ -935,12 +941,10 @@ fn test_to_f64_from_biginteger_normal() {
 }
 
 #[test]
-fn test_to_f64_from_biginteger_huge_becomes_infinity() {
+fn test_to_f64_from_biginteger_huge_out_of_range() {
     use num_bigint::BigInt;
-    // 极大值：to_f64() 返回 Some(INFINITY)，unwrap_or 不触发，结果为 INFINITY
     let huge = BigInt::from(2u64).pow(1100);
-    let result = Value::BigInteger(huge).to::<f64>().unwrap();
-    assert!(result.is_infinite());
+    assert!(Value::BigInteger(huge).to::<f64>().is_err());
 }
 
 #[test]
@@ -950,6 +954,14 @@ fn test_to_f64_from_bigdecimal_normal() {
     let bd = BigDecimal::from_str("2.25").unwrap();
     let result = Value::BigDecimal(bd).to::<f64>().unwrap();
     assert!((result - 2.25f64).abs() < 1e-10);
+}
+
+#[test]
+fn test_to_f64_from_bigdecimal_huge_out_of_range() {
+    use bigdecimal::BigDecimal;
+    use std::str::FromStr;
+    let huge = BigDecimal::from_str("1e1000").unwrap();
+    assert!(Value::BigDecimal(huge).to::<f64>().is_err());
 }
 
 // ============================================================================
