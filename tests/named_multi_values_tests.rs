@@ -240,3 +240,23 @@ fn test_nmv_add_string_vec() {
     nmv.add(vec!["b".to_string(), "c".to_string()]).unwrap();
     assert_eq!(nmv.get_strings().unwrap(), &["a", "b", "c"]);
 }
+
+#[test]
+fn test_named_multi_values_to_named_value_non_empty() {
+    let nmv = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080, 8081]));
+    let named = nmv.to_named_value();
+    assert_eq!(named.name(), "ports");
+    assert_eq!(named.get_int32().unwrap(), 8080);
+}
+
+#[test]
+fn test_named_multi_values_to_named_value_empty_preserves_type() {
+    let nmv = NamedMultiValues::new("threshold", MultiValues::Empty(DataType::Float64));
+    let named = nmv.to_named_value();
+    assert_eq!(named.name(), "threshold");
+    assert_eq!(named.data_type(), DataType::Float64);
+    assert!(matches!(
+        named.get_float64(),
+        Err(qubit_value::ValueError::NoValue)
+    ));
+}

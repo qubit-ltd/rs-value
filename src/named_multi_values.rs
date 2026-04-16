@@ -149,6 +149,16 @@ impl NamedMultiValues {
         self.name = name.into();
     }
 
+    /// Convert this named multi-values into a named single value.
+    ///
+    /// The returned value keeps the same name and uses the first element from
+    /// the inner [`MultiValues`]. If there is no element, the returned value is
+    /// `Value::Empty` with the same data type.
+    #[inline]
+    pub fn to_named_value(&self) -> NamedValue {
+        NamedValue::new(self.name.as_str(), self.value.to_value())
+    }
+
     // Values can be directly assigned or mutable methods called on the inner value through DerefMut
 }
 
