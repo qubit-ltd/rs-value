@@ -3071,19 +3071,20 @@ fn test_multi_value_direct_add_type_mismatch() {
 
 #[test]
 fn test_multi_value_merge_empty_branch() {
-    // Test Empty branch in merge
+    // Empty + Empty keeps empty type.
     let mut mv1 = MultiValues::Empty(DataType::Int32);
     let mv2 = MultiValues::Empty(DataType::Int32);
     mv1.merge(&mv2).unwrap();
     assert_eq!(mv1.count(), 0);
     assert_eq!(mv1.data_type(), DataType::Int32);
 
-    // Empty merge with actual values
+    // Empty + Filled should absorb values from the other side.
     let mut mv1 = MultiValues::Empty(DataType::String);
     let mv2 = MultiValues::String(vec!["a".to_string(), "b".to_string()]);
     mv1.merge(&mv2).unwrap();
-    assert_eq!(mv1.count(), 0); // Empty stays empty
+    assert_eq!(mv1.count(), 2);
     assert_eq!(mv1.data_type(), DataType::String);
+    assert_eq!(mv1.get_strings().unwrap(), &["a", "b"]);
 }
 
 #[test]
@@ -3296,13 +3297,13 @@ fn test_multi_values_add_single_str_ref() {
 /// Test case where self is Empty in merge operation
 #[test]
 fn test_multi_values_merge_when_self_is_empty() {
-    // According to merge implementation, only when self is Empty will it match (MultiValues::Empty(_), _) branch
-    // This branch does nothing, so Empty remains Empty
+    // When self is Empty, merge should absorb all values from the other side.
     let mut mv_empty = MultiValues::Empty(DataType::String);
     let mv_filled = MultiValues::String(vec!["test".to_string()]);
 
     mv_empty.merge(&mv_filled).unwrap();
-    assert!(mv_empty.is_empty()); // Empty is still empty
+    assert_eq!(mv_empty.get_strings().unwrap(), &["test"]);
+    assert_eq!(mv_empty.count(), 1);
 
     // Empty merge Empty
     let mut mv1 = MultiValues::Empty(DataType::Int32);
