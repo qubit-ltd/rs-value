@@ -3,7 +3,7 @@
 [![CircleCI](https://circleci.com/gh/qubit-ltd/rs-value.svg?style=shield)](https://circleci.com/gh/qubit-ltd/rs-value)
 [![Coverage Status](https://coveralls.io/repos/github/qubit-ltd/rs-value/badge.svg?branch=main)](https://coveralls.io/github/qubit-ltd/rs-value?branch=main)
 [![Crates.io](https://img.shields.io/crates/v/qubit-value.svg?color=blue)](https://crates.io/crates/qubit-value)
-[![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg?logo=rust)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-1.93+-blue.svg?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
 
