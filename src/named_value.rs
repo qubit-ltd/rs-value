@@ -129,6 +129,12 @@ impl NamedValue {
     pub fn set_name(&mut self, name: impl Into<String>) {
         self.name = name.into();
     }
+
+    /// Consume the instance and return `(name, value)`.
+    #[inline]
+    pub fn into_parts(self) -> (String, Value) {
+        (self.name, self.value)
+    }
 }
 
 impl Deref for NamedValue {
