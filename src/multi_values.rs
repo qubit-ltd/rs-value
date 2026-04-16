@@ -3449,7 +3449,7 @@ impl MultiValues {
             (MultiValues::Url(v), MultiValues::Url(o)) => v.extend_from_slice(o),
             (MultiValues::StringMap(v), MultiValues::StringMap(o)) => v.extend(o.iter().cloned()),
             (MultiValues::Json(v), MultiValues::Json(o)) => v.extend(o.iter().cloned()),
-            (MultiValues::Empty(_), _) => {}
+            (slot @ MultiValues::Empty(_), other_values) => *slot = other_values.clone(),
             _ => unreachable!(),
         }
 
