@@ -43,7 +43,7 @@ use super::value::Value;
 /// # Example
 ///
 /// ```rust
-/// use common_rs::util::value::{NamedValue, Value};
+/// use qubit_value::{NamedValue, Value};
 ///
 /// let named = NamedValue::new("flag", Value::Bool(true));
 /// // Call Value methods through Deref
@@ -74,7 +74,7 @@ impl NamedValue {
     /// # Example
     ///
     /// ```rust
-    /// use common_rs::util::value::{NamedValue, Value};
+    /// use qubit_value::{NamedValue, Value};
     ///
     /// let named = NamedValue::new("timeout", Value::Int32(30));
     /// assert_eq!(named.name(), "timeout");
@@ -98,7 +98,7 @@ impl NamedValue {
     /// # Example
     ///
     /// ```rust
-    /// use common_rs::util::value::{NamedValue, Value};
+    /// use qubit_value::{NamedValue, Value};
     ///
     /// let named = NamedValue::new("host", Value::String("localhost".to_string()));
     /// assert_eq!(named.name(), "host");
@@ -119,7 +119,7 @@ impl NamedValue {
     /// # Example
     ///
     /// ```rust
-    /// use common_rs::util::value::{NamedValue, Value};
+    /// use qubit_value::{NamedValue, Value};
     ///
     /// let mut named = NamedValue::new("old_name", Value::Bool(true));
     /// named.set_name("new_name");
@@ -151,7 +151,7 @@ impl Deref for NamedValue {
     /// # Example
     ///
     /// ```rust
-    /// use common_rs::util::value::{NamedValue, Value};
+    /// use qubit_value::{NamedValue, Value};
     ///
     /// let named = NamedValue::new("flag", Value::Bool(true));
     /// // Call Value methods through Deref

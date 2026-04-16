@@ -31,7 +31,7 @@ use thiserror::Error;
 /// # Example
 ///
 /// ```rust,ignore
-/// use common_rs::util::value::{ValueError, DataType};
+/// use qubit_value::ValueError;
 ///
 /// let error = ValueError::NoValue;
 /// assert_eq!(error.to_string(), "No value");
