@@ -184,6 +184,22 @@ fn test_multi_values_uintsize_add_single() {
 }
 
 #[test]
+fn test_multi_values_uintsize_merge() {
+    let mut mv1 = MultiValues::UIntSize(vec![10usize, 20]);
+    let mv2 = MultiValues::UIntSize(vec![30usize, 40]);
+    mv1.merge(&mv2).unwrap();
+    assert_eq!(mv1.get_uintsizes().unwrap(), &[10usize, 20, 30, 40]);
+}
+
+#[test]
+fn test_multi_values_uintsize_clear() {
+    let mut mv = MultiValues::UIntSize(vec![1usize, 2, 3]);
+    mv.clear();
+    assert!(mv.is_empty());
+    assert_eq!(mv.data_type(), DataType::UIntSize);
+}
+
+#[test]
 fn test_multi_values_uintsize_serde_roundtrip() {
     let original = MultiValues::UIntSize(vec![0usize, 1, usize::MAX]);
     let json = serde_json::to_string(&original).unwrap();
@@ -259,6 +275,14 @@ fn test_multi_values_duration_merge() {
     let b = MultiValues::Duration(vec![Duration::from_secs(2)]);
     a.merge(&b).unwrap();
     assert_eq!(a.count(), 2);
+}
+
+#[test]
+fn test_multi_values_duration_clear() {
+    let mut mv = MultiValues::Duration(vec![Duration::from_secs(10), Duration::from_secs(20)]);
+    mv.clear();
+    assert!(mv.is_empty());
+    assert_eq!(mv.data_type(), DataType::Duration);
 }
 
 #[test]
@@ -340,6 +364,26 @@ fn test_multi_values_url_serde_roundtrip() {
     let json = serde_json::to_string(&original).unwrap();
     let restored: MultiValues = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
+}
+
+#[test]
+fn test_multi_values_url_clear() {
+    let mut mv = MultiValues::Url(vec![
+        Url::parse("https://a.com").unwrap(),
+        Url::parse("https://b.com").unwrap(),
+    ]);
+    mv.clear();
+    assert!(mv.is_empty());
+    assert_eq!(mv.data_type(), DataType::Url);
+}
+
+#[test]
+fn test_multi_values_url_merge() {
+    let mut mv1 = MultiValues::Url(vec![Url::parse("https://a.com").unwrap()]);
+    let mv2 = MultiValues::Url(vec![Url::parse("https://b.com").unwrap()]);
+    mv1.merge(&mv2).unwrap();
+    assert_eq!(mv1.count(), 2);
+    assert_eq!(mv1.get_urls().unwrap().len(), 2);
 }
 
 #[test]
@@ -428,6 +472,22 @@ fn test_multi_values_stringmap_serde_roundtrip() {
 }
 
 #[test]
+fn test_multi_values_stringmap_clear() {
+    let mut mv = MultiValues::StringMap(vec![make_map(&[("a", "1")]), make_map(&[("b", "2")])]);
+    mv.clear();
+    assert!(mv.is_empty());
+    assert_eq!(mv.data_type(), DataType::StringMap);
+}
+
+#[test]
+fn test_multi_values_stringmap_merge() {
+    let mut mv1 = MultiValues::StringMap(vec![make_map(&[("a", "1")])]);
+    let mv2 = MultiValues::StringMap(vec![make_map(&[("b", "2")])]);
+    mv1.merge(&mv2).unwrap();
+    assert_eq!(mv1.count(), 2);
+}
+
+#[test]
 fn test_multi_values_stringmap_from_value() {
     let m = make_map(&[("key", "val")]);
     let v = Value::StringMap(m.clone());
@@ -505,6 +565,14 @@ fn test_multi_values_json_serde_roundtrip() {
     let json = serde_json::to_string(&original).unwrap();
     let restored: MultiValues = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
+}
+
+#[test]
+fn test_multi_values_json_clear() {
+    let mut mv = MultiValues::Json(vec![serde_json::json!({"a": 1}), serde_json::json!(2)]);
+    mv.clear();
+    assert!(mv.is_empty());
+    assert_eq!(mv.data_type(), DataType::Json);
 }
 
 #[test]

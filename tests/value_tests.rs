@@ -1012,12 +1012,72 @@ fn test_value_borrowing_getters_for_non_copy_types() {
 
 #[test]
 fn test_value_borrowing_getters_error_branches() {
-    let empty = Value::Empty(DataType::Json);
-    assert!(matches!(empty.get_json_ref(), Err(ValueError::NoValue)));
+    let empty_json = Value::Empty(DataType::Json);
+    assert!(matches!(
+        empty_json.get_json_ref(),
+        Err(ValueError::NoValue)
+    ));
+
+    let empty_biginteger = Value::Empty(DataType::BigInteger);
+    assert!(matches!(
+        empty_biginteger.get_biginteger_ref(),
+        Err(ValueError::NoValue)
+    ));
+
+    let empty_bigdecimal = Value::Empty(DataType::BigDecimal);
+    assert!(matches!(
+        empty_bigdecimal.get_bigdecimal_ref(),
+        Err(ValueError::NoValue)
+    ));
+
+    let empty_url = Value::Empty(DataType::Url);
+    assert!(matches!(empty_url.get_url_ref(), Err(ValueError::NoValue)));
+
+    let empty_string_map = Value::Empty(DataType::StringMap);
+    assert!(matches!(
+        empty_string_map.get_string_map_ref(),
+        Err(ValueError::NoValue)
+    ));
 
     let wrong_type = Value::Bool(true);
     assert!(matches!(
         wrong_type.get_url_ref(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+    assert!(matches!(
+        wrong_type.get_biginteger_ref(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+    assert!(matches!(
+        wrong_type.get_bigdecimal_ref(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+    assert!(matches!(
+        wrong_type.get_string_map_ref(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+
+    let wrong_type = Value::Int32(1);
+    assert!(matches!(
+        wrong_type.get_string_map_ref(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+    assert!(matches!(
+        wrong_type.get_json_ref(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+    assert!(matches!(
+        wrong_type.get_url_ref(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+    assert!(matches!(
+        wrong_type.get_biginteger_ref(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+
+    let wrong_json_type = Value::String("42".to_string());
+    assert!(matches!(
+        wrong_json_type.get_json_ref(),
         Err(ValueError::TypeMismatch { .. })
     ));
 }
@@ -2730,4 +2790,19 @@ fn test_to_f32_extended_sources() {
 #[test]
 fn test_to_f32_range_failures() {
     assert!(Value::Float64(f64::MAX).to::<f32>().is_err());
+}
+
+#[test]
+fn test_big_number_to_f32_and_f64_failures() {
+    let huge_big_int = BigInt::from_str(&"9".repeat(2000)).unwrap();
+    assert!(Value::BigInteger(huge_big_int.clone()).to::<f32>().is_err());
+    assert!(Value::BigInteger(huge_big_int).to::<f64>().is_err());
+
+    let huge_big_decimal = BigDecimal::from_str("1.0e10000").unwrap();
+    assert!(
+        Value::BigDecimal(huge_big_decimal.clone())
+            .to::<f32>()
+            .is_err()
+    );
+    assert!(Value::BigDecimal(huge_big_decimal).to::<f64>().is_err());
 }

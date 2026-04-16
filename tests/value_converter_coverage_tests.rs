@@ -25,7 +25,7 @@
 //! Haixing Hu
 
 use qubit_common::lang::DataType;
-use qubit_value::Value;
+use qubit_value::{Value, ValueError};
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
@@ -924,6 +924,30 @@ fn test_to_f32_from_bigdecimal_huge_out_of_range() {
 }
 
 #[test]
+fn test_to_f32_from_biginteger_out_of_range() {
+    use num_bigint::BigInt;
+    let huge = BigInt::from(10u8).pow(4000);
+    let err = Value::BigInteger(huge).to::<f32>().unwrap_err();
+    assert!(matches!(
+        err,
+        ValueError::ConversionError(ref msg)
+            if msg.contains("BigInteger value out of f32 range")
+    ));
+}
+
+#[test]
+fn test_to_f32_from_bigdecimal_out_of_range() {
+    use bigdecimal::BigDecimal;
+    let huge = BigDecimal::new(num_bigint::BigInt::from(10u8).pow(5000), 0);
+    let err = Value::BigDecimal(huge).to::<f32>().unwrap_err();
+    assert!(matches!(
+        err,
+        ValueError::ConversionError(ref msg)
+            if msg.contains("BigDecimal value out of f32 range")
+    ));
+}
+
+#[test]
 fn test_to_f32_wrong_type() {
     assert!(Value::Duration(Duration::from_secs(1)).to::<f32>().is_err());
 }
@@ -962,6 +986,30 @@ fn test_to_f64_from_bigdecimal_huge_out_of_range() {
     use std::str::FromStr;
     let huge = BigDecimal::from_str("1e1000").unwrap();
     assert!(Value::BigDecimal(huge).to::<f64>().is_err());
+}
+
+#[test]
+fn test_to_f64_from_biginteger_out_of_range() {
+    use num_bigint::BigInt;
+    let huge = BigInt::from(10u8).pow(5000);
+    let err = Value::BigInteger(huge).to::<f64>().unwrap_err();
+    assert!(matches!(
+        err,
+        ValueError::ConversionError(ref msg)
+            if msg.contains("BigInteger value out of f64 range")
+    ));
+}
+
+#[test]
+fn test_to_f64_from_bigdecimal_out_of_range() {
+    use bigdecimal::BigDecimal;
+    let huge = BigDecimal::new(num_bigint::BigInt::from(10u8).pow(7000), 0);
+    let err = Value::BigDecimal(huge).to::<f64>().unwrap_err();
+    assert!(matches!(
+        err,
+        ValueError::ConversionError(ref msg)
+            if msg.contains("BigDecimal value out of f64 range")
+    ));
 }
 
 // ============================================================================
