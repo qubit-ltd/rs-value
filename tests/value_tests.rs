@@ -729,14 +729,18 @@ fn test_value_as_string_all_types() {
         "123456789"
     );
 
-    assert!(Value::Float32(3.5)
-        .to::<String>()
-        .unwrap()
-        .starts_with("3.5"));
-    assert!(Value::Float64(2.5)
-        .to::<String>()
-        .unwrap()
-        .starts_with("2.5"));
+    assert!(
+        Value::Float32(3.5)
+            .to::<String>()
+            .unwrap()
+            .starts_with("3.5")
+    );
+    assert!(
+        Value::Float64(2.5)
+            .to::<String>()
+            .unwrap()
+            .starts_with("2.5")
+    );
 
     assert_eq!(
         Value::String("hello".to_string()).to::<String>().unwrap(),
@@ -1214,13 +1218,15 @@ fn test_is_empty_coverage_all_types() {
     assert!(!Value::String("test".to_string()).is_empty());
     assert!(!Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_empty());
     assert!(!Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_empty());
-    assert!(!Value::DateTime(
-        NaiveDate::from_ymd_opt(2024, 1, 1)
-            .unwrap()
-            .and_hms_opt(12, 0, 0)
-            .unwrap()
-    )
-    .is_empty());
+    assert!(
+        !Value::DateTime(
+            NaiveDate::from_ymd_opt(2024, 1, 1)
+                .unwrap()
+                .and_hms_opt(12, 0, 0)
+                .unwrap()
+        )
+        .is_empty()
+    );
     assert!(!Value::Instant(Utc::now()).is_empty());
     assert!(!Value::BigInteger(BigInt::from(123)).is_empty());
     assert!(!Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_empty());

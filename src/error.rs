@@ -30,7 +30,7 @@ use thiserror::Error;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use qubit_value::ValueError;
 ///
 /// let error = ValueError::NoValue;

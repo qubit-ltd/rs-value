@@ -1,8 +1,8 @@
 [package]
 name = "qubit-value"
 version = "0.4.0"
-edition = "2021"
-rust-version = "1.93"
+edition = "2024"
+rust-version = "1.94"
 authors = ["Haixing Hu <starfish.hu@gmail.com>"]
 license = "Apache-2.0"
 repository = "https://github.com/qubit-ltd/rs-value"
@@ -24,7 +24,7 @@ exclude = [
 
 [lib]
 name = "qubit_value"
-doctest = false
+doctest = true
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -38,4 +38,4 @@ num-traits = "0.2"
 num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 
-qubit-common = "0.5"
+qubit-common = "0.6"

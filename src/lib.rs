@@ -29,7 +29,7 @@
 //!
 //! ## Single Value Operations
 //!
-//! ```rust,ignore
+//! ```rust
 //! use qubit_value::Value;
 //!
 //! // Create and access a single value
@@ -43,7 +43,7 @@
 //!
 //! ## Multiple Values Operations
 //!
-//! ```rust,ignore
+//! ```rust
 //! use qubit_value::MultiValues;
 //!
 //! // Create and access multiple values
@@ -57,7 +57,7 @@
 //!
 //! ## Named Value Operations
 //!
-//! ```rust,ignore
+//! ```rust
 //! use qubit_value::{NamedValue, Value};
 //!
 //! // Create a named value
