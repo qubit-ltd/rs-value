@@ -1330,6 +1330,66 @@ impl Value {
             |v: &serde_json::Value| v.clone()
     }
 
+    /// Borrow the inner `BigInt` without cloning.
+    pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
+        match self {
+            Value::BigInteger(v) => Ok(v),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::TypeMismatch {
+                expected: DataType::BigInteger,
+                actual: self.data_type(),
+            }),
+        }
+    }
+
+    /// Borrow the inner `BigDecimal` without cloning.
+    pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
+        match self {
+            Value::BigDecimal(v) => Ok(v),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::TypeMismatch {
+                expected: DataType::BigDecimal,
+                actual: self.data_type(),
+            }),
+        }
+    }
+
+    /// Borrow the inner `Url` without cloning.
+    pub fn get_url_ref(&self) -> ValueResult<&Url> {
+        match self {
+            Value::Url(v) => Ok(v),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::TypeMismatch {
+                expected: DataType::Url,
+                actual: self.data_type(),
+            }),
+        }
+    }
+
+    /// Borrow the inner `HashMap<String, String>` without cloning.
+    pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
+        match self {
+            Value::StringMap(v) => Ok(v),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::TypeMismatch {
+                expected: DataType::StringMap,
+                actual: self.data_type(),
+            }),
+        }
+    }
+
+    /// Borrow the inner JSON value without cloning.
+    pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
+        match self {
+            Value::Json(v) => Ok(v),
+            Value::Empty(_) => Err(ValueError::NoValue),
+            _ => Err(ValueError::TypeMismatch {
+                expected: DataType::Json,
+                actual: self.data_type(),
+            }),
+        }
+    }
+
     impl_set_value! {
         /// Set isize value
         copy: set_intsize, IntSize, isize, DataType::IntSize

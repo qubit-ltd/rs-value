@@ -186,9 +186,8 @@ impl From<NamedValue> for NamedMultiValues {
     /// Reuses the name and promotes the single value to a `MultiValues` containing only one element.
     #[inline]
     fn from(named: NamedValue) -> Self {
-        // Cannot directly access private fields, use public API and cloning instead
-        let name = named.name().to_string();
-        let value = MultiValues::from((*named).clone());
+        let (name, value) = named.into_parts();
+        let value = MultiValues::from(value);
         Self { name, value }
     }
 }

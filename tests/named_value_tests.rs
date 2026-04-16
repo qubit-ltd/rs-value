@@ -40,6 +40,14 @@ fn test_named_value_set_name() {
 }
 
 #[test]
+fn test_named_value_into_parts() {
+    let nv = NamedValue::new("port", Value::Int32(8080));
+    let (name, value) = nv.into_parts();
+    assert_eq!(name, "port");
+    assert_eq!(value, Value::Int32(8080));
+}
+
+#[test]
 fn test_named_value_deref_mut_assignment() {
     let mut nv = NamedValue::new("counter", Value::Int32(0));
     *nv = Value::Int32(42);

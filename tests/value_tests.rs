@@ -965,11 +965,13 @@ fn test_value_all_bigint_bigdecimal_getters() {
     let big_int = BigInt::from_str("999999999999999999999").unwrap();
     let value = Value::BigInteger(big_int.clone());
     assert_eq!(value.get_biginteger().unwrap(), big_int);
+    assert_eq!(value.get_biginteger_ref().unwrap(), &big_int);
 
     // Test creating BigDecimal from String value
     let big_decimal = BigDecimal::from_str("123.456789012345").unwrap();
     let value = Value::BigDecimal(big_decimal.clone());
     assert_eq!(value.get_bigdecimal().unwrap(), big_decimal);
+    assert_eq!(value.get_bigdecimal_ref().unwrap(), &big_decimal);
 
     // Test BigInteger to string conversion
     let big_int = BigInt::from_str("987654321098765432109876543210").unwrap();
@@ -982,6 +984,38 @@ fn test_value_all_bigint_bigdecimal_getters() {
     let value = Value::BigDecimal(big_decimal);
     let str_repr = value.to::<String>().unwrap();
     assert!(str_repr.contains("999"));
+}
+
+#[test]
+fn test_value_borrowing_getters_for_non_copy_types() {
+    use serde_json::json;
+    use std::collections::HashMap;
+    use url::Url;
+
+    let url = Url::parse("https://example.com").unwrap();
+    let url_value = Value::Url(url.clone());
+    assert_eq!(url_value.get_url_ref().unwrap(), &url);
+
+    let mut map = HashMap::new();
+    map.insert("k".to_string(), "v".to_string());
+    let map_value = Value::StringMap(map.clone());
+    assert_eq!(map_value.get_string_map_ref().unwrap(), &map);
+
+    let json_value = json!({"k": "v"});
+    let value = Value::Json(json_value.clone());
+    assert_eq!(value.get_json_ref().unwrap(), &json_value);
+}
+
+#[test]
+fn test_value_borrowing_getters_error_branches() {
+    let empty = Value::Empty(DataType::Json);
+    assert!(matches!(empty.get_json_ref(), Err(ValueError::NoValue)));
+
+    let wrong_type = Value::Bool(true);
+    assert!(matches!(
+        wrong_type.get_url_ref(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
