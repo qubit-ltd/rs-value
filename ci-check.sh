@@ -160,22 +160,24 @@ if command -v cargo-llvm-cov &> /dev/null; then
         fi
     else
     # Generate text format coverage report.
-    # Note: stdout/stderr are captured here. With `set -e`, a failing command
-    # substitution would exit the script before any output is shown — so we
-    # temporarily allow failure, then print the log and exit explicitly.
+    # Stream output with `tee` so compile/test/llvm-cov progress is visible
+    # (command substitution alone buffers everything until completion).
+    # With `set -e`, a failing pipeline can exit before messages — temporarily
+    # disable errexit, capture `cargo llvm-cov` exit from PIPESTATUS, then exit explicitly.
+    COVERAGE_LOG=$(mktemp)
     set +e
-    COVERAGE_OUTPUT=$(cargo llvm-cov --package "$PACKAGE_NAME" \
-        --ignore-filename-regex "(\.cargo/registry|\.rustup/)" 2>&1)
-    COVERAGE_EXIT=$?
+    cargo llvm-cov --package "$PACKAGE_NAME" \
+        --ignore-filename-regex "(\.cargo/registry|\.rustup/)" 2>&1 | tee "$COVERAGE_LOG"
+    COVERAGE_EXIT=${PIPESTATUS[0]}
     set -e
     if [ "$COVERAGE_EXIT" -ne 0 ]; then
         print_error "cargo llvm-cov failed (exit $COVERAGE_EXIT)"
-        echo "$COVERAGE_OUTPUT"
+        command rm -f "$COVERAGE_LOG"
         exit 1
     fi
 
     # Extract coverage percentage
-    COVERAGE_LINE=$(echo "$COVERAGE_OUTPUT" | grep "TOTAL" || echo "")
+    COVERAGE_LINE=$(grep "TOTAL" "$COVERAGE_LOG" || echo "")
 
     if [ -n "$COVERAGE_LINE" ]; then
         print_success "Coverage report generated"
@@ -190,6 +192,7 @@ if command -v cargo-llvm-cov &> /dev/null; then
     else
         print_warning "Unable to parse coverage data"
     fi
+    command rm -f "$COVERAGE_LOG"
     fi
 else
     print_warning "cargo-llvm-cov not installed, skipping coverage check"
