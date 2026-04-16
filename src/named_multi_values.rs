@@ -42,7 +42,7 @@ use super::named_value::NamedValue;
 /// # Example
 ///
 /// ```rust
-/// use common_rs::util::value::{NamedMultiValues, MultiValues};
+/// use qubit_value::{NamedMultiValues, MultiValues};
 ///
 /// // Identify a group of ports with the name "ports"
 /// let named = NamedMultiValues::new(
@@ -88,7 +88,7 @@ impl NamedMultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use common_rs::util::value::{NamedMultiValues, MultiValues};
+    /// use qubit_value::{NamedMultiValues, MultiValues};
     ///
     /// let named = NamedMultiValues::new(
     ///     "servers",
@@ -113,7 +113,7 @@ impl NamedMultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use common_rs::util::value::{NamedMultiValues, MultiValues};
+    /// use qubit_value::{NamedMultiValues, MultiValues};
     ///
     /// let named = NamedMultiValues::new("items", MultiValues::Int32(vec![1, 2, 3]));
     /// assert_eq!(named.name(), "items");
@@ -138,7 +138,7 @@ impl NamedMultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use common_rs::util::value::{NamedMultiValues, MultiValues};
+    /// use qubit_value::{NamedMultiValues, MultiValues};
     ///
     /// let mut named = NamedMultiValues::new("old", MultiValues::Bool(vec![true]));
     /// named.set_name("new");

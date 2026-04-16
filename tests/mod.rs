@@ -13,6 +13,7 @@
 //! # Author
 //!
 //! Haixing Hu
+mod doc_examples_tests;
 mod multi_values_generic_coverage_tests;
 mod multi_values_tests;
 mod multi_values_v030_tests;

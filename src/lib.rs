@@ -30,7 +30,7 @@
 //! ## Single Value Operations
 //!
 //! ```rust,ignore
-//! use common_rs::util::value::Value;
+//! use qubit_value::Value;
 //!
 //! // Create and access a single value
 //! let value = Value::Int32(42);
@@ -44,7 +44,7 @@
 //! ## Multiple Values Operations
 //!
 //! ```rust,ignore
-//! use common_rs::util::value::MultiValues;
+//! use qubit_value::MultiValues;
 //!
 //! // Create and access multiple values
 //! let mut values = MultiValues::Int32(vec![1, 2, 3]);
@@ -58,7 +58,7 @@
 //! ## Named Value Operations
 //!
 //! ```rust,ignore
-//! use common_rs::util::value::{NamedValue, Value};
+//! use qubit_value::{NamedValue, Value};
 //!
 //! // Create a named value
 //! let config = NamedValue::new("port", Value::Int32(8080));
