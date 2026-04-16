@@ -43,8 +43,8 @@ use super::value::Value;
 ///
 /// # Example
 ///
-/// ```rust,ignore
-/// use common_rs::util::value::MultiValues;
+/// ```rust
+/// use qubit_value::MultiValues;
 ///
 /// // Create integer multiple values
 /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
@@ -424,8 +424,8 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::MultiValues;
+    /// ```rust
+    /// use qubit_value::MultiValues;
     ///
     /// // Basic types
     /// let mv = MultiValues::new(vec![1, 2, 3]);
@@ -458,8 +458,8 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::MultiValues;
+    /// ```rust
+    /// use qubit_value::MultiValues;
     ///
     /// let multi = MultiValues::Int32(vec![1, 2, 3]);
     ///
@@ -495,8 +495,8 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::MultiValues;
+    /// ```rust
+    /// use qubit_value::MultiValues;
     ///
     /// let multi = MultiValues::Int32(vec![42, 100, 200]);
     ///
@@ -551,9 +551,9 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::lang::DataType;
-    /// use crate::util::value::MultiValues;
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::MultiValues;
     ///
     /// // 1) Vec<T>
     /// let mut mv = MultiValues::Empty(DataType::Int32);
@@ -604,9 +604,9 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::lang::DataType;
-    /// use crate::util::value::MultiValues;
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::MultiValues;
     ///
     /// // 1) Single T
     /// let mut mv = MultiValues::Int32(vec![42]);
@@ -639,8 +639,9 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::{MultiValues, DataType};
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Int32(vec![1, 2, 3]);
     /// assert_eq!(values.data_type(), DataType::Int32);
@@ -687,8 +688,9 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::MultiValues;
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Int32(vec![1, 2, 3]);
     /// assert_eq!(values.count(), 3);
@@ -738,8 +740,9 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::{MultiValues, DataType};
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Int32(vec![]);
     /// assert!(values.is_empty());
@@ -756,8 +759,9 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::{MultiValues, DataType};
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::MultiValues;
     ///
     /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
     /// values.clear();
@@ -809,8 +813,9 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::{MultiValues, DataType};
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::MultiValues;
     ///
     /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
     /// values.set_type(DataType::String);
@@ -838,8 +843,8 @@ impl MultiValues {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::MultiValues;
+        /// ```rust
+        /// use qubit_value::MultiValues;
         ///
         /// let values = MultiValues::Bool(vec![true, false]);
         /// assert_eq!(values.get_first_bool().unwrap(), true);
@@ -1091,8 +1096,8 @@ impl MultiValues {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::MultiValues;
+        /// ```rust
+        /// use qubit_value::MultiValues;
         ///
         /// let values = MultiValues::Bool(vec![true, false, true]);
         /// assert_eq!(values.get_bools().unwrap(), &[true, false, true]);
@@ -1347,8 +1352,9 @@ impl MultiValues {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::MultiValues;
+        /// ```rust
+        /// use qubit_common::lang::DataType;
+        /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Empty(DataType::Bool);
         /// values.set_bools(vec![true, false, true]).unwrap();
@@ -1539,8 +1545,9 @@ impl MultiValues {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::MultiValues;
+        /// ```rust
+        /// use qubit_common::lang::DataType;
+        /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Empty(DataType::String);
         /// values.set_strings(vec!["hello".to_string(), "world".to_string()]).unwrap();
@@ -1981,8 +1988,9 @@ impl MultiValues {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::MultiValues;
+        /// ```rust
+        /// use qubit_common::lang::DataType;
+        /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Empty(DataType::Bool);
         /// values.set_bool(true).unwrap();
@@ -2173,8 +2181,9 @@ impl MultiValues {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::MultiValues;
+        /// ```rust
+        /// use qubit_common::lang::DataType;
+        /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Empty(DataType::String);
         /// values.set_string("hello".to_string()).unwrap();
@@ -2308,8 +2317,8 @@ impl MultiValues {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::MultiValues;
+        /// ```rust
+        /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Bool(vec![true]);
         /// values.add_bool(false).unwrap();
@@ -2625,8 +2634,8 @@ impl MultiValues {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::MultiValues;
+        /// ```rust
+        /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Bool(vec![true]);
         /// values.add_bools(vec![false, true]).unwrap();
@@ -2817,8 +2826,8 @@ impl MultiValues {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::MultiValues;
+        /// ```rust
+        /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::String(vec!["hello".to_string()]);
         /// values.add_strings(vec!["world".to_string(), "rust".to_string()]).unwrap();
@@ -3405,8 +3414,8 @@ impl MultiValues {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::MultiValues;
+    /// ```rust
+    /// use qubit_value::MultiValues;
     ///
     /// let mut a = MultiValues::Int32(vec![1, 2]);
     /// let b = MultiValues::Int32(vec![3, 4]);

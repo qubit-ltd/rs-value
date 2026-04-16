@@ -24,8 +24,8 @@ use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
 
-use qubit_common::lang::argument::NumericArgument;
 use qubit_common::lang::DataType;
+use qubit_common::lang::argument::NumericArgument;
 
 use super::error::{ValueError, ValueResult};
 
@@ -43,8 +43,8 @@ use super::error::{ValueError, ValueResult};
 ///
 /// # Example
 ///
-/// ```rust,ignore
-/// use common_rs::util::value::Value;
+/// ```rust
+/// use qubit_value::Value;
 ///
 /// // Create an integer value
 /// let value = Value::Int32(42);
@@ -251,8 +251,8 @@ impl Value {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::Value;
+    /// ```rust
+    /// use qubit_value::Value;
     ///
     /// // Basic types
     /// let v = Value::new(42i32);
@@ -313,8 +313,8 @@ impl Value {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::Value;
+    /// ```rust
+    /// use qubit_value::Value;
     ///
     /// let value = Value::Int32(42);
     ///
@@ -503,8 +503,8 @@ impl Value {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::Value;
+    /// ```rust
+    /// use qubit_value::Value;
     ///
     /// let value = Value::Int32(42);
     ///
@@ -562,8 +562,9 @@ impl Value {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::Value;
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::Value;
     ///
     /// let mut value = Value::Empty(DataType::Int32);
     ///
@@ -596,8 +597,9 @@ impl Value {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::{Value, DataType};
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::Value;
     ///
     /// let value = Value::Int32(42);
     /// assert_eq!(value.data_type(), DataType::Int32);
@@ -647,8 +649,9 @@ impl Value {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::{Value, DataType};
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::Value;
     ///
     /// let value = Value::Int32(42);
     /// assert!(!value.is_empty());
@@ -667,8 +670,9 @@ impl Value {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::{Value, DataType};
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::Value;
     ///
     /// let mut value = Value::Int32(42);
     /// value.clear();
@@ -692,8 +696,9 @@ impl Value {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// use crate::util::value::{Value, DataType};
+    /// ```rust
+    /// use qubit_common::lang::DataType;
+    /// use qubit_value::Value;
     ///
     /// let mut value = Value::Int32(42);
     /// value.set_type(DataType::String);
@@ -721,8 +726,8 @@ impl Value {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::Value;
+        /// ```rust
+        /// use qubit_value::Value;
         ///
         /// let value = Value::Bool(true);
         /// assert_eq!(value.get_bool().unwrap(), true);
@@ -740,8 +745,8 @@ impl Value {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::Value;
+        /// ```rust
+        /// use qubit_value::Value;
         ///
         /// let value = Value::Char('A');
         /// assert_eq!(value.get_char().unwrap(), 'A');
@@ -867,8 +872,8 @@ impl Value {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::Value;
+        /// ```rust
+        /// use qubit_value::Value;
         ///
         /// let value = Value::String("hello".to_string());
         /// assert_eq!(value.get_string().unwrap(), "hello");
@@ -921,8 +926,8 @@ impl Value {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::Value;
+        /// ```rust
+        /// use qubit_value::Value;
         /// use num_bigint::BigInt;
         ///
         /// let value = Value::BigInteger(BigInt::from(123456789));
@@ -941,12 +946,15 @@ impl Value {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::Value;
-        /// use bigdecimal::BigDecimal;
+        /// ```rust
+        /// use std::str::FromStr;
         ///
-        /// let value = Value::BigDecimal(BigDecimal::from(123.456));
-        /// assert_eq!(value.get_bigdecimal().unwrap(), BigDecimal::from(123.456));
+        /// use bigdecimal::BigDecimal;
+        /// use qubit_value::Value;
+        ///
+        /// let bd = BigDecimal::from_str("123.456").unwrap();
+        /// let value = Value::BigDecimal(bd.clone());
+        /// assert_eq!(value.get_bigdecimal().unwrap(), bd);
         /// ```
         ref: get_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
     }
@@ -968,8 +976,9 @@ impl Value {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::Value;
+        /// ```rust
+        /// use qubit_common::lang::DataType;
+        /// use qubit_value::Value;
         ///
         /// let mut value = Value::Empty(DataType::Bool);
         /// value.set_bool(true).unwrap();
@@ -1160,8 +1169,9 @@ impl Value {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::Value;
+        /// ```rust
+        /// use qubit_common::lang::DataType;
+        /// use qubit_value::Value;
         ///
         /// let mut value = Value::Empty(DataType::String);
         /// value.set_string("hello".to_string()).unwrap();
@@ -1235,9 +1245,10 @@ impl Value {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::Value;
+        /// ```rust
         /// use num_bigint::BigInt;
+        /// use qubit_common::lang::DataType;
+        /// use qubit_value::Value;
         ///
         /// let mut value = Value::Empty(DataType::BigInteger);
         /// value.set_biginteger(BigInt::from(123456789)).unwrap();
@@ -1259,13 +1270,17 @@ impl Value {
         ///
         /// # Example
         ///
-        /// ```rust,ignore
-        /// use crate::util::value::Value;
+        /// ```rust
+        /// use std::str::FromStr;
+        ///
         /// use bigdecimal::BigDecimal;
+        /// use qubit_common::lang::DataType;
+        /// use qubit_value::Value;
         ///
         /// let mut value = Value::Empty(DataType::BigDecimal);
-        /// value.set_bigdecimal(BigDecimal::from(123.456)).unwrap();
-        /// assert_eq!(value.get_bigdecimal().unwrap(), BigDecimal::from(123.456));
+        /// let bd = BigDecimal::from_str("123.456").unwrap();
+        /// value.set_bigdecimal(bd.clone()).unwrap();
+        /// assert_eq!(value.get_bigdecimal().unwrap(), bd);
         /// ```
         owned: set_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal
     }
