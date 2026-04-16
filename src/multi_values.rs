@@ -3237,6 +3237,155 @@ impl MultiValues {
         add_jsons_slice, Json, serde_json::Value, DataType::Json
     }
 
+    /// Convert to a single [`Value`] by taking the first element.
+    ///
+    /// If there is no element, returns `Value::Empty(self.data_type())`.
+    ///
+    /// # Returns
+    ///
+    /// Returns the first element wrapped as [`Value`], or an empty value
+    /// preserving the current data type.
+    pub fn to_value(&self) -> Value {
+        match self {
+            MultiValues::Empty(dt) => Value::Empty(*dt),
+            MultiValues::Bool(v) => v
+                .first()
+                .copied()
+                .map(Value::Bool)
+                .unwrap_or(Value::Empty(DataType::Bool)),
+            MultiValues::Char(v) => v
+                .first()
+                .copied()
+                .map(Value::Char)
+                .unwrap_or(Value::Empty(DataType::Char)),
+            MultiValues::Int8(v) => v
+                .first()
+                .copied()
+                .map(Value::Int8)
+                .unwrap_or(Value::Empty(DataType::Int8)),
+            MultiValues::Int16(v) => v
+                .first()
+                .copied()
+                .map(Value::Int16)
+                .unwrap_or(Value::Empty(DataType::Int16)),
+            MultiValues::Int32(v) => v
+                .first()
+                .copied()
+                .map(Value::Int32)
+                .unwrap_or(Value::Empty(DataType::Int32)),
+            MultiValues::Int64(v) => v
+                .first()
+                .copied()
+                .map(Value::Int64)
+                .unwrap_or(Value::Empty(DataType::Int64)),
+            MultiValues::Int128(v) => v
+                .first()
+                .copied()
+                .map(Value::Int128)
+                .unwrap_or(Value::Empty(DataType::Int128)),
+            MultiValues::UInt8(v) => v
+                .first()
+                .copied()
+                .map(Value::UInt8)
+                .unwrap_or(Value::Empty(DataType::UInt8)),
+            MultiValues::UInt16(v) => v
+                .first()
+                .copied()
+                .map(Value::UInt16)
+                .unwrap_or(Value::Empty(DataType::UInt16)),
+            MultiValues::UInt32(v) => v
+                .first()
+                .copied()
+                .map(Value::UInt32)
+                .unwrap_or(Value::Empty(DataType::UInt32)),
+            MultiValues::UInt64(v) => v
+                .first()
+                .copied()
+                .map(Value::UInt64)
+                .unwrap_or(Value::Empty(DataType::UInt64)),
+            MultiValues::UInt128(v) => v
+                .first()
+                .copied()
+                .map(Value::UInt128)
+                .unwrap_or(Value::Empty(DataType::UInt128)),
+            MultiValues::IntSize(v) => v
+                .first()
+                .copied()
+                .map(Value::IntSize)
+                .unwrap_or(Value::Empty(DataType::IntSize)),
+            MultiValues::UIntSize(v) => v
+                .first()
+                .copied()
+                .map(Value::UIntSize)
+                .unwrap_or(Value::Empty(DataType::UIntSize)),
+            MultiValues::Float32(v) => v
+                .first()
+                .copied()
+                .map(Value::Float32)
+                .unwrap_or(Value::Empty(DataType::Float32)),
+            MultiValues::Float64(v) => v
+                .first()
+                .copied()
+                .map(Value::Float64)
+                .unwrap_or(Value::Empty(DataType::Float64)),
+            MultiValues::BigInteger(v) => v
+                .first()
+                .cloned()
+                .map(Value::BigInteger)
+                .unwrap_or(Value::Empty(DataType::BigInteger)),
+            MultiValues::BigDecimal(v) => v
+                .first()
+                .cloned()
+                .map(Value::BigDecimal)
+                .unwrap_or(Value::Empty(DataType::BigDecimal)),
+            MultiValues::String(v) => v
+                .first()
+                .cloned()
+                .map(Value::String)
+                .unwrap_or(Value::Empty(DataType::String)),
+            MultiValues::Date(v) => v
+                .first()
+                .copied()
+                .map(Value::Date)
+                .unwrap_or(Value::Empty(DataType::Date)),
+            MultiValues::Time(v) => v
+                .first()
+                .copied()
+                .map(Value::Time)
+                .unwrap_or(Value::Empty(DataType::Time)),
+            MultiValues::DateTime(v) => v
+                .first()
+                .copied()
+                .map(Value::DateTime)
+                .unwrap_or(Value::Empty(DataType::DateTime)),
+            MultiValues::Instant(v) => v
+                .first()
+                .copied()
+                .map(Value::Instant)
+                .unwrap_or(Value::Empty(DataType::Instant)),
+            MultiValues::Duration(v) => v
+                .first()
+                .copied()
+                .map(Value::Duration)
+                .unwrap_or(Value::Empty(DataType::Duration)),
+            MultiValues::Url(v) => v
+                .first()
+                .cloned()
+                .map(Value::Url)
+                .unwrap_or(Value::Empty(DataType::Url)),
+            MultiValues::StringMap(v) => v
+                .first()
+                .cloned()
+                .map(Value::StringMap)
+                .unwrap_or(Value::Empty(DataType::StringMap)),
+            MultiValues::Json(v) => v
+                .first()
+                .cloned()
+                .map(Value::Json)
+                .unwrap_or(Value::Empty(DataType::Json)),
+        }
+    }
+
     /// Merge another multiple values
     ///
     /// Append all values from another multiple values to the current multiple values

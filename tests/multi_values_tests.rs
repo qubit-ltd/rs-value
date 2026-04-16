@@ -3288,3 +3288,21 @@ fn test_multi_values_merge_when_self_is_empty() {
     assert_eq!(mv3.data_type(), DataType::Bool);
     assert!(mv3.is_empty());
 }
+
+#[test]
+fn test_multi_values_to_value_takes_first_element() {
+    let numbers = MultiValues::Int32(vec![10, 20, 30]);
+    assert_eq!(numbers.to_value(), Value::Int32(10));
+
+    let strings = MultiValues::String(vec!["a".to_string(), "b".to_string()]);
+    assert_eq!(strings.to_value(), Value::String("a".to_string()));
+}
+
+#[test]
+fn test_multi_values_to_value_on_empty_preserves_type() {
+    let empty_declared = MultiValues::Empty(DataType::UInt64);
+    assert_eq!(empty_declared.to_value(), Value::Empty(DataType::UInt64));
+
+    let empty_vec = MultiValues::Int32(vec![]);
+    assert_eq!(empty_vec.to_value(), Value::Empty(DataType::Int32));
+}
