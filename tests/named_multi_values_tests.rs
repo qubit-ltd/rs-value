@@ -260,3 +260,12 @@ fn test_named_multi_values_to_named_value_empty_preserves_type() {
         Err(qubit_value::ValueError::NoValue)
     ));
 }
+
+#[test]
+fn test_named_multi_values_empty_get_mismatched_type_returns_error() {
+    let nmv = NamedMultiValues::new("ports", MultiValues::Empty(DataType::Int32));
+    assert!(matches!(
+        nmv.get_strings(),
+        Err(qubit_value::ValueError::TypeMismatch { .. })
+    ));
+}

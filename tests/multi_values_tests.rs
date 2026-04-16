@@ -2058,7 +2058,7 @@ fn test_get_first_from_empty_all_types() {
 
 #[test]
 fn test_get_from_empty_returns_empty_vec() {
-    // Test getting list from Empty returns empty Vec (not an error)
+    // For Empty with matching declared type, getting list returns empty Vec.
     let mv = MultiValues::Empty(DataType::Int32);
     assert_eq!(mv.get_int32s().unwrap(), &[] as &[i32]);
 
@@ -2076,6 +2076,25 @@ fn test_get_from_empty_returns_empty_vec() {
 
     let mv = MultiValues::Empty(DataType::UInt64);
     assert_eq!(mv.get_uint64s().unwrap(), &[] as &[u64]);
+}
+
+#[test]
+fn test_get_from_empty_mismatched_type_returns_error() {
+    let mv = MultiValues::Empty(DataType::Int32);
+    assert!(matches!(
+        mv.get_strings(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+    assert!(matches!(
+        mv.get_bools(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+
+    let mv = MultiValues::Empty(DataType::String);
+    assert!(matches!(
+        mv.get_int32s(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
@@ -3069,7 +3088,7 @@ fn test_multi_value_merge_empty_branch() {
 
 #[test]
 fn test_multi_values_getter_empty_branch() {
-    // Test MultiValuesGetter Empty branch - returns empty Vec
+    // For Empty with matching declared type, generic getter returns empty Vec.
     let mv = MultiValues::Empty(DataType::Int32);
     let result: Vec<i32> = mv.get().unwrap();
     assert_eq!(result.len(), 0);
@@ -3081,6 +3100,16 @@ fn test_multi_values_getter_empty_branch() {
     let mv = MultiValues::Empty(DataType::Bool);
     let result: Vec<bool> = mv.get().unwrap();
     assert_eq!(result.len(), 0);
+}
+
+#[test]
+fn test_multi_values_getter_empty_type_mismatch_branch() {
+    let mv = MultiValues::Empty(DataType::Int32);
+    let result: Result<Vec<String>, ValueError> = mv.get();
+    assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
+
+    let result: Result<bool, ValueError> = mv.get_first();
+    assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 }
 
 #[test]

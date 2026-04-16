@@ -150,7 +150,7 @@ macro_rules! impl_get_multi_values {
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v),
-                MultiValues::Empty(_) => Ok(&[]),
+                MultiValues::Empty(dt) if *dt == $data_type => Ok(&[]),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -166,7 +166,7 @@ macro_rules! impl_get_multi_values {
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v.as_slice()),
-                MultiValues::Empty(_) => Ok(&[]),
+                MultiValues::Empty(dt) if *dt == $data_type => Ok(&[]),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -198,7 +198,8 @@ macro_rules! impl_get_first_value {
         pub fn $method(&self) -> ValueResult<$type> {
             match self {
                 MultiValues::$variant(v) if !v.is_empty() => Ok(v[0]),
-                MultiValues::$variant(_) | MultiValues::Empty(_) => Err(ValueError::NoValue),
+                MultiValues::$variant(_) => Err(ValueError::NoValue),
+                MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -217,7 +218,8 @@ macro_rules! impl_get_first_value {
                     let conv_fn: fn(&_) -> $ret_type = $conversion;
                     Ok(conv_fn(&v[0]))
                 },
-                MultiValues::$variant(_) | MultiValues::Empty(_) => Err(ValueError::NoValue),
+                MultiValues::$variant(_) => Err(ValueError::NoValue),
+                MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -3603,7 +3605,7 @@ macro_rules! impl_multi_value_traits {
             fn get_values(&self) -> ValueResult<Vec<$type>> {
                 match self {
                     MultiValues::$variant(v) => Ok(v.clone()),
-                    MultiValues::Empty(_) => Ok(Vec::new()),
+                    MultiValues::Empty(dt) if *dt == $data_type => Ok(Vec::new()),
                     _ => Err(ValueError::TypeMismatch {
                         expected: $data_type,
                         actual: self.data_type(),
@@ -3617,7 +3619,8 @@ macro_rules! impl_multi_value_traits {
             fn get_first_value(&self) -> ValueResult<$type> {
                 match self {
                     MultiValues::$variant(v) if !v.is_empty() => Ok(v[0].clone()),
-                    MultiValues::$variant(_) | MultiValues::Empty(_) => Err(ValueError::NoValue),
+                    MultiValues::$variant(_) => Err(ValueError::NoValue),
+                    MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
                     _ => Err(ValueError::TypeMismatch {
                         expected: $data_type,
                         actual: self.data_type(),
