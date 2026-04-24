@@ -14,7 +14,5 @@
 mod value;
 mod value_accessors;
 mod value_converters;
-mod value_core;
-mod value_traits;
 
 pub use value::{Value, ValueConstructor, ValueConverter, ValueGetter, ValueSetter};

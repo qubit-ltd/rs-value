@@ -10,7 +10,7 @@ use url::Url;
 use qubit_common::lang::DataType;
 use qubit_common::lang::argument::NumericArgument;
 
-use super::value_core::Value;
+use super::value::Value;
 use crate::error::{ValueError, ValueResult};
 
 fn parse_duration_string(s: &str) -> ValueResult<Duration> {

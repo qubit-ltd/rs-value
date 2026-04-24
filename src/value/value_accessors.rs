@@ -10,7 +10,7 @@ use url::Url;
 
 use qubit_common::lang::DataType;
 
-use super::value_core::Value;
+use super::value::Value;
 use crate::error::{ValueError, ValueResult};
 
 macro_rules! impl_get_value {
