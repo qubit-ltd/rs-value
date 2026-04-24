@@ -10,8 +10,8 @@ use qubit_common::lang::DataType;
 
 use crate::error::{ValueError, ValueResult};
 
-use super::multi_values_core::MultiValues;
-use super::multi_values_traits::{
+use super::multi_values::MultiValues;
+use super::multi_values_converters::{
     MultiValuesAddArg, MultiValuesAdder, MultiValuesConstructor, MultiValuesFirstGetter,
     MultiValuesGetter, MultiValuesMultiAdder, MultiValuesSetArg, MultiValuesSetter,
     MultiValuesSetterSlice, MultiValuesSingleSetter,

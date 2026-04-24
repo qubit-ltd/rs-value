@@ -14,8 +14,6 @@
 //!
 //! Haixing Hu
 
-#![allow(private_bounds)]
-
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use num_bigint::BigInt;
