@@ -103,7 +103,7 @@ pub(crate) trait MultiValuesMultiAdderSlice<T> {
 /// This trait is not exported in mod.rs, only used for internal implementation,
 /// to avoid polluting the standard type namespace
 #[doc(hidden)]
-pub(crate) trait MultiValuesConstructor<T> {
+pub trait MultiValuesConstructor<T> {
     fn from_vec(values: Vec<T>) -> Self;
 }
 
