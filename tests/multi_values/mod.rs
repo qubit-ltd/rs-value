@@ -6,15 +6,10 @@
  *    All rights reserved.
  *
  ******************************************************************************/
-//! # Value Processing Module Tests
+//! # MultiValues Tests
 //!
-//! Provides integration tests for the value processing framework.
-//!
-//! # Author
-//!
-//! Haixing Hu
-mod doc_examples_tests;
-mod multi_values;
-mod named_multi_values_tests;
-mod named_value_tests;
-mod value;
+//! Integration tests for `MultiValues` module.
+
+mod multi_values_generic_coverage_tests;
+mod multi_values_tests;
+mod multi_values_v030_tests;

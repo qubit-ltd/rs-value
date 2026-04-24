@@ -82,4 +82,4 @@ pub use error::{ValueError, ValueResult};
 pub use multi_values::MultiValues;
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;
-pub use value::Value;
+pub use value::{Value, ValueConstructor, ValueConverter, ValueGetter, ValueSetter};

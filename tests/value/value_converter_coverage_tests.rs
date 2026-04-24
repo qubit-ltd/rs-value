@@ -8,7 +8,7 @@
  ******************************************************************************/
 //! # ValueConverter 覆盖率补充测试
 //!
-//! 覆盖 `value.rs` 中 `ValueConverter` trait 各类型实现的未覆盖分支，包括：
+//! 覆盖 `src/value/value_converters.rs` 中 `ValueConverter` trait 各类型实现的未覆盖分支，包括：
 //! - `parse_duration_string` 的错误分支
 //! - `ValueConverter<Duration>` 的 Empty / 非法类型分支
 //! - `ValueConverter<Url>` 的 Empty / 非法类型分支
