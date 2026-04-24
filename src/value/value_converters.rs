@@ -82,9 +82,9 @@ fn checked_float_to_i64(value: f64, source: &str) -> ValueResult<i64> {
 }
 
 fn checked_bigint_to_f32(value: &BigInt) -> ValueResult<f32> {
-    let converted = value.to_f32().ok_or_else(|| {
-        ValueError::ConversionError("BigInteger value cannot be converted to f32".to_string())
-    })?;
+    let converted = value.to_f32().ok_or(ValueError::ConversionError(
+        "BigInteger value cannot be converted to f32".to_string(),
+    ))?;
     if converted.is_finite() {
         Ok(converted)
     } else {
@@ -95,9 +95,9 @@ fn checked_bigint_to_f32(value: &BigInt) -> ValueResult<f32> {
 }
 
 fn checked_bigdecimal_to_f32(value: &BigDecimal) -> ValueResult<f32> {
-    let converted = value.to_f32().ok_or_else(|| {
-        ValueError::ConversionError("BigDecimal value cannot be converted to f32".to_string())
-    })?;
+    let converted = value.to_f32().ok_or(ValueError::ConversionError(
+        "BigDecimal value cannot be converted to f32".to_string(),
+    ))?;
     if converted.is_finite() {
         Ok(converted)
     } else {
@@ -108,9 +108,9 @@ fn checked_bigdecimal_to_f32(value: &BigDecimal) -> ValueResult<f32> {
 }
 
 fn checked_bigint_to_f64(value: &BigInt) -> ValueResult<f64> {
-    let converted = value.to_f64().ok_or_else(|| {
-        ValueError::ConversionError("BigInteger value cannot be converted to f64".to_string())
-    })?;
+    let converted = value.to_f64().ok_or(ValueError::ConversionError(
+        "BigInteger value cannot be converted to f64".to_string(),
+    ))?;
     if converted.is_finite() {
         Ok(converted)
     } else {
@@ -121,9 +121,9 @@ fn checked_bigint_to_f64(value: &BigInt) -> ValueResult<f64> {
 }
 
 fn checked_bigdecimal_to_f64(value: &BigDecimal) -> ValueResult<f64> {
-    let converted = value.to_f64().ok_or_else(|| {
-        ValueError::ConversionError("BigDecimal value cannot be converted to f64".to_string())
-    })?;
+    let converted = value.to_f64().ok_or(ValueError::ConversionError(
+        "BigDecimal value cannot be converted to f64".to_string(),
+    ))?;
     if converted.is_finite() {
         Ok(converted)
     } else {
@@ -302,10 +302,11 @@ impl ValueConverter<String> for Value {
             Value::UIntSize(v) => Ok(v.to_string()),
             Value::Duration(v) => Ok(format!("{}ns", v.as_nanos())),
             Value::Url(v) => Ok(v.to_string()),
-            Value::StringMap(v) => serde_json::to_string(v)
-                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
-            Value::Json(v) => serde_json::to_string(v)
-                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
+            Value::StringMap(v) => Ok(serde_json::to_string(v)
+                .expect("serializing HashMap<String, String> to JSON cannot fail")),
+            Value::Json(v) => {
+                Ok(serde_json::to_string(v).expect("serializing serde_json::Value cannot fail"))
+            }
             Value::Empty(_) => Err(ValueError::NoValue),
         }
     }
@@ -630,8 +631,8 @@ impl ValueConverter<serde_json::Value> for Value {
             Value::Json(v) => Ok(v.clone()),
             Value::String(s) => serde_json::from_str(s)
                 .map_err(|e| ValueError::JsonDeserializationError(e.to_string())),
-            Value::StringMap(v) => serde_json::to_value(v)
-                .map_err(|e| ValueError::JsonSerializationError(e.to_string())),
+            Value::StringMap(v) => Ok(serde_json::to_value(v)
+                .expect("serializing HashMap<String, String> to JSON value cannot fail")),
             Value::Empty(_) => Err(ValueError::NoValue),
             _ => Err(ValueError::ConversionFailed {
                 from: self.data_type(),

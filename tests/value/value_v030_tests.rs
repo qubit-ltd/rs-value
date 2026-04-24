@@ -643,6 +643,21 @@ struct Config {
     enabled: bool,
 }
 
+/// Test-only value whose serializer always fails.
+struct FailingSerialize;
+
+impl Serialize for FailingSerialize {
+    /// Returns a custom serialization error to exercise `from_serializable`.
+    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Err(serde::ser::Error::custom(
+            "intentional serialization failure",
+        ))
+    }
+}
+
 #[test]
 fn test_value_from_serializable() {
     let cfg = Config {
@@ -667,6 +682,12 @@ fn test_value_deserialize_json_roundtrip() {
 }
 
 #[test]
+fn test_value_from_serializable_error() {
+    let result = Value::from_serializable(&FailingSerialize);
+    assert!(matches!(result, Err(ValueError::JsonSerializationError(_))));
+}
+
+#[test]
 fn test_value_deserialize_json_on_non_json_returns_error() {
     let v = Value::Int32(42);
     let result = v.deserialize_json::<Config>();
@@ -678,6 +699,20 @@ fn test_value_deserialize_json_on_empty_returns_error() {
     let v = Value::Empty(DataType::Json);
     let result = v.deserialize_json::<Config>();
     assert!(matches!(result, Err(ValueError::NoValue)));
+}
+
+#[test]
+fn test_value_deserialize_json_invalid_shape_returns_error() {
+    let v = Value::Json(serde_json::json!({
+        "host": 42,
+        "port": "not a port",
+        "enabled": true,
+    }));
+    let result = v.deserialize_json::<Config>();
+    assert!(matches!(
+        result,
+        Err(ValueError::JsonDeserializationError(_))
+    ));
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
