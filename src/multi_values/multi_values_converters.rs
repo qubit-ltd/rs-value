@@ -572,6 +572,9 @@ impl MultiValues {
                 actual: other.data_type(),
             });
         }
+        if other.count() == 0 {
+            return Ok(());
+        }
 
         match (self, other) {
             (MultiValues::Bool(v), MultiValues::Bool(o)) => v.extend_from_slice(o),

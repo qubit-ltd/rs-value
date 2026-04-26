@@ -366,6 +366,18 @@ fn test_multi_value_merge_type_mismatch_keeps_left_unchanged() {
 }
 
 #[test]
+fn test_multi_value_merge_empty_rhs_is_noop() {
+    let mut values = MultiValues::Int32(vec![1, 2]);
+    let empty = MultiValues::Empty(DataType::Int32);
+
+    values
+        .merge(&empty)
+        .expect("merging same-typed empty values should succeed");
+
+    assert_eq!(values.get_int32s().unwrap(), &[1, 2]);
+}
+
+#[test]
 fn test_multi_value_from_value() {
     let v = Value::Int32(42);
     let mv: MultiValues = v.into();
