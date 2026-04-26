@@ -61,7 +61,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = "0.4.2"
+qubit-value = "0.4.3"
 ```
 
 ## Usage Examples
