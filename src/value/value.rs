@@ -289,8 +289,20 @@ impl Value {
     ///   - `Value::Char`
     /// - `i8`
     ///   - `Value::Int8`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - all integer variants
+    ///   - `Value::Float32`, `Value::Float64`
+    ///   - `Value::String`, parsed as `i8`
+    ///   - `Value::BigInteger`, `Value::BigDecimal`
     /// - `i16`
     ///   - `Value::Int16`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - all integer variants
+    ///   - `Value::Float32`, `Value::Float64`
+    ///   - `Value::String`, parsed as `i16`
+    ///   - `Value::BigInteger`, `Value::BigDecimal`
     /// - `i32`
     ///   - `Value::Int32`
     ///   - `Value::Bool`
@@ -313,6 +325,12 @@ impl Value {
     ///   - `Value::BigInteger`, `Value::BigDecimal`
     /// - `i128`
     ///   - `Value::Int128`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - all integer variants
+    ///   - `Value::Float32`, `Value::Float64`
+    ///   - `Value::String`, parsed as `i128`
+    ///   - `Value::BigInteger`, `Value::BigDecimal`
     /// - `u8`
     ///   - `Value::UInt8`
     ///   - `Value::Bool`
@@ -400,8 +418,18 @@ impl Value {
     ///   - `Value::BigDecimal`
     /// - `isize`
     ///   - `Value::IntSize`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - all integer variants
+    ///   - `Value::Float32`, `Value::Float64`
+    ///   - `Value::String`, parsed as `isize`
+    ///   - `Value::BigInteger`, `Value::BigDecimal`
     /// - `usize`
     ///   - `Value::UIntSize`
+    ///   - `Value::Bool`
+    ///   - `Value::Char`
+    ///   - all integer variants
+    ///   - `Value::String`, parsed as `usize`
     /// - `Duration`
     ///   - `Value::Duration`
     ///   - `Value::String`, parsed from `<nanoseconds>ns`

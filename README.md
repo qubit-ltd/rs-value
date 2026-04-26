@@ -262,18 +262,18 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 | Target `T` | Accepted source variants |
 |---|---|
 | `bool` | `Bool`; integer variants (0=false, non-zero=true); `String` |
-| `i8` | `Int8` |
-| `i16` | `Int16` |
+| `i8` | `Int8`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
+| `i16` | `Int16`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
 | `i32` | `Int32`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
 | `i64` | `Int64`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
-| `i128` | `Int128` |
-| `isize` | `IntSize` |
+| `i128` | `Int128`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
+| `isize` | `IntSize`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
 | `u8` | `UInt8`; `Bool`; `Char`; all integer variants (range checked); `String` |
 | `u16` | `UInt8/16/32/64/128`; `Bool`; `Char`; signed integer variants (range checked); `String` |
 | `u32` | `UInt8/16/32/64/128`; `Bool`; `Char`; signed integer variants (range checked); `String` |
 | `u64` | `UInt8/16/32/64/128`; `Bool`; `Char`; signed integer variants (range checked); `String` |
 | `u128` | `UInt8/16/32/64/128`; `Bool`; `Char`; signed integer variants (range checked); `String` |
-| `usize` | `UIntSize` |
+| `usize` | `UIntSize`; `Bool`; `Char`; all integer variants (range checked); `String` |
 | `f32` | `Float32/64`; `Bool`; `Char`; all integer variants; `String`; `BigInteger/BigDecimal` |
 | `f64` | `Float64`; `Bool`; `Char`; all numeric variants; `String`; `BigInteger/BigDecimal` |
 | `char` | `Char` |

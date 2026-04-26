@@ -81,6 +81,112 @@ fn checked_float_to_i64(value: f64, source: &str) -> ValueResult<i64> {
     Ok(value as i64)
 }
 
+fn checked_float_to_i128(value: f64, source: &str, target: &str) -> ValueResult<i128> {
+    if !value.is_finite() {
+        return Err(ValueError::ConversionError(format!(
+            "Cannot convert non-finite {} value to {}",
+            source, target
+        )));
+    }
+    value.to_i128().ok_or_else(|| {
+        ValueError::ConversionError(format!("{} value out of {} range", source, target))
+    })
+}
+
+fn convert_to_signed_integer(
+    value: &Value,
+    target_type: DataType,
+    target: &str,
+) -> ValueResult<i128> {
+    match value {
+        Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
+        Value::Char(v) => Ok(*v as u32 as i128),
+        Value::Int8(v) => Ok(*v as i128),
+        Value::Int16(v) => Ok(*v as i128),
+        Value::Int32(v) => Ok(*v as i128),
+        Value::Int64(v) => Ok(*v as i128),
+        Value::Int128(v) => Ok(*v),
+        Value::IntSize(v) => Ok(*v as i128),
+        Value::UInt8(v) => Ok(*v as i128),
+        Value::UInt16(v) => Ok(*v as i128),
+        Value::UInt32(v) => Ok(*v as i128),
+        Value::UInt64(v) => Ok(*v as i128),
+        Value::UInt128(v) => {
+            let n = range_check(*v, 0u128, i128::MAX as u128, target)?;
+            Ok(n as i128)
+        }
+        Value::UIntSize(v) => Ok(*v as i128),
+        Value::Float32(v) => checked_float_to_i128(*v as f64, "f32", target),
+        Value::Float64(v) => checked_float_to_i128(*v, "f64", target),
+        Value::String(s) => s.parse::<i128>().map_err(|_| {
+            ValueError::ConversionError(format!("Cannot convert '{}' to {}", s, target))
+        }),
+        Value::BigInteger(v) => v.to_i128().ok_or_else(|| {
+            ValueError::ConversionError(format!("BigInteger value out of {} range", target))
+        }),
+        Value::BigDecimal(v) => v.to_i128().ok_or_else(|| {
+            ValueError::ConversionError(format!(
+                "BigDecimal value cannot be converted to {}",
+                target
+            ))
+        }),
+        Value::Empty(_) => Err(ValueError::NoValue),
+        _ => Err(ValueError::ConversionFailed {
+            from: value.data_type(),
+            to: target_type,
+        }),
+    }
+}
+
+fn convert_to_unsigned_integer(
+    value: &Value,
+    target_type: DataType,
+    target: &str,
+) -> ValueResult<u128> {
+    match value {
+        Value::Bool(v) => Ok(if *v { 1 } else { 0 }),
+        Value::Char(v) => Ok((*v as u32).into()),
+        Value::Int8(v) => {
+            let n = range_check(*v, 0i8, i8::MAX, target)?;
+            Ok(n as u128)
+        }
+        Value::Int16(v) => {
+            let n = range_check(*v, 0i16, i16::MAX, target)?;
+            Ok(n as u128)
+        }
+        Value::Int32(v) => {
+            let n = range_check(*v, 0i32, i32::MAX, target)?;
+            Ok(n as u128)
+        }
+        Value::Int64(v) => {
+            let n = range_check(*v, 0i64, i64::MAX, target)?;
+            Ok(n as u128)
+        }
+        Value::Int128(v) => {
+            let n = range_check(*v, 0i128, i128::MAX, target)?;
+            Ok(n as u128)
+        }
+        Value::IntSize(v) => {
+            let n = range_check(*v, 0isize, isize::MAX, target)?;
+            Ok(n as u128)
+        }
+        Value::UInt8(v) => Ok((*v).into()),
+        Value::UInt16(v) => Ok((*v).into()),
+        Value::UInt32(v) => Ok((*v).into()),
+        Value::UInt64(v) => Ok((*v).into()),
+        Value::UInt128(v) => Ok(*v),
+        Value::UIntSize(v) => Ok(*v as u128),
+        Value::String(s) => s.parse::<u128>().map_err(|_| {
+            ValueError::ConversionError(format!("Cannot convert '{}' to {}", s, target))
+        }),
+        Value::Empty(_) => Err(ValueError::NoValue),
+        _ => Err(ValueError::ConversionFailed {
+            from: value.data_type(),
+            to: target_type,
+        }),
+    }
+}
+
 fn checked_bigint_to_f32(value: &BigInt) -> ValueResult<f32> {
     let converted = value.to_f32().ok_or(ValueError::ConversionError(
         "BigInteger value cannot be converted to f32".to_string(),
@@ -652,27 +758,56 @@ impl_strict_value_converter!(
     char,
     get_char
 );
-impl_strict_value_converter!(
-    /// Target type `i8` supports conversion from:
-    ///
-    /// - `Value::Int8`
-    i8,
-    get_int8
-);
-impl_strict_value_converter!(
-    /// Target type `i16` supports conversion from:
-    ///
-    /// - `Value::Int16`
-    i16,
-    get_int16
-);
-impl_strict_value_converter!(
-    /// Target type `i128` supports conversion from:
-    ///
-    /// - `Value::Int128`
-    i128,
-    get_int128
-);
+
+/// Target type `i8` supports conversion from:
+///
+/// - signed integer variants, with range checking
+/// - unsigned integer variants, with range checking
+/// - `Value::Bool`
+/// - `Value::Char`, with range checking
+/// - `Value::Float32`, `Value::Float64`, with range checking
+/// - `Value::String`, parsed as an integer and range checked
+/// - `Value::BigInteger`, `Value::BigDecimal`, with range checking
+impl ValueConverter<i8> for Value {
+    fn convert(&self) -> ValueResult<i8> {
+        let n = convert_to_signed_integer(self, DataType::Int8, "i8")?;
+        let n = range_check(n, i8::MIN as i128, i8::MAX as i128, "i8")?;
+        Ok(n as i8)
+    }
+}
+
+/// Target type `i16` supports conversion from:
+///
+/// - signed integer variants, with range checking
+/// - unsigned integer variants, with range checking
+/// - `Value::Bool`
+/// - `Value::Char`, with range checking
+/// - `Value::Float32`, `Value::Float64`, with range checking
+/// - `Value::String`, parsed as an integer and range checked
+/// - `Value::BigInteger`, `Value::BigDecimal`, with range checking
+impl ValueConverter<i16> for Value {
+    fn convert(&self) -> ValueResult<i16> {
+        let n = convert_to_signed_integer(self, DataType::Int16, "i16")?;
+        let n = range_check(n, i16::MIN as i128, i16::MAX as i128, "i16")?;
+        Ok(n as i16)
+    }
+}
+
+/// Target type `i128` supports conversion from:
+///
+/// - signed integer variants
+/// - unsigned integer variants, with range checking
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::Float32`, `Value::Float64`, with range checking
+/// - `Value::String`, parsed as `i128`
+/// - `Value::BigInteger`, `Value::BigDecimal`, with range checking
+impl ValueConverter<i128> for Value {
+    fn convert(&self) -> ValueResult<i128> {
+        convert_to_signed_integer(self, DataType::Int128, "i128")
+    }
+}
+
 /// Target type `u8` supports conversion from:
 ///
 /// - `Value::UInt8`
@@ -1054,20 +1189,38 @@ impl_strict_value_converter!(
     BigDecimal,
     get_bigdecimal
 );
-impl_strict_value_converter!(
-    /// Target type `isize` supports conversion from:
-    ///
-    /// - `Value::IntSize`
-    isize,
-    get_intsize
-);
-impl_strict_value_converter!(
-    /// Target type `usize` supports conversion from:
-    ///
-    /// - `Value::UIntSize`
-    usize,
-    get_uintsize
-);
+/// Target type `isize` supports conversion from:
+///
+/// - signed integer variants, with range checking
+/// - unsigned integer variants, with range checking
+/// - `Value::Bool`
+/// - `Value::Char`, with range checking
+/// - `Value::Float32`, `Value::Float64`, with range checking
+/// - `Value::String`, parsed as an integer and range checked
+/// - `Value::BigInteger`, `Value::BigDecimal`, with range checking
+impl ValueConverter<isize> for Value {
+    fn convert(&self) -> ValueResult<isize> {
+        let n = convert_to_signed_integer(self, DataType::IntSize, "isize")?;
+        let n = range_check(n, isize::MIN as i128, isize::MAX as i128, "isize")?;
+        Ok(n as isize)
+    }
+}
+
+/// Target type `usize` supports conversion from:
+///
+/// - unsigned integer variants, with range checking
+/// - signed integer variants, with non-negative range checking
+/// - `Value::Bool`
+/// - `Value::Char`
+/// - `Value::String`, parsed as `usize` and range checked
+impl ValueConverter<usize> for Value {
+    fn convert(&self) -> ValueResult<usize> {
+        let n = convert_to_unsigned_integer(self, DataType::UIntSize, "usize")?;
+        let n = range_check(n, usize::MIN as u128, usize::MAX as u128, "usize")?;
+        Ok(n as usize)
+    }
+}
+
 impl_strict_value_converter!(
     /// Target type `HashMap<String, String>` supports conversion from:
     ///

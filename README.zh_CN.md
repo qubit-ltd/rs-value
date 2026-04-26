@@ -246,18 +246,18 @@ assert_eq!(val, 8080);
 | 目标 `T` | 支持的源变体 |
 |---|---|
 | `bool` | `Bool`；整数变体（0=false，非零=true）；`String` |
-| `i8` | `Int8` |
-| `i16` | `Int16` |
+| `i8` | `Int8`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
+| `i16` | `Int16`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
 | `i32` | `Int32`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
 | `i64` | `Int64`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
-| `i128` | `Int128` |
-| `isize` | `IntSize` |
+| `i128` | `Int128`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
+| `isize` | `IntSize`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
 | `u8` | `UInt8`；`Bool`；`Char`；所有整数变体（范围检查）；`String` |
 | `u16` | `UInt8/16/32/64/128`；`Bool`；`Char`；有符号整数变体（范围检查）；`String` |
 | `u32` | `UInt8/16/32/64/128`；`Bool`；`Char`；有符号整数变体（范围检查）；`String` |
 | `u64` | `UInt8/16/32/64/128`；`Bool`；`Char`；有符号整数变体（范围检查）；`String` |
 | `u128` | `UInt8/16/32/64/128`；`Bool`；`Char`；有符号整数变体（范围检查）；`String` |
-| `usize` | `UIntSize` |
+| `usize` | `UIntSize`；`Bool`；`Char`；所有整数变体（范围检查）；`String` |
 | `f32` | `Float32/64`；`Bool`；`Char`；所有整数变体；`String`；`BigInteger/BigDecimal` |
 | `f64` | `Float64`；`Bool`；`Char`；所有数值变体；`String`；`BigInteger/BigDecimal` |
 | `char` | `Char` |

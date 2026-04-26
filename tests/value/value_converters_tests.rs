@@ -1819,3 +1819,122 @@ fn test_big_number_to_f32_and_f64_failures() {
     );
     assert!(Value::BigDecimal(huge_big_decimal).to::<f64>().is_err());
 }
+
+#[test]
+fn test_narrow_signed_integer_converters_accept_numeric_sources() {
+    let cases = vec![
+        (Value::Bool(true), 1i128),
+        (Value::Bool(false), 0),
+        (Value::Char('A'), 65),
+        (Value::Int8(-8), -8),
+        (Value::Int16(-16), -16),
+        (Value::Int32(-32), -32),
+        (Value::Int64(-64), -64),
+        (Value::Int128(-128), -128),
+        (Value::IntSize(-256), -256),
+        (Value::UInt8(8), 8),
+        (Value::UInt16(16), 16),
+        (Value::UInt32(32), 32),
+        (Value::UInt64(64), 64),
+        (Value::UInt128(128), 128),
+        (Value::UIntSize(512), 512),
+        (Value::Float32(12.9), 12),
+        (Value::Float64(-34.7), -34),
+        (Value::String("-55".to_string()), -55),
+        (Value::BigInteger(BigInt::from(99)), 99),
+        (Value::BigDecimal(BigDecimal::from(123)), 123),
+    ];
+
+    for (value, expected) in cases {
+        assert_eq!(value.to::<i128>().unwrap(), expected);
+    }
+
+    assert_eq!(Value::UInt16(127).to::<i8>().unwrap(), 127);
+    assert_eq!(Value::Float64(-12.9).to::<i8>().unwrap(), -12);
+    assert_eq!(
+        Value::BigDecimal(BigDecimal::from(32_000))
+            .to::<i16>()
+            .unwrap(),
+        32_000
+    );
+    assert_eq!(
+        Value::String("-123".to_string()).to::<isize>().unwrap(),
+        -123
+    );
+}
+
+#[test]
+fn test_narrow_signed_integer_converters_reject_invalid_values() {
+    assert!(Value::String("128".to_string()).to::<i8>().is_err());
+    assert!(Value::Char('\u{80}').to::<i8>().is_err());
+    assert!(Value::Int32(i16::MAX as i32 + 1).to::<i16>().is_err());
+    assert!(Value::Int128(isize::MAX as i128 + 1).to::<isize>().is_err());
+    assert!(Value::UInt128(i128::MAX as u128 + 1).to::<i128>().is_err());
+    assert!(Value::Float64(f64::INFINITY).to::<i128>().is_err());
+    assert!(Value::Float64(f64::MAX).to::<i128>().is_err());
+    assert!(Value::String("invalid".to_string()).to::<i16>().is_err());
+
+    let too_big = BigInt::from(i128::MAX) + BigInt::from(1u8);
+    assert!(Value::BigInteger(too_big).to::<i128>().is_err());
+    assert!(
+        Value::BigDecimal(BigDecimal::from_str("1e100").unwrap())
+            .to::<i128>()
+            .is_err()
+    );
+
+    let date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+    assert!(matches!(
+        Value::Date(date).to::<i128>(),
+        Err(ValueError::ConversionFailed { .. })
+    ));
+    assert!(matches!(
+        Value::Empty(DataType::Int128).to::<i128>(),
+        Err(ValueError::NoValue)
+    ));
+}
+
+#[test]
+fn test_usize_converter_accepts_integer_sources() {
+    let cases = vec![
+        (Value::Bool(true), 1usize),
+        (Value::Bool(false), 0),
+        (Value::Char('A'), 65),
+        (Value::Int8(8), 8),
+        (Value::Int16(16), 16),
+        (Value::Int32(32), 32),
+        (Value::Int64(64), 64),
+        (Value::Int128(128), 128),
+        (Value::IntSize(256), 256),
+        (Value::UInt8(8), 8),
+        (Value::UInt16(16), 16),
+        (Value::UInt32(32), 32),
+        (Value::UInt64(64), 64),
+        (Value::UInt128(128), 128),
+        (Value::UIntSize(512), 512),
+        (Value::String("1024".to_string()), 1024),
+    ];
+
+    for (value, expected) in cases {
+        assert_eq!(value.to::<usize>().unwrap(), expected);
+    }
+}
+
+#[test]
+fn test_usize_converter_rejects_invalid_values() {
+    assert!(Value::Int8(-1).to::<usize>().is_err());
+    assert!(Value::IntSize(-1).to::<usize>().is_err());
+    assert!(
+        Value::UInt128(usize::MAX as u128 + 1)
+            .to::<usize>()
+            .is_err()
+    );
+    assert!(Value::String("invalid".to_string()).to::<usize>().is_err());
+    assert!(matches!(
+        Value::Empty(DataType::UIntSize).to::<usize>(),
+        Err(ValueError::NoValue)
+    ));
+    assert!(matches!(
+        Value::Float64(1.0).to::<usize>(),
+        Err(ValueError::ConversionFailed { .. })
+    ));
+}
