@@ -82,4 +82,9 @@ pub use error::{ValueError, ValueResult};
 pub use multi_values::MultiValues;
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;
-pub use value::{Value, ValueConstructor, ValueConverter, ValueGetter, ValueSetter};
+pub use value::Value;
+
+// Keep these traits reachable for the public generic method bounds while
+// keeping them out of generated public-facing docs.
+#[doc(hidden)]
+pub use value::{ValueConstructor, ValueConverter, ValueGetter, ValueSetter};

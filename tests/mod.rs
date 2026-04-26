@@ -17,4 +17,5 @@ mod doc_examples_tests;
 mod multi_values;
 mod named_multi_values_tests;
 mod named_value_tests;
+mod public_api_boundary_tests;
 mod value;

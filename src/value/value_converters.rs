@@ -134,14 +134,17 @@ fn checked_bigdecimal_to_f64(value: &BigDecimal) -> ValueResult<f64> {
 }
 
 // ============================================================================
-// Internal generic conversion traits (private, not exported, to avoid
-// polluting the standard type namespace)
+// Generic conversion traits.
+//
+// These traits are public implementation details: Rust requires traits used in
+// public method bounds to be reachable by downstream crates. They are hidden
+// from generated docs and are not intended as user extension points.
 // ============================================================================
 
 /// Internal trait: used to extract specific types from Value.
 ///
-/// This trait is not exported in mod.rs, only used for internal
-/// implementation, to avoid polluting the standard type namespace.
+/// This trait backs `Value::get<T>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait ValueGetter<T> {
     fn get_value(&self) -> ValueResult<T>;
@@ -149,8 +152,8 @@ pub trait ValueGetter<T> {
 
 /// Internal trait: used to create Value from types.
 ///
-/// This trait is not exported in mod.rs, only used for internal
-/// implementation, to avoid polluting the standard type namespace.
+/// This trait backs `Value::new<T>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait ValueConstructor<T> {
     fn from_type(value: T) -> Self;
@@ -158,8 +161,8 @@ pub trait ValueConstructor<T> {
 
 /// Internal trait: used to set specific types in Value.
 ///
-/// This trait is not exported in mod.rs, only used for internal
-/// implementation, to avoid polluting the standard type namespace.
+/// This trait backs `Value::set<T>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait ValueSetter<T> {
     fn set_value(&mut self, value: T) -> ValueResult<()>;

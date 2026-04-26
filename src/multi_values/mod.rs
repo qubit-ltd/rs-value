@@ -17,8 +17,11 @@ mod multi_values_accessors;
 mod multi_values_converters;
 
 pub use multi_values::MultiValues;
+
+// Public implementation details used by `MultiValues` generic method bounds.
+#[doc(hidden)]
 pub use multi_values_converters::{
-    MultiValuesAddArg, MultiValuesAdder, MultiValuesFirstGetter, MultiValuesGetter,
-    MultiValuesMultiAdder, MultiValuesSetArg, MultiValuesSetter, MultiValuesSetterSlice,
-    MultiValuesSingleSetter,
+    MultiValuesAddArg, MultiValuesAdder, MultiValuesConstructor, MultiValuesFirstGetter,
+    MultiValuesGetter, MultiValuesMultiAdder, MultiValuesSetArg, MultiValuesSetter,
+    MultiValuesSetterSlice, MultiValuesSingleSetter,
 };

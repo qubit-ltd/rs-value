@@ -13,13 +13,17 @@ use crate::error::{ValueError, ValueResult};
 use super::multi_values::MultiValues;
 
 // ============================================================================
-// Internal generic conversion traits (private, not exported, to avoid polluting
-// the standard type namespace).
+// Generic conversion traits.
+//
+// These traits are public implementation details: Rust requires traits used in
+// public method bounds to be reachable by downstream crates. They are hidden
+// from generated docs and are not intended as user extension points.
 // ============================================================================
 
 /// Internal trait: used to extract multiple values from MultiValues
 ///
-/// This trait is used for internal implementation and cross-crate usage
+/// This trait backs `MultiValues::get<T>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait MultiValuesGetter<T> {
     fn get_values(&self) -> ValueResult<Vec<T>>;
@@ -27,7 +31,8 @@ pub trait MultiValuesGetter<T> {
 
 /// Internal trait: used to extract the first value from MultiValues
 ///
-/// This trait is used for internal implementation and cross-crate usage
+/// This trait backs `MultiValues::get_first<T>()`; downstream code should call
+/// the inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait MultiValuesFirstGetter<T> {
     fn get_first_value(&self) -> ValueResult<T>;
@@ -35,7 +40,8 @@ pub trait MultiValuesFirstGetter<T> {
 
 /// Internal trait: used to set specific types in MultiValues
 ///
-/// This trait is used for internal implementation and cross-crate usage
+/// This trait backs `MultiValues::set<S>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait MultiValuesSetter<T> {
     fn set_values(&mut self, values: Vec<T>) -> ValueResult<()>;
@@ -52,7 +58,8 @@ pub trait MultiValuesSetArg<'a> {
 
 /// Internal trait: used to set specific types in MultiValues via slice
 ///
-/// This trait is used for internal implementation and cross-crate usage
+/// This trait backs `MultiValues::set<S>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait MultiValuesSetterSlice<T> {
     fn set_values_slice(&mut self, values: &[T]) -> ValueResult<()>;
@@ -60,7 +67,8 @@ pub trait MultiValuesSetterSlice<T> {
 
 /// Internal trait: used to set a single value in MultiValues
 ///
-/// This trait is used for internal implementation and cross-crate usage
+/// This trait backs `MultiValues::set<S>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait MultiValuesSingleSetter<T> {
     fn set_single_value(&mut self, value: T) -> ValueResult<()>;
@@ -68,7 +76,8 @@ pub trait MultiValuesSingleSetter<T> {
 
 /// Internal trait: used to add a single value to MultiValues
 ///
-/// This trait is used for internal implementation and cross-crate usage
+/// This trait backs `MultiValues::add<S>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait MultiValuesAdder<T> {
     fn add_value(&mut self, value: T) -> ValueResult<()>;
@@ -76,7 +85,8 @@ pub trait MultiValuesAdder<T> {
 
 /// Internal trait: used to add multiple values to MultiValues
 ///
-/// This trait is used for internal implementation and cross-crate usage
+/// This trait backs `MultiValues::add<S>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait MultiValuesMultiAdder<T> {
     fn add_values(&mut self, values: Vec<T>) -> ValueResult<()>;
@@ -100,8 +110,8 @@ pub(crate) trait MultiValuesMultiAdderSlice<T> {
 
 /// Internal trait: used to create MultiValues from Vec<T>
 ///
-/// This trait is not exported in mod.rs, only used for internal implementation,
-/// to avoid polluting the standard type namespace
+/// This trait backs `MultiValues::new<T>()`; downstream code should call the
+/// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
 pub trait MultiValuesConstructor<T> {
     fn from_vec(values: Vec<T>) -> Self;

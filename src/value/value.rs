@@ -120,6 +120,7 @@ pub enum Value {
     Json(serde_json::Value),
 }
 
+#[doc(hidden)]
 pub use super::value_converters::{ValueConstructor, ValueConverter, ValueGetter, ValueSetter};
 
 // ============================================================================
