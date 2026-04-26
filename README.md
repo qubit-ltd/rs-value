@@ -3,7 +3,7 @@
 [![CircleCI](https://circleci.com/gh/qubit-ltd/rs-value.svg?style=shield)](https://circleci.com/gh/qubit-ltd/rs-value)
 [![Coverage Status](https://coveralls.io/repos/github/qubit-ltd/rs-value/badge.svg?branch=main)](https://coveralls.io/github/qubit-ltd/rs-value?branch=main)
 [![Crates.io](https://img.shields.io/crates/v/qubit-value.svg?color=blue)](https://crates.io/crates/qubit-value)
-[![Rust](https://img.shields.io/badge/rust-1.93+-blue.svg?logo=rust)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-1.94+-blue.svg?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
 
@@ -40,7 +40,7 @@ and conversion while maintaining Rust's safety guarantees.
 - **Serde Support**: All core types implement `Serialize`/`Deserialize`
 - **Big Number Support**: Full support for `BigInt` and `BigDecimal` for
   high-precision calculations
-- **v0.3.0 Types**: Native support for `isize`/`usize`, `Duration`, `Url`,
+- **Extended Types**: Native support for `isize`/`usize`, `Duration`, `Url`,
   `HashMap<String, String>`, and `serde_json::Value`
 
 ### 📦 **Core Types**
@@ -61,7 +61,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = "0.3.0"
+qubit-value = "0.4.2"
 ```
 
 ## Usage Examples
@@ -105,7 +105,7 @@ any.set("hello")?;
 assert_eq!(any.get_string()?, "hello");
 ```
 
-### v0.3.0 New Types
+### Extended Types
 
 ```rust
 use qubit_value::Value;
@@ -365,7 +365,7 @@ All operations that may fail return `ValueResult<T> = Result<T, ValueError>`.
 ### Big Number Types
 - `BigInt`, `BigDecimal` (via `num-bigint` and `bigdecimal`)
 
-### v0.3.0 Types
+### Extended Types
 - **`isize` / `usize`**: Platform-dependent integers
 - **`Duration`**: `std::time::Duration`; string representation `<ns>ns`
 - **`Url`**: `url::Url`; string representation is the URL text
@@ -392,13 +392,12 @@ deserialization.
 
 ```toml
 [dependencies]
-qubit-common = "0.5.0"
+qubit-common = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
-tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
-url = { version = "2.0", features = ["serde"] }
+url = { version = "2.5", features = ["serde"] }
 num-traits = "0.2"
 num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
