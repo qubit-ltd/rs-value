@@ -11,7 +11,7 @@ use url::Url;
 use qubit_common::lang::DataType;
 
 use super::value::Value;
-use crate::error::{ValueError, ValueResult};
+use crate::value_error::{ValueError, ValueResult};
 
 macro_rules! impl_get_value {
     // Copy type: directly dereference and return

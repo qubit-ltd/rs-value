@@ -71,18 +71,18 @@
 //! Haixing Hu
 
 // Sub-modules
-mod error;
 pub mod multi_values;
 mod named_multi_values;
 mod named_value;
 mod value;
+mod value_error;
 
 // Public exports
-pub use error::{ValueError, ValueResult};
 pub use multi_values::MultiValues;
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;
 pub use value::Value;
+pub use value_error::{ValueError, ValueResult};
 
 // Keep these traits reachable for the public generic method bounds while
 // keeping them out of generated public-facing docs.

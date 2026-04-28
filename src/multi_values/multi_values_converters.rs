@@ -8,114 +8,20 @@ use qubit_common::lang::DataType;
 use url::Url;
 
 use crate::Value;
-use crate::error::{ValueError, ValueResult};
+use crate::value_error::{ValueError, ValueResult};
 
 use super::multi_values::MultiValues;
-
-// ============================================================================
-// Generic conversion traits.
-//
-// These traits are public implementation details: Rust requires traits used in
-// public method bounds to be reachable by downstream crates. They are hidden
-// from generated docs and are not intended as user extension points.
-// ============================================================================
-
-/// Internal trait: used to extract multiple values from MultiValues
-///
-/// This trait backs `MultiValues::get<T>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait MultiValuesGetter<T> {
-    fn get_values(&self) -> ValueResult<Vec<T>>;
-}
-
-/// Internal trait: used to extract the first value from MultiValues
-///
-/// This trait backs `MultiValues::get_first<T>()`; downstream code should call
-/// the inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait MultiValuesFirstGetter<T> {
-    fn get_first_value(&self) -> ValueResult<T>;
-}
-
-/// Internal trait: used to set specific types in MultiValues
-///
-/// This trait backs `MultiValues::set<S>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait MultiValuesSetter<T> {
-    fn set_values(&mut self, values: Vec<T>) -> ValueResult<()>;
-}
-
-/// Internal dispatch trait: dispatches Vec<T>, &[T], T to optimal set path
-#[doc(hidden)]
-pub trait MultiValuesSetArg<'a> {
-    /// Element type
-    type Item: 'a + Clone;
-
-    fn apply(self, target: &mut MultiValues) -> ValueResult<()>;
-}
-
-/// Internal trait: used to set specific types in MultiValues via slice
-///
-/// This trait backs `MultiValues::set<S>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait MultiValuesSetterSlice<T> {
-    fn set_values_slice(&mut self, values: &[T]) -> ValueResult<()>;
-}
-
-/// Internal trait: used to set a single value in MultiValues
-///
-/// This trait backs `MultiValues::set<S>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait MultiValuesSingleSetter<T> {
-    fn set_single_value(&mut self, value: T) -> ValueResult<()>;
-}
-
-/// Internal trait: used to add a single value to MultiValues
-///
-/// This trait backs `MultiValues::add<S>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait MultiValuesAdder<T> {
-    fn add_value(&mut self, value: T) -> ValueResult<()>;
-}
-
-/// Internal trait: used to add multiple values to MultiValues
-///
-/// This trait backs `MultiValues::add<S>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait MultiValuesMultiAdder<T> {
-    fn add_values(&mut self, values: Vec<T>) -> ValueResult<()>;
-}
-
-/// Internal dispatch trait: dispatches T / Vec<T> / &[T] to optimal add path
-#[doc(hidden)]
-pub trait MultiValuesAddArg<'a> {
-    /// Element type
-    type Item: 'a + Clone;
-
-    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()>;
-}
-
-/// Internal trait: used to append multiple values to MultiValues via slice
-/// (calls add_[xxx]s_slice by type)
-#[doc(hidden)]
-pub(crate) trait MultiValuesMultiAdderSlice<T> {
-    fn add_values_slice(&mut self, values: &[T]) -> ValueResult<()>;
-}
-
-/// Internal trait: used to create MultiValues from Vec<T>
-///
-/// This trait backs `MultiValues::new<T>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait MultiValuesConstructor<T> {
-    fn from_vec(values: Vec<T>) -> Self;
-}
+use super::multi_values_add_arg::MultiValuesAddArg;
+use super::multi_values_adder::MultiValuesAdder;
+use super::multi_values_constructor::MultiValuesConstructor;
+use super::multi_values_first_getter::MultiValuesFirstGetter;
+use super::multi_values_getter::MultiValuesGetter;
+use super::multi_values_multi_adder::MultiValuesMultiAdder;
+use super::multi_values_multi_adder_slice::MultiValuesMultiAdderSlice;
+use super::multi_values_set_arg::MultiValuesSetArg;
+use super::multi_values_setter::MultiValuesSetter;
+use super::multi_values_setter_slice::MultiValuesSetterSlice;
+use super::multi_values_single_setter::MultiValuesSingleSetter;
 
 // ============================================================================
 // Internal trait implementations (simplified using macros)
