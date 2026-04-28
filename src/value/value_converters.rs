@@ -11,7 +11,11 @@ use qubit_common::lang::DataType;
 use qubit_common::lang::argument::NumericArgument;
 
 use super::value::Value;
-use crate::error::{ValueError, ValueResult};
+use super::value_constructor::ValueConstructor;
+use super::value_converter::ValueConverter;
+use super::value_getter::ValueGetter;
+use super::value_setter::ValueSetter;
+use crate::value_error::{ValueError, ValueResult};
 
 fn parse_duration_string(s: &str) -> ValueResult<Duration> {
     let trimmed = s.trim();
@@ -237,50 +241,6 @@ fn checked_bigdecimal_to_f64(value: &BigDecimal) -> ValueResult<f64> {
             "BigDecimal value out of f64 range".to_string(),
         ))
     }
-}
-
-// ============================================================================
-// Generic conversion traits.
-//
-// These traits are public implementation details: Rust requires traits used in
-// public method bounds to be reachable by downstream crates. They are hidden
-// from generated docs and are not intended as user extension points.
-// ============================================================================
-
-/// Internal trait: used to extract specific types from Value.
-///
-/// This trait backs `Value::get<T>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait ValueGetter<T> {
-    fn get_value(&self) -> ValueResult<T>;
-}
-
-/// Internal trait: used to create Value from types.
-///
-/// This trait backs `Value::new<T>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait ValueConstructor<T> {
-    fn from_type(value: T) -> Self;
-}
-
-/// Internal trait: used to set specific types in Value.
-///
-/// This trait backs `Value::set<T>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
-pub trait ValueSetter<T> {
-    fn set_value(&mut self, value: T) -> ValueResult<()>;
-}
-
-/// Internal trait: used to convert Value to target types
-///
-/// This trait powers `Value::to<T>()`. Each implementation must clearly define
-/// which source variants are accepted for the target type.
-#[doc(hidden)]
-pub trait ValueConverter<T> {
-    fn convert(&self) -> ValueResult<T>;
 }
 
 // ============================================================================

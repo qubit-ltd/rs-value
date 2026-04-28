@@ -8,14 +8,19 @@ use url::Url;
 
 use qubit_common::lang::DataType;
 
-use crate::error::{ValueError, ValueResult};
+use crate::value_error::{ValueError, ValueResult};
 
 use super::multi_values::MultiValues;
-use super::multi_values_converters::{
-    MultiValuesAddArg, MultiValuesAdder, MultiValuesConstructor, MultiValuesFirstGetter,
-    MultiValuesGetter, MultiValuesMultiAdder, MultiValuesSetArg, MultiValuesSetter,
-    MultiValuesSetterSlice, MultiValuesSingleSetter,
-};
+use super::multi_values_add_arg::MultiValuesAddArg;
+use super::multi_values_adder::MultiValuesAdder;
+use super::multi_values_constructor::MultiValuesConstructor;
+use super::multi_values_first_getter::MultiValuesFirstGetter;
+use super::multi_values_getter::MultiValuesGetter;
+use super::multi_values_multi_adder::MultiValuesMultiAdder;
+use super::multi_values_set_arg::MultiValuesSetArg;
+use super::multi_values_setter::MultiValuesSetter;
+use super::multi_values_setter_slice::MultiValuesSetterSlice;
+use super::multi_values_single_setter::MultiValuesSingleSetter;
 
 impl MultiValues {
     /// Generic constructor method

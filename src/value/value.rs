@@ -24,7 +24,7 @@ use url::Url;
 
 use qubit_common::lang::DataType;
 
-use crate::error::ValueResult;
+use crate::value_error::ValueResult;
 
 /// Single value container
 ///
@@ -121,7 +121,13 @@ pub enum Value {
 }
 
 #[doc(hidden)]
-pub use super::value_converters::{ValueConstructor, ValueConverter, ValueGetter, ValueSetter};
+pub use super::value_constructor::ValueConstructor;
+#[doc(hidden)]
+pub use super::value_converter::ValueConverter;
+#[doc(hidden)]
+pub use super::value_getter::ValueGetter;
+#[doc(hidden)]
+pub use super::value_setter::ValueSetter;
 
 // ============================================================================
 // Getter method generation macro
