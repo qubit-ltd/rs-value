@@ -39,6 +39,27 @@ fn test_value_bool_conversion() {
     let v3 = Value::String("true".to_string());
     assert!(v3.to::<bool>().unwrap());
 }
+
+#[test]
+fn test_value_bool_conversion_accepts_config_bool_strings() {
+    let truthy_values = ["1", "true", "TRUE", "True", "  true  "];
+    for raw in truthy_values {
+        let value = Value::String(raw.to_string());
+        assert!(
+            value.to::<bool>().unwrap(),
+            "expected '{raw}' to convert to true"
+        );
+    }
+
+    let falsy_values = ["0", "false", "FALSE", "False", "  false  "];
+    for raw in falsy_values {
+        let value = Value::String(raw.to_string());
+        assert!(
+            !value.to::<bool>().unwrap(),
+            "expected '{raw}' to convert to false"
+        );
+    }
+}
 #[test]
 fn test_value_datetime_to_string() {
     use chrono::{NaiveDate, NaiveTime, Utc};
@@ -433,7 +454,7 @@ fn test_as_bool_string_conversion_error() {
     ));
 
     // Test various invalid boolean strings
-    let invalid_bools = vec!["yes", "no", "1", "0", "True", "False", "TRUE", "FALSE"];
+    let invalid_bools = vec!["yes", "no", "t", "f", "y", "n", "on", "off"];
     for invalid in invalid_bools {
         let value = Value::String(invalid.to_string());
         assert!(matches!(
@@ -647,8 +668,7 @@ fn test_as_bool_direct_bool_type() {
 fn test_as_bool_string_parse_error() {
     // Test all cases where String type parsing bool fails
     let invalid_strings = vec![
-        "yes", "no", "1", "0", "TRUE", "FALSE", "True", "False", "t", "f", "y", "n", "on", "off",
-        "", "  ", "null", "None",
+        "yes", "no", "t", "f", "y", "n", "on", "off", "", "  ", "null", "None",
     ];
 
     for invalid_str in invalid_strings {
