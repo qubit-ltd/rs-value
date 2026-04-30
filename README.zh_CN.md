@@ -245,7 +245,7 @@ assert_eq!(val, 8080);
 
 | 目标 `T` | 支持的源变体 |
 |---|---|
-| `bool` | `Bool`；整数变体（0=false，非零=true）；`String` |
+| `bool` | `Bool`；整数变体（0=false，非零=true）；`String` 值 `1`、`0`、`true`、`false`（`true`/`false` 忽略大小写） |
 | `i8` | `Int8`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
 | `i16` | `Int16`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
 | `i32` | `Int32`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |

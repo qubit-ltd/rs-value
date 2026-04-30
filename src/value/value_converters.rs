@@ -42,6 +42,24 @@ fn parse_duration_string(s: &str) -> ValueResult<Duration> {
     Ok(Duration::new(secs as u64, nanos))
 }
 
+/// Parses configuration-friendly boolean strings.
+///
+/// Accepts `1`, `0`, and ASCII case-insensitive `true` / `false` after
+/// trimming surrounding whitespace.
+fn parse_bool_string(s: &str) -> ValueResult<bool> {
+    let trimmed = s.trim();
+    if trimmed == "1" || trimmed.eq_ignore_ascii_case("true") {
+        Ok(true)
+    } else if trimmed == "0" || trimmed.eq_ignore_ascii_case("false") {
+        Ok(false)
+    } else {
+        Err(ValueError::ConversionError(format!(
+            "Cannot convert '{}' to boolean",
+            s
+        )))
+    }
+}
+
 fn range_check<T>(value: T, min: T, max: T, target: &str) -> ValueResult<T>
 where
     T: NumericArgument + Copy,
@@ -403,7 +421,8 @@ impl ValueConstructor<&str> for Value {
 ///   `Value::Int128`
 /// - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
 ///   `Value::UInt128`
-/// - `Value::String`, parsed as `bool`
+/// - `Value::String`, parsed as `1`, `0`, or ASCII case-insensitive
+///   `true` / `false`
 impl ValueConverter<bool> for Value {
     fn convert(&self) -> ValueResult<bool> {
         match self {
@@ -418,9 +437,7 @@ impl ValueConverter<bool> for Value {
             Value::UInt32(v) => Ok(*v != 0),
             Value::UInt64(v) => Ok(*v != 0),
             Value::UInt128(v) => Ok(*v != 0),
-            Value::String(s) => s.parse::<bool>().map_err(|_| {
-                ValueError::ConversionError(format!("Cannot convert '{}' to boolean", s))
-            }),
+            Value::String(s) => parse_bool_string(s),
             Value::Empty(_) => Err(ValueError::NoValue),
             _ => Err(ValueError::ConversionFailed {
                 from: self.data_type(),
