@@ -261,7 +261,7 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 
 | Target `T` | Accepted source variants |
 |---|---|
-| `bool` | `Bool`; integer variants (0=false, non-zero=true); `String` |
+| `bool` | `Bool`; integer variants (0=false, non-zero=true); `String` values `1`, `0`, `true`, `false` (`true`/`false` are case-insensitive) |
 | `i8` | `Int8`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
 | `i16` | `Int16`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
 | `i32` | `Int32`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
