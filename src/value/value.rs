@@ -290,7 +290,8 @@ impl Value {
     ///     `Value::Int128`
     ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
     ///     `Value::UInt64`, `Value::UInt128`
-    ///   - `Value::String`, parsed as `bool`
+    ///   - `Value::String`, parsed as `1`, `0`, or ASCII case-insensitive
+    ///     `true` / `false`
     /// - `char`
     ///   - `Value::Char`
     /// - `i8`

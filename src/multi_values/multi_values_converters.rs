@@ -8,6 +8,7 @@ use qubit_common::lang::DataType;
 use url::Url;
 
 use crate::Value;
+use crate::ValueConverter;
 use crate::value_error::{ValueError, ValueResult};
 
 use super::multi_values::MultiValues;
@@ -309,7 +310,113 @@ impl<'b> MultiValuesAddArg<'_> for &'b [&'b str] {
 // Inherent conversion APIs and `Value` interop
 // ============================================================================
 
+/// Converts an iterator of [`Value`] items into a target vector.
+///
+/// # Type Parameters
+///
+/// * `T` - Target element type.
+/// * `I` - Iterator type producing [`Value`] items.
+///
+/// # Parameters
+///
+/// * `values` - Values to convert.
+///
+/// # Returns
+///
+/// Converted values in the original order.
+///
+/// # Errors
+///
+/// Returns the first [`ValueError`] produced by [`Value::to`].
+fn convert_values<T, I>(values: I) -> ValueResult<Vec<T>>
+where
+    Value: ValueConverter<T>,
+    I: IntoIterator<Item = Value>,
+{
+    values.into_iter().map(|value| value.to::<T>()).collect()
+}
+
 impl MultiValues {
+    /// Converts the first stored value to `T`.
+    ///
+    /// Unlike [`Self::get_first`], this method uses [`Value::to`] conversion
+    /// rules instead of strict type matching. For example, a stored
+    /// `String("1")` can be converted to `bool`.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target type.
+    ///
+    /// # Returns
+    ///
+    /// The converted first value.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when no value is stored, or a conversion
+    /// error when the first value cannot be converted to `T`.
+    #[inline]
+    pub fn to<T>(&self) -> ValueResult<T>
+    where
+        Value: ValueConverter<T>,
+    {
+        self.to_value().to::<T>()
+    }
+
+    /// Converts all stored values to `T`.
+    ///
+    /// Unlike [`Self::get`], this method uses [`Value::to`] conversion rules
+    /// for every element instead of strict type matching. Empty values return
+    /// an empty vector.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element type.
+    ///
+    /// # Returns
+    ///
+    /// A vector containing all converted values in the original order.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first conversion error encountered while converting an
+    /// element.
+    pub fn to_list<T>(&self) -> ValueResult<Vec<T>>
+    where
+        Value: ValueConverter<T>,
+    {
+        match self {
+            MultiValues::Empty(_) => Ok(Vec::new()),
+            MultiValues::Bool(v) => convert_values(v.iter().copied().map(Value::Bool)),
+            MultiValues::Char(v) => convert_values(v.iter().copied().map(Value::Char)),
+            MultiValues::Int8(v) => convert_values(v.iter().copied().map(Value::Int8)),
+            MultiValues::Int16(v) => convert_values(v.iter().copied().map(Value::Int16)),
+            MultiValues::Int32(v) => convert_values(v.iter().copied().map(Value::Int32)),
+            MultiValues::Int64(v) => convert_values(v.iter().copied().map(Value::Int64)),
+            MultiValues::Int128(v) => convert_values(v.iter().copied().map(Value::Int128)),
+            MultiValues::UInt8(v) => convert_values(v.iter().copied().map(Value::UInt8)),
+            MultiValues::UInt16(v) => convert_values(v.iter().copied().map(Value::UInt16)),
+            MultiValues::UInt32(v) => convert_values(v.iter().copied().map(Value::UInt32)),
+            MultiValues::UInt64(v) => convert_values(v.iter().copied().map(Value::UInt64)),
+            MultiValues::UInt128(v) => convert_values(v.iter().copied().map(Value::UInt128)),
+            MultiValues::IntSize(v) => convert_values(v.iter().copied().map(Value::IntSize)),
+            MultiValues::UIntSize(v) => convert_values(v.iter().copied().map(Value::UIntSize)),
+            MultiValues::Float32(v) => convert_values(v.iter().copied().map(Value::Float32)),
+            MultiValues::Float64(v) => convert_values(v.iter().copied().map(Value::Float64)),
+            MultiValues::BigInteger(v) => convert_values(v.iter().cloned().map(Value::BigInteger)),
+            MultiValues::BigDecimal(v) => convert_values(v.iter().cloned().map(Value::BigDecimal)),
+            MultiValues::String(v) => convert_values(v.iter().cloned().map(Value::String)),
+            MultiValues::Date(v) => convert_values(v.iter().copied().map(Value::Date)),
+            MultiValues::Time(v) => convert_values(v.iter().copied().map(Value::Time)),
+            MultiValues::DateTime(v) => convert_values(v.iter().copied().map(Value::DateTime)),
+            MultiValues::Instant(v) => convert_values(v.iter().copied().map(Value::Instant)),
+            MultiValues::Duration(v) => convert_values(v.iter().copied().map(Value::Duration)),
+            MultiValues::Url(v) => convert_values(v.iter().cloned().map(Value::Url)),
+            MultiValues::StringMap(v) => convert_values(v.iter().cloned().map(Value::StringMap)),
+            MultiValues::Json(v) => convert_values(v.iter().cloned().map(Value::Json)),
+        }
+    }
+
     /// Convert to a single [`Value`] by taking the first element.
     ///
     /// If there is no element, returns `Value::Empty(self.data_type())`.
