@@ -429,6 +429,167 @@ fn test_multi_value_generic_get_type_mismatch() {
 }
 
 #[test]
+fn test_multi_value_generic_to_converts_first_value() {
+    let mv = MultiValues::String(vec!["1".to_string()]);
+    let flag: bool = mv.to().unwrap();
+    assert!(flag);
+
+    let mv = MultiValues::String(vec!["FALSE".to_string()]);
+    let flag: bool = mv.to().unwrap();
+    assert!(!flag);
+}
+
+#[test]
+fn test_multi_value_generic_to_list_converts_all_values() {
+    let mv = MultiValues::String(vec![
+        "1".to_string(),
+        "0".to_string(),
+        "true".to_string(),
+        "FALSE".to_string(),
+    ]);
+    let flags: Vec<bool> = mv.to_list().unwrap();
+    assert_eq!(flags, vec![true, false, true, false]);
+}
+
+#[test]
+fn test_multi_value_generic_to_list_converts_all_variants_to_string() {
+    let date = NaiveDate::from_ymd_opt(2026, 1, 2).unwrap();
+    let time = NaiveTime::from_hms_opt(3, 4, 5).unwrap();
+    let datetime = date.and_time(time);
+    let instant = Utc.with_ymd_and_hms(2026, 1, 2, 3, 4, 5).unwrap();
+    let duration = Duration::from_millis(250);
+    let url = Url::parse("https://example.com/path").unwrap();
+
+    let cases: Vec<(MultiValues, Vec<String>)> = vec![
+        (
+            MultiValues::Bool(vec![true, false]),
+            vec!["true".to_string(), "false".to_string()],
+        ),
+        (
+            MultiValues::Char(vec!['x', 'y']),
+            vec!["x".to_string(), "y".to_string()],
+        ),
+        (
+            MultiValues::Int8(vec![-1, 2]),
+            vec!["-1".to_string(), "2".to_string()],
+        ),
+        (
+            MultiValues::Int16(vec![-10, 20]),
+            vec!["-10".to_string(), "20".to_string()],
+        ),
+        (
+            MultiValues::Int32(vec![-100, 200]),
+            vec!["-100".to_string(), "200".to_string()],
+        ),
+        (
+            MultiValues::Int64(vec![-1000, 2000]),
+            vec!["-1000".to_string(), "2000".to_string()],
+        ),
+        (
+            MultiValues::Int128(vec![-10000, 20000]),
+            vec!["-10000".to_string(), "20000".to_string()],
+        ),
+        (
+            MultiValues::UInt8(vec![1, 2]),
+            vec!["1".to_string(), "2".to_string()],
+        ),
+        (
+            MultiValues::UInt16(vec![10, 20]),
+            vec!["10".to_string(), "20".to_string()],
+        ),
+        (
+            MultiValues::UInt32(vec![100, 200]),
+            vec!["100".to_string(), "200".to_string()],
+        ),
+        (
+            MultiValues::UInt64(vec![1000, 2000]),
+            vec!["1000".to_string(), "2000".to_string()],
+        ),
+        (
+            MultiValues::UInt128(vec![10000, 20000]),
+            vec!["10000".to_string(), "20000".to_string()],
+        ),
+        (
+            MultiValues::IntSize(vec![-7, 8]),
+            vec!["-7".to_string(), "8".to_string()],
+        ),
+        (
+            MultiValues::UIntSize(vec![7, 8]),
+            vec!["7".to_string(), "8".to_string()],
+        ),
+        (
+            MultiValues::Float32(vec![1.5, 2.5]),
+            vec!["1.5".to_string(), "2.5".to_string()],
+        ),
+        (
+            MultiValues::Float64(vec![3.5, 4.5]),
+            vec!["3.5".to_string(), "4.5".to_string()],
+        ),
+        (
+            MultiValues::BigInteger(vec![BigInt::from(123), BigInt::from(456)]),
+            vec!["123".to_string(), "456".to_string()],
+        ),
+        (
+            MultiValues::BigDecimal(vec![
+                BigDecimal::from_str("12.5").unwrap(),
+                BigDecimal::from_str("34.5").unwrap(),
+            ]),
+            vec!["12.5".to_string(), "34.5".to_string()],
+        ),
+        (
+            MultiValues::String(vec!["alpha".to_string(), "beta".to_string()]),
+            vec!["alpha".to_string(), "beta".to_string()],
+        ),
+        (MultiValues::Date(vec![date]), vec![date.to_string()]),
+        (MultiValues::Time(vec![time]), vec![time.to_string()]),
+        (
+            MultiValues::DateTime(vec![datetime]),
+            vec![datetime.to_string()],
+        ),
+        (
+            MultiValues::Instant(vec![instant]),
+            vec![instant.to_rfc3339()],
+        ),
+        (
+            MultiValues::Duration(vec![duration]),
+            vec![format!("{}ns", duration.as_nanos())],
+        ),
+        (MultiValues::Url(vec![url.clone()]), vec![url.to_string()]),
+    ];
+
+    for (values, expected) in cases {
+        let actual: Vec<String> = values.to_list().unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    let mut map = HashMap::new();
+    map.insert("key".to_string(), "value".to_string());
+    let maps: Vec<String> = MultiValues::StringMap(vec![map.clone()]).to_list().unwrap();
+    assert_eq!(maps.len(), 1);
+    let parsed_map: serde_json::Value = serde_json::from_str(&maps[0]).unwrap();
+    assert_eq!(parsed_map["key"], serde_json::json!("value"));
+
+    let json_value = serde_json::json!({"flag": true});
+    let jsons: Vec<String> = MultiValues::Json(vec![json_value]).to_list().unwrap();
+    assert_eq!(jsons, vec![r#"{"flag":true}"#]);
+
+    let empty: Vec<String> = MultiValues::Empty(DataType::String).to_list().unwrap();
+    assert!(empty.is_empty());
+}
+
+#[test]
+fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
+    let empty = MultiValues::String(Vec::new());
+    assert!(matches!(empty.to::<bool>(), Err(ValueError::NoValue)));
+
+    let invalid = MultiValues::String(vec!["yes".to_string()]);
+    assert!(matches!(
+        invalid.to_list::<bool>(),
+        Err(ValueError::ConversionError(_))
+    ));
+}
+
+#[test]
 fn test_multi_value_new() {
     // Test generic new() method
     let mv = MultiValues::new(vec![1, 2, 3]);

@@ -40,9 +40,13 @@ fn test_multi_values_generic_api_works_without_hidden_trait_imports() {
 
     let all: Vec<i32> = values.get().unwrap();
     let first: i32 = values.get_first().unwrap();
+    let converted_first: i64 = values.to().unwrap();
+    let converted_all: Vec<i64> = values.to_list().unwrap();
 
     assert_eq!(all, vec![1, 2, 3]);
     assert_eq!(first, 1);
+    assert_eq!(converted_first, 1);
+    assert_eq!(converted_all, vec![1, 2, 3]);
 
     let mut values = MultiValues::Empty(DataType::Int32);
     values.set(vec![4i32, 5]).unwrap();
