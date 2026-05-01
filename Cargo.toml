@@ -41,4 +41,4 @@ num-traits = "0.2"
 num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 
-qubit-common = "0.6"
+qubit-common = { path = "../rs-common" }
