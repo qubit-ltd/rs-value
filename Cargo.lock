@@ -393,7 +393,6 @@ dependencies = [
  "bigdecimal",
  "chrono",
  "num-bigint",
- "num-traits",
  "qubit-common",
  "serde",
  "serde_json",

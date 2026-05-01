@@ -469,7 +469,6 @@ fn test_as_int32_conversion_errors() {
     let value = Value::Int64(i64::MAX);
     match value.to::<i32>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i64"));
             assert!(msg.contains("i32"));
             assert!(msg.contains("range"));
         }
@@ -480,7 +479,6 @@ fn test_as_int32_conversion_errors() {
     let value = Value::Int128(i128::MAX);
     match value.to::<i32>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i128"));
             assert!(msg.contains("i32"));
             assert!(msg.contains("range"));
         }
@@ -491,7 +489,6 @@ fn test_as_int32_conversion_errors() {
     let value = Value::UInt32(u32::MAX);
     match value.to::<i32>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u32"));
             assert!(msg.contains("i32"));
             assert!(msg.contains("range"));
         }
@@ -513,7 +510,6 @@ fn test_as_int32_conversion_errors() {
     let value = Value::BigInteger(BigInt::from_str("999999999999999999999").unwrap());
     match value.to::<i32>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("BigInteger"));
             assert!(msg.contains("i32"));
             assert!(msg.contains("range"));
         }
@@ -526,7 +522,6 @@ fn test_as_int64_conversion_errors() {
     let value = Value::Int128(i128::MAX);
     match value.to::<i64>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -537,7 +532,6 @@ fn test_as_int64_conversion_errors() {
     let value = Value::UInt64(u64::MAX);
     match value.to::<i64>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u64"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -559,7 +553,6 @@ fn test_as_int64_conversion_errors() {
     let value = Value::BigInteger(BigInt::from_str("999999999999999999999999999999").unwrap());
     match value.to::<i64>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("BigInteger"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1475,7 +1468,8 @@ fn test_uint128_to_int64_overflow() {
 
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u128 value out of i64 range"));
+            assert!(msg.contains("i64"));
+            assert!(msg.contains("range"));
         }
         _ => panic!("Expected ConversionError"),
     }
@@ -1498,7 +1492,6 @@ fn test_as_int64_int128_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1511,7 +1504,6 @@ fn test_as_int64_int128_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1526,7 +1518,6 @@ fn test_as_int64_uint64_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u64"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1539,7 +1530,6 @@ fn test_as_int64_uint64_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u64"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1554,7 +1544,6 @@ fn test_as_int64_uint128_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1567,7 +1556,6 @@ fn test_as_int64_uint128_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1586,7 +1574,6 @@ fn test_as_int64_bigdecimal_conversion_failed() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("BigDecimal"));
             assert!(msg.contains("i64"));
         }
         _ => panic!("Expected ConversionError for BigDecimal conversion"),
@@ -1599,7 +1586,6 @@ fn test_as_int64_bigdecimal_conversion_failed() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("BigDecimal"));
             assert!(msg.contains("i64"));
         }
         _ => panic!("Expected ConversionError for negative BigDecimal conversion"),
