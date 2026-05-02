@@ -40,4 +40,4 @@ url = { version = "2.5", features = ["serde"] }
 num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 
-qubit-datatype = { version = "0.2", path = "../rs-datatype" }
+qubit-datatype = "0.2"

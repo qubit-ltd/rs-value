@@ -61,7 +61,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = "0.4.3"
+qubit-value = "0.6"
 ```
 
 ## Usage Examples
@@ -392,7 +392,7 @@ deserialization.
 
 ```toml
 [dependencies]
-qubit-datatype = "0.6"
+qubit-datatype = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
