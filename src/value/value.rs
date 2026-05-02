@@ -37,6 +37,10 @@ use qubit_datatype::{
 };
 
 use crate::value_error::ValueResult;
+use crate::{
+    IntoValueDefault,
+    ValueError,
+};
 
 /// Single value container
 ///
@@ -281,6 +285,21 @@ impl Value {
         <Self as ValueGetter<T>>::get_value(self)
     }
 
+    /// Generic getter method with a default value.
+    ///
+    /// Returns the supplied default only when this value is empty. Type
+    /// mismatches and conversion errors are still returned as errors.
+    #[inline]
+    pub fn get_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
+    where
+        Self: ValueGetter<T>,
+    {
+        match self.get() {
+            Err(ValueError::NoValue) => Ok(default.into_value_default()),
+            result => result,
+        }
+    }
+
     /// Generic conversion method
     ///
     /// Converts the current value to the target type according to the conversion
@@ -488,6 +507,20 @@ impl Value {
         <Self as ValueConverter<T>>::convert(self)
     }
 
+    /// Converts this value to `T`, or returns `default` when it is empty.
+    ///
+    /// Conversion failures from non-empty values are preserved.
+    #[inline]
+    pub fn to_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
+    where
+        Self: ValueConverter<T>,
+    {
+        match self.to() {
+            Err(ValueError::NoValue) => Ok(default.into_value_default()),
+            result => result,
+        }
+    }
+
     /// Converts this value to `T` using the provided conversion options.
     ///
     /// This method uses the shared [`qubit_datatype`] conversion layer directly,
@@ -516,6 +549,25 @@ impl Value {
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
         super::value_converters::convert_with_data_converter_with(self, options)
+    }
+
+    /// Converts this value to `T` using conversion options, or returns
+    /// `default` when it is empty.
+    ///
+    /// Conversion failures from non-empty values are preserved.
+    #[inline]
+    pub fn to_or_with<T>(
+        &self,
+        default: impl IntoValueDefault<T>,
+        options: &DataConversionOptions,
+    ) -> ValueResult<T>
+    where
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
+    {
+        match self.to_with(options) {
+            Err(ValueError::NoValue) => Ok(default.into_value_default()),
+            result => result,
+        }
     }
 
     /// Generic setter method

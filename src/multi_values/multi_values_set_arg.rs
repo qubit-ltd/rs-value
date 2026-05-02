@@ -70,6 +70,45 @@ macro_rules! impl_multi_values_set_arg {
             }
         }
 
+        impl<'a> MultiValuesSetArg<'a> for &'a Vec<$type>
+        where
+            $type: Clone,
+        {
+            type Item = $type;
+
+            #[inline]
+            fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
+                <MultiValues as MultiValuesSetterSlice<$type>>::set_values_slice(
+                    target,
+                    self.as_slice(),
+                )
+            }
+        }
+
+        impl<'a, const N: usize> MultiValuesSetArg<'a> for [$type; N] {
+            type Item = $type;
+
+            #[inline]
+            fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
+                <MultiValues as MultiValuesSetter<$type>>::set_values(target, Vec::from(self))
+            }
+        }
+
+        impl<'a, const N: usize> MultiValuesSetArg<'a> for &'a [$type; N]
+        where
+            $type: Clone,
+        {
+            type Item = $type;
+
+            #[inline]
+            fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
+                <MultiValues as MultiValuesSetterSlice<$type>>::set_values_slice(
+                    target,
+                    self.as_slice(),
+                )
+            }
+        }
+
         impl<'a> MultiValuesSetArg<'a> for $type {
             type Item = $type;
 
@@ -129,6 +168,36 @@ impl MultiValuesSetArg<'_> for Vec<&str> {
 }
 
 impl<'b> MultiValuesSetArg<'b> for &'b [&'b str] {
+    type Item = String;
+
+    #[inline]
+    fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
+        let owned: Vec<String> = self.iter().map(|s| (*s).to_string()).collect();
+        <MultiValues as MultiValuesSetter<String>>::set_values(target, owned)
+    }
+}
+
+impl MultiValuesSetArg<'_> for &Vec<&str> {
+    type Item = String;
+
+    #[inline]
+    fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
+        let owned: Vec<String> = self.iter().map(|s| (*s).to_string()).collect();
+        <MultiValues as MultiValuesSetter<String>>::set_values(target, owned)
+    }
+}
+
+impl<const N: usize> MultiValuesSetArg<'_> for [&str; N] {
+    type Item = String;
+
+    #[inline]
+    fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
+        let owned: Vec<String> = self.into_iter().map(str::to_string).collect();
+        <MultiValues as MultiValuesSetter<String>>::set_values(target, owned)
+    }
+}
+
+impl<const N: usize> MultiValuesSetArg<'_> for &[&str; N] {
     type Item = String;
 
     #[inline]

@@ -18,6 +18,7 @@ mod multi_values_accessors;
 mod multi_values_add_arg;
 mod multi_values_adder;
 mod multi_values_constructor;
+mod multi_values_constructor_arg;
 mod multi_values_converters;
 mod multi_values_first_getter;
 mod multi_values_getter;
@@ -37,6 +38,8 @@ pub use multi_values_add_arg::MultiValuesAddArg;
 pub use multi_values_adder::MultiValuesAdder;
 #[doc(hidden)]
 pub use multi_values_constructor::MultiValuesConstructor;
+#[doc(hidden)]
+pub use multi_values_constructor_arg::MultiValuesConstructorArg;
 #[doc(hidden)]
 pub use multi_values_first_getter::MultiValuesFirstGetter;
 #[doc(hidden)]

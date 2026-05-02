@@ -18,7 +18,11 @@ use chrono::{
     Utc,
 };
 use qubit_datatype::DataType;
-use qubit_value::MultiValues;
+use qubit_value::{
+    IntoValueDefault,
+    MultiValues,
+    multi_values::MultiValuesConstructorArg,
+};
 
 // ------------------------------ set: Vec<T> ------------------------------
 
@@ -140,6 +144,194 @@ fn test_generic_set_slice_all_types() {
     let b = vec![9u8, 8, 7, 6];
     mv.set(&b[..]).unwrap();
     assert_eq!(mv.get::<u8>().unwrap(), b);
+}
+
+#[test]
+fn test_generic_new_convenient_inputs_for_coverage() {
+    let values = MultiValues::new(vec![1i32, 2]);
+    assert_eq!(values.get_int32s().unwrap(), &[1, 2]);
+
+    let slice = [3i32, 4];
+    let values = MultiValues::new(&slice[..]);
+    assert_eq!(values.get_int32s().unwrap(), &[3, 4]);
+
+    let vec_ref = vec![5i32, 6];
+    let values = MultiValues::new(&vec_ref);
+    assert_eq!(values.get_int32s().unwrap(), &[5, 6]);
+
+    let values = MultiValues::new([7i32, 8]);
+    assert_eq!(values.get_int32s().unwrap(), &[7, 8]);
+
+    let array_ref = [9i32, 10];
+    let array_ref_arg: &[i32; 2] = &array_ref;
+    let values = <&[i32; 2] as MultiValuesConstructorArg<'_>>::into_multi_values(array_ref_arg);
+    assert_eq!(values.get_int32s().unwrap(), &[9, 10]);
+
+    let values = MultiValues::new(vec!["a", "b"]);
+    assert_eq!(values.get_strings().unwrap(), &["a", "b"]);
+
+    let str_slice = ["c", "d"];
+    let values = MultiValues::new(&str_slice[..]);
+    assert_eq!(values.get_strings().unwrap(), &["c", "d"]);
+
+    let str_vec_ref = vec!["e", "f"];
+    let values = MultiValues::new(&str_vec_ref);
+    assert_eq!(values.get_strings().unwrap(), &["e", "f"]);
+
+    let values = MultiValues::new(["g", "h"]);
+    assert_eq!(values.get_strings().unwrap(), &["g", "h"]);
+
+    let str_array_ref = ["i", "j"];
+    let str_array_ref_arg: &[&str; 2] = &str_array_ref;
+    let values =
+        <&[&str; 2] as MultiValuesConstructorArg<'_>>::into_multi_values(str_array_ref_arg);
+    assert_eq!(values.get_strings().unwrap(), &["i", "j"]);
+}
+
+#[test]
+fn test_generic_set_convenient_inputs_for_coverage() {
+    let mut values = MultiValues::Empty(DataType::Int32);
+    let vec_ref = vec![1i32, 2];
+    values.set(&vec_ref).unwrap();
+    assert_eq!(values.get_int32s().unwrap(), &[1, 2]);
+
+    values.set([3i32, 4]).unwrap();
+    assert_eq!(values.get_int32s().unwrap(), &[3, 4]);
+
+    let array_ref = [5i32, 6];
+    values.set(&array_ref).unwrap();
+    assert_eq!(values.get_int32s().unwrap(), &[5, 6]);
+
+    let mut values = MultiValues::Empty(DataType::String);
+    let owned_vec_ref = vec!["a".to_string(), "b".to_string()];
+    values.set(&owned_vec_ref).unwrap();
+    assert_eq!(values.get_strings().unwrap(), &["a", "b"]);
+
+    values.set(["c".to_string(), "d".to_string()]).unwrap();
+    assert_eq!(values.get_strings().unwrap(), &["c", "d"]);
+
+    let owned_array_ref = ["e".to_string(), "f".to_string()];
+    values.set(&owned_array_ref).unwrap();
+    assert_eq!(values.get_strings().unwrap(), &["e", "f"]);
+
+    let str_vec_ref = vec!["g", "h"];
+    values.set(&str_vec_ref).unwrap();
+    assert_eq!(values.get_strings().unwrap(), &["g", "h"]);
+
+    values.set(["i", "j"]).unwrap();
+    assert_eq!(values.get_strings().unwrap(), &["i", "j"]);
+
+    let str_array_ref = ["k", "l"];
+    values.set(&str_array_ref).unwrap();
+    assert_eq!(values.get_strings().unwrap(), &["k", "l"]);
+}
+
+#[test]
+fn test_generic_add_convenient_inputs_for_coverage() {
+    let mut values = MultiValues::Int32(vec![1]);
+    let vec_ref = vec![2i32, 3];
+    values.add(&vec_ref).unwrap();
+    assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3]);
+
+    values.add([4i32, 5]).unwrap();
+    assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3, 4, 5]);
+
+    let array_ref = [6i32, 7];
+    values.add(&array_ref).unwrap();
+    assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3, 4, 5, 6, 7]);
+
+    let mut values = MultiValues::String(vec!["a".to_string()]);
+    let owned_vec_ref = vec!["b".to_string(), "c".to_string()];
+    values.add(&owned_vec_ref).unwrap();
+    assert_eq!(values.get_strings().unwrap(), &["a", "b", "c"]);
+
+    values.add(["d".to_string(), "e".to_string()]).unwrap();
+    assert_eq!(values.get_strings().unwrap(), &["a", "b", "c", "d", "e"]);
+
+    let owned_array_ref = ["f".to_string(), "g".to_string()];
+    values.add(&owned_array_ref).unwrap();
+    assert_eq!(
+        values.get_strings().unwrap(),
+        &["a", "b", "c", "d", "e", "f", "g"]
+    );
+
+    let str_vec_ref = vec!["h", "i"];
+    values.add(&str_vec_ref).unwrap();
+    assert_eq!(
+        values.get_strings().unwrap(),
+        &["a", "b", "c", "d", "e", "f", "g", "h", "i"]
+    );
+
+    values.add(["j", "k"]).unwrap();
+    assert_eq!(
+        values.get_strings().unwrap(),
+        &["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"]
+    );
+
+    let str_array_ref = ["l", "m"];
+    values.add(&str_array_ref).unwrap();
+    assert_eq!(
+        values.get_strings().unwrap(),
+        &[
+            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"
+        ]
+    );
+}
+
+#[test]
+fn test_into_value_default_inputs_for_coverage() {
+    fn into_default<T, D>(default: D) -> T
+    where
+        D: IntoValueDefault<T>,
+    {
+        default.into_value_default()
+    }
+
+    let value: i64 = into_default(42i64);
+    assert_eq!(value, 42);
+
+    let value: String = into_default("fallback");
+    assert_eq!(value, "fallback");
+
+    let owned = "owned".to_string();
+    let value: String = into_default(&owned);
+    assert_eq!(value, "owned");
+
+    let slice = [1i32, 2];
+    let value: Vec<i32> = into_default(&slice[..]);
+    assert_eq!(value, vec![1, 2]);
+
+    let vec_ref = vec![3i32, 4];
+    let value: Vec<i32> = into_default(&vec_ref);
+    assert_eq!(value, vec![3, 4]);
+
+    let value: Vec<i32> = into_default([5i32, 6]);
+    assert_eq!(value, vec![5, 6]);
+
+    let array_ref = [7i32, 8];
+    let array_ref_arg: &[i32; 2] = &array_ref;
+    let value = <&[i32; 2] as IntoValueDefault<Vec<i32>>>::into_value_default(array_ref_arg);
+    assert_eq!(value, vec![7, 8]);
+
+    let value: Vec<String> = into_default(vec!["a", "b"]);
+    assert_eq!(value, vec!["a".to_string(), "b".to_string()]);
+
+    let str_slice = ["c", "d"];
+    let value: Vec<String> = into_default(&str_slice[..]);
+    assert_eq!(value, vec!["c".to_string(), "d".to_string()]);
+
+    let str_vec_ref = vec!["e", "f"];
+    let value: Vec<String> = into_default(&str_vec_ref);
+    assert_eq!(value, vec!["e".to_string(), "f".to_string()]);
+
+    let value: Vec<String> = into_default(["g", "h"]);
+    assert_eq!(value, vec!["g".to_string(), "h".to_string()]);
+
+    let str_array_ref = ["i", "j"];
+    let str_array_ref_arg: &[&str; 2] = &str_array_ref;
+    let value =
+        <&[&str; 2] as IntoValueDefault<Vec<String>>>::into_value_default(str_array_ref_arg);
+    assert_eq!(value, vec!["i".to_string(), "j".to_string()]);
 }
 
 // ------------------------------ set: single T ------------------------------

@@ -436,6 +436,75 @@ fn test_multi_value_generic_get() {
 }
 
 #[test]
+fn test_multi_value_convenient_array_and_vector_inputs() {
+    let mut values = MultiValues::new(["alpha", "beta"]);
+    assert_eq!(
+        values.get::<String>().unwrap(),
+        vec!["alpha".to_string(), "beta".to_string()]
+    );
+
+    values.set(["gamma", "delta"]).unwrap();
+    assert_eq!(
+        values.get::<String>().unwrap(),
+        vec!["gamma".to_string(), "delta".to_string()]
+    );
+
+    values.add(["epsilon", "zeta"]).unwrap();
+    assert_eq!(
+        values.get::<String>().unwrap(),
+        vec![
+            "gamma".to_string(),
+            "delta".to_string(),
+            "epsilon".to_string(),
+            "zeta".to_string()
+        ]
+    );
+
+    let borrowed_numbers = vec![1, 2, 3];
+    let mut numbers = MultiValues::new(&borrowed_numbers);
+    numbers.add([4, 5]).unwrap();
+    assert_eq!(numbers.get::<i32>().unwrap(), vec![1, 2, 3, 4, 5]);
+}
+
+#[test]
+fn test_multi_value_defaulted_reads_use_default_only_for_empty() {
+    use qubit_datatype::DataConversionOptions;
+
+    let empty = MultiValues::String(Vec::new());
+    assert_eq!(
+        empty.get_or::<String>(["fallback", "backup"]).unwrap(),
+        vec!["fallback".to_string(), "backup".to_string()]
+    );
+    assert_eq!(
+        empty.get_first_or::<String>("fallback").unwrap(),
+        "fallback"
+    );
+    assert_eq!(empty.to_or::<String>("fallback").unwrap(), "fallback");
+    assert_eq!(
+        empty
+            .to_or_with::<String>("fallback", &DataConversionOptions::default())
+            .unwrap(),
+        "fallback"
+    );
+    assert_eq!(
+        empty.to_list_or::<String>(["fallback", "backup"]).unwrap(),
+        vec!["fallback".to_string(), "backup".to_string()]
+    );
+    assert_eq!(
+        empty
+            .to_list_or_with::<String>(["fallback", "backup"], &DataConversionOptions::default())
+            .unwrap(),
+        vec!["fallback".to_string(), "backup".to_string()]
+    );
+
+    let values = MultiValues::String(vec!["42".to_string()]);
+    assert_eq!(values.to_or::<u16>(7).unwrap(), 42);
+
+    let invalid = MultiValues::String(vec!["not-a-number".to_string()]);
+    assert!(invalid.to_or::<u16>(7).is_err());
+}
+
+#[test]
 fn test_multi_value_generic_get_type_mismatch() {
     let mv = MultiValues::Int32(vec![1, 2, 3]);
     let result: Result<Vec<bool>, _> = mv.get();

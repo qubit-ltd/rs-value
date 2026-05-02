@@ -24,10 +24,13 @@ use qubit_datatype::{
     ScalarStringDataConverters,
 };
 
-use crate::Value;
 use crate::value_error::{
     ValueError,
     ValueResult,
+};
+use crate::{
+    IntoValueDefault,
+    Value,
 };
 
 use super::multi_values::MultiValues;
@@ -176,6 +179,19 @@ impl MultiValues {
         self.to_with(&DataConversionOptions::default())
     }
 
+    /// Converts the first stored value to `T`, or returns `default` when no
+    /// value is stored.
+    #[inline]
+    pub fn to_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
+    where
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
+    {
+        match self.to() {
+            Err(ValueError::NoValue) => Ok(default.into_value_default()),
+            result => result,
+        }
+    }
+
     /// Converts the first stored value to `T` using conversion options.
     ///
     /// A `MultiValues::String` containing exactly one string is treated as a
@@ -241,6 +257,23 @@ impl MultiValues {
         }
     }
 
+    /// Converts the first stored value to `T` using conversion options, or
+    /// returns `default` when no value is stored.
+    #[inline]
+    pub fn to_or_with<T>(
+        &self,
+        default: impl IntoValueDefault<T>,
+        options: &DataConversionOptions,
+    ) -> ValueResult<T>
+    where
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
+    {
+        match self.to_with(options) {
+            Err(ValueError::NoValue) => Ok(default.into_value_default()),
+            result => result,
+        }
+    }
+
     /// Converts all stored values to `T`.
     ///
     /// Unlike [`Self::get`], this method uses shared `DataConverter` conversion
@@ -264,6 +297,21 @@ impl MultiValues {
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
         self.to_list_with(&DataConversionOptions::default())
+    }
+
+    /// Converts all stored values to `T`, or returns `default` when the
+    /// converted list is empty.
+    #[inline]
+    pub fn to_list_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
+    where
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
+    {
+        let values = self.to_list()?;
+        if values.is_empty() {
+            Ok(default.into_value_default())
+        } else {
+            Ok(values)
+        }
     }
 
     /// Converts all stored values to `T` using conversion options.
@@ -327,6 +375,25 @@ impl MultiValues {
             MultiValues::Url(v) => convert_values_with(DataConverters::from(v), options),
             MultiValues::StringMap(v) => convert_values_with(DataConverters::from(v), options),
             MultiValues::Json(v) => convert_values_with(DataConverters::from(v), options),
+        }
+    }
+
+    /// Converts all stored values to `T` using conversion options, or returns
+    /// `default` when the converted list is empty.
+    #[inline]
+    pub fn to_list_or_with<T>(
+        &self,
+        default: impl IntoValueDefault<Vec<T>>,
+        options: &DataConversionOptions,
+    ) -> ValueResult<Vec<T>>
+    where
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
+    {
+        let values = self.to_list_with(options)?;
+        if values.is_empty() {
+            Ok(default.into_value_default())
+        } else {
+            Ok(values)
         }
     }
 
