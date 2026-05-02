@@ -38,6 +38,11 @@ and conversion while maintaining Rust's safety guarantees.
 - **Named Values**: `NamedValue`/`NamedMultiValues` provide name binding for
   configuration/identification scenarios
 - **Serde Support**: All core types implement `Serialize`/`Deserialize`
+- **Ergonomic Defaults**: `get_or`, `to_or`, and list-default APIs accept
+  scalar defaults, borrowed string literals, arrays, slices, vectors, and
+  borrowed vectors
+- **Flexible Collection Inputs**: `MultiValues::new/set/add` accept direct
+  arrays, slices, vectors, borrowed vectors, and borrowed string collections
 - **Big Number Support**: Full support for `BigInt` and `BigDecimal` for
   high-precision calculations
 - **Extended Types**: Native support for `isize`/`usize`, `Duration`, `Url`,
@@ -61,7 +66,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = "0.6"
+qubit-value = "0.7"
 ```
 
 ## Usage Examples
@@ -161,10 +166,21 @@ let restored: Config = v.deserialize_json()?;
 use qubit_value::{MultiValues, ValueError};
 use qubit_datatype::DataType;
 
-// Generic construction
+// Generic construction from a Vec<T>
 let mut ports = MultiValues::new(vec![8080i32, 8081, 8082]);
 assert_eq!(ports.count(), 3);
 assert_eq!(ports.get_int32s()?, &[8080, 8081, 8082]);
+
+// Direct arrays, slices, vectors, and borrowed vectors are accepted
+let array_ports = MultiValues::new([8080i32, 8081, 8082]);
+let more_ports = [9000i32, 9001];
+let borrowed = MultiValues::new(more_ports.as_slice());
+let owned = vec![7000i32, 7001];
+let borrowed_vec = MultiValues::new(&owned);
+
+// String lists can be built directly from &str collections
+let servers = MultiValues::new(["api", "worker", "cache"]);
+assert_eq!(servers.get_strings()?, &["api", "worker", "cache"]);
 
 // Generic retrieval with type inference (clones Vec)
 let nums: Vec<i32> = ports.get()?;
@@ -177,10 +193,13 @@ assert_eq!(first, 8080);
 ports.add(8083)?;
 ports.add(vec![8084, 8085])?;
 ports.add(&[8086, 8087][..])?;
+ports.add([8088, 8089])?;
 
 // Generic set: replaces entire list
 ports.set(vec![9001, 9002])?;
-assert_eq!(ports.get_int32s()?, &[9001, 9002]);
+ports.set([9100, 9101])?;
+ports.set(&owned)?;
+assert_eq!(ports.get_int32s()?, &[7000, 7001]);
 
 // Merge (types must match)
 let mut a = MultiValues::Int32(vec![1, 2]);
@@ -192,6 +211,68 @@ assert_eq!(a.get_int32s()?, &[1, 2, 3, 4]);
 let single = a.to_value();
 let first_val: i32 = single.get()?;
 assert_eq!(first_val, 1);
+```
+
+### Defaulted Reads and Conversions
+
+Defaulted APIs use the fallback only when the value is empty or the list has no
+items. Type mismatches and failed conversions still return errors.
+
+```rust
+use qubit_datatype::DataType;
+use qubit_value::{MultiValues, Value};
+
+// Strict reads with defaults
+let value = Value::Empty(DataType::String);
+let host: String = value.get_or("localhost")?;
+assert_eq!(host, "localhost");
+
+let value = Value::String("8080".to_string());
+let port: u16 = value.to_or(9000u16)?;
+assert_eq!(port, 8080);
+
+// Multi-value strict reads with collection defaults
+let values = MultiValues::Empty(DataType::String);
+let paths: Vec<String> = values.get_or(["cache", "tmp"])?;
+assert_eq!(paths, vec!["cache".to_string(), "tmp".to_string()]);
+
+// First-value conversion with a scalar default
+let values = MultiValues::Empty(DataType::UInt16);
+let port: u16 = values.to_or(8080u16)?;
+assert_eq!(port, 8080);
+
+// List conversion with array or slice defaults
+let values = MultiValues::Empty(DataType::String);
+let tags: Vec<String> = values.to_list_or(["blue", "green"])?;
+assert_eq!(tags, vec!["blue".to_string(), "green".to_string()]);
+```
+
+### Collection Argument Forms
+
+The collection-style APIs accept the convenient forms you normally have at the
+call site. This applies to `MultiValues::new`, `MultiValues::set`,
+`MultiValues::add`, and defaulted list reads such as `get_or` and
+`to_list_or`.
+
+```rust
+use qubit_datatype::DataType;
+use qubit_value::MultiValues;
+
+let array_values = MultiValues::new([1i32, 2, 3]);
+let slice_source = [4i32, 5, 6];
+let slice_values = MultiValues::new(slice_source.as_slice());
+let vec_source = vec![7i32, 8, 9];
+let vec_values = MultiValues::new(vec_source.clone());
+let borrowed_vec_values = MultiValues::new(&vec_source);
+
+let mut values = MultiValues::Empty(DataType::Int32);
+values.set([10, 11, 12])?;
+values.add(slice_source.as_slice())?;
+values.add(&vec_source)?;
+
+let strings = MultiValues::new(["api", "worker"]);
+let fallback: Vec<String> = MultiValues::Empty(DataType::String)
+    .get_or(["cache", "tmp"])?;
 ```
 
 ### Named Value Operations
@@ -228,7 +309,11 @@ assert_eq!(val, 8080);
 
 #### Construction
 - **Single Value**: `Value::new<T>(t) -> Value`
-- **Multi-Value**: `MultiValues::new<T>(Vec<T>) -> MultiValues`
+- **Multi-Value**: `MultiValues::new<S>(values) -> MultiValues`
+
+`MultiValues::new` accepts `Vec<T>`, `&Vec<T>`, `&[T]`, `[T; N]`, and
+`&[T; N]`. For string values it also accepts `Vec<&str>`, `&Vec<&str>`,
+`&[&str]`, `[&str; N]`, and `&[&str; N]`, producing `Vec<String>` internally.
 
 Supported `T` for `new`: `bool`, `char`, `i8`, `i16`, `i32`, `i64`, `i128`,
 `u8`, `u16`, `u32`, `u64`, `u128`, `f32`, `f64`, `String`, `&str`,
@@ -238,8 +323,11 @@ Supported `T` for `new`: `bool`, `char`, `i8`, `i16`, `i32`, `i64`, `i128`,
 
 #### Retrieval
 - **Single Value**: `Value::get<T>(&self) -> ValueResult<T>`
+- **Single Value with Default**: `Value::get_or<T>(&self, default) -> ValueResult<T>`
 - **Multi-Value**: `MultiValues::get<T>(&self) -> ValueResult<Vec<T>>`
+- **Multi-Value with Default**: `MultiValues::get_or<T>(&self, default) -> ValueResult<Vec<T>>`
 - **First Element**: `MultiValues::get_first<T>(&self) -> ValueResult<T>`
+- **First Element with Default**: `MultiValues::get_first_or<T>(&self, default) -> ValueResult<T>`
 
 `get<T>()` performs **strict type matching** — the stored variant must be
 exactly `T`. For cross-type conversion use `to<T>()` instead.
@@ -248,14 +336,34 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 - **Single Value**: `Value::set<T>(&mut self, t) -> ValueResult<()>`
 - **Multi-Value**:
   - `MultiValues::set<T, S>(&mut self, values: S) -> ValueResult<()>` where
-    `S` can be `T`, `Vec<T>`, or `&[T]`
+    `S` can be `T`, `Vec<T>`, `&Vec<T>`, `&[T]`, `[T; N]`, or `&[T; N]`
   - `MultiValues::add<T, S>(&mut self, values: S)` supports `T`, `Vec<T>`,
-    or `&[T]`
+    `&Vec<T>`, `&[T]`, `[T; N]`, or `&[T; N]`
+  - String collections also accept `Vec<&str>`, `&Vec<&str>`, `&[&str]`,
+    `[&str; N]`, and `&[&str; N]`
 
 #### Type Conversion
 - **`Value::to<T>(&self) -> ValueResult<T>`** — converts to `T` according to
   the rules defined by `ValueConverter<T>`. Supports cross-type conversion
   with range checking where applicable.
+- **`Value::to_or<T>(&self, default) -> ValueResult<T>`** — converts to `T`,
+  or returns the default when the value is empty.
+- **`Value::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
+  same fallback behavior while using explicit conversion options.
+- **`MultiValues::to<T>(&self) -> ValueResult<T>`** — converts the first stored
+  value.
+- **`MultiValues::to_or<T>(&self, default) -> ValueResult<T>`** — converts the
+  first stored value, or returns the default when no value exists.
+- **`MultiValues::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
+  same fallback behavior while using explicit conversion options.
+- **`MultiValues::to_list<T>(&self) -> ValueResult<Vec<T>>`** — converts all
+  stored values.
+- **`MultiValues::to_list_with<T>(&self, options) -> ValueResult<Vec<T>>`** —
+  converts all stored values with explicit conversion options.
+- **`MultiValues::to_list_or<T>(&self, default) -> ValueResult<Vec<T>>`** —
+  converts all stored values, or returns the default when the result is empty.
+- **`MultiValues::to_list_or_with<T>(&self, default, options) -> ValueResult<Vec<T>>`** —
+  same list fallback behavior while using explicit conversion options.
 
 **Supported target types and their accepted source variants:**
 
@@ -385,8 +493,10 @@ deserialization.
 - **Reference Returns**: `get_string()` returns `&str` to avoid cloning
 - **Borrow Support**: `Value::new()` and `set()` accept `&str` (converted to
   `String`)
-- **Smart Dispatch**: `MultiValues::set/add` accept `T`, `Vec<T>`, or `&[T]`
-  and dispatch to the optimal internal path
+- **Smart Dispatch**: `MultiValues::new/set/add` accept direct arrays, slices,
+  vectors, and borrowed vectors, then dispatch to the optimal internal path
+- **Borrowed Defaults**: Defaulted reads can use borrowed string literals and
+  borrowed collection values without forcing callers to allocate first
 
 ## Dependencies
 
