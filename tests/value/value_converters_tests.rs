@@ -17,7 +17,13 @@
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use num_bigint::BigInt;
-use qubit_common::lang::DataType;
+use qubit_common::lang::{
+    BlankStringPolicy,
+    BooleanConversionOptions,
+    DataConversionOptions,
+    DataType,
+    StringConversionOptions,
+};
 use qubit_value::{
     Value,
     ValueError,
@@ -62,6 +68,34 @@ fn test_value_bool_conversion_accepts_config_bool_strings() {
             "expected '{raw}' to convert to false"
         );
     }
+}
+
+#[test]
+fn test_value_to_with_applies_common_conversion_options() {
+    let options = DataConversionOptions::default()
+        .with_string_options(
+            StringConversionOptions::default()
+                .with_trim(true)
+                .with_blank_string_policy(BlankStringPolicy::TreatAsMissing),
+        )
+        .with_boolean_options(
+            BooleanConversionOptions::strict()
+                .with_true_literal("enabled")
+                .with_false_literal("disabled"),
+        );
+
+    let enabled = Value::String(" enabled ".to_string())
+        .to_with::<bool>(&options)
+        .expect("custom boolean literal should parse");
+    assert!(enabled);
+
+    let port = Value::String(" 8080 ".to_string())
+        .to_with::<u16>(&options)
+        .expect("trimmed numeric string should parse");
+    assert_eq!(port, 8080);
+
+    let blank = Value::String("   ".to_string()).to_with::<String>(&options);
+    assert!(matches!(blank, Err(ValueError::NoValue)));
 }
 #[test]
 fn test_value_datetime_to_string() {

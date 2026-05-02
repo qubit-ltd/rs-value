@@ -23,7 +23,13 @@ use chrono::{
     Utc,
 };
 use num_bigint::BigInt;
-use qubit_common::lang::DataType;
+use qubit_common::lang::{
+    CollectionConversionOptions,
+    DataConversionOptions,
+    DataType,
+    EmptyItemPolicy,
+    StringConversionOptions,
+};
 use qubit_value::{
     MultiValues,
     Value,
@@ -524,6 +530,30 @@ fn test_multi_value_generic_to_list_converts_all_values() {
     ]);
     let flags: Vec<bool> = mv.to_list().unwrap();
     assert_eq!(flags, vec![true, false, true, false]);
+}
+
+#[test]
+fn test_multi_value_to_list_with_applies_common_conversion_options() {
+    let options = DataConversionOptions::default()
+        .with_string_options(StringConversionOptions::default().with_trim(true))
+        .with_collection_options(
+            CollectionConversionOptions::default()
+                .with_split_scalar_strings(true)
+                .with_delimiters([',', ';'])
+                .with_trim_items(true)
+                .with_empty_item_policy(EmptyItemPolicy::Skip),
+        );
+
+    let values = MultiValues::String(vec![" 8080, 8081;; 8082 ".to_string()]);
+    let ports: Vec<u16> = values
+        .to_list_with(&options)
+        .expect("scalar string should split and parse");
+    assert_eq!(ports, vec![8080, 8081, 8082]);
+
+    let first: u16 = values
+        .to_with(&options)
+        .expect("first scalar item should parse after splitting");
+    assert_eq!(first, 8080);
 }
 
 #[test]
@@ -3461,6 +3491,21 @@ fn test_multi_values_first_getter_non_empty_branch() {
 }
 
 #[test]
+fn test_multi_values_first_getter_no_value_branches() {
+    let mv = MultiValues::Bool(Vec::new());
+    let result: Result<bool, ValueError> = mv.get_first();
+    assert!(matches!(result, Err(ValueError::NoValue)));
+
+    let mv = MultiValues::Empty(DataType::Bool);
+    let result: Result<bool, ValueError> = mv.get_first();
+    assert!(matches!(result, Err(ValueError::NoValue)));
+
+    let mv = MultiValues::Empty(DataType::Int32);
+    let result: Result<i32, ValueError> = mv.get_first();
+    assert!(matches!(result, Err(ValueError::NoValue)));
+}
+
+#[test]
 fn test_multi_values_adder_type_mismatch_branch() {
     // Test _ branch of MultiValuesMultiAdder (type mismatch)
     let mut mv = MultiValues::Int32(vec![1, 2]);
@@ -3487,6 +3532,64 @@ fn test_multi_values_adder_slice_type_mismatch_branch() {
     let bool_slice: &[bool] = &[true, false];
     // Try to add &[bool] to Int32 MultiValues
     let result = mv.add(bool_slice);
+    assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
+}
+
+#[test]
+fn test_multi_values_adder_slice_success_branches() {
+    let mut mv = MultiValues::Bool(vec![false]);
+    let values: &[bool] = &[true, false];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_bools().unwrap(), &[false, true, false]);
+
+    let mut mv = MultiValues::Int32(vec![1, 2]);
+    let values: &[i32] = &[3, 4];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_int32s().unwrap(), &[1, 2, 3, 4]);
+
+    let mut mv = MultiValues::Empty(DataType::Int32);
+    let values: &[i32] = &[10, 20];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_int32s().unwrap(), &[10, 20]);
+
+    let mut mv = MultiValues::Empty(DataType::Bool);
+    let values: &[bool] = &[true, false];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_bools().unwrap(), &[true, false]);
+
+    let mut mv = MultiValues::UInt8(vec![1]);
+    let values: &[u8] = &[2, 3];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_uint8s().unwrap(), &[1, 2, 3]);
+
+    let mut mv = MultiValues::Empty(DataType::UInt8);
+    let values: &[u8] = &[4, 5];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_uint8s().unwrap(), &[4, 5]);
+
+    let mut mv = MultiValues::String(vec!["value".to_string()]);
+    let values: &[u8] = &[1, 2];
+    let result = mv.add(values);
+    assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
+
+    let mut mv = MultiValues::UInt64(vec![1]);
+    let values: &[u64] = &[2, 3];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_uint64s().unwrap(), &[1, 2, 3]);
+
+    let mut mv = MultiValues::String(vec!["value".to_string()]);
+    let values: &[u64] = &[1, 2];
+    let result = mv.add(values);
+    assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
+
+    let mut mv = MultiValues::Empty(DataType::Float32);
+    let values: &[f32] = &[1.5, 2.5];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_float32s().unwrap(), &[1.5, 2.5]);
+
+    let mut mv = MultiValues::String(vec!["value".to_string()]);
+    let values: &[f32] = &[1.5, 2.5];
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 }
 

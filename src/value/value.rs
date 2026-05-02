@@ -31,7 +31,12 @@ use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
 
-use qubit_common::lang::DataType;
+use qubit_common::lang::{
+    DataConversionOptions,
+    DataConvertTo,
+    DataConverter,
+    DataType,
+};
 
 use crate::value_error::ValueResult;
 
@@ -489,6 +494,36 @@ impl Value {
         Self: ValueConverter<T>,
     {
         <Self as ValueConverter<T>>::convert(self)
+    }
+
+    /// Converts this value to `T` using the provided conversion options.
+    ///
+    /// This method uses the shared [`qubit_common`] conversion layer directly,
+    /// so options such as string trimming, blank string handling, and boolean
+    /// aliases are applied consistently with other value containers.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - The target type to convert to.
+    ///
+    /// # Parameters
+    ///
+    /// * `options` - Conversion options forwarded to the shared converter.
+    ///
+    /// # Returns
+    ///
+    /// Returns the converted value on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`crate::ValueError`] when the value is missing, unsupported, or
+    /// invalid for `T` under the provided options.
+    #[inline]
+    pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
+    where
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
+    {
+        super::value_converters::convert_with_data_converter_with(self, options)
     }
 
     /// Generic setter method
