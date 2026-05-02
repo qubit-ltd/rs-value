@@ -1,6 +1,6 @@
 [package]
 name = "qubit-value"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2024"
 rust-version = "1.94"
 autotests = false
@@ -40,4 +40,4 @@ url = { version = "2.5", features = ["serde"] }
 num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 
-qubit-common = { path = "../rs-common" }
+qubit-datatype = { version = "0.2", path = "../rs-datatype" }

@@ -1,9 +1,10 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Value v0.3.0 新增类型单元测试
@@ -15,11 +16,8 @@
 //! - `HashMap<String, String>`
 //! - `serde_json::Value` (Json escape hatch)
 //!
-//! # Author
-//!
-//! Haixing Hu
 
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 use qubit_value::{
     Value,
     ValueError,
@@ -230,7 +228,7 @@ fn test_value_duration_generic_set() {
 fn test_value_duration_as_string_nanoseconds() {
     let d = Duration::from_nanos(1_500_000_000);
     let v = Value::Duration(d);
-    assert_eq!(v.to::<String>().unwrap(), "1500000000ns");
+    assert_eq!(v.to::<String>().unwrap(), "1500ms");
 }
 
 #[test]
@@ -262,7 +260,7 @@ fn test_value_duration_as_duration_invalid_string() {
 fn test_value_duration_zero() {
     let v = Value::Duration(Duration::ZERO);
     assert_eq!(v.get_duration().unwrap(), Duration::ZERO);
-    assert_eq!(v.to::<String>().unwrap(), "0ns");
+    assert_eq!(v.to::<String>().unwrap(), "0ms");
 }
 
 #[test]
@@ -619,7 +617,7 @@ fn test_value_to_json() {
 fn test_value_to_string() {
     let v = Value::Duration(Duration::from_nanos(7));
     let got: String = v.to().unwrap();
-    assert_eq!(got, "7ns");
+    assert_eq!(got, "0ms");
 }
 
 #[test]

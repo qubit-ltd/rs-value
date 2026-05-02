@@ -1,9 +1,10 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 
@@ -12,7 +13,7 @@
 //! This module keeps generic conversion logic (`to`, `to_list`, `to_value`, etc.)
 //! while dispatch traits are implemented in dedicated `multi_values_*` modules.
 
-use qubit_common::lang::{
+use qubit_datatype::{
     DataConversionError,
     DataConversionOptions,
     DataConvertTo,
@@ -89,7 +90,7 @@ fn map_data_list_conversion_error(error: DataListConversionError) -> ValueError 
 /// # Parameters
 ///
 /// * `values` - Batch converter containing source values.
-/// * `options` - Conversion options forwarded to `qubit_common`.
+/// * `options` - Conversion options forwarded to `qubit_datatype`.
 ///
 /// # Returns
 ///
@@ -124,7 +125,7 @@ where
 /// # Parameters
 ///
 /// * `values` - Batch converter containing source values.
-/// * `options` - Conversion options forwarded to `qubit_common`.
+/// * `options` - Conversion options forwarded to `qubit_datatype`.
 ///
 /// # Returns
 ///
@@ -188,7 +189,7 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `options` - Conversion options forwarded to `qubit_common`.
+    /// * `options` - Conversion options forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///
@@ -278,7 +279,7 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `options` - Conversion options forwarded to `qubit_common`.
+    /// * `options` - Conversion options forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///

@@ -1,18 +1,16 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # MultiValues Unit Tests
 //!
 //! Tests various functionalities of the multi values container。
 //!
-//! # Author
-//!
-//! Haixing Hu
 
 use bigdecimal::BigDecimal;
 use chrono::{
@@ -23,7 +21,7 @@ use chrono::{
     Utc,
 };
 use num_bigint::BigInt;
-use qubit_common::lang::{
+use qubit_datatype::{
     CollectionConversionOptions,
     DataConversionOptions,
     DataType,
@@ -497,10 +495,7 @@ fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string()
         (MultiValues::Time(vec![time]), time.to_string()),
         (MultiValues::DateTime(vec![datetime]), datetime.to_string()),
         (MultiValues::Instant(vec![instant]), instant.to_rfc3339()),
-        (
-            MultiValues::Duration(vec![duration]),
-            format!("{}ns", duration.as_nanos()),
-        ),
+        (MultiValues::Duration(vec![duration]), "250ms".to_string()),
         (MultiValues::Url(vec![url.clone()]), url.to_string()),
     ];
 
@@ -657,7 +652,7 @@ fn test_multi_value_generic_to_list_converts_all_variants_to_string() {
         ),
         (
             MultiValues::Duration(vec![duration]),
-            vec![format!("{}ns", duration.as_nanos())],
+            vec!["250ms".to_string()],
         ),
         (MultiValues::Url(vec![url.clone()]), vec![url.to_string()]),
     ];

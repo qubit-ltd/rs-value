@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
 
-A type-safe value container framework built on `qubit_common::lang::DataType`,
+A type-safe value container framework built on `qubit_datatype::DataType`,
 providing unified abstractions for single values, multi-values, and named values
 with generic construction/access/mutation, type conversion, and complete `serde`
 serialization support.
@@ -70,7 +70,7 @@ qubit-value = "0.4.3"
 
 ```rust
 use qubit_value::{Value, ValueError};
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 use num_bigint::BigInt;
 use bigdecimal::BigDecimal;
 use std::str::FromStr;
@@ -159,7 +159,7 @@ let restored: Config = v.deserialize_json()?;
 
 ```rust
 use qubit_value::{MultiValues, ValueError};
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 
 // Generic construction
 let mut ports = MultiValues::new(vec![8080i32, 8081, 8082]);
@@ -333,7 +333,7 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 
 ```rust
 use qubit_value::{ValueError, ValueResult};
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 
 // Main error variants
 ValueError::NoValue                          // Empty value accessed
@@ -392,7 +392,7 @@ deserialization.
 
 ```toml
 [dependencies]
-qubit-common = "0.6"
+qubit-datatype = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"

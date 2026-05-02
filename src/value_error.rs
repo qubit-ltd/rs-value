@@ -1,20 +1,18 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Value Processing Error Types
 //!
 //! Defines various errors that may occur during value processing.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 use thiserror::Error;
 
 /// Value processing error type
@@ -37,9 +35,6 @@ use thiserror::Error;
 /// assert_eq!(error.to_string(), "No value");
 /// ```
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 #[derive(Debug, Error)]
 pub enum ValueError {

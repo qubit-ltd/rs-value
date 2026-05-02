@@ -32,7 +32,7 @@ cargo install cargo-llvm-cov
 ./coverage.sh help
 ```
 
-**注意**：脚本会自动使用 `--package qubit-value` 参数只统计当前 crate 的覆盖率，排除依赖项（如 `qubit-common`）。
+**注意**：脚本会自动使用 `--package qubit-value` 参数只统计当前 crate 的覆盖率，排除依赖项（如 `qubit-datatype`）。
 
 ### 使用 cargo 命令
 
@@ -58,7 +58,7 @@ cargo llvm-cov --package qubit-value --json --output-path target/llvm-cov/covera
 cargo llvm-cov --package qubit-value --cobertura --output-path target/llvm-cov/cobertura.xml
 ```
 
-**重要提示**：使用 `--package qubit-value`（或 `-p qubit-value`）参数只测试当前包，排除依赖项（如 `qubit-common`）的覆盖率统计。
+**重要提示**：使用 `--package qubit-value`（或 `-p qubit-value`）参数只测试当前包，排除依赖项（如 `qubit-datatype`）的覆盖率统计。
 
 ## 报告位置
 

@@ -1,9 +1,10 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 
@@ -27,7 +28,7 @@ use chrono::{
 };
 use num_bigint::BigInt;
 
-use qubit_common::lang::{
+use qubit_datatype::{
     DataConversionError,
     DataConversionOptions,
     DataConvertTo,
@@ -58,7 +59,7 @@ fn map_data_conversion_error(error: DataConversionError) -> ValueError {
     }
 }
 
-/// Wraps a `Value` into the common conversion helper for the `qubit_common`
+/// Wraps a `Value` into the common conversion helper for the `qubit_datatype`
 /// conversion API.
 fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
     match value {
@@ -106,7 +107,7 @@ where
 /// # Parameters
 ///
 /// * `value` - Source value to convert.
-/// * `options` - Conversion options forwarded to `qubit_common`.
+/// * `options` - Conversion options forwarded to `qubit_datatype`.
 ///
 /// # Returns
 ///

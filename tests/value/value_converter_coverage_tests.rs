@@ -1,9 +1,10 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # ValueConverter 覆盖率补充测试
@@ -20,11 +21,8 @@
 //! - `ValueConverter<u128>` 的全部分支
 //! - `ValueConverter<f32>` 的全部分支
 //!
-//! # Author
-//!
-//! Haixing Hu
 
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 use qubit_value::{
     Value,
     ValueError,
@@ -72,7 +70,7 @@ fn test_value_converter_duration_empty() {
 fn test_value_converter_duration_wrong_type() {
     let v = Value::Int32(42);
     let result = v.to::<Duration>();
-    assert!(result.is_err());
+    assert_eq!(result.unwrap(), Duration::from_millis(42));
 }
 
 // ============================================================================
