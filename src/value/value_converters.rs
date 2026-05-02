@@ -7,6 +7,13 @@
  *
  ******************************************************************************/
 
+//! Internal implementations for value conversion support.
+//!
+//! This module focuses on conversion helpers and `ValueConverter<T>` impls. The
+//! generic trait impls for getter/setter/constructor are defined in
+//! `value_getter.rs`, `value_setter.rs`, and `value_constructor.rs` to keep
+//! trait concerns separate.
+
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -19,24 +26,22 @@ use chrono::{
     Utc,
 };
 use num_bigint::BigInt;
-use url::Url;
 
 use qubit_common::lang::{
     DataConversionError,
+    DataConversionOptions,
     DataConvertTo,
     DataConverter,
 };
 
 use super::value::Value;
-use super::value_constructor::ValueConstructor;
 use super::value_converter::ValueConverter;
-use super::value_getter::ValueGetter;
-use super::value_setter::ValueSetter;
 use crate::value_error::{
     ValueError,
     ValueResult,
 };
 
+/// Maps a shared single-value conversion error into `ValueError`.
 fn map_data_conversion_error(error: DataConversionError) -> ValueError {
     match error {
         DataConversionError::NoValue => ValueError::NoValue,
@@ -53,6 +58,8 @@ fn map_data_conversion_error(error: DataConversionError) -> ValueError {
     }
 }
 
+/// Wraps a `Value` into the common conversion helper for the `qubit_common`
+/// conversion API.
 fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
     match value {
         Value::Empty(data_type) => DataConverter::Empty(*data_type),
@@ -86,42 +93,39 @@ fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
     }
 }
 
+/// Converts a single `Value` into `T` using shared conversion helpers.
 fn convert_with_data_converter<T>(value: &Value) -> ValueResult<T>
 where
     for<'a> DataConverter<'a>: DataConvertTo<T>,
 {
-    data_converter_from_value(value)
-        .to::<T>()
-        .map_err(map_data_conversion_error)
+    convert_with_data_converter_with(value, &DataConversionOptions::default())
 }
 
-// ============================================================================
-// Implementation of internal traits (simplified using macros)
-// ============================================================================
-
-macro_rules! impl_value_traits {
-    ($type:ty, $variant:ident, $get_method:ident, $set_method:ident) => {
-        impl ValueGetter<$type> for Value {
-            #[inline]
-            fn get_value(&self) -> ValueResult<$type> {
-                self.$get_method()
-            }
-        }
-
-        impl ValueSetter<$type> for Value {
-            #[inline]
-            fn set_value(&mut self, value: $type) -> ValueResult<()> {
-                self.$set_method(value)
-            }
-        }
-
-        impl ValueConstructor<$type> for Value {
-            #[inline]
-            fn from_type(value: $type) -> Self {
-                Value::$variant(value)
-            }
-        }
-    };
+/// Converts a single `Value` into `T` using shared conversion helpers and options.
+///
+/// # Parameters
+///
+/// * `value` - Source value to convert.
+/// * `options` - Conversion options forwarded to `qubit_common`.
+///
+/// # Returns
+///
+/// Returns the converted value.
+///
+/// # Errors
+///
+/// Returns a `ValueError` mapped from the shared conversion error when the
+/// source value is missing, unsupported, or invalid for `T`.
+pub(super) fn convert_with_data_converter_with<T>(
+    value: &Value,
+    options: &DataConversionOptions,
+) -> ValueResult<T>
+where
+    for<'a> DataConverter<'a>: DataConvertTo<T>,
+{
+    data_converter_from_value(value)
+        .to_with::<T>(options)
+        .map_err(map_data_conversion_error)
 }
 
 macro_rules! impl_data_value_converter {
@@ -133,134 +137,6 @@ macro_rules! impl_data_value_converter {
             }
         }
     };
-}
-
-// Implementation for Copy types
-impl_value_traits!(bool, Bool, get_bool, set_bool);
-impl_value_traits!(char, Char, get_char, set_char);
-impl_value_traits!(i8, Int8, get_int8, set_int8);
-impl_value_traits!(i16, Int16, get_int16, set_int16);
-impl_value_traits!(i32, Int32, get_int32, set_int32);
-impl_value_traits!(i64, Int64, get_int64, set_int64);
-impl_value_traits!(i128, Int128, get_int128, set_int128);
-impl_value_traits!(u8, UInt8, get_uint8, set_uint8);
-impl_value_traits!(u16, UInt16, get_uint16, set_uint16);
-impl_value_traits!(u32, UInt32, get_uint32, set_uint32);
-impl_value_traits!(u64, UInt64, get_uint64, set_uint64);
-impl_value_traits!(u128, UInt128, get_uint128, set_uint128);
-impl_value_traits!(f32, Float32, get_float32, set_float32);
-impl_value_traits!(f64, Float64, get_float64, set_float64);
-impl_value_traits!(NaiveDate, Date, get_date, set_date);
-impl_value_traits!(NaiveTime, Time, get_time, set_time);
-impl_value_traits!(NaiveDateTime, DateTime, get_datetime, set_datetime);
-impl_value_traits!(DateTime<Utc>, Instant, get_instant, set_instant);
-impl_value_traits!(BigInt, BigInteger, get_biginteger, set_biginteger);
-impl_value_traits!(BigDecimal, BigDecimal, get_bigdecimal, set_bigdecimal);
-impl_value_traits!(isize, IntSize, get_intsize, set_intsize);
-impl_value_traits!(usize, UIntSize, get_uintsize, set_uintsize);
-impl_value_traits!(Duration, Duration, get_duration, set_duration);
-
-// String needs cloning
-impl ValueGetter<String> for Value {
-    #[inline]
-    fn get_value(&self) -> ValueResult<String> {
-        self.get_string().map(|s| s.to_string())
-    }
-}
-
-impl ValueSetter<String> for Value {
-    #[inline]
-    fn set_value(&mut self, value: String) -> ValueResult<()> {
-        self.set_string(value)
-    }
-}
-
-impl ValueConstructor<String> for Value {
-    #[inline]
-    fn from_type(value: String) -> Self {
-        Value::String(value)
-    }
-}
-
-// Special handling for &str - convert to String
-impl ValueSetter<&str> for Value {
-    #[inline]
-    fn set_value(&mut self, value: &str) -> ValueResult<()> {
-        self.set_string(value.to_string())
-    }
-}
-
-impl ValueConstructor<&str> for Value {
-    #[inline]
-    fn from_type(value: &str) -> Self {
-        Value::String(value.to_string())
-    }
-}
-
-// Url
-impl ValueGetter<Url> for Value {
-    #[inline]
-    fn get_value(&self) -> ValueResult<Url> {
-        self.get_url()
-    }
-}
-
-impl ValueSetter<Url> for Value {
-    #[inline]
-    fn set_value(&mut self, value: Url) -> ValueResult<()> {
-        self.set_url(value)
-    }
-}
-
-impl ValueConstructor<Url> for Value {
-    #[inline]
-    fn from_type(value: Url) -> Self {
-        Value::Url(value)
-    }
-}
-
-// HashMap<String, String>
-impl ValueGetter<HashMap<String, String>> for Value {
-    #[inline]
-    fn get_value(&self) -> ValueResult<HashMap<String, String>> {
-        self.get_string_map()
-    }
-}
-
-impl ValueSetter<HashMap<String, String>> for Value {
-    #[inline]
-    fn set_value(&mut self, value: HashMap<String, String>) -> ValueResult<()> {
-        self.set_string_map(value)
-    }
-}
-
-impl ValueConstructor<HashMap<String, String>> for Value {
-    #[inline]
-    fn from_type(value: HashMap<String, String>) -> Self {
-        Value::StringMap(value)
-    }
-}
-
-// serde_json::Value
-impl ValueGetter<serde_json::Value> for Value {
-    #[inline]
-    fn get_value(&self) -> ValueResult<serde_json::Value> {
-        self.get_json()
-    }
-}
-
-impl ValueSetter<serde_json::Value> for Value {
-    #[inline]
-    fn set_value(&mut self, value: serde_json::Value) -> ValueResult<()> {
-        self.set_json(value)
-    }
-}
-
-impl ValueConstructor<serde_json::Value> for Value {
-    #[inline]
-    fn from_type(value: serde_json::Value) -> Self {
-        Value::Json(value)
-    }
 }
 
 impl_data_value_converter!(String);
@@ -287,6 +163,6 @@ impl_data_value_converter!(DateTime<Utc>);
 impl_data_value_converter!(BigInt);
 impl_data_value_converter!(BigDecimal);
 impl_data_value_converter!(Duration);
-impl_data_value_converter!(Url);
+impl_data_value_converter!(url::Url);
 impl_data_value_converter!(HashMap<String, String>);
 impl_data_value_converter!(serde_json::Value);
