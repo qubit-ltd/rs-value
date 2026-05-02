@@ -4,11 +4,13 @@ use std::time::Duration;
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use num_bigint::BigInt;
-use qubit_common::lang::DataType;
+use qubit_common::lang::{
+    DataConversionError, DataConvertTo, DataConverter, DataConverters, DataListConversionError,
+    DataType,
+};
 use url::Url;
 
 use crate::Value;
-use crate::ValueConverter;
 use crate::value_error::{ValueError, ValueResult};
 
 use super::multi_values::MultiValues;
@@ -310,37 +312,112 @@ impl<'b> MultiValuesAddArg<'_> for &'b [&'b str] {
 // Inherent conversion APIs and `Value` interop
 // ============================================================================
 
-/// Converts an iterator of [`Value`] items into a target vector.
+/// Maps a shared single-value conversion error into `ValueError`.
+///
+/// # Parameters
+///
+/// * `error` - Error returned by `DataConverter`.
+///
+/// # Returns
+///
+/// Returns the corresponding `ValueError` variant.
+fn map_data_conversion_error(error: DataConversionError) -> ValueError {
+    match error {
+        DataConversionError::NoValue => ValueError::NoValue,
+        DataConversionError::ConversionFailed { from, to } => {
+            ValueError::ConversionFailed { from, to }
+        }
+        DataConversionError::ConversionError(message) => ValueError::ConversionError(message),
+        DataConversionError::JsonSerializationError(message) => {
+            ValueError::JsonSerializationError(message)
+        }
+        DataConversionError::JsonDeserializationError(message) => {
+            ValueError::JsonDeserializationError(message)
+        }
+    }
+}
+
+/// Maps a shared batch conversion error into `ValueError`.
+///
+/// # Parameters
+///
+/// * `error` - Error returned by `DataConverters`.
+///
+/// # Returns
+///
+/// Returns a `ValueError::ConversionError` whose message includes the failing
+/// source element index and the underlying conversion error.
+#[inline]
+fn map_data_list_conversion_error(error: DataListConversionError) -> ValueError {
+    let source = map_data_conversion_error(error.source);
+    ValueError::ConversionError(format!(
+        "Cannot convert value at index {}: {}",
+        error.index, source
+    ))
+}
+
+/// Converts the first item from a batch converter.
+///
+/// # Type Parameters
+///
+/// * `T` - Target type.
+/// * `I` - Iterator type wrapped by `DataConverters`.
+///
+/// # Parameters
+///
+/// * `values` - Batch converter containing source values.
+///
+/// # Returns
+///
+/// Returns the converted first value.
+///
+/// # Errors
+///
+/// Returns `ValueError::NoValue` for empty sources or the mapped single-value
+/// conversion error for an invalid first source value.
+#[inline]
+fn convert_first<'a, T, I>(values: DataConverters<'a, I>) -> ValueResult<T>
+where
+    DataConverter<'a>: DataConvertTo<T>,
+    I: Iterator,
+    I::Item: Into<DataConverter<'a>>,
+{
+    values.to_first().map_err(map_data_conversion_error)
+}
+
+/// Converts every item from a batch converter.
 ///
 /// # Type Parameters
 ///
 /// * `T` - Target element type.
-/// * `I` - Iterator type producing [`Value`] items.
+/// * `I` - Iterator type wrapped by `DataConverters`.
 ///
 /// # Parameters
 ///
-/// * `values` - Values to convert.
+/// * `values` - Batch converter containing source values.
 ///
 /// # Returns
 ///
-/// Converted values in the original order.
+/// Returns converted values in the original order.
 ///
 /// # Errors
 ///
-/// Returns the first [`ValueError`] produced by [`Value::to`].
-fn convert_values<T, I>(values: I) -> ValueResult<Vec<T>>
+/// Returns a mapped batch conversion error containing the failing source index.
+#[inline]
+fn convert_values<'a, T, I>(values: DataConverters<'a, I>) -> ValueResult<Vec<T>>
 where
-    Value: ValueConverter<T>,
-    I: IntoIterator<Item = Value>,
+    DataConverter<'a>: DataConvertTo<T>,
+    I: Iterator,
+    I::Item: Into<DataConverter<'a>>,
 {
-    values.into_iter().map(|value| value.to::<T>()).collect()
+    values.to_vec().map_err(map_data_list_conversion_error)
 }
 
 impl MultiValues {
     /// Converts the first stored value to `T`.
     ///
-    /// Unlike [`Self::get_first`], this method uses [`Value::to`] conversion
-    /// rules instead of strict type matching. For example, a stored
+    /// Unlike [`Self::get_first`], this method uses shared `DataConverter`
+    /// conversion rules instead of strict type matching. For example, a stored
     /// `String("1")` can be converted to `bool`.
     ///
     /// # Type Parameters
@@ -358,16 +435,45 @@ impl MultiValues {
     #[inline]
     pub fn to<T>(&self) -> ValueResult<T>
     where
-        Value: ValueConverter<T>,
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
-        self.to_value().to::<T>()
+        match self {
+            MultiValues::Empty(_) => Err(ValueError::NoValue),
+            MultiValues::Bool(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Char(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Int8(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Int16(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Int32(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Int64(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Int128(v) => convert_first(DataConverters::from(v)),
+            MultiValues::UInt8(v) => convert_first(DataConverters::from(v)),
+            MultiValues::UInt16(v) => convert_first(DataConverters::from(v)),
+            MultiValues::UInt32(v) => convert_first(DataConverters::from(v)),
+            MultiValues::UInt64(v) => convert_first(DataConverters::from(v)),
+            MultiValues::UInt128(v) => convert_first(DataConverters::from(v)),
+            MultiValues::IntSize(v) => convert_first(DataConverters::from(v)),
+            MultiValues::UIntSize(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Float32(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Float64(v) => convert_first(DataConverters::from(v)),
+            MultiValues::BigInteger(v) => convert_first(DataConverters::from(v)),
+            MultiValues::BigDecimal(v) => convert_first(DataConverters::from(v)),
+            MultiValues::String(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Date(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Time(v) => convert_first(DataConverters::from(v)),
+            MultiValues::DateTime(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Instant(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Duration(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Url(v) => convert_first(DataConverters::from(v)),
+            MultiValues::StringMap(v) => convert_first(DataConverters::from(v)),
+            MultiValues::Json(v) => convert_first(DataConverters::from(v)),
+        }
     }
 
     /// Converts all stored values to `T`.
     ///
-    /// Unlike [`Self::get`], this method uses [`Value::to`] conversion rules
-    /// for every element instead of strict type matching. Empty values return
-    /// an empty vector.
+    /// Unlike [`Self::get`], this method uses shared `DataConverter` conversion
+    /// rules for every element instead of strict type matching. Empty values
+    /// return an empty vector.
     ///
     /// # Type Parameters
     ///
@@ -383,37 +489,37 @@ impl MultiValues {
     /// element.
     pub fn to_list<T>(&self) -> ValueResult<Vec<T>>
     where
-        Value: ValueConverter<T>,
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
         match self {
             MultiValues::Empty(_) => Ok(Vec::new()),
-            MultiValues::Bool(v) => convert_values(v.iter().copied().map(Value::Bool)),
-            MultiValues::Char(v) => convert_values(v.iter().copied().map(Value::Char)),
-            MultiValues::Int8(v) => convert_values(v.iter().copied().map(Value::Int8)),
-            MultiValues::Int16(v) => convert_values(v.iter().copied().map(Value::Int16)),
-            MultiValues::Int32(v) => convert_values(v.iter().copied().map(Value::Int32)),
-            MultiValues::Int64(v) => convert_values(v.iter().copied().map(Value::Int64)),
-            MultiValues::Int128(v) => convert_values(v.iter().copied().map(Value::Int128)),
-            MultiValues::UInt8(v) => convert_values(v.iter().copied().map(Value::UInt8)),
-            MultiValues::UInt16(v) => convert_values(v.iter().copied().map(Value::UInt16)),
-            MultiValues::UInt32(v) => convert_values(v.iter().copied().map(Value::UInt32)),
-            MultiValues::UInt64(v) => convert_values(v.iter().copied().map(Value::UInt64)),
-            MultiValues::UInt128(v) => convert_values(v.iter().copied().map(Value::UInt128)),
-            MultiValues::IntSize(v) => convert_values(v.iter().copied().map(Value::IntSize)),
-            MultiValues::UIntSize(v) => convert_values(v.iter().copied().map(Value::UIntSize)),
-            MultiValues::Float32(v) => convert_values(v.iter().copied().map(Value::Float32)),
-            MultiValues::Float64(v) => convert_values(v.iter().copied().map(Value::Float64)),
-            MultiValues::BigInteger(v) => convert_values(v.iter().cloned().map(Value::BigInteger)),
-            MultiValues::BigDecimal(v) => convert_values(v.iter().cloned().map(Value::BigDecimal)),
-            MultiValues::String(v) => convert_values(v.iter().cloned().map(Value::String)),
-            MultiValues::Date(v) => convert_values(v.iter().copied().map(Value::Date)),
-            MultiValues::Time(v) => convert_values(v.iter().copied().map(Value::Time)),
-            MultiValues::DateTime(v) => convert_values(v.iter().copied().map(Value::DateTime)),
-            MultiValues::Instant(v) => convert_values(v.iter().copied().map(Value::Instant)),
-            MultiValues::Duration(v) => convert_values(v.iter().copied().map(Value::Duration)),
-            MultiValues::Url(v) => convert_values(v.iter().cloned().map(Value::Url)),
-            MultiValues::StringMap(v) => convert_values(v.iter().cloned().map(Value::StringMap)),
-            MultiValues::Json(v) => convert_values(v.iter().cloned().map(Value::Json)),
+            MultiValues::Bool(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Char(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Int8(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Int16(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Int32(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Int64(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Int128(v) => convert_values(DataConverters::from(v)),
+            MultiValues::UInt8(v) => convert_values(DataConverters::from(v)),
+            MultiValues::UInt16(v) => convert_values(DataConverters::from(v)),
+            MultiValues::UInt32(v) => convert_values(DataConverters::from(v)),
+            MultiValues::UInt64(v) => convert_values(DataConverters::from(v)),
+            MultiValues::UInt128(v) => convert_values(DataConverters::from(v)),
+            MultiValues::IntSize(v) => convert_values(DataConverters::from(v)),
+            MultiValues::UIntSize(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Float32(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Float64(v) => convert_values(DataConverters::from(v)),
+            MultiValues::BigInteger(v) => convert_values(DataConverters::from(v)),
+            MultiValues::BigDecimal(v) => convert_values(DataConverters::from(v)),
+            MultiValues::String(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Date(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Time(v) => convert_values(DataConverters::from(v)),
+            MultiValues::DateTime(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Instant(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Duration(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Url(v) => convert_values(DataConverters::from(v)),
+            MultiValues::StringMap(v) => convert_values(DataConverters::from(v)),
+            MultiValues::Json(v) => convert_values(DataConverters::from(v)),
         }
     }
 

@@ -440,6 +440,71 @@ fn test_multi_value_generic_to_converts_first_value() {
 }
 
 #[test]
+fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string() {
+    let date = NaiveDate::from_ymd_opt(2026, 1, 2).unwrap();
+    let time = NaiveTime::from_hms_opt(3, 4, 5).unwrap();
+    let datetime = date.and_time(time);
+    let instant = Utc.with_ymd_and_hms(2026, 1, 2, 3, 4, 5).unwrap();
+    let duration = Duration::from_millis(250);
+    let url = Url::parse("https://example.com/path").unwrap();
+
+    let cases: Vec<(MultiValues, String)> = vec![
+        (MultiValues::Bool(vec![true]), "true".to_string()),
+        (MultiValues::Char(vec!['x']), "x".to_string()),
+        (MultiValues::Int8(vec![-1]), "-1".to_string()),
+        (MultiValues::Int16(vec![-10]), "-10".to_string()),
+        (MultiValues::Int32(vec![-100]), "-100".to_string()),
+        (MultiValues::Int64(vec![-1000]), "-1000".to_string()),
+        (MultiValues::Int128(vec![-10000]), "-10000".to_string()),
+        (MultiValues::UInt8(vec![1]), "1".to_string()),
+        (MultiValues::UInt16(vec![10]), "10".to_string()),
+        (MultiValues::UInt32(vec![100]), "100".to_string()),
+        (MultiValues::UInt64(vec![1000]), "1000".to_string()),
+        (MultiValues::UInt128(vec![10000]), "10000".to_string()),
+        (MultiValues::IntSize(vec![-7]), "-7".to_string()),
+        (MultiValues::UIntSize(vec![7]), "7".to_string()),
+        (MultiValues::Float32(vec![1.5]), "1.5".to_string()),
+        (MultiValues::Float64(vec![3.5]), "3.5".to_string()),
+        (
+            MultiValues::BigInteger(vec![BigInt::from(123)]),
+            "123".to_string(),
+        ),
+        (
+            MultiValues::BigDecimal(vec![BigDecimal::from_str("12.5").unwrap()]),
+            "12.5".to_string(),
+        ),
+        (
+            MultiValues::String(vec!["alpha".to_string()]),
+            "alpha".to_string(),
+        ),
+        (MultiValues::Date(vec![date]), date.to_string()),
+        (MultiValues::Time(vec![time]), time.to_string()),
+        (MultiValues::DateTime(vec![datetime]), datetime.to_string()),
+        (MultiValues::Instant(vec![instant]), instant.to_rfc3339()),
+        (
+            MultiValues::Duration(vec![duration]),
+            format!("{}ns", duration.as_nanos()),
+        ),
+        (MultiValues::Url(vec![url.clone()]), url.to_string()),
+    ];
+
+    for (values, expected) in cases {
+        let actual: String = values.to().unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    let mut map = HashMap::new();
+    map.insert("key".to_string(), "value".to_string());
+    let map_text: String = MultiValues::StringMap(vec![map.clone()]).to().unwrap();
+    let parsed_map: serde_json::Value = serde_json::from_str(&map_text).unwrap();
+    assert_eq!(parsed_map["key"], serde_json::json!("value"));
+
+    let json_value = serde_json::json!({"flag": true});
+    let json_text: String = MultiValues::Json(vec![json_value]).to().unwrap();
+    assert_eq!(json_text, r#"{"flag":true}"#);
+}
+
+#[test]
 fn test_multi_value_generic_to_list_converts_all_values() {
     let mv = MultiValues::String(vec![
         "1".to_string(),
@@ -579,6 +644,9 @@ fn test_multi_value_generic_to_list_converts_all_variants_to_string() {
 
 #[test]
 fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
+    let empty = MultiValues::Empty(DataType::String);
+    assert!(matches!(empty.to::<bool>(), Err(ValueError::NoValue)));
+
     let empty = MultiValues::String(Vec::new());
     assert!(matches!(empty.to::<bool>(), Err(ValueError::NoValue)));
 
@@ -587,6 +655,36 @@ fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
         invalid.to_list::<bool>(),
         Err(ValueError::ConversionError(_))
     ));
+
+    let unsupported = MultiValues::Date(vec![NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()]);
+    assert!(matches!(
+        unsupported.to::<bool>(),
+        Err(ValueError::ConversionFailed {
+            from: DataType::Date,
+            to: DataType::Bool
+        })
+    ));
+
+    let invalid_json = MultiValues::String(vec!["{".to_string()]);
+    assert!(matches!(
+        invalid_json.to::<JsonValue>(),
+        Err(ValueError::JsonDeserializationError(_))
+    ));
+}
+
+#[test]
+fn test_multi_value_generic_to_list_reports_failing_index() {
+    let invalid = MultiValues::String(vec!["1".to_string(), "bad".to_string(), "0".to_string()]);
+
+    match invalid.to_list::<bool>() {
+        Err(ValueError::ConversionError(message)) => {
+            assert!(
+                message.contains("index 1"),
+                "error should include failing index: {message}"
+            );
+        }
+        other => panic!("expected indexed conversion error, got {other:?}"),
+    }
 }
 
 #[test]
