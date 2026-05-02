@@ -1,18 +1,16 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Single Value Container
 //!
 //! Provides type-safe storage and access functionality for single values.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
 use bigdecimal::BigDecimal;
 use chrono::{
@@ -31,7 +29,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
 
-use qubit_common::lang::{
+use qubit_datatype::{
     DataConversionOptions,
     DataConvertTo,
     DataConverter,
@@ -70,9 +68,6 @@ use crate::value_error::ValueResult;
 /// assert_eq!(text.get_string().unwrap(), "hello");
 /// ```
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Value {
@@ -158,9 +153,6 @@ pub use super::value_setter::ValueSetter;
 /// The macro automatically extracts preceding documentation comments, so
 /// you can add `///` comments before macro invocations.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 impl Value {
     /// Generic constructor method
@@ -498,7 +490,7 @@ impl Value {
 
     /// Converts this value to `T` using the provided conversion options.
     ///
-    /// This method uses the shared [`qubit_common`] conversion layer directly,
+    /// This method uses the shared [`qubit_datatype`] conversion layer directly,
     /// so options such as string trimming, blank string handling, and boolean
     /// aliases are applied consistently with other value containers.
     ///
@@ -567,7 +559,7 @@ impl Value {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::Value;
     ///
     /// let mut value = Value::Empty(DataType::Int32);
@@ -602,7 +594,7 @@ impl Value {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::Value;
     ///
     /// let value = Value::Int32(42);
@@ -654,7 +646,7 @@ impl Value {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::Value;
     ///
     /// let value = Value::Int32(42);
@@ -675,7 +667,7 @@ impl Value {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::Value;
     ///
     /// let mut value = Value::Int32(42);
@@ -701,7 +693,7 @@ impl Value {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::Value;
     ///
     /// let mut value = Value::Int32(42);

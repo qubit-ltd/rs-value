@@ -1,23 +1,21 @@
 /*****************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Value Converters Unit Tests
 //!
 //! Tests for `to::<T>()` conversion behavior.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use num_bigint::BigInt;
-use qubit_common::lang::{
+use qubit_datatype::{
     BlankStringPolicy,
     BooleanConversionOptions,
     DataConversionOptions,

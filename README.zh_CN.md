@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![English Documentation](https://img.shields.io/badge/docs-English-blue.svg)](README.md)
 
-基于 `qubit_common::lang::DataType` 的类型安全值容器框架，提供单值、多值与命名值
+基于 `qubit_datatype::DataType` 的类型安全值容器框架，提供单值、多值与命名值
 的统一抽象，支持泛型构造/获取/设置与类型转换，并完整支持 `serde` 序列化。
 
 ## 概述
@@ -56,7 +56,7 @@ qubit-value = "0.4.3"
 
 ```rust
 use qubit_value::{Value, ValueError};
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 use num_bigint::BigInt;
 use bigdecimal::BigDecimal;
 use std::str::FromStr;
@@ -145,7 +145,7 @@ let restored: Config = v.deserialize_json()?;
 
 ```rust
 use qubit_value::{MultiValues, ValueError};
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 
 // 泛型构造
 let mut ports = MultiValues::new(vec![8080i32, 8081, 8082]);
@@ -314,7 +314,7 @@ assert_eq!(val, 8080);
 
 ```rust
 use qubit_value::{ValueError, ValueResult};
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 
 // 主要错误变体
 ValueError::NoValue                           // 访问了空值
@@ -371,7 +371,7 @@ ValueError::JsonDeserializationError(String)  // JSON 反序列化失败
 
 ```toml
 [dependencies]
-qubit-common = "0.6"
+qubit-datatype = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"

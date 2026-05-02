@@ -1,22 +1,20 @@
 /*****************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Value Core Unit Tests
 //!
 //! Tests for core and structural `Value` operations.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 use qubit_value::{
     Value,
     ValueError,

@@ -1,9 +1,10 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Public API Boundary Tests
@@ -11,11 +12,8 @@
 //! Verifies that external callers can use the generic APIs without importing
 //! the doc-hidden implementation traits that back their bounds.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 use qubit_value::{
     MultiValues,
     Value,
