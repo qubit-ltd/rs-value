@@ -18,8 +18,14 @@
 //!
 //! Haixing Hu
 
-use serde::{Deserialize, Serialize};
-use std::ops::{Deref, DerefMut};
+use serde::{
+    Deserialize,
+    Serialize,
+};
+use std::ops::{
+    Deref,
+    DerefMut,
+};
 
 use super::value::Value;
 

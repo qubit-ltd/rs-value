@@ -15,9 +15,19 @@
 //! Haixing Hu
 
 use chrono::DateTime as UtcDateTime;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 use qubit_common::lang::DataType;
-use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
+use qubit_value::{
+    MultiValues,
+    NamedMultiValues,
+    NamedValue,
+    Value,
+};
 
 #[test]
 fn test_named_multi_value_creation() {

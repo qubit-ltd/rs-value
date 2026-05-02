@@ -15,10 +15,20 @@
 //! Haixing Hu
 
 use bigdecimal::BigDecimal;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
+use chrono::{
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    TimeZone,
+    Utc,
+};
 use num_bigint::BigInt;
 use qubit_common::lang::DataType;
-use qubit_value::{MultiValues, Value, ValueError};
+use qubit_value::{
+    MultiValues,
+    Value,
+    ValueError,
+};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -1377,7 +1387,11 @@ fn test_biginteger_bigdecimal_merge() {
 
 #[test]
 fn test_multi_value_all_datetime_types() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test Date multiple values
     let dates = vec![
@@ -1569,7 +1583,10 @@ fn test_multi_value_clear_all_types() {
     assert_eq!(mv.data_type(), DataType::DateTime);
 
     // Instant type
-    use chrono::{DateTime, Utc};
+    use chrono::{
+        DateTime,
+        Utc,
+    };
     let instant1 = DateTime::parse_from_rfc3339("2023-01-01T10:00:00Z")
         .unwrap()
         .with_timezone(&Utc);
@@ -1659,7 +1676,12 @@ fn test_multi_value_merge_all_integer_types() {
 
 #[test]
 fn test_multi_value_merge_all_other_types() {
-    use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        DateTime,
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Bool type
     let mut mv1 = MultiValues::Bool(vec![true, false]);
@@ -1915,7 +1937,12 @@ fn test_multi_value_data_type_all_variants() {
 
 #[test]
 fn test_multi_value_from_value_all_types() {
-    use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        DateTime,
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test conversion from Value to MultiValues
 
@@ -2093,7 +2120,11 @@ fn test_multi_value_from_value_all_types() {
 
 #[test]
 fn test_multi_value_add_all_types_mismatch_with_macro() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Batch test type mismatch for all add_xxx methods using macros
     test_add_type_mismatch! {
@@ -2122,7 +2153,11 @@ fn test_multi_value_add_all_types_mismatch_with_macro() {
 
 #[test]
 fn test_multi_value_add_vec_all_types_mismatch_with_macro() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test add_xxxs (Vec) method type mismatch (excluding Int32 type, as the test MultiValues is Int32)
     test_add_type_mismatch! {
@@ -2150,7 +2185,11 @@ fn test_multi_value_add_vec_all_types_mismatch_with_macro() {
 
 #[test]
 fn test_multi_value_add_slice_all_types_mismatch_with_macro() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test add_xxxs_slice method type mismatch
     let bool_slice = &[true, false];

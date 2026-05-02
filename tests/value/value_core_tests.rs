@@ -17,7 +17,10 @@
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_common::lang::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::str::FromStr;
 
 #[test]
@@ -139,7 +142,11 @@ fn test_value_ref_types() {
 }
 #[test]
 fn test_value_datetime_types() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test Date
     let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
@@ -201,7 +208,11 @@ fn test_set_on_non_empty_for_coverage() {
 #[test]
 fn test_data_type_coverage_all_variants() {
     // Test data_type() method coverage for all data type variants
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Empty type (all possible DataType)
     assert_eq!(Value::Empty(DataType::Bool).data_type(), DataType::Bool);
@@ -297,7 +308,11 @@ fn test_data_type_coverage_all_variants() {
 #[test]
 fn test_is_empty_coverage_all_types() {
     // Test is_empty() returns false for all non-Empty types
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     assert!(!Value::Bool(true).is_empty());
     assert!(!Value::Char('A').is_empty());

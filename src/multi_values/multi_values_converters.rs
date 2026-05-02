@@ -2,16 +2,29 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 use num_bigint::BigInt;
 use qubit_common::lang::{
-    DataConversionError, DataConvertTo, DataConverter, DataConverters, DataListConversionError,
+    DataConversionError,
+    DataConvertTo,
+    DataConverter,
+    DataConverters,
+    DataListConversionError,
     DataType,
 };
 use url::Url;
 
 use crate::Value;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 use super::multi_values::MultiValues;
 use super::multi_values_add_arg::MultiValuesAddArg;

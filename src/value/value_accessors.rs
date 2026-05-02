@@ -2,7 +2,13 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 use num_bigint::BigInt;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -11,7 +17,10 @@ use url::Url;
 use qubit_common::lang::DataType;
 
 use super::value::Value;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 macro_rules! impl_get_value {
     // Copy type: directly dereference and return

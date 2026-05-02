@@ -2,18 +2,31 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 use num_bigint::BigInt;
 use url::Url;
 
-use qubit_common::lang::{DataConversionError, DataConvertTo, DataConverter};
+use qubit_common::lang::{
+    DataConversionError,
+    DataConvertTo,
+    DataConverter,
+};
 
 use super::value::Value;
 use super::value_constructor::ValueConstructor;
 use super::value_converter::ValueConverter;
 use super::value_getter::ValueGetter;
 use super::value_setter::ValueSetter;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 fn map_data_conversion_error(error: DataConversionError) -> ValueError {
     match error {

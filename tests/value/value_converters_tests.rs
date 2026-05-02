@@ -18,7 +18,10 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use num_bigint::BigInt;
 use qubit_common::lang::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::str::FromStr;
 
 #[test]
@@ -62,7 +65,11 @@ fn test_value_bool_conversion_accepts_config_bool_strings() {
 }
 #[test]
 fn test_value_datetime_to_string() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test Date to string conversion
     let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
@@ -683,7 +690,11 @@ fn test_as_bool_string_parse_error() {
 #[test]
 fn test_as_bool_all_unsupported_types() {
     // Test all types that do not support conversion to bool
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Char type
     assert!(matches!(
@@ -1366,7 +1377,10 @@ fn test_as_int64_big_types_edge_cases() {
 }
 #[test]
 fn test_as_float64_non_numeric_type_conversion_failed() {
-    use chrono::{DateTime, Utc};
+    use chrono::{
+        DateTime,
+        Utc,
+    };
 
     // DateTime type cannot convert to f64
     let datetime = DateTime::from_timestamp(1_000_000_000, 0)

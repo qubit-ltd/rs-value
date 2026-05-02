@@ -9,7 +9,12 @@
 //! Regression tests for public documentation examples.
 
 use qubit_common::lang::DataType;
-use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
+use qubit_value::{
+    MultiValues,
+    NamedMultiValues,
+    NamedValue,
+    Value,
+};
 
 #[test]
 fn test_doc_example_single_value_operations() {

@@ -16,7 +16,10 @@
 //! Haixing Hu
 
 use qubit_common::lang::DataType;
-use qubit_value::{MultiValues, Value};
+use qubit_value::{
+    MultiValues,
+    Value,
+};
 
 #[test]
 fn test_value_generic_api_works_without_hidden_trait_imports() {

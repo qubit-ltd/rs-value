@@ -17,7 +17,10 @@
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_common::lang::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::str::FromStr;
 
 #[test]
