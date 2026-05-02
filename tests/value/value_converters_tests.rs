@@ -1,24 +1,31 @@
 /*****************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Value Converters Unit Tests
 //!
 //! Tests for `to::<T>()` conversion behavior.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use num_bigint::BigInt;
-use qubit_common::lang::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_datatype::{
+    BlankStringPolicy,
+    BooleanConversionOptions,
+    DataConversionOptions,
+    DataType,
+    StringConversionOptions,
+};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::str::FromStr;
 
 #[test]
@@ -60,9 +67,41 @@ fn test_value_bool_conversion_accepts_config_bool_strings() {
         );
     }
 }
+
+#[test]
+fn test_value_to_with_applies_common_conversion_options() {
+    let options = DataConversionOptions::default()
+        .with_string_options(
+            StringConversionOptions::default()
+                .with_trim(true)
+                .with_blank_string_policy(BlankStringPolicy::TreatAsMissing),
+        )
+        .with_boolean_options(
+            BooleanConversionOptions::strict()
+                .with_true_literal("enabled")
+                .with_false_literal("disabled"),
+        );
+
+    let enabled = Value::String(" enabled ".to_string())
+        .to_with::<bool>(&options)
+        .expect("custom boolean literal should parse");
+    assert!(enabled);
+
+    let port = Value::String(" 8080 ".to_string())
+        .to_with::<u16>(&options)
+        .expect("trimmed numeric string should parse");
+    assert_eq!(port, 8080);
+
+    let blank = Value::String("   ".to_string()).to_with::<String>(&options);
+    assert!(matches!(blank, Err(ValueError::NoValue)));
+}
 #[test]
 fn test_value_datetime_to_string() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test Date to string conversion
     let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
@@ -469,7 +508,6 @@ fn test_as_int32_conversion_errors() {
     let value = Value::Int64(i64::MAX);
     match value.to::<i32>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i64"));
             assert!(msg.contains("i32"));
             assert!(msg.contains("range"));
         }
@@ -480,7 +518,6 @@ fn test_as_int32_conversion_errors() {
     let value = Value::Int128(i128::MAX);
     match value.to::<i32>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i128"));
             assert!(msg.contains("i32"));
             assert!(msg.contains("range"));
         }
@@ -491,7 +528,6 @@ fn test_as_int32_conversion_errors() {
     let value = Value::UInt32(u32::MAX);
     match value.to::<i32>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u32"));
             assert!(msg.contains("i32"));
             assert!(msg.contains("range"));
         }
@@ -513,7 +549,6 @@ fn test_as_int32_conversion_errors() {
     let value = Value::BigInteger(BigInt::from_str("999999999999999999999").unwrap());
     match value.to::<i32>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("BigInteger"));
             assert!(msg.contains("i32"));
             assert!(msg.contains("range"));
         }
@@ -526,7 +561,6 @@ fn test_as_int64_conversion_errors() {
     let value = Value::Int128(i128::MAX);
     match value.to::<i64>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -537,7 +571,6 @@ fn test_as_int64_conversion_errors() {
     let value = Value::UInt64(u64::MAX);
     match value.to::<i64>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u64"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -559,7 +592,6 @@ fn test_as_int64_conversion_errors() {
     let value = Value::BigInteger(BigInt::from_str("999999999999999999999999999999").unwrap());
     match value.to::<i64>() {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("BigInteger"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -690,7 +722,11 @@ fn test_as_bool_string_parse_error() {
 #[test]
 fn test_as_bool_all_unsupported_types() {
     // Test all types that do not support conversion to bool
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Char type
     assert!(matches!(
@@ -1373,7 +1409,10 @@ fn test_as_int64_big_types_edge_cases() {
 }
 #[test]
 fn test_as_float64_non_numeric_type_conversion_failed() {
-    use chrono::{DateTime, Utc};
+    use chrono::{
+        DateTime,
+        Utc,
+    };
 
     // DateTime type cannot convert to f64
     let datetime = DateTime::from_timestamp(1_000_000_000, 0)
@@ -1475,7 +1514,8 @@ fn test_uint128_to_int64_overflow() {
 
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u128 value out of i64 range"));
+            assert!(msg.contains("i64"));
+            assert!(msg.contains("range"));
         }
         _ => panic!("Expected ConversionError"),
     }
@@ -1498,7 +1538,6 @@ fn test_as_int64_int128_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1511,7 +1550,6 @@ fn test_as_int64_int128_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("i128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1526,7 +1564,6 @@ fn test_as_int64_uint64_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u64"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1539,7 +1576,6 @@ fn test_as_int64_uint64_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u64"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1554,7 +1590,6 @@ fn test_as_int64_uint128_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1567,7 +1602,6 @@ fn test_as_int64_uint128_overflow() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("u128"));
             assert!(msg.contains("i64"));
             assert!(msg.contains("range"));
         }
@@ -1586,7 +1620,6 @@ fn test_as_int64_bigdecimal_conversion_failed() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("BigDecimal"));
             assert!(msg.contains("i64"));
         }
         _ => panic!("Expected ConversionError for BigDecimal conversion"),
@@ -1599,7 +1632,6 @@ fn test_as_int64_bigdecimal_conversion_failed() {
     assert!(result.is_err());
     match result {
         Err(ValueError::ConversionError(msg)) => {
-            assert!(msg.contains("BigDecimal"));
             assert!(msg.contains("i64"));
         }
         _ => panic!("Expected ConversionError for negative BigDecimal conversion"),

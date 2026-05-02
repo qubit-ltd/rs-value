@@ -1,28 +1,35 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Multiple Values Container
 //!
 //! Provides type-safe storage and access functionality for multiple values.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 use num_bigint::BigInt;
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
 
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 
 /// Multiple values container
 ///
@@ -55,9 +62,6 @@ use qubit_common::lang::DataType;
 /// assert_eq!(values.count(), 4);
 /// ```
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MultiValues {
@@ -133,9 +137,6 @@ pub enum MultiValues {
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 macro_rules! impl_get_multi_values {
     // Simple type: return slice reference
@@ -181,9 +182,6 @@ macro_rules! impl_get_multi_values {
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 macro_rules! impl_get_first_value {
     // Copy type: directly return value
@@ -233,9 +231,6 @@ macro_rules! impl_get_first_value {
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 macro_rules! impl_add_single_value {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
@@ -269,9 +264,6 @@ macro_rules! impl_add_single_value {
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 macro_rules! impl_add_multi_values {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
@@ -301,9 +293,6 @@ macro_rules! impl_add_multi_values {
 /// Generates `add_[xxx]s_slice` methods for `MultiValues`, used to append
 /// multiple values at once from a slice.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 macro_rules! impl_add_multi_values_slice {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
@@ -338,9 +327,6 @@ macro_rules! impl_add_multi_values_slice {
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 macro_rules! impl_set_single_value {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
@@ -362,9 +348,6 @@ macro_rules! impl_set_single_value {
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 macro_rules! impl_set_multi_values {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
@@ -389,9 +372,6 @@ macro_rules! impl_set_multi_values {
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 macro_rules! impl_set_multi_values_slice {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {

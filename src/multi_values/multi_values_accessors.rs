@@ -1,14 +1,33 @@
+/*******************************************************************************
+ *
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
+ *
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
+ *
+ ******************************************************************************/
+
 use std::collections::HashMap;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 use num_bigint::BigInt;
 use url::Url;
 
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 use super::multi_values::MultiValues;
 use super::multi_values_add_arg::MultiValuesAddArg;
@@ -166,7 +185,7 @@ impl MultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::MultiValues;
     ///
     /// // 1) Vec<T>
@@ -219,7 +238,7 @@ impl MultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::MultiValues;
     ///
     /// // 1) Single T
@@ -254,7 +273,7 @@ impl MultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Int32(vec![1, 2, 3]);
@@ -303,7 +322,7 @@ impl MultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Int32(vec![1, 2, 3]);
@@ -355,7 +374,7 @@ impl MultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Int32(vec![]);
@@ -374,7 +393,7 @@ impl MultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::MultiValues;
     ///
     /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
@@ -428,7 +447,7 @@ impl MultiValues {
     /// # Example
     ///
     /// ```rust
-    /// use qubit_common::lang::DataType;
+    /// use qubit_datatype::DataType;
     /// use qubit_value::MultiValues;
     ///
     /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
@@ -967,7 +986,7 @@ impl MultiValues {
         /// # Example
         ///
         /// ```rust
-        /// use qubit_common::lang::DataType;
+        /// use qubit_datatype::DataType;
         /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Empty(DataType::Bool);
@@ -1160,7 +1179,7 @@ impl MultiValues {
         /// # Example
         ///
         /// ```rust
-        /// use qubit_common::lang::DataType;
+        /// use qubit_datatype::DataType;
         /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Empty(DataType::String);
@@ -1603,7 +1622,7 @@ impl MultiValues {
         /// # Example
         ///
         /// ```rust
-        /// use qubit_common::lang::DataType;
+        /// use qubit_datatype::DataType;
         /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Empty(DataType::Bool);
@@ -1796,7 +1815,7 @@ impl MultiValues {
         /// # Example
         ///
         /// ```rust
-        /// use qubit_common::lang::DataType;
+        /// use qubit_datatype::DataType;
         /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Empty(DataType::String);

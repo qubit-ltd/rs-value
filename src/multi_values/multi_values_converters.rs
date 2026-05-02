@@ -1,346 +1,159 @@
-use std::collections::HashMap;
-use std::time::Duration;
+/*******************************************************************************
+ *
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
+ *
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
+ *
+ ******************************************************************************/
 
-use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use num_bigint::BigInt;
-use qubit_common::lang::DataType;
-use url::Url;
+//! Internal conversion and interoperability implementations for `MultiValues`.
+//!
+//! This module keeps generic conversion logic (`to`, `to_list`, `to_value`, etc.)
+//! while dispatch traits are implemented in dedicated `multi_values_*` modules.
+
+use qubit_datatype::{
+    DataConversionError,
+    DataConversionOptions,
+    DataConvertTo,
+    DataConverter,
+    DataConverters,
+    DataListConversionError,
+    DataType,
+    ScalarStringDataConverters,
+};
 
 use crate::Value;
-use crate::ValueConverter;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 use super::multi_values::MultiValues;
-use super::multi_values_add_arg::MultiValuesAddArg;
-use super::multi_values_adder::MultiValuesAdder;
-use super::multi_values_constructor::MultiValuesConstructor;
-use super::multi_values_first_getter::MultiValuesFirstGetter;
-use super::multi_values_getter::MultiValuesGetter;
-use super::multi_values_multi_adder::MultiValuesMultiAdder;
-use super::multi_values_multi_adder_slice::MultiValuesMultiAdderSlice;
-use super::multi_values_set_arg::MultiValuesSetArg;
-use super::multi_values_setter::MultiValuesSetter;
-use super::multi_values_setter_slice::MultiValuesSetterSlice;
-use super::multi_values_single_setter::MultiValuesSingleSetter;
-
-// ============================================================================
-// Internal trait implementations (simplified using macros)
-// ============================================================================
-
-macro_rules! impl_multi_value_traits {
-    ($type:ty, $variant:ident, $data_type:expr) => {
-        impl MultiValuesGetter<$type> for MultiValues {
-            #[inline]
-            fn get_values(&self) -> ValueResult<Vec<$type>> {
-                match self {
-                    MultiValues::$variant(v) => Ok(v.clone()),
-                    MultiValues::Empty(dt) if *dt == $data_type => Ok(Vec::new()),
-                    _ => Err(ValueError::TypeMismatch {
-                        expected: $data_type,
-                        actual: self.data_type(),
-                    }),
-                }
-            }
-        }
-
-        impl MultiValuesFirstGetter<$type> for MultiValues {
-            #[inline]
-            fn get_first_value(&self) -> ValueResult<$type> {
-                match self {
-                    MultiValues::$variant(v) if !v.is_empty() => Ok(v[0].clone()),
-                    MultiValues::$variant(_) => Err(ValueError::NoValue),
-                    MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
-                    _ => Err(ValueError::TypeMismatch {
-                        expected: $data_type,
-                        actual: self.data_type(),
-                    }),
-                }
-            }
-        }
-
-        impl MultiValuesSetter<$type> for MultiValues {
-            #[inline]
-            fn set_values(&mut self, values: Vec<$type>) -> ValueResult<()> {
-                *self = MultiValues::$variant(values);
-                Ok(())
-            }
-        }
-
-        // Generic From implementation for SetParam is at the top level, not
-        // repeated here for specific types.
-
-        impl MultiValuesSetterSlice<$type> for MultiValues {
-            #[inline]
-            fn set_values_slice(&mut self, values: &[$type]) -> ValueResult<()> {
-                // Equivalent to set_[xxx]s_slice: replace entire list with slice
-                *self = MultiValues::$variant(values.to_vec());
-                Ok(())
-            }
-        }
-
-        impl MultiValuesSingleSetter<$type> for MultiValues {
-            #[inline]
-            fn set_single_value(&mut self, value: $type) -> ValueResult<()> {
-                *self = MultiValues::$variant(vec![value]);
-                Ok(())
-            }
-        }
-
-        impl MultiValuesAdder<$type> for MultiValues {
-            #[inline]
-            fn add_value(&mut self, value: $type) -> ValueResult<()> {
-                match self {
-                    MultiValues::$variant(v) => {
-                        v.push(value);
-                        Ok(())
-                    }
-                    MultiValues::Empty(dt) if *dt == $data_type => {
-                        *self = MultiValues::$variant(vec![value]);
-                        Ok(())
-                    }
-                    _ => Err(ValueError::TypeMismatch {
-                        expected: $data_type,
-                        actual: self.data_type(),
-                    }),
-                }
-            }
-        }
-
-        // Three types of implementations for local dispatch trait
-        impl<'a> MultiValuesSetArg<'a> for Vec<$type> {
-            type Item = $type;
-
-            #[inline]
-            fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
-                <MultiValues as MultiValuesSetter<$type>>::set_values(target, self)
-            }
-        }
-
-        impl<'a> MultiValuesSetArg<'a> for &'a [$type]
-        where
-            $type: Clone,
-        {
-            type Item = $type;
-
-            #[inline]
-            fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
-                <MultiValues as MultiValuesSetterSlice<$type>>::set_values_slice(target, self)
-            }
-        }
-
-        impl<'a> MultiValuesSetArg<'a> for $type {
-            type Item = $type;
-
-            #[inline]
-            fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
-                <MultiValues as MultiValuesSingleSetter<$type>>::set_single_value(target, self)
-            }
-        }
-
-        impl MultiValuesMultiAdder<$type> for MultiValues {
-            #[inline]
-            fn add_values(&mut self, values: Vec<$type>) -> ValueResult<()> {
-                match self {
-                    MultiValues::$variant(v) => {
-                        v.extend(values);
-                        Ok(())
-                    }
-                    MultiValues::Empty(dt) if *dt == $data_type => {
-                        *self = MultiValues::$variant(values);
-                        Ok(())
-                    }
-                    _ => Err(ValueError::TypeMismatch {
-                        expected: $data_type,
-                        actual: self.data_type(),
-                    }),
-                }
-            }
-        }
-
-        impl MultiValuesMultiAdderSlice<$type> for MultiValues {
-            #[inline]
-            fn add_values_slice(&mut self, values: &[$type]) -> ValueResult<()> {
-                match self {
-                    MultiValues::$variant(v) => {
-                        v.extend_from_slice(values);
-                        Ok(())
-                    }
-                    MultiValues::Empty(dt) if *dt == $data_type => {
-                        *self = MultiValues::$variant(values.to_vec());
-                        Ok(())
-                    }
-                    _ => Err(ValueError::TypeMismatch {
-                        expected: $data_type,
-                        actual: self.data_type(),
-                    }),
-                }
-            }
-        }
-
-        // add dispatch: T / Vec<T> / &[T]
-        impl<'a> MultiValuesAddArg<'a> for $type {
-            type Item = $type;
-
-            #[inline]
-            fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
-                <MultiValues as MultiValuesAdder<$type>>::add_value(target, self)
-            }
-        }
-
-        impl<'a> MultiValuesAddArg<'a> for Vec<$type> {
-            type Item = $type;
-
-            #[inline]
-            fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
-                <MultiValues as MultiValuesMultiAdder<$type>>::add_values(target, self)
-            }
-        }
-
-        impl<'a> MultiValuesAddArg<'a> for &'a [$type]
-        where
-            $type: Clone,
-        {
-            type Item = $type;
-
-            #[inline]
-            fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
-                <MultiValues as MultiValuesMultiAdderSlice<$type>>::add_values_slice(target, self)
-            }
-        }
-
-        impl MultiValuesConstructor<$type> for MultiValues {
-            #[inline]
-            fn from_vec(values: Vec<$type>) -> Self {
-                MultiValues::$variant(values)
-            }
-        }
-    };
-}
-
-// Implementation for Copy types
-impl_multi_value_traits!(bool, Bool, DataType::Bool);
-impl_multi_value_traits!(char, Char, DataType::Char);
-impl_multi_value_traits!(i8, Int8, DataType::Int8);
-impl_multi_value_traits!(i16, Int16, DataType::Int16);
-impl_multi_value_traits!(i32, Int32, DataType::Int32);
-impl_multi_value_traits!(i64, Int64, DataType::Int64);
-impl_multi_value_traits!(i128, Int128, DataType::Int128);
-impl_multi_value_traits!(u8, UInt8, DataType::UInt8);
-impl_multi_value_traits!(u16, UInt16, DataType::UInt16);
-impl_multi_value_traits!(u32, UInt32, DataType::UInt32);
-impl_multi_value_traits!(u64, UInt64, DataType::UInt64);
-impl_multi_value_traits!(u128, UInt128, DataType::UInt128);
-impl_multi_value_traits!(f32, Float32, DataType::Float32);
-impl_multi_value_traits!(f64, Float64, DataType::Float64);
-impl_multi_value_traits!(String, String, DataType::String);
-impl_multi_value_traits!(NaiveDate, Date, DataType::Date);
-impl_multi_value_traits!(NaiveTime, Time, DataType::Time);
-impl_multi_value_traits!(NaiveDateTime, DateTime, DataType::DateTime);
-impl_multi_value_traits!(DateTime<Utc>, Instant, DataType::Instant);
-impl_multi_value_traits!(BigInt, BigInteger, DataType::BigInteger);
-impl_multi_value_traits!(BigDecimal, BigDecimal, DataType::BigDecimal);
-impl_multi_value_traits!(isize, IntSize, DataType::IntSize);
-impl_multi_value_traits!(usize, UIntSize, DataType::UIntSize);
-impl_multi_value_traits!(Duration, Duration, DataType::Duration);
-impl_multi_value_traits!(Url, Url, DataType::Url);
-impl_multi_value_traits!(HashMap<String, String>, StringMap, DataType::StringMap);
-impl_multi_value_traits!(serde_json::Value, Json, DataType::Json);
-
-// Convenience adaptation: &str supported as input type for String
-impl MultiValuesSetArg<'_> for &str {
-    type Item = String;
-
-    #[inline]
-    fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
-        <MultiValues as MultiValuesSingleSetter<String>>::set_single_value(target, self.to_string())
-    }
-}
-
-impl MultiValuesSetArg<'_> for Vec<&str> {
-    type Item = String;
-
-    #[inline]
-    fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
-        let owned: Vec<String> = self.into_iter().map(|s| s.to_string()).collect();
-        <MultiValues as MultiValuesSetter<String>>::set_values(target, owned)
-    }
-}
-
-impl<'b> MultiValuesSetArg<'_> for &'b [&'b str] {
-    type Item = String;
-
-    #[inline]
-    fn apply(self, target: &mut MultiValues) -> ValueResult<()> {
-        let owned: Vec<String> = self.iter().map(|s| (*s).to_string()).collect();
-        <MultiValues as MultiValuesSetter<String>>::set_values(target, owned)
-    }
-}
-
-impl MultiValuesAddArg<'_> for &str {
-    type Item = String;
-
-    #[inline]
-    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
-        <MultiValues as MultiValuesAdder<String>>::add_value(target, self.to_string())
-    }
-}
-
-impl MultiValuesAddArg<'_> for Vec<&str> {
-    type Item = String;
-
-    #[inline]
-    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
-        let owned: Vec<String> = self.into_iter().map(|s| s.to_string()).collect();
-        <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
-    }
-}
-
-impl<'b> MultiValuesAddArg<'_> for &'b [&'b str] {
-    type Item = String;
-
-    #[inline]
-    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
-        let owned: Vec<String> = self.iter().map(|s| (*s).to_string()).collect();
-        <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
-    }
-}
 
 // ============================================================================
 // Inherent conversion APIs and `Value` interop
 // ============================================================================
 
-/// Converts an iterator of [`Value`] items into a target vector.
+/// Maps a shared single-value conversion error into `ValueError`.
+///
+/// # Parameters
+///
+/// * `error` - Error returned by `DataConverter`.
+///
+/// # Returns
+///
+/// Returns the corresponding `ValueError` variant.
+fn map_data_conversion_error(error: DataConversionError) -> ValueError {
+    match error {
+        DataConversionError::NoValue => ValueError::NoValue,
+        DataConversionError::ConversionFailed { from, to } => {
+            ValueError::ConversionFailed { from, to }
+        }
+        DataConversionError::ConversionError(message) => ValueError::ConversionError(message),
+        DataConversionError::JsonSerializationError(message) => {
+            ValueError::JsonSerializationError(message)
+        }
+        DataConversionError::JsonDeserializationError(message) => {
+            ValueError::JsonDeserializationError(message)
+        }
+    }
+}
+
+/// Maps a shared batch conversion error into `ValueError`.
+///
+/// # Parameters
+///
+/// * `error` - Error returned by `DataConverters`.
+///
+/// # Returns
+///
+/// Returns a `ValueError::ConversionError` whose message includes the failing
+/// source element index and the underlying conversion error.
+#[inline]
+fn map_data_list_conversion_error(error: DataListConversionError) -> ValueError {
+    let source = map_data_conversion_error(error.source);
+    ValueError::ConversionError(format!(
+        "Cannot convert value at index {}: {}",
+        error.index, source
+    ))
+}
+
+/// Converts the first item from a batch converter using conversion options.
+///
+/// # Type Parameters
+///
+/// * `T` - Target type.
+/// * `I` - Iterator type wrapped by `DataConverters`.
+///
+/// # Parameters
+///
+/// * `values` - Batch converter containing source values.
+/// * `options` - Conversion options forwarded to `qubit_datatype`.
+///
+/// # Returns
+///
+/// Returns the converted first value.
+///
+/// # Errors
+///
+/// Returns `ValueError::NoValue` for empty sources or the mapped single-value
+/// conversion error for an invalid first source value.
+#[inline]
+fn convert_first_with<'a, T, I>(
+    values: DataConverters<'a, I>,
+    options: &DataConversionOptions,
+) -> ValueResult<T>
+where
+    DataConverter<'a>: DataConvertTo<T>,
+    I: Iterator,
+    I::Item: Into<DataConverter<'a>>,
+{
+    values
+        .to_first_with(options)
+        .map_err(map_data_conversion_error)
+}
+
+/// Converts every item from a batch converter using conversion options.
 ///
 /// # Type Parameters
 ///
 /// * `T` - Target element type.
-/// * `I` - Iterator type producing [`Value`] items.
+/// * `I` - Iterator type wrapped by `DataConverters`.
 ///
 /// # Parameters
 ///
-/// * `values` - Values to convert.
+/// * `values` - Batch converter containing source values.
+/// * `options` - Conversion options forwarded to `qubit_datatype`.
 ///
 /// # Returns
 ///
-/// Converted values in the original order.
+/// Returns converted values in the original order.
 ///
 /// # Errors
 ///
-/// Returns the first [`ValueError`] produced by [`Value::to`].
-fn convert_values<T, I>(values: I) -> ValueResult<Vec<T>>
+/// Returns a mapped batch conversion error containing the failing source index.
+#[inline]
+fn convert_values_with<'a, T, I>(
+    values: DataConverters<'a, I>,
+    options: &DataConversionOptions,
+) -> ValueResult<Vec<T>>
 where
-    Value: ValueConverter<T>,
-    I: IntoIterator<Item = Value>,
+    DataConverter<'a>: DataConvertTo<T>,
+    I: Iterator,
+    I::Item: Into<DataConverter<'a>>,
 {
-    values.into_iter().map(|value| value.to::<T>()).collect()
+    values
+        .to_vec_with(options)
+        .map_err(map_data_list_conversion_error)
 }
 
 impl MultiValues {
     /// Converts the first stored value to `T`.
     ///
-    /// Unlike [`Self::get_first`], this method uses [`Value::to`] conversion
-    /// rules instead of strict type matching. For example, a stored
+    /// Unlike [`Self::get_first`], this method uses shared `DataConverter`
+    /// conversion rules instead of strict type matching. For example, a stored
     /// `String("1")` can be converted to `bool`.
     ///
     /// # Type Parameters
@@ -358,16 +171,81 @@ impl MultiValues {
     #[inline]
     pub fn to<T>(&self) -> ValueResult<T>
     where
-        Value: ValueConverter<T>,
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
-        self.to_value().to::<T>()
+        self.to_with(&DataConversionOptions::default())
+    }
+
+    /// Converts the first stored value to `T` using conversion options.
+    ///
+    /// A `MultiValues::String` containing exactly one string is treated as a
+    /// scalar string source, so collection options can split it before taking
+    /// the first converted item. Multiple stored string values are treated as
+    /// an already-materialized list and are converted element by element.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target type.
+    ///
+    /// # Parameters
+    ///
+    /// * `options` - Conversion options forwarded to `qubit_datatype`.
+    ///
+    /// # Returns
+    ///
+    /// The converted first value.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when no value is stored, or a conversion
+    /// error when the first value cannot be converted to `T`.
+    #[inline]
+    pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
+    where
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
+    {
+        match self {
+            MultiValues::Empty(_) => Err(ValueError::NoValue),
+            MultiValues::Bool(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Char(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Int8(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Int16(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Int32(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Int64(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Int128(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::UInt8(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::UInt16(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::UInt32(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::UInt64(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::UInt128(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::IntSize(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::UIntSize(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Float32(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Float64(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::BigInteger(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::BigDecimal(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::String(v) if v.len() == 1 => {
+                ScalarStringDataConverters::from(v[0].as_str())
+                    .to_first_with(options)
+                    .map_err(map_data_conversion_error)
+            }
+            MultiValues::String(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Date(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Time(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::DateTime(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Instant(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Duration(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Url(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::StringMap(v) => convert_first_with(DataConverters::from(v), options),
+            MultiValues::Json(v) => convert_first_with(DataConverters::from(v), options),
+        }
     }
 
     /// Converts all stored values to `T`.
     ///
-    /// Unlike [`Self::get`], this method uses [`Value::to`] conversion rules
-    /// for every element instead of strict type matching. Empty values return
-    /// an empty vector.
+    /// Unlike [`Self::get`], this method uses shared `DataConverter` conversion
+    /// rules for every element instead of strict type matching. Empty values
+    /// return an empty vector.
     ///
     /// # Type Parameters
     ///
@@ -383,37 +261,72 @@ impl MultiValues {
     /// element.
     pub fn to_list<T>(&self) -> ValueResult<Vec<T>>
     where
-        Value: ValueConverter<T>,
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
+    {
+        self.to_list_with(&DataConversionOptions::default())
+    }
+
+    /// Converts all stored values to `T` using conversion options.
+    ///
+    /// A `MultiValues::String` containing exactly one string is treated as a
+    /// scalar string source, so collection options can split it into items.
+    /// Multiple stored string values are treated as an already-materialized
+    /// list and are converted element by element.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element type.
+    ///
+    /// # Parameters
+    ///
+    /// * `options` - Conversion options forwarded to `qubit_datatype`.
+    ///
+    /// # Returns
+    ///
+    /// A vector containing all converted values in the original order.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first conversion error encountered while converting an
+    /// element.
+    pub fn to_list_with<T>(&self, options: &DataConversionOptions) -> ValueResult<Vec<T>>
+    where
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
         match self {
             MultiValues::Empty(_) => Ok(Vec::new()),
-            MultiValues::Bool(v) => convert_values(v.iter().copied().map(Value::Bool)),
-            MultiValues::Char(v) => convert_values(v.iter().copied().map(Value::Char)),
-            MultiValues::Int8(v) => convert_values(v.iter().copied().map(Value::Int8)),
-            MultiValues::Int16(v) => convert_values(v.iter().copied().map(Value::Int16)),
-            MultiValues::Int32(v) => convert_values(v.iter().copied().map(Value::Int32)),
-            MultiValues::Int64(v) => convert_values(v.iter().copied().map(Value::Int64)),
-            MultiValues::Int128(v) => convert_values(v.iter().copied().map(Value::Int128)),
-            MultiValues::UInt8(v) => convert_values(v.iter().copied().map(Value::UInt8)),
-            MultiValues::UInt16(v) => convert_values(v.iter().copied().map(Value::UInt16)),
-            MultiValues::UInt32(v) => convert_values(v.iter().copied().map(Value::UInt32)),
-            MultiValues::UInt64(v) => convert_values(v.iter().copied().map(Value::UInt64)),
-            MultiValues::UInt128(v) => convert_values(v.iter().copied().map(Value::UInt128)),
-            MultiValues::IntSize(v) => convert_values(v.iter().copied().map(Value::IntSize)),
-            MultiValues::UIntSize(v) => convert_values(v.iter().copied().map(Value::UIntSize)),
-            MultiValues::Float32(v) => convert_values(v.iter().copied().map(Value::Float32)),
-            MultiValues::Float64(v) => convert_values(v.iter().copied().map(Value::Float64)),
-            MultiValues::BigInteger(v) => convert_values(v.iter().cloned().map(Value::BigInteger)),
-            MultiValues::BigDecimal(v) => convert_values(v.iter().cloned().map(Value::BigDecimal)),
-            MultiValues::String(v) => convert_values(v.iter().cloned().map(Value::String)),
-            MultiValues::Date(v) => convert_values(v.iter().copied().map(Value::Date)),
-            MultiValues::Time(v) => convert_values(v.iter().copied().map(Value::Time)),
-            MultiValues::DateTime(v) => convert_values(v.iter().copied().map(Value::DateTime)),
-            MultiValues::Instant(v) => convert_values(v.iter().copied().map(Value::Instant)),
-            MultiValues::Duration(v) => convert_values(v.iter().copied().map(Value::Duration)),
-            MultiValues::Url(v) => convert_values(v.iter().cloned().map(Value::Url)),
-            MultiValues::StringMap(v) => convert_values(v.iter().cloned().map(Value::StringMap)),
-            MultiValues::Json(v) => convert_values(v.iter().cloned().map(Value::Json)),
+            MultiValues::Bool(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Char(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Int8(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Int16(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Int32(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Int64(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Int128(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::UInt8(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::UInt16(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::UInt32(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::UInt64(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::UInt128(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::IntSize(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::UIntSize(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Float32(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Float64(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::BigInteger(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::BigDecimal(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::String(v) if v.len() == 1 => {
+                ScalarStringDataConverters::from(v[0].as_str())
+                    .to_vec_with(options)
+                    .map_err(map_data_list_conversion_error)
+            }
+            MultiValues::String(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Date(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Time(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::DateTime(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Instant(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Duration(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Url(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::StringMap(v) => convert_values_with(DataConverters::from(v), options),
+            MultiValues::Json(v) => convert_values_with(DataConverters::from(v), options),
         }
     }
 

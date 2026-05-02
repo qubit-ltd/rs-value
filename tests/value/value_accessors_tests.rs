@@ -1,23 +1,24 @@
 /*****************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Value Accessors Unit Tests
 //!
 //! Tests for access-style getters/setters and raw type errors.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
-use qubit_common::lang::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_datatype::DataType;
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::str::FromStr;
 
 #[test]

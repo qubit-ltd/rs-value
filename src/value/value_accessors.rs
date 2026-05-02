@@ -1,17 +1,36 @@
+/*******************************************************************************
+ *
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
+ *
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
+ *
+ ******************************************************************************/
+
 use std::collections::HashMap;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 use num_bigint::BigInt;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 
-use qubit_common::lang::DataType;
+use qubit_datatype::DataType;
 
 use super::value::Value;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 macro_rules! impl_get_value {
     // Copy type: directly dereference and return
@@ -62,9 +81,6 @@ macro_rules! impl_get_value {
 /// The macro automatically extracts preceding documentation comments, so
 /// you can add `///` comments before macro invocations.
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 macro_rules! impl_set_value {
     // Copy type: directly set the value
@@ -354,7 +370,7 @@ impl Value {
         /// # Example
         ///
         /// ```rust
-        /// use qubit_common::lang::DataType;
+        /// use qubit_datatype::DataType;
         /// use qubit_value::Value;
         ///
         /// let mut value = Value::Empty(DataType::Bool);
@@ -547,7 +563,7 @@ impl Value {
         /// # Example
         ///
         /// ```rust
-        /// use qubit_common::lang::DataType;
+        /// use qubit_datatype::DataType;
         /// use qubit_value::Value;
         ///
         /// let mut value = Value::Empty(DataType::String);
@@ -624,7 +640,7 @@ impl Value {
         ///
         /// ```rust
         /// use num_bigint::BigInt;
-        /// use qubit_common::lang::DataType;
+        /// use qubit_datatype::DataType;
         /// use qubit_value::Value;
         ///
         /// let mut value = Value::Empty(DataType::BigInteger);
@@ -651,7 +667,7 @@ impl Value {
         /// use std::str::FromStr;
         ///
         /// use bigdecimal::BigDecimal;
-        /// use qubit_common::lang::DataType;
+        /// use qubit_datatype::DataType;
         /// use qubit_value::Value;
         ///
         /// let mut value = Value::Empty(DataType::BigDecimal);

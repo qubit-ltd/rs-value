@@ -1,5 +1,34 @@
+/*******************************************************************************
+ *
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
+ *
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
+ *
+ ******************************************************************************/
+
+//! Internal dispatch implementations for `MultiValues::add<S>()` arguments.
+
 use super::multi_values::MultiValues;
 use crate::value_error::ValueResult;
+use std::collections::HashMap;
+use std::time::Duration;
+
+use bigdecimal::BigDecimal;
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
+use num_bigint::BigInt;
+use url::Url;
+
+use super::multi_values_adder::MultiValuesAdder;
+use super::multi_values_multi_adder::MultiValuesMultiAdder;
+use super::multi_values_multi_adder_slice::MultiValuesMultiAdderSlice;
 
 /// Internal dispatch trait for `MultiValues::add<S>()`.
 ///
@@ -16,4 +45,95 @@ pub trait MultiValuesAddArg<'a> {
     /// Returns `Ok(())` when the target is updated, or a `ValueError` from the
     /// selected add path.
     fn apply_add(self, target: &mut MultiValues) -> ValueResult<()>;
+}
+
+macro_rules! impl_multi_values_add_arg {
+    ($type:ty) => {
+        impl<'a> MultiValuesAddArg<'a> for $type {
+            type Item = $type;
+
+            #[inline]
+            fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+                <MultiValues as MultiValuesAdder<$type>>::add_value(target, self)
+            }
+        }
+
+        impl<'a> MultiValuesAddArg<'a> for Vec<$type> {
+            type Item = $type;
+
+            #[inline]
+            fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+                <MultiValues as MultiValuesMultiAdder<$type>>::add_values(target, self)
+            }
+        }
+
+        impl<'a> MultiValuesAddArg<'a> for &'a [$type]
+        where
+            $type: Clone,
+        {
+            type Item = $type;
+
+            #[inline]
+            fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+                <MultiValues as MultiValuesMultiAdderSlice<$type>>::add_values_slice(target, self)
+            }
+        }
+    };
+}
+
+impl_multi_values_add_arg!(bool);
+impl_multi_values_add_arg!(char);
+impl_multi_values_add_arg!(i8);
+impl_multi_values_add_arg!(i16);
+impl_multi_values_add_arg!(i32);
+impl_multi_values_add_arg!(i64);
+impl_multi_values_add_arg!(i128);
+impl_multi_values_add_arg!(u8);
+impl_multi_values_add_arg!(u16);
+impl_multi_values_add_arg!(u32);
+impl_multi_values_add_arg!(u64);
+impl_multi_values_add_arg!(u128);
+impl_multi_values_add_arg!(isize);
+impl_multi_values_add_arg!(usize);
+impl_multi_values_add_arg!(f32);
+impl_multi_values_add_arg!(f64);
+impl_multi_values_add_arg!(String);
+impl_multi_values_add_arg!(NaiveDate);
+impl_multi_values_add_arg!(NaiveTime);
+impl_multi_values_add_arg!(NaiveDateTime);
+impl_multi_values_add_arg!(DateTime<Utc>);
+impl_multi_values_add_arg!(BigInt);
+impl_multi_values_add_arg!(BigDecimal);
+impl_multi_values_add_arg!(Duration);
+impl_multi_values_add_arg!(Url);
+impl_multi_values_add_arg!(HashMap<String, String>);
+impl_multi_values_add_arg!(serde_json::Value);
+
+impl MultiValuesAddArg<'_> for &str {
+    type Item = String;
+
+    #[inline]
+    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+        <MultiValues as MultiValuesAdder<String>>::add_value(target, self.to_string())
+    }
+}
+
+impl MultiValuesAddArg<'_> for Vec<&str> {
+    type Item = String;
+
+    #[inline]
+    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+        let owned: Vec<String> = self.into_iter().map(|s| s.to_string()).collect();
+        <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
+    }
+}
+
+impl<'b> MultiValuesAddArg<'b> for &'b [&'b str] {
+    type Item = String;
+
+    #[inline]
+    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+        let owned: Vec<String> = self.iter().map(|s| (*s).to_string()).collect();
+        <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
+    }
 }
