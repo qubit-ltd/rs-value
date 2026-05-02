@@ -1,3 +1,12 @@
+/*******************************************************************************
+ *
+ *    Copyright (c) 2025 - 2026.
+ *    Haixing Hu, Qubit Co. Ltd.
+ *
+ *    All rights reserved.
+ *
+ ******************************************************************************/
+
 /// Internal trait used to create `Value` from supported Rust types.
 ///
 /// This trait backs `Value::new<T>()`; downstream code should call the

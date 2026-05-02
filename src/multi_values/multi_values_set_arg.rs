@@ -1,3 +1,12 @@
+/*******************************************************************************
+ *
+ *    Copyright (c) 2025 - 2026.
+ *    Haixing Hu, Qubit Co. Ltd.
+ *
+ *    All rights reserved.
+ *
+ ******************************************************************************/
+
 use super::multi_values::MultiValues;
 use crate::value_error::ValueResult;
 

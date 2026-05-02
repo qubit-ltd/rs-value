@@ -1,3 +1,12 @@
+/*******************************************************************************
+ *
+ *    Copyright (c) 2025 - 2026.
+ *    Haixing Hu, Qubit Co. Ltd.
+ *
+ *    All rights reserved.
+ *
+ ******************************************************************************/
+
 use crate::value_error::ValueResult;
 
 /// Internal trait used to set specific types in `Value`.
