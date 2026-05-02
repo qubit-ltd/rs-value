@@ -15,7 +15,7 @@
 /// This trait backs `MultiValues::new<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait MultiValuesConstructor<T> {
+pub trait MultiValuesConstructor<T>: super::sealed::MultiValuesConstructorSealed<T> {
     /// Builds a `MultiValues` instance from `values`.
     ///
     /// # Returns
@@ -42,6 +42,8 @@ use super::multi_values::MultiValues;
 
 macro_rules! impl_multi_values_constructor {
     ($type:ty, $variant:ident) => {
+        impl super::sealed::MultiValuesConstructorSealed<$type> for MultiValues {}
+
         impl MultiValuesConstructor<$type> for MultiValues {
             #[inline]
             fn from_vec(values: Vec<$type>) -> Self {

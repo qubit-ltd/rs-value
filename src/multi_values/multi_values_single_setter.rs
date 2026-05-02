@@ -32,7 +32,7 @@ use super::multi_values::MultiValues;
 /// This trait backs `MultiValues::set<S>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait MultiValuesSingleSetter<T> {
+pub trait MultiValuesSingleSetter<T>: super::sealed::MultiValuesSingleSetterSealed<T> {
     /// Replaces the stored values with one `value`.
     ///
     /// # Returns
@@ -44,6 +44,8 @@ pub trait MultiValuesSingleSetter<T> {
 
 macro_rules! impl_multi_values_single_setter {
     ($type:ty, $variant:ident) => {
+        impl super::sealed::MultiValuesSingleSetterSealed<$type> for MultiValues {}
+
         impl MultiValuesSingleSetter<$type> for MultiValues {
             #[inline]
             fn set_single_value(&mut self, value: $type) -> ValueResult<()> {

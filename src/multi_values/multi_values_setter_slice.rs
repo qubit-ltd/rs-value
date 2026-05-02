@@ -32,7 +32,7 @@ use super::multi_values::MultiValues;
 /// This trait backs `MultiValues::set<S>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait MultiValuesSetterSlice<T> {
+pub trait MultiValuesSetterSlice<T>: super::sealed::MultiValuesSetterSliceSealed<T> {
     /// Replaces the stored values with a clone of `values`.
     ///
     /// # Returns
@@ -44,6 +44,8 @@ pub trait MultiValuesSetterSlice<T> {
 
 macro_rules! impl_multi_values_setter_slice {
     ($type:ty, $variant:ident) => {
+        impl super::sealed::MultiValuesSetterSliceSealed<$type> for MultiValues {}
+
         impl MultiValuesSetterSlice<$type> for MultiValues {
             #[inline]
             fn set_values_slice(&mut self, values: &[$type]) -> ValueResult<()> {

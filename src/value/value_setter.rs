@@ -32,7 +32,7 @@ use crate::value_error::ValueResult;
 /// This trait backs `Value::set<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait ValueSetter<T> {
+pub trait ValueSetter<T>: super::sealed::ValueSetterSealed<T> {
     /// Replaces the stored value with `value`.
     ///
     /// # Returns
@@ -44,6 +44,8 @@ pub trait ValueSetter<T> {
 
 macro_rules! impl_value_setter {
     ($type:ty, $method:ident) => {
+        impl super::sealed::ValueSetterSealed<$type> for Value {}
+
         impl ValueSetter<$type> for Value {
             #[inline]
             fn set_value(&mut self, value: $type) -> ValueResult<()> {
@@ -80,6 +82,8 @@ impl_value_setter!(Url, set_url);
 impl_value_setter!(HashMap<String, String>, set_string_map);
 impl_value_setter!(serde_json::Value, set_json);
 
+impl super::sealed::ValueSetterSealed<String> for Value {}
+
 impl ValueSetter<String> for Value {
     #[inline]
     fn set_value(&mut self, value: String) -> ValueResult<()> {
@@ -88,6 +92,8 @@ impl ValueSetter<String> for Value {
 }
 
 /// Special handling for `&str`, converted into owned `String`.
+impl super::sealed::ValueSetterSealed<&str> for Value {}
+
 impl ValueSetter<&str> for Value {
     #[inline]
     fn set_value(&mut self, value: &str) -> ValueResult<()> {

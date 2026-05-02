@@ -34,7 +34,7 @@ use super::multi_values_multi_adder_slice::MultiValuesMultiAdderSlice;
 ///
 /// Implementations route `T`, `Vec<T>`, and `&[T]` to the matching add path.
 #[doc(hidden)]
-pub trait MultiValuesAddArg<'a> {
+pub trait MultiValuesAddArg<'a>: super::sealed::MultiValuesAddArgSealed {
     /// Element type being added.
     type Item: 'a + Clone;
 
@@ -49,6 +49,8 @@ pub trait MultiValuesAddArg<'a> {
 
 macro_rules! impl_multi_values_add_arg {
     ($type:ty) => {
+        impl super::sealed::MultiValuesAddArgSealed for $type {}
+
         impl<'a> MultiValuesAddArg<'a> for $type {
             type Item = $type;
 
@@ -58,6 +60,8 @@ macro_rules! impl_multi_values_add_arg {
             }
         }
 
+        impl super::sealed::MultiValuesAddArgSealed for Vec<$type> {}
+
         impl<'a> MultiValuesAddArg<'a> for Vec<$type> {
             type Item = $type;
 
@@ -66,6 +70,8 @@ macro_rules! impl_multi_values_add_arg {
                 <MultiValues as MultiValuesMultiAdder<$type>>::add_values(target, self)
             }
         }
+
+        impl<'a> super::sealed::MultiValuesAddArgSealed for &'a [$type] {}
 
         impl<'a> MultiValuesAddArg<'a> for &'a [$type]
         where
@@ -78,6 +84,8 @@ macro_rules! impl_multi_values_add_arg {
                 <MultiValues as MultiValuesMultiAdderSlice<$type>>::add_values_slice(target, self)
             }
         }
+
+        impl<'a> super::sealed::MultiValuesAddArgSealed for &'a Vec<$type> {}
 
         impl<'a> MultiValuesAddArg<'a> for &'a Vec<$type>
         where
@@ -94,6 +102,8 @@ macro_rules! impl_multi_values_add_arg {
             }
         }
 
+        impl<const N: usize> super::sealed::MultiValuesAddArgSealed for [$type; N] {}
+
         impl<'a, const N: usize> MultiValuesAddArg<'a> for [$type; N] {
             type Item = $type;
 
@@ -102,6 +112,8 @@ macro_rules! impl_multi_values_add_arg {
                 <MultiValues as MultiValuesMultiAdder<$type>>::add_values(target, Vec::from(self))
             }
         }
+
+        impl<'a, const N: usize> super::sealed::MultiValuesAddArgSealed for &'a [$type; N] {}
 
         impl<'a, const N: usize> MultiValuesAddArg<'a> for &'a [$type; N]
         where
@@ -148,6 +160,8 @@ impl_multi_values_add_arg!(Url);
 impl_multi_values_add_arg!(HashMap<String, String>);
 impl_multi_values_add_arg!(serde_json::Value);
 
+impl super::sealed::MultiValuesAddArgSealed for &str {}
+
 impl MultiValuesAddArg<'_> for &str {
     type Item = String;
 
@@ -156,6 +170,8 @@ impl MultiValuesAddArg<'_> for &str {
         <MultiValues as MultiValuesAdder<String>>::add_value(target, self.to_string())
     }
 }
+
+impl super::sealed::MultiValuesAddArgSealed for Vec<&str> {}
 
 impl MultiValuesAddArg<'_> for Vec<&str> {
     type Item = String;
@@ -167,6 +183,8 @@ impl MultiValuesAddArg<'_> for Vec<&str> {
     }
 }
 
+impl<'b> super::sealed::MultiValuesAddArgSealed for &'b [&'b str] {}
+
 impl<'b> MultiValuesAddArg<'b> for &'b [&'b str] {
     type Item = String;
 
@@ -176,6 +194,8 @@ impl<'b> MultiValuesAddArg<'b> for &'b [&'b str] {
         <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
     }
 }
+
+impl super::sealed::MultiValuesAddArgSealed for &Vec<&str> {}
 
 impl MultiValuesAddArg<'_> for &Vec<&str> {
     type Item = String;
@@ -187,6 +207,8 @@ impl MultiValuesAddArg<'_> for &Vec<&str> {
     }
 }
 
+impl<const N: usize> super::sealed::MultiValuesAddArgSealed for [&str; N] {}
+
 impl<const N: usize> MultiValuesAddArg<'_> for [&str; N] {
     type Item = String;
 
@@ -196,6 +218,8 @@ impl<const N: usize> MultiValuesAddArg<'_> for [&str; N] {
         <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
     }
 }
+
+impl<const N: usize> super::sealed::MultiValuesAddArgSealed for &[&str; N] {}
 
 impl<const N: usize> MultiValuesAddArg<'_> for &[&str; N] {
     type Item = String;

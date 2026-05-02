@@ -21,7 +21,6 @@ use qubit_datatype::DataType;
 use qubit_value::{
     IntoValueDefault,
     MultiValues,
-    multi_values::MultiValuesConstructorArg,
 };
 
 // ------------------------------ set: Vec<T> ------------------------------
@@ -164,7 +163,7 @@ fn test_generic_new_convenient_inputs_for_coverage() {
 
     let array_ref = [9i32, 10];
     let array_ref_arg: &[i32; 2] = &array_ref;
-    let values = <&[i32; 2] as MultiValuesConstructorArg<'_>>::into_multi_values(array_ref_arg);
+    let values = MultiValues::new(array_ref_arg);
     assert_eq!(values.get_int32s().unwrap(), &[9, 10]);
 
     let values = MultiValues::new(vec!["a", "b"]);
@@ -183,8 +182,7 @@ fn test_generic_new_convenient_inputs_for_coverage() {
 
     let str_array_ref = ["i", "j"];
     let str_array_ref_arg: &[&str; 2] = &str_array_ref;
-    let values =
-        <&[&str; 2] as MultiValuesConstructorArg<'_>>::into_multi_values(str_array_ref_arg);
+    let values = MultiValues::new(str_array_ref_arg);
     assert_eq!(values.get_strings().unwrap(), &["i", "j"]);
 }
 

@@ -36,7 +36,7 @@ use thiserror::Error;
 /// ```
 ///
 ///
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum ValueError {
     /// No value
     #[error("No value")]

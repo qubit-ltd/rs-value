@@ -31,7 +31,7 @@ use super::multi_values::MultiValues;
 /// This trait backs `MultiValues::set<S>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait MultiValuesSetter<T> {
+pub trait MultiValuesSetter<T>: super::sealed::MultiValuesSetterSealed<T> {
     /// Replaces the stored values with `values`.
     ///
     /// # Returns
@@ -43,6 +43,8 @@ pub trait MultiValuesSetter<T> {
 
 macro_rules! impl_multi_values_setter {
     ($type:ty, $variant:ident) => {
+        impl super::sealed::MultiValuesSetterSealed<$type> for MultiValues {}
+
         impl MultiValuesSetter<$type> for MultiValues {
             #[inline]
             fn set_values(&mut self, values: Vec<$type>) -> ValueResult<()> {

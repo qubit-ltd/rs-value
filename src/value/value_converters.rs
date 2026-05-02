@@ -131,6 +131,8 @@ where
 
 macro_rules! impl_data_value_converter {
     ($type:ty) => {
+        impl super::sealed::ValueConverterSealed<$type> for Value {}
+
         impl ValueConverter<$type> for Value {
             #[inline]
             fn convert(&self) -> ValueResult<$type> {

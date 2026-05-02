@@ -24,7 +24,7 @@ use super::multi_values::MultiValues;
 /// This trait backs `MultiValues::get<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait MultiValuesGetter<T> {
+pub trait MultiValuesGetter<T>: super::sealed::MultiValuesGetterSealed<T> {
     /// Gets all stored values as `Vec<T>`.
     ///
     /// # Returns
@@ -36,6 +36,8 @@ pub trait MultiValuesGetter<T> {
 
 macro_rules! impl_multi_values_getter {
     ($type:ty, $variant:ident, $data_type:expr) => {
+        impl super::sealed::MultiValuesGetterSealed<$type> for MultiValues {}
+
         impl MultiValuesGetter<$type> for MultiValues {
             #[inline]
             fn get_values(&self) -> ValueResult<Vec<$type>> {

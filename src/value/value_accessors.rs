@@ -311,7 +311,11 @@ impl Value {
     }
 
     impl_get_value! {
-        /// Get big integer value
+        /// Get big integer value.
+        ///
+        /// This method returns a cloned [`BigInt`]. Use
+        /// [`Value::get_biginteger_ref`] to borrow the stored value without
+        /// cloning.
         ///
         /// # Returns
         ///
@@ -330,7 +334,11 @@ impl Value {
     }
 
     impl_get_value! {
-        /// Get big decimal value
+        /// Get big decimal value.
+        ///
+        /// This method returns a cloned [`BigDecimal`]. Use
+        /// [`Value::get_bigdecimal_ref`] to borrow the stored value without
+        /// cloning.
         ///
         /// # Returns
         ///
@@ -707,33 +715,41 @@ impl Value {
     }
 
     impl_get_value! {
-        /// Get Url reference
+        /// Get URL value.
+        ///
+        /// This method returns a cloned [`Url`]. Use [`Value::get_url_ref`] to
+        /// borrow the stored value without cloning.
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the Url; otherwise returns an
-        /// error.
+        /// If types match, returns the URL value; otherwise returns an error.
         ref: get_url, Url, Url, DataType::Url, |v: &Url| v.clone()
     }
 
     impl_get_value! {
-        /// Get StringMap reference
+        /// Get string map value.
+        ///
+        /// This method returns a cloned `HashMap<String, String>`. Use
+        /// [`Value::get_string_map_ref`] to borrow the stored value without
+        /// cloning.
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the `HashMap<String, String>`;
-        /// otherwise returns an error.
+        /// If types match, returns the string map value; otherwise returns an
+        /// error.
         ref: get_string_map, StringMap, HashMap<String, String>, DataType::StringMap,
             |v: &HashMap<String, String>| v.clone()
     }
 
     impl_get_value! {
-        /// Get Json value reference
+        /// Get JSON value.
+        ///
+        /// This method returns a cloned [`serde_json::Value`]. Use
+        /// [`Value::get_json_ref`] to borrow the stored value without cloning.
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the `serde_json::Value`;
-        /// otherwise returns an error.
+        /// If types match, returns the JSON value; otherwise returns an error.
         ref: get_json, Json, serde_json::Value, DataType::Json,
             |v: &serde_json::Value| v.clone()
     }

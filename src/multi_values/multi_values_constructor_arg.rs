@@ -42,19 +42,23 @@ where
 
 /// Internal dispatch trait for `MultiValues::new<S>()` arguments.
 #[doc(hidden)]
-pub trait MultiValuesConstructorArg<'a> {
+pub trait MultiValuesConstructorArg<'a>: super::sealed::MultiValuesConstructorArgSealed {
     /// Builds a `MultiValues` instance from this argument.
     fn into_multi_values(self) -> MultiValues;
 }
 
 macro_rules! impl_multi_values_constructor_arg {
     ($type:ty) => {
+        impl super::sealed::MultiValuesConstructorArgSealed for Vec<$type> {}
+
         impl<'a> MultiValuesConstructorArg<'a> for Vec<$type> {
             #[inline]
             fn into_multi_values(self) -> MultiValues {
                 <MultiValues as MultiValuesConstructor<$type>>::from_vec(self)
             }
         }
+
+        impl<'a> super::sealed::MultiValuesConstructorArgSealed for &'a [$type] {}
 
         impl<'a> MultiValuesConstructorArg<'a> for &'a [$type]
         where
@@ -66,6 +70,8 @@ macro_rules! impl_multi_values_constructor_arg {
             }
         }
 
+        impl<'a> super::sealed::MultiValuesConstructorArgSealed for &'a Vec<$type> {}
+
         impl<'a> MultiValuesConstructorArg<'a> for &'a Vec<$type>
         where
             $type: Clone,
@@ -76,12 +82,16 @@ macro_rules! impl_multi_values_constructor_arg {
             }
         }
 
+        impl<const N: usize> super::sealed::MultiValuesConstructorArgSealed for [$type; N] {}
+
         impl<'a, const N: usize> MultiValuesConstructorArg<'a> for [$type; N] {
             #[inline]
             fn into_multi_values(self) -> MultiValues {
                 <MultiValues as MultiValuesConstructor<$type>>::from_vec(Vec::from(self))
             }
         }
+
+        impl<'a, const N: usize> super::sealed::MultiValuesConstructorArgSealed for &'a [$type; N] {}
 
         impl<'a, const N: usize> MultiValuesConstructorArg<'a> for &'a [$type; N]
         where
@@ -123,12 +133,16 @@ impl_multi_values_constructor_arg!(Url);
 impl_multi_values_constructor_arg!(HashMap<String, String>);
 impl_multi_values_constructor_arg!(serde_json::Value);
 
+impl super::sealed::MultiValuesConstructorArgSealed for Vec<&str> {}
+
 impl MultiValuesConstructorArg<'_> for Vec<&str> {
     #[inline]
     fn into_multi_values(self) -> MultiValues {
         MultiValues::String(collect_strings(self))
     }
 }
+
+impl super::sealed::MultiValuesConstructorArgSealed for &[&str] {}
 
 impl MultiValuesConstructorArg<'_> for &[&str] {
     #[inline]
@@ -137,6 +151,8 @@ impl MultiValuesConstructorArg<'_> for &[&str] {
     }
 }
 
+impl super::sealed::MultiValuesConstructorArgSealed for &Vec<&str> {}
+
 impl MultiValuesConstructorArg<'_> for &Vec<&str> {
     #[inline]
     fn into_multi_values(self) -> MultiValues {
@@ -144,12 +160,16 @@ impl MultiValuesConstructorArg<'_> for &Vec<&str> {
     }
 }
 
+impl<const N: usize> super::sealed::MultiValuesConstructorArgSealed for [&str; N] {}
+
 impl<const N: usize> MultiValuesConstructorArg<'_> for [&str; N] {
     #[inline]
     fn into_multi_values(self) -> MultiValues {
         MultiValues::String(collect_strings(self))
     }
 }
+
+impl<const N: usize> super::sealed::MultiValuesConstructorArgSealed for &[&str; N] {}
 
 impl<const N: usize> MultiValuesConstructorArg<'_> for &[&str; N] {
     #[inline]

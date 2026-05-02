@@ -35,7 +35,7 @@ use crate::value_error::ValueResult;
 /// This trait backs `Value::get<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait ValueGetter<T> {
+pub trait ValueGetter<T>: super::sealed::ValueGetterSealed<T> {
     /// Gets the value as `T`.
     ///
     /// # Returns
@@ -47,6 +47,8 @@ pub trait ValueGetter<T> {
 
 macro_rules! impl_value_getter_copy {
     ($type:ty, $method:ident) => {
+        impl super::sealed::ValueGetterSealed<$type> for Value {}
+
         impl ValueGetter<$type> for Value {
             #[inline]
             fn get_value(&self) -> ValueResult<$type> {
@@ -85,6 +87,8 @@ impl_value_getter_copy!(HashMap<String, String>, get_string_map);
 impl_value_getter_copy!(serde_json::Value, get_json);
 
 /// String specialization because `Value::get_string()` returns `&str`.
+impl super::sealed::ValueGetterSealed<String> for Value {}
+
 impl ValueGetter<String> for Value {
     #[inline]
     fn get_value(&self) -> ValueResult<String> {

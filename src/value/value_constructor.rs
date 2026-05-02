@@ -32,7 +32,7 @@ use super::value::Value;
 /// This trait backs `Value::new<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait ValueConstructor<T> {
+pub trait ValueConstructor<T>: super::sealed::ValueConstructorSealed<T> {
     /// Builds a `Value` that wraps `value`.
     ///
     /// # Returns
@@ -43,6 +43,8 @@ pub trait ValueConstructor<T> {
 
 macro_rules! impl_value_constructor {
     ($type:ty, $variant:expr) => {
+        impl super::sealed::ValueConstructorSealed<$type> for Value {}
+
         impl ValueConstructor<$type> for Value {
             #[inline]
             fn from_type(value: $type) -> Self {
@@ -80,6 +82,8 @@ impl_value_constructor!(HashMap<String, String>, Value::StringMap);
 impl_value_constructor!(serde_json::Value, Value::Json);
 
 impl_value_constructor!(String, Value::String);
+
+impl super::sealed::ValueConstructorSealed<&str> for Value {}
 
 impl ValueConstructor<&str> for Value {
     #[inline]

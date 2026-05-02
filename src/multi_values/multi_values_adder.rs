@@ -37,7 +37,7 @@ use super::multi_values::MultiValues;
 /// This trait backs `MultiValues::add<S>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait MultiValuesAdder<T> {
+pub trait MultiValuesAdder<T>: super::sealed::MultiValuesAdderSealed<T> {
     /// Appends `value` to the stored values.
     ///
     /// # Returns
@@ -49,6 +49,8 @@ pub trait MultiValuesAdder<T> {
 
 macro_rules! impl_multi_values_adder {
     ($type:ty, $variant:ident, $data_type:expr) => {
+        impl super::sealed::MultiValuesAdderSealed<$type> for MultiValues {}
+
         impl MultiValuesAdder<$type> for MultiValues {
             #[inline]
             fn add_value(&mut self, value: $type) -> ValueResult<()> {

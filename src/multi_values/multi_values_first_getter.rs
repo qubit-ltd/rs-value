@@ -37,7 +37,7 @@ use qubit_datatype::DataType;
 /// This trait backs `MultiValues::get_first<T>()`; downstream code should call
 /// the inherent method instead of implementing or naming this trait directly.
 #[doc(hidden)]
-pub trait MultiValuesFirstGetter<T> {
+pub trait MultiValuesFirstGetter<T>: super::sealed::MultiValuesFirstGetterSealed<T> {
     /// Gets the first stored value as `T`.
     ///
     /// # Returns
@@ -49,6 +49,8 @@ pub trait MultiValuesFirstGetter<T> {
 
 macro_rules! impl_multi_values_first_getter {
     ($type:ty, $variant:ident, $data_type:expr) => {
+        impl super::sealed::MultiValuesFirstGetterSealed<$type> for MultiValues {}
+
         impl MultiValuesFirstGetter<$type> for MultiValues {
             #[inline]
             fn get_first_value(&self) -> ValueResult<$type> {
