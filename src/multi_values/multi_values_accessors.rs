@@ -32,7 +32,7 @@ use crate::value_error::{
 use super::multi_values::MultiValues;
 use super::multi_values_add_arg::MultiValuesAddArg;
 use super::multi_values_adder::MultiValuesAdder;
-use super::multi_values_constructor::MultiValuesConstructor;
+use super::multi_values_constructor_arg::MultiValuesConstructorArg;
 use super::multi_values_first_getter::MultiValuesFirstGetter;
 use super::multi_values_getter::MultiValuesGetter;
 use super::multi_values_multi_adder::MultiValuesMultiAdder;
@@ -40,6 +40,7 @@ use super::multi_values_set_arg::MultiValuesSetArg;
 use super::multi_values_setter::MultiValuesSetter;
 use super::multi_values_setter_slice::MultiValuesSetterSlice;
 use super::multi_values_single_setter::MultiValuesSingleSetter;
+use crate::IntoValueDefault;
 
 impl MultiValues {
     /// Generic constructor method
@@ -69,11 +70,11 @@ impl MultiValues {
     /// assert_eq!(mv.count(), 2);
     /// ```
     #[inline]
-    pub fn new<T>(values: Vec<T>) -> Self
+    pub fn new<'a, S>(values: S) -> Self
     where
-        Self: MultiValuesConstructor<T>,
+        S: MultiValuesConstructorArg<'a>,
     {
-        <Self as MultiValuesConstructor<T>>::from_vec(values)
+        values.into_multi_values()
     }
 
     /// Generic getter method for multiple values
@@ -110,6 +111,23 @@ impl MultiValues {
         Self: MultiValuesGetter<T>,
     {
         <Self as MultiValuesGetter<T>>::get_values(self)
+    }
+
+    /// Generic getter method with a default value list.
+    ///
+    /// Returns the supplied default only when the stored list is empty. Type
+    /// mismatches are still returned as errors.
+    #[inline]
+    pub fn get_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
+    where
+        Self: MultiValuesGetter<T>,
+    {
+        let values = self.get()?;
+        if values.is_empty() {
+            Ok(default.into_value_default())
+        } else {
+            Ok(values)
+        }
     }
 
     /// Generic getter method for the first value
@@ -152,6 +170,21 @@ impl MultiValues {
         Self: MultiValuesFirstGetter<T>,
     {
         <Self as MultiValuesFirstGetter<T>>::get_first_value(self)
+    }
+
+    /// Generic first-value getter with a default value.
+    ///
+    /// Returns the supplied default only when no first value exists. Type
+    /// mismatches are still returned as errors.
+    #[inline]
+    pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
+    where
+        Self: MultiValuesFirstGetter<T>,
+    {
+        match self.get_first() {
+            Err(ValueError::NoValue) => Ok(default.into_value_default()),
+            result => result,
+        }
     }
 
     /// Generic setter method

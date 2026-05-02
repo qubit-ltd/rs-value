@@ -78,6 +78,45 @@ macro_rules! impl_multi_values_add_arg {
                 <MultiValues as MultiValuesMultiAdderSlice<$type>>::add_values_slice(target, self)
             }
         }
+
+        impl<'a> MultiValuesAddArg<'a> for &'a Vec<$type>
+        where
+            $type: Clone,
+        {
+            type Item = $type;
+
+            #[inline]
+            fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+                <MultiValues as MultiValuesMultiAdderSlice<$type>>::add_values_slice(
+                    target,
+                    self.as_slice(),
+                )
+            }
+        }
+
+        impl<'a, const N: usize> MultiValuesAddArg<'a> for [$type; N] {
+            type Item = $type;
+
+            #[inline]
+            fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+                <MultiValues as MultiValuesMultiAdder<$type>>::add_values(target, Vec::from(self))
+            }
+        }
+
+        impl<'a, const N: usize> MultiValuesAddArg<'a> for &'a [$type; N]
+        where
+            $type: Clone,
+        {
+            type Item = $type;
+
+            #[inline]
+            fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+                <MultiValues as MultiValuesMultiAdderSlice<$type>>::add_values_slice(
+                    target,
+                    self.as_slice(),
+                )
+            }
+        }
     };
 }
 
@@ -129,6 +168,36 @@ impl MultiValuesAddArg<'_> for Vec<&str> {
 }
 
 impl<'b> MultiValuesAddArg<'b> for &'b [&'b str] {
+    type Item = String;
+
+    #[inline]
+    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+        let owned: Vec<String> = self.iter().map(|s| (*s).to_string()).collect();
+        <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
+    }
+}
+
+impl MultiValuesAddArg<'_> for &Vec<&str> {
+    type Item = String;
+
+    #[inline]
+    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+        let owned: Vec<String> = self.iter().map(|s| (*s).to_string()).collect();
+        <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
+    }
+}
+
+impl<const N: usize> MultiValuesAddArg<'_> for [&str; N] {
+    type Item = String;
+
+    #[inline]
+    fn apply_add(self, target: &mut MultiValues) -> ValueResult<()> {
+        let owned: Vec<String> = self.into_iter().map(str::to_string).collect();
+        <MultiValues as MultiValuesMultiAdder<String>>::add_values(target, owned)
+    }
+}
+
+impl<const N: usize> MultiValuesAddArg<'_> for &[&str; N] {
     type Item = String;
 
     #[inline]

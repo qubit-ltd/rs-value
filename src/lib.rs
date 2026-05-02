@@ -69,6 +69,7 @@
 //!
 
 // Sub-modules
+mod into_value_default;
 pub mod multi_values;
 mod named_multi_values;
 mod named_value;
@@ -76,6 +77,7 @@ mod value;
 mod value_error;
 
 // Public exports
+pub use into_value_default::IntoValueDefault;
 pub use multi_values::MultiValues;
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;

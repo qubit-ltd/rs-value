@@ -57,6 +57,31 @@ fn test_value_generic_get() {
     let f: f64 = v.get().unwrap();
     assert!((f - 3.5).abs() < 0.001);
 }
+
+#[test]
+fn test_value_defaulted_reads_use_default_only_for_empty() {
+    use qubit_datatype::{
+        DataConversionOptions,
+        StringConversionOptions,
+    };
+
+    let empty = Value::default();
+    assert_eq!(empty.get_or::<String>("fallback").unwrap(), "fallback");
+    assert_eq!(empty.to_or::<u16>(8080).unwrap(), 8080);
+
+    let options = DataConversionOptions::default()
+        .with_string_options(StringConversionOptions::default().with_trim(true));
+    assert_eq!(
+        empty.to_or_with::<String>(" fallback ", &options).unwrap(),
+        " fallback "
+    );
+
+    let value = Value::String("8081".to_string());
+    assert_eq!(value.to_or::<u16>(8080).unwrap(), 8081);
+
+    let invalid = Value::String("not-a-port".to_string());
+    assert!(invalid.to_or::<u16>(8080).is_err());
+}
 #[test]
 fn test_value_generic_get_type_mismatch() {
     let v = Value::Int32(42);
