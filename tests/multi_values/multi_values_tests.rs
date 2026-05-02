@@ -1,24 +1,38 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # MultiValues Unit Tests
 //!
 //! Tests various functionalities of the multi values container。
 //!
-//! # Author
-//!
-//! Haixing Hu
 
 use bigdecimal::BigDecimal;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
+use chrono::{
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    TimeZone,
+    Utc,
+};
 use num_bigint::BigInt;
-use qubit_common::lang::DataType;
-use qubit_value::{MultiValues, Value, ValueError};
+use qubit_datatype::{
+    CollectionConversionOptions,
+    DataConversionOptions,
+    DataType,
+    EmptyItemPolicy,
+    StringConversionOptions,
+};
+use qubit_value::{
+    MultiValues,
+    Value,
+    ValueError,
+};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -440,6 +454,68 @@ fn test_multi_value_generic_to_converts_first_value() {
 }
 
 #[test]
+fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string() {
+    let date = NaiveDate::from_ymd_opt(2026, 1, 2).unwrap();
+    let time = NaiveTime::from_hms_opt(3, 4, 5).unwrap();
+    let datetime = date.and_time(time);
+    let instant = Utc.with_ymd_and_hms(2026, 1, 2, 3, 4, 5).unwrap();
+    let duration = Duration::from_millis(250);
+    let url = Url::parse("https://example.com/path").unwrap();
+
+    let cases: Vec<(MultiValues, String)> = vec![
+        (MultiValues::Bool(vec![true]), "true".to_string()),
+        (MultiValues::Char(vec!['x']), "x".to_string()),
+        (MultiValues::Int8(vec![-1]), "-1".to_string()),
+        (MultiValues::Int16(vec![-10]), "-10".to_string()),
+        (MultiValues::Int32(vec![-100]), "-100".to_string()),
+        (MultiValues::Int64(vec![-1000]), "-1000".to_string()),
+        (MultiValues::Int128(vec![-10000]), "-10000".to_string()),
+        (MultiValues::UInt8(vec![1]), "1".to_string()),
+        (MultiValues::UInt16(vec![10]), "10".to_string()),
+        (MultiValues::UInt32(vec![100]), "100".to_string()),
+        (MultiValues::UInt64(vec![1000]), "1000".to_string()),
+        (MultiValues::UInt128(vec![10000]), "10000".to_string()),
+        (MultiValues::IntSize(vec![-7]), "-7".to_string()),
+        (MultiValues::UIntSize(vec![7]), "7".to_string()),
+        (MultiValues::Float32(vec![1.5]), "1.5".to_string()),
+        (MultiValues::Float64(vec![3.5]), "3.5".to_string()),
+        (
+            MultiValues::BigInteger(vec![BigInt::from(123)]),
+            "123".to_string(),
+        ),
+        (
+            MultiValues::BigDecimal(vec![BigDecimal::from_str("12.5").unwrap()]),
+            "12.5".to_string(),
+        ),
+        (
+            MultiValues::String(vec!["alpha".to_string()]),
+            "alpha".to_string(),
+        ),
+        (MultiValues::Date(vec![date]), date.to_string()),
+        (MultiValues::Time(vec![time]), time.to_string()),
+        (MultiValues::DateTime(vec![datetime]), datetime.to_string()),
+        (MultiValues::Instant(vec![instant]), instant.to_rfc3339()),
+        (MultiValues::Duration(vec![duration]), "250ms".to_string()),
+        (MultiValues::Url(vec![url.clone()]), url.to_string()),
+    ];
+
+    for (values, expected) in cases {
+        let actual: String = values.to().unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    let mut map = HashMap::new();
+    map.insert("key".to_string(), "value".to_string());
+    let map_text: String = MultiValues::StringMap(vec![map.clone()]).to().unwrap();
+    let parsed_map: serde_json::Value = serde_json::from_str(&map_text).unwrap();
+    assert_eq!(parsed_map["key"], serde_json::json!("value"));
+
+    let json_value = serde_json::json!({"flag": true});
+    let json_text: String = MultiValues::Json(vec![json_value]).to().unwrap();
+    assert_eq!(json_text, r#"{"flag":true}"#);
+}
+
+#[test]
 fn test_multi_value_generic_to_list_converts_all_values() {
     let mv = MultiValues::String(vec![
         "1".to_string(),
@@ -449,6 +525,30 @@ fn test_multi_value_generic_to_list_converts_all_values() {
     ]);
     let flags: Vec<bool> = mv.to_list().unwrap();
     assert_eq!(flags, vec![true, false, true, false]);
+}
+
+#[test]
+fn test_multi_value_to_list_with_applies_common_conversion_options() {
+    let options = DataConversionOptions::default()
+        .with_string_options(StringConversionOptions::default().with_trim(true))
+        .with_collection_options(
+            CollectionConversionOptions::default()
+                .with_split_scalar_strings(true)
+                .with_delimiters([',', ';'])
+                .with_trim_items(true)
+                .with_empty_item_policy(EmptyItemPolicy::Skip),
+        );
+
+    let values = MultiValues::String(vec![" 8080, 8081;; 8082 ".to_string()]);
+    let ports: Vec<u16> = values
+        .to_list_with(&options)
+        .expect("scalar string should split and parse");
+    assert_eq!(ports, vec![8080, 8081, 8082]);
+
+    let first: u16 = values
+        .to_with(&options)
+        .expect("first scalar item should parse after splitting");
+    assert_eq!(first, 8080);
 }
 
 #[test]
@@ -552,7 +652,7 @@ fn test_multi_value_generic_to_list_converts_all_variants_to_string() {
         ),
         (
             MultiValues::Duration(vec![duration]),
-            vec![format!("{}ns", duration.as_nanos())],
+            vec!["250ms".to_string()],
         ),
         (MultiValues::Url(vec![url.clone()]), vec![url.to_string()]),
     ];
@@ -579,6 +679,9 @@ fn test_multi_value_generic_to_list_converts_all_variants_to_string() {
 
 #[test]
 fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
+    let empty = MultiValues::Empty(DataType::String);
+    assert!(matches!(empty.to::<bool>(), Err(ValueError::NoValue)));
+
     let empty = MultiValues::String(Vec::new());
     assert!(matches!(empty.to::<bool>(), Err(ValueError::NoValue)));
 
@@ -587,6 +690,36 @@ fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
         invalid.to_list::<bool>(),
         Err(ValueError::ConversionError(_))
     ));
+
+    let unsupported = MultiValues::Date(vec![NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()]);
+    assert!(matches!(
+        unsupported.to::<bool>(),
+        Err(ValueError::ConversionFailed {
+            from: DataType::Date,
+            to: DataType::Bool
+        })
+    ));
+
+    let invalid_json = MultiValues::String(vec!["{".to_string()]);
+    assert!(matches!(
+        invalid_json.to::<JsonValue>(),
+        Err(ValueError::JsonDeserializationError(_))
+    ));
+}
+
+#[test]
+fn test_multi_value_generic_to_list_reports_failing_index() {
+    let invalid = MultiValues::String(vec!["1".to_string(), "bad".to_string(), "0".to_string()]);
+
+    match invalid.to_list::<bool>() {
+        Err(ValueError::ConversionError(message)) => {
+            assert!(
+                message.contains("index 1"),
+                "error should include failing index: {message}"
+            );
+        }
+        other => panic!("expected indexed conversion error, got {other:?}"),
+    }
 }
 
 #[test]
@@ -1279,7 +1412,11 @@ fn test_biginteger_bigdecimal_merge() {
 
 #[test]
 fn test_multi_value_all_datetime_types() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test Date multiple values
     let dates = vec![
@@ -1471,7 +1608,10 @@ fn test_multi_value_clear_all_types() {
     assert_eq!(mv.data_type(), DataType::DateTime);
 
     // Instant type
-    use chrono::{DateTime, Utc};
+    use chrono::{
+        DateTime,
+        Utc,
+    };
     let instant1 = DateTime::parse_from_rfc3339("2023-01-01T10:00:00Z")
         .unwrap()
         .with_timezone(&Utc);
@@ -1561,7 +1701,12 @@ fn test_multi_value_merge_all_integer_types() {
 
 #[test]
 fn test_multi_value_merge_all_other_types() {
-    use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        DateTime,
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Bool type
     let mut mv1 = MultiValues::Bool(vec![true, false]);
@@ -1817,7 +1962,12 @@ fn test_multi_value_data_type_all_variants() {
 
 #[test]
 fn test_multi_value_from_value_all_types() {
-    use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        DateTime,
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test conversion from Value to MultiValues
 
@@ -1995,7 +2145,11 @@ fn test_multi_value_from_value_all_types() {
 
 #[test]
 fn test_multi_value_add_all_types_mismatch_with_macro() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Batch test type mismatch for all add_xxx methods using macros
     test_add_type_mismatch! {
@@ -2024,7 +2178,11 @@ fn test_multi_value_add_all_types_mismatch_with_macro() {
 
 #[test]
 fn test_multi_value_add_vec_all_types_mismatch_with_macro() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test add_xxxs (Vec) method type mismatch (excluding Int32 type, as the test MultiValues is Int32)
     test_add_type_mismatch! {
@@ -2052,7 +2210,11 @@ fn test_multi_value_add_vec_all_types_mismatch_with_macro() {
 
 #[test]
 fn test_multi_value_add_slice_all_types_mismatch_with_macro() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test add_xxxs_slice method type mismatch
     let bool_slice = &[true, false];
@@ -3324,6 +3486,21 @@ fn test_multi_values_first_getter_non_empty_branch() {
 }
 
 #[test]
+fn test_multi_values_first_getter_no_value_branches() {
+    let mv = MultiValues::Bool(Vec::new());
+    let result: Result<bool, ValueError> = mv.get_first();
+    assert!(matches!(result, Err(ValueError::NoValue)));
+
+    let mv = MultiValues::Empty(DataType::Bool);
+    let result: Result<bool, ValueError> = mv.get_first();
+    assert!(matches!(result, Err(ValueError::NoValue)));
+
+    let mv = MultiValues::Empty(DataType::Int32);
+    let result: Result<i32, ValueError> = mv.get_first();
+    assert!(matches!(result, Err(ValueError::NoValue)));
+}
+
+#[test]
 fn test_multi_values_adder_type_mismatch_branch() {
     // Test _ branch of MultiValuesMultiAdder (type mismatch)
     let mut mv = MultiValues::Int32(vec![1, 2]);
@@ -3350,6 +3527,64 @@ fn test_multi_values_adder_slice_type_mismatch_branch() {
     let bool_slice: &[bool] = &[true, false];
     // Try to add &[bool] to Int32 MultiValues
     let result = mv.add(bool_slice);
+    assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
+}
+
+#[test]
+fn test_multi_values_adder_slice_success_branches() {
+    let mut mv = MultiValues::Bool(vec![false]);
+    let values: &[bool] = &[true, false];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_bools().unwrap(), &[false, true, false]);
+
+    let mut mv = MultiValues::Int32(vec![1, 2]);
+    let values: &[i32] = &[3, 4];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_int32s().unwrap(), &[1, 2, 3, 4]);
+
+    let mut mv = MultiValues::Empty(DataType::Int32);
+    let values: &[i32] = &[10, 20];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_int32s().unwrap(), &[10, 20]);
+
+    let mut mv = MultiValues::Empty(DataType::Bool);
+    let values: &[bool] = &[true, false];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_bools().unwrap(), &[true, false]);
+
+    let mut mv = MultiValues::UInt8(vec![1]);
+    let values: &[u8] = &[2, 3];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_uint8s().unwrap(), &[1, 2, 3]);
+
+    let mut mv = MultiValues::Empty(DataType::UInt8);
+    let values: &[u8] = &[4, 5];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_uint8s().unwrap(), &[4, 5]);
+
+    let mut mv = MultiValues::String(vec!["value".to_string()]);
+    let values: &[u8] = &[1, 2];
+    let result = mv.add(values);
+    assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
+
+    let mut mv = MultiValues::UInt64(vec![1]);
+    let values: &[u64] = &[2, 3];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_uint64s().unwrap(), &[1, 2, 3]);
+
+    let mut mv = MultiValues::String(vec!["value".to_string()]);
+    let values: &[u64] = &[1, 2];
+    let result = mv.add(values);
+    assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
+
+    let mut mv = MultiValues::Empty(DataType::Float32);
+    let values: &[f32] = &[1.5, 2.5];
+    mv.add(values).unwrap();
+    assert_eq!(mv.get_float32s().unwrap(), &[1.5, 2.5]);
+
+    let mut mv = MultiValues::String(vec!["value".to_string()]);
+    let values: &[f32] = &[1.5, 2.5];
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 }
 

@@ -1,9 +1,10 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Named Single Value
@@ -14,12 +15,15 @@
 //! Suitable for scenarios such as log annotation, configuration item encapsulation,
 //! and preserving strongly typed values in key-value pairs.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
-use serde::{Deserialize, Serialize};
-use std::ops::{Deref, DerefMut};
+use serde::{
+    Deserialize,
+    Serialize,
+};
+use std::ops::{
+    Deref,
+    DerefMut,
+};
 
 use super::value::Value;
 

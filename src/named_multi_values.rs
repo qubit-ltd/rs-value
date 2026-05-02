@@ -1,9 +1,10 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Named Multiple Values
@@ -12,12 +13,15 @@
 //! facilitating human-readable identification of groups of values in configurations,
 //! serialization, logging, and other scenarios.
 //!
-//! # Author
-//!
-//! Haixing Hu
 
-use serde::{Deserialize, Serialize};
-use std::ops::{Deref, DerefMut};
+use serde::{
+    Deserialize,
+    Serialize,
+};
+use std::ops::{
+    Deref,
+    DerefMut,
+};
 
 use super::multi_values::MultiValues;
 use super::named_value::NamedValue;
@@ -54,9 +58,6 @@ use super::named_value::NamedValue;
 /// assert_eq!(named.count(), 3);
 /// ```
 ///
-/// # Author
-///
-/// Haixing Hu
 ///
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NamedMultiValues {

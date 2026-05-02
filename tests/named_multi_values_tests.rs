@@ -1,23 +1,31 @@
 /*******************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Named Multi Values Unit Tests
 //!
 //! Tests various functionalities of the named multi values container。
 //!
-//! # Author
-//!
-//! Haixing Hu
 
 use chrono::DateTime as UtcDateTime;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use qubit_common::lang::DataType;
-use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
+use chrono::{
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
+use qubit_datatype::DataType;
+use qubit_value::{
+    MultiValues,
+    NamedMultiValues,
+    NamedValue,
+    Value,
+};
 
 #[test]
 fn test_named_multi_value_creation() {

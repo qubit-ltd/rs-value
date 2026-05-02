@@ -32,7 +32,7 @@ We provide a convenience script `coverage.sh` that can quickly generate coverage
 ./coverage.sh help
 ```
 
-**Note**: The script automatically uses `--package qubit-value` to only show coverage for the current crate, excluding dependencies (like `qubit-common`).
+**Note**: The script automatically uses `--package qubit-value` to only show coverage for the current crate, excluding dependencies (like `qubit-datatype`).
 
 ### Using cargo Commands
 
@@ -58,7 +58,7 @@ cargo llvm-cov --package qubit-value --json --output-path target/llvm-cov/covera
 cargo llvm-cov --package qubit-value --cobertura --output-path target/llvm-cov/cobertura.xml
 ```
 
-**Important**: Use `--package qubit-value` (or `-p qubit-value`) to only test the current package, excluding dependencies (like `qubit-common`) from coverage statistics.
+**Important**: Use `--package qubit-value` (or `-p qubit-value`) to only test the current package, excluding dependencies (like `qubit-datatype`) from coverage statistics.
 
 ## Report Locations
 

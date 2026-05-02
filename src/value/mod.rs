@@ -1,9 +1,10 @@
 /***************************************************************************
  *
- *    Copyright (c) 2025 - 2026.
- *    Haixing Hu, Qubit Co. Ltd.
+ *    Copyright (c) 2025 - 2026 Haixing Hu.
  *
- *    All rights reserved.
+ *    SPDX-License-Identifier: Apache-2.0
+ *
+ *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
 //! # Value Module
@@ -23,4 +24,9 @@ pub use value::Value;
 
 // Public implementation details used by `Value` generic method bounds.
 #[doc(hidden)]
-pub use value::{ValueConstructor, ValueConverter, ValueGetter, ValueSetter};
+pub use value::{
+    ValueConstructor,
+    ValueConverter,
+    ValueGetter,
+    ValueSetter,
+};
