@@ -35,6 +35,35 @@ use crate::{
 
 use super::multi_values::MultiValues;
 
+macro_rules! multi_values_to_value_match {
+    ($value:expr; $(($variant:ident, $type:ty, $data_type:expr)),+ $(,)?) => {
+        match $value {
+            MultiValues::Empty(data_type) => Value::Empty(*data_type),
+            $(
+                MultiValues::$variant(values) => values
+                    .first()
+                    .cloned()
+                    .map(Value::$variant)
+                    .unwrap_or(Value::Empty($data_type)),
+            )+
+        }
+    };
+}
+
+macro_rules! multi_values_merge_match {
+    ($left:expr, $right:expr; $(($variant:ident, $type:ty, $data_type:expr)),+ $(,)?) => {
+        match ($left, $right) {
+            $(
+                (MultiValues::$variant(values), MultiValues::$variant(other_values)) => {
+                    values.extend_from_slice(other_values)
+                }
+            )+
+            (slot @ MultiValues::Empty(_), other_values) => *slot = other_values.clone(),
+            _ => unreachable!(),
+        }
+    };
+}
+
 // ============================================================================
 // Inherent conversion APIs and `Value` interop
 // ============================================================================
@@ -406,144 +435,7 @@ impl MultiValues {
     /// Returns the first element wrapped as [`Value`], or an empty value
     /// preserving the current data type.
     pub fn to_value(&self) -> Value {
-        match self {
-            MultiValues::Empty(dt) => Value::Empty(*dt),
-            MultiValues::Bool(v) => v
-                .first()
-                .copied()
-                .map(Value::Bool)
-                .unwrap_or(Value::Empty(DataType::Bool)),
-            MultiValues::Char(v) => v
-                .first()
-                .copied()
-                .map(Value::Char)
-                .unwrap_or(Value::Empty(DataType::Char)),
-            MultiValues::Int8(v) => v
-                .first()
-                .copied()
-                .map(Value::Int8)
-                .unwrap_or(Value::Empty(DataType::Int8)),
-            MultiValues::Int16(v) => v
-                .first()
-                .copied()
-                .map(Value::Int16)
-                .unwrap_or(Value::Empty(DataType::Int16)),
-            MultiValues::Int32(v) => v
-                .first()
-                .copied()
-                .map(Value::Int32)
-                .unwrap_or(Value::Empty(DataType::Int32)),
-            MultiValues::Int64(v) => v
-                .first()
-                .copied()
-                .map(Value::Int64)
-                .unwrap_or(Value::Empty(DataType::Int64)),
-            MultiValues::Int128(v) => v
-                .first()
-                .copied()
-                .map(Value::Int128)
-                .unwrap_or(Value::Empty(DataType::Int128)),
-            MultiValues::UInt8(v) => v
-                .first()
-                .copied()
-                .map(Value::UInt8)
-                .unwrap_or(Value::Empty(DataType::UInt8)),
-            MultiValues::UInt16(v) => v
-                .first()
-                .copied()
-                .map(Value::UInt16)
-                .unwrap_or(Value::Empty(DataType::UInt16)),
-            MultiValues::UInt32(v) => v
-                .first()
-                .copied()
-                .map(Value::UInt32)
-                .unwrap_or(Value::Empty(DataType::UInt32)),
-            MultiValues::UInt64(v) => v
-                .first()
-                .copied()
-                .map(Value::UInt64)
-                .unwrap_or(Value::Empty(DataType::UInt64)),
-            MultiValues::UInt128(v) => v
-                .first()
-                .copied()
-                .map(Value::UInt128)
-                .unwrap_or(Value::Empty(DataType::UInt128)),
-            MultiValues::IntSize(v) => v
-                .first()
-                .copied()
-                .map(Value::IntSize)
-                .unwrap_or(Value::Empty(DataType::IntSize)),
-            MultiValues::UIntSize(v) => v
-                .first()
-                .copied()
-                .map(Value::UIntSize)
-                .unwrap_or(Value::Empty(DataType::UIntSize)),
-            MultiValues::Float32(v) => v
-                .first()
-                .copied()
-                .map(Value::Float32)
-                .unwrap_or(Value::Empty(DataType::Float32)),
-            MultiValues::Float64(v) => v
-                .first()
-                .copied()
-                .map(Value::Float64)
-                .unwrap_or(Value::Empty(DataType::Float64)),
-            MultiValues::BigInteger(v) => v
-                .first()
-                .cloned()
-                .map(Value::BigInteger)
-                .unwrap_or(Value::Empty(DataType::BigInteger)),
-            MultiValues::BigDecimal(v) => v
-                .first()
-                .cloned()
-                .map(Value::BigDecimal)
-                .unwrap_or(Value::Empty(DataType::BigDecimal)),
-            MultiValues::String(v) => v
-                .first()
-                .cloned()
-                .map(Value::String)
-                .unwrap_or(Value::Empty(DataType::String)),
-            MultiValues::Date(v) => v
-                .first()
-                .copied()
-                .map(Value::Date)
-                .unwrap_or(Value::Empty(DataType::Date)),
-            MultiValues::Time(v) => v
-                .first()
-                .copied()
-                .map(Value::Time)
-                .unwrap_or(Value::Empty(DataType::Time)),
-            MultiValues::DateTime(v) => v
-                .first()
-                .copied()
-                .map(Value::DateTime)
-                .unwrap_or(Value::Empty(DataType::DateTime)),
-            MultiValues::Instant(v) => v
-                .first()
-                .copied()
-                .map(Value::Instant)
-                .unwrap_or(Value::Empty(DataType::Instant)),
-            MultiValues::Duration(v) => v
-                .first()
-                .copied()
-                .map(Value::Duration)
-                .unwrap_or(Value::Empty(DataType::Duration)),
-            MultiValues::Url(v) => v
-                .first()
-                .cloned()
-                .map(Value::Url)
-                .unwrap_or(Value::Empty(DataType::Url)),
-            MultiValues::StringMap(v) => v
-                .first()
-                .cloned()
-                .map(Value::StringMap)
-                .unwrap_or(Value::Empty(DataType::StringMap)),
-            MultiValues::Json(v) => v
-                .first()
-                .cloned()
-                .map(Value::Json)
-                .unwrap_or(Value::Empty(DataType::Json)),
-        }
+        for_each_multi_value_type!(multi_values_to_value_match, self)
     }
 
     /// Merge another multiple values
@@ -579,37 +471,7 @@ impl MultiValues {
             return Ok(());
         }
 
-        match (self, other) {
-            (MultiValues::Bool(v), MultiValues::Bool(o)) => v.extend_from_slice(o),
-            (MultiValues::Char(v), MultiValues::Char(o)) => v.extend_from_slice(o),
-            (MultiValues::Int8(v), MultiValues::Int8(o)) => v.extend_from_slice(o),
-            (MultiValues::Int16(v), MultiValues::Int16(o)) => v.extend_from_slice(o),
-            (MultiValues::Int32(v), MultiValues::Int32(o)) => v.extend_from_slice(o),
-            (MultiValues::Int64(v), MultiValues::Int64(o)) => v.extend_from_slice(o),
-            (MultiValues::Int128(v), MultiValues::Int128(o)) => v.extend_from_slice(o),
-            (MultiValues::UInt8(v), MultiValues::UInt8(o)) => v.extend_from_slice(o),
-            (MultiValues::UInt16(v), MultiValues::UInt16(o)) => v.extend_from_slice(o),
-            (MultiValues::UInt32(v), MultiValues::UInt32(o)) => v.extend_from_slice(o),
-            (MultiValues::UInt64(v), MultiValues::UInt64(o)) => v.extend_from_slice(o),
-            (MultiValues::UInt128(v), MultiValues::UInt128(o)) => v.extend_from_slice(o),
-            (MultiValues::Float32(v), MultiValues::Float32(o)) => v.extend_from_slice(o),
-            (MultiValues::Float64(v), MultiValues::Float64(o)) => v.extend_from_slice(o),
-            (MultiValues::String(v), MultiValues::String(o)) => v.extend_from_slice(o),
-            (MultiValues::Date(v), MultiValues::Date(o)) => v.extend_from_slice(o),
-            (MultiValues::Time(v), MultiValues::Time(o)) => v.extend_from_slice(o),
-            (MultiValues::DateTime(v), MultiValues::DateTime(o)) => v.extend_from_slice(o),
-            (MultiValues::Instant(v), MultiValues::Instant(o)) => v.extend_from_slice(o),
-            (MultiValues::BigInteger(v), MultiValues::BigInteger(o)) => v.extend_from_slice(o),
-            (MultiValues::BigDecimal(v), MultiValues::BigDecimal(o)) => v.extend_from_slice(o),
-            (MultiValues::IntSize(v), MultiValues::IntSize(o)) => v.extend_from_slice(o),
-            (MultiValues::UIntSize(v), MultiValues::UIntSize(o)) => v.extend_from_slice(o),
-            (MultiValues::Duration(v), MultiValues::Duration(o)) => v.extend_from_slice(o),
-            (MultiValues::Url(v), MultiValues::Url(o)) => v.extend_from_slice(o),
-            (MultiValues::StringMap(v), MultiValues::StringMap(o)) => v.extend(o.iter().cloned()),
-            (MultiValues::Json(v), MultiValues::Json(o)) => v.extend(o.iter().cloned()),
-            (slot @ MultiValues::Empty(_), other_values) => *slot = other_values.clone(),
-            _ => unreachable!(),
-        }
+        for_each_multi_value_type!(multi_values_merge_match, self, other);
 
         Ok(())
     }
