@@ -31,7 +31,6 @@ use crate::value_error::ValueResult;
 ///
 /// This trait backs `Value::set<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
 pub trait ValueSetter<T>: super::sealed::ValueSetterSealed<T> {
     /// Replaces the stored value with `value`.
     ///

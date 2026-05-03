@@ -133,14 +133,10 @@ pub enum Value {
     Json(serde_json::Value),
 }
 
-#[doc(hidden)]
-pub use super::value_constructor::ValueConstructor;
-#[doc(hidden)]
-pub use super::value_converter::ValueConverter;
-#[doc(hidden)]
-pub use super::value_getter::ValueGetter;
-#[doc(hidden)]
-pub use super::value_setter::ValueSetter;
+use super::value_constructor::ValueConstructor;
+use super::value_converter::ValueConverter;
+use super::value_getter::ValueGetter;
+use super::value_setter::ValueSetter;
 
 // ============================================================================
 // Getter method generation macro
@@ -302,8 +298,8 @@ impl Value {
 
     /// Generic conversion method
     ///
-    /// Converts the current value to the target type according to the conversion
-    /// rules defined by [`ValueConverter<T>`].
+    /// Converts the current value to the target type according to the shared
+    /// value conversion rules.
     ///
     /// # Supported Target Types And Source Variants
     ///

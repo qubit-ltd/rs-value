@@ -41,7 +41,6 @@ where
 }
 
 /// Internal dispatch trait for `MultiValues::new<S>()` arguments.
-#[doc(hidden)]
 pub trait MultiValuesConstructorArg<'a>: super::sealed::MultiValuesConstructorArgSealed {
     /// Builds a `MultiValues` instance from this argument.
     fn into_multi_values(self) -> MultiValues;

@@ -36,7 +36,6 @@ use super::multi_values::MultiValues;
 ///
 /// This trait backs `MultiValues::add<S>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
 pub trait MultiValuesAdder<T>: super::sealed::MultiValuesAdderSealed<T> {
     /// Appends `value` to the stored values.
     ///

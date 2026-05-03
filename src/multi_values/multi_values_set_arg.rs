@@ -33,7 +33,6 @@ use super::multi_values_single_setter::MultiValuesSingleSetter;
 /// Internal dispatch trait for `MultiValues::set<S>()`.
 ///
 /// Implementations route `Vec<T>`, `&[T]`, and `T` to the matching set path.
-#[doc(hidden)]
 pub trait MultiValuesSetArg<'a>: super::sealed::MultiValuesSetArgSealed {
     /// Element type being set.
     type Item: 'a + Clone;

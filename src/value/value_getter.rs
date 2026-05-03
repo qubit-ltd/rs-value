@@ -34,7 +34,6 @@ use crate::value_error::ValueResult;
 ///
 /// This trait backs `Value::get<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
 pub trait ValueGetter<T>: super::sealed::ValueGetterSealed<T> {
     /// Gets the value as `T`.
     ///

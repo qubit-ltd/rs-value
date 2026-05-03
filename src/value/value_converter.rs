@@ -14,7 +14,6 @@ use crate::value_error::ValueResult;
 ///
 /// This trait powers `Value::to<T>()`. Each implementation must clearly define
 /// which source variants are accepted for the target type.
-#[doc(hidden)]
 pub trait ValueConverter<T>: super::sealed::ValueConverterSealed<T> {
     /// Converts the current value to `T`.
     ///

@@ -45,27 +45,3 @@ mod sealed {
 }
 
 pub use multi_values::MultiValues;
-
-// Public implementation details used by `MultiValues` generic method bounds.
-#[doc(hidden)]
-pub use multi_values_add_arg::MultiValuesAddArg;
-#[doc(hidden)]
-pub use multi_values_adder::MultiValuesAdder;
-#[doc(hidden)]
-pub use multi_values_constructor::MultiValuesConstructor;
-#[doc(hidden)]
-pub use multi_values_constructor_arg::MultiValuesConstructorArg;
-#[doc(hidden)]
-pub use multi_values_first_getter::MultiValuesFirstGetter;
-#[doc(hidden)]
-pub use multi_values_getter::MultiValuesGetter;
-#[doc(hidden)]
-pub use multi_values_multi_adder::MultiValuesMultiAdder;
-#[doc(hidden)]
-pub use multi_values_set_arg::MultiValuesSetArg;
-#[doc(hidden)]
-pub use multi_values_setter::MultiValuesSetter;
-#[doc(hidden)]
-pub use multi_values_setter_slice::MultiValuesSetterSlice;
-#[doc(hidden)]
-pub use multi_values_single_setter::MultiValuesSingleSetter;
