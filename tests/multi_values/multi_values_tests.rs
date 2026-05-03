@@ -498,9 +498,22 @@ fn test_multi_value_defaulted_reads_use_default_only_for_empty() {
     );
 
     let values = MultiValues::String(vec!["42".to_string()]);
+    assert_eq!(
+        values
+            .get_or::<String>(["fallback", "backup"])
+            .expect("non-empty values should be returned"),
+        vec!["42".to_string()]
+    );
+    assert_eq!(
+        values
+            .get_first_or::<String>("fallback")
+            .expect("first value should be returned"),
+        "42"
+    );
     assert_eq!(values.to_or::<u16>(7).unwrap(), 42);
 
     let invalid = MultiValues::String(vec!["not-a-number".to_string()]);
+    assert!(invalid.get_first_or::<u16>(7).is_err());
     assert!(invalid.to_or::<u16>(7).is_err());
 }
 
