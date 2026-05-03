@@ -30,11 +30,15 @@ use url::Url;
 use super::value::Value;
 use crate::value_error::ValueResult;
 
+/// Private marker trait used to prevent downstream implementations.
+trait ValueGetterSealed<T> {}
+
 /// Internal trait used to extract specific types from `Value`.
 ///
 /// This trait backs `Value::get<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-pub trait ValueGetter<T>: super::sealed::ValueGetterSealed<T> {
+#[allow(private_bounds)]
+pub trait ValueGetter<T>: ValueGetterSealed<T> {
     /// Gets the value as `T`.
     ///
     /// # Returns
@@ -46,7 +50,7 @@ pub trait ValueGetter<T>: super::sealed::ValueGetterSealed<T> {
 
 macro_rules! impl_value_getter_copy {
     ($type:ty, $method:ident) => {
-        impl super::sealed::ValueGetterSealed<$type> for Value {}
+        impl ValueGetterSealed<$type> for Value {}
 
         impl ValueGetter<$type> for Value {
             #[inline]
@@ -86,7 +90,7 @@ impl_value_getter_copy!(HashMap<String, String>, get_string_map);
 impl_value_getter_copy!(serde_json::Value, get_json);
 
 /// String specialization because `Value::get_string()` returns `&str`.
-impl super::sealed::ValueGetterSealed<String> for Value {}
+impl ValueGetterSealed<String> for Value {}
 
 impl ValueGetter<String> for Value {
     #[inline]

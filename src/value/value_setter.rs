@@ -27,11 +27,15 @@ use url::Url;
 use super::value::Value;
 use crate::value_error::ValueResult;
 
+/// Private marker trait used to prevent downstream implementations.
+trait ValueSetterSealed<T> {}
+
 /// Internal trait used to set specific types in `Value`.
 ///
 /// This trait backs `Value::set<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-pub trait ValueSetter<T>: super::sealed::ValueSetterSealed<T> {
+#[allow(private_bounds)]
+pub trait ValueSetter<T>: ValueSetterSealed<T> {
     /// Replaces the stored value with `value`.
     ///
     /// # Returns
@@ -43,7 +47,7 @@ pub trait ValueSetter<T>: super::sealed::ValueSetterSealed<T> {
 
 macro_rules! impl_value_setter {
     ($type:ty, $method:ident) => {
-        impl super::sealed::ValueSetterSealed<$type> for Value {}
+        impl ValueSetterSealed<$type> for Value {}
 
         impl ValueSetter<$type> for Value {
             #[inline]
@@ -81,7 +85,7 @@ impl_value_setter!(Url, set_url);
 impl_value_setter!(HashMap<String, String>, set_string_map);
 impl_value_setter!(serde_json::Value, set_json);
 
-impl super::sealed::ValueSetterSealed<String> for Value {}
+impl ValueSetterSealed<String> for Value {}
 
 impl ValueSetter<String> for Value {
     #[inline]
@@ -91,7 +95,7 @@ impl ValueSetter<String> for Value {
 }
 
 /// Special handling for `&str`, converted into owned `String`.
-impl super::sealed::ValueSetterSealed<&str> for Value {}
+impl ValueSetterSealed<&str> for Value {}
 
 impl ValueSetter<&str> for Value {
     #[inline]

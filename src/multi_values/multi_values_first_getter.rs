@@ -32,11 +32,15 @@ use crate::value_error::{
 use super::multi_values::MultiValues;
 use qubit_datatype::DataType;
 
+/// Private marker trait used to prevent downstream implementations.
+trait MultiValuesFirstGetterSealed<T> {}
+
 /// Internal trait used to extract the first value from `MultiValues`.
 ///
 /// This trait backs `MultiValues::get_first<T>()`; downstream code should call
 /// the inherent method instead of implementing or naming this trait directly.
-pub trait MultiValuesFirstGetter<T>: super::sealed::MultiValuesFirstGetterSealed<T> {
+#[allow(private_bounds)]
+pub trait MultiValuesFirstGetter<T>: MultiValuesFirstGetterSealed<T> {
     /// Gets the first stored value as `T`.
     ///
     /// # Returns
@@ -48,7 +52,7 @@ pub trait MultiValuesFirstGetter<T>: super::sealed::MultiValuesFirstGetterSealed
 
 macro_rules! impl_multi_values_first_getter {
     ($type:ty, $variant:ident, $data_type:expr) => {
-        impl super::sealed::MultiValuesFirstGetterSealed<$type> for MultiValues {}
+        impl MultiValuesFirstGetterSealed<$type> for MultiValues {}
 
         impl MultiValuesFirstGetter<$type> for MultiValues {
             #[inline]

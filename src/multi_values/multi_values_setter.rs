@@ -26,11 +26,15 @@ use url::Url;
 
 use super::multi_values::MultiValues;
 
+/// Private marker trait used to prevent downstream implementations.
+trait MultiValuesSetterSealed<T> {}
+
 /// Internal trait used to set specific value lists in `MultiValues`.
 ///
 /// This trait backs `MultiValues::set<S>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-pub trait MultiValuesSetter<T>: super::sealed::MultiValuesSetterSealed<T> {
+#[allow(private_bounds)]
+pub trait MultiValuesSetter<T>: MultiValuesSetterSealed<T> {
     /// Replaces the stored values with `values`.
     ///
     /// # Returns
@@ -42,7 +46,7 @@ pub trait MultiValuesSetter<T>: super::sealed::MultiValuesSetterSealed<T> {
 
 macro_rules! impl_multi_values_setter {
     ($type:ty, $variant:ident) => {
-        impl super::sealed::MultiValuesSetterSealed<$type> for MultiValues {}
+        impl MultiValuesSetterSealed<$type> for MultiValues {}
 
         impl MultiValuesSetter<$type> for MultiValues {
             #[inline]
