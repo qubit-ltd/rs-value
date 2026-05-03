@@ -34,21 +34,6 @@ mod multi_values_setter_slice;
 mod multi_values_setters;
 mod multi_values_single_setter;
 
-/// Private marker trait used to prevent downstream implementations.
-mod sealed {
-    pub trait MultiValuesAddArgSealed {}
-    pub trait MultiValuesAdderSealed<T> {}
-    pub trait MultiValuesConstructorArgSealed {}
-    pub trait MultiValuesConstructorSealed<T> {}
-    pub trait MultiValuesFirstGetterSealed<T> {}
-    pub trait MultiValuesGetterSealed<T> {}
-    pub trait MultiValuesMultiAdderSealed<T> {}
-    pub trait MultiValuesSetArgSealed {}
-    pub trait MultiValuesSetterSealed<T> {}
-    pub trait MultiValuesSetterSliceSealed<T> {}
-    pub trait MultiValuesSingleSetterSealed<T> {}
-}
-
 pub use multi_values::MultiValues;
 pub use multi_values_add_arg::MultiValuesAddArg;
 pub use multi_values_adder::MultiValuesAdder;

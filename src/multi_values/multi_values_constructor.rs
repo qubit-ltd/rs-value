@@ -10,11 +10,15 @@
 
 //! Internal implementations for constructing `MultiValues` from `Vec<T>`.
 
+/// Private marker trait used to prevent downstream implementations.
+trait MultiValuesConstructorSealed<T> {}
+
 /// Internal trait used to create `MultiValues` from `Vec<T>`.
 ///
 /// This trait backs `MultiValues::new<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-pub trait MultiValuesConstructor<T>: super::sealed::MultiValuesConstructorSealed<T> {
+#[allow(private_bounds)]
+pub trait MultiValuesConstructor<T>: MultiValuesConstructorSealed<T> {
     /// Builds a `MultiValues` instance from `values`.
     ///
     /// # Returns
@@ -41,7 +45,7 @@ use super::multi_values::MultiValues;
 
 macro_rules! impl_multi_values_constructor {
     ($type:ty, $variant:ident) => {
-        impl super::sealed::MultiValuesConstructorSealed<$type> for MultiValues {}
+        impl MultiValuesConstructorSealed<$type> for MultiValues {}
 
         impl MultiValuesConstructor<$type> for MultiValues {
             #[inline]

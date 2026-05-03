@@ -32,11 +32,15 @@ use qubit_datatype::DataType;
 
 use super::multi_values::MultiValues;
 
+/// Private marker trait used to prevent downstream implementations.
+trait MultiValuesMultiAdderSealed<T> {}
+
 /// Internal trait used to add multiple values to `MultiValues`.
 ///
 /// This trait backs `MultiValues::add<S>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-pub trait MultiValuesMultiAdder<T>: super::sealed::MultiValuesMultiAdderSealed<T> {
+#[allow(private_bounds)]
+pub trait MultiValuesMultiAdder<T>: MultiValuesMultiAdderSealed<T> {
     /// Appends all values from `values`.
     ///
     /// # Returns
@@ -48,7 +52,7 @@ pub trait MultiValuesMultiAdder<T>: super::sealed::MultiValuesMultiAdderSealed<T
 
 macro_rules! impl_multi_values_multi_adder {
     ($type:ty, $variant:ident, $data_type:expr) => {
-        impl super::sealed::MultiValuesMultiAdderSealed<$type> for MultiValues {}
+        impl MultiValuesMultiAdderSealed<$type> for MultiValues {}
 
         impl MultiValuesMultiAdder<$type> for MultiValues {
             #[inline]

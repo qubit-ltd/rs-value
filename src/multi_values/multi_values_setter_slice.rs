@@ -27,11 +27,15 @@ use url::Url;
 
 use super::multi_values::MultiValues;
 
+/// Private marker trait used to prevent downstream implementations.
+trait MultiValuesSetterSliceSealed<T> {}
+
 /// Internal trait used to set `MultiValues` from a slice.
 ///
 /// This trait backs `MultiValues::set<S>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-pub trait MultiValuesSetterSlice<T>: super::sealed::MultiValuesSetterSliceSealed<T> {
+#[allow(private_bounds)]
+pub trait MultiValuesSetterSlice<T>: MultiValuesSetterSliceSealed<T> {
     /// Replaces the stored values with a clone of `values`.
     ///
     /// # Returns
@@ -43,7 +47,7 @@ pub trait MultiValuesSetterSlice<T>: super::sealed::MultiValuesSetterSliceSealed
 
 macro_rules! impl_multi_values_setter_slice {
     ($type:ty, $variant:ident) => {
-        impl super::sealed::MultiValuesSetterSliceSealed<$type> for MultiValues {}
+        impl MultiValuesSetterSliceSealed<$type> for MultiValues {}
 
         impl MultiValuesSetterSlice<$type> for MultiValues {
             #[inline]

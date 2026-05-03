@@ -20,12 +20,4 @@ mod value_converters;
 mod value_getter;
 mod value_setter;
 
-/// Private marker trait used to prevent downstream implementations.
-mod sealed {
-    pub trait ValueConstructorSealed<T> {}
-    pub trait ValueConverterSealed<T> {}
-    pub trait ValueGetterSealed<T> {}
-    pub trait ValueSetterSealed<T> {}
-}
-
 pub use value::Value;

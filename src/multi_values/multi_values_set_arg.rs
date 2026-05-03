@@ -30,10 +30,14 @@ use super::multi_values_setter::MultiValuesSetter;
 use super::multi_values_setter_slice::MultiValuesSetterSlice;
 use super::multi_values_single_setter::MultiValuesSingleSetter;
 
+/// Private marker trait used to prevent downstream implementations.
+trait MultiValuesSetArgSealed {}
+
 /// Internal dispatch trait for `MultiValues::set<S>()`.
 ///
 /// Implementations route `Vec<T>`, `&[T]`, and `T` to the matching set path.
-pub trait MultiValuesSetArg<'a>: super::sealed::MultiValuesSetArgSealed {
+#[allow(private_bounds)]
+pub trait MultiValuesSetArg<'a>: MultiValuesSetArgSealed {
     /// Element type being set.
     type Item: 'a + Clone;
 
@@ -48,7 +52,7 @@ pub trait MultiValuesSetArg<'a>: super::sealed::MultiValuesSetArgSealed {
 
 macro_rules! impl_multi_values_set_arg {
     ($type:ty) => {
-        impl super::sealed::MultiValuesSetArgSealed for Vec<$type> {}
+        impl MultiValuesSetArgSealed for Vec<$type> {}
 
         impl<'a> MultiValuesSetArg<'a> for Vec<$type> {
             type Item = $type;
@@ -59,7 +63,7 @@ macro_rules! impl_multi_values_set_arg {
             }
         }
 
-        impl<'a> super::sealed::MultiValuesSetArgSealed for &'a [$type] {}
+        impl<'a> MultiValuesSetArgSealed for &'a [$type] {}
 
         impl<'a> MultiValuesSetArg<'a> for &'a [$type]
         where
@@ -73,7 +77,7 @@ macro_rules! impl_multi_values_set_arg {
             }
         }
 
-        impl<'a> super::sealed::MultiValuesSetArgSealed for &'a Vec<$type> {}
+        impl<'a> MultiValuesSetArgSealed for &'a Vec<$type> {}
 
         impl<'a> MultiValuesSetArg<'a> for &'a Vec<$type>
         where
@@ -90,7 +94,7 @@ macro_rules! impl_multi_values_set_arg {
             }
         }
 
-        impl<const N: usize> super::sealed::MultiValuesSetArgSealed for [$type; N] {}
+        impl<const N: usize> MultiValuesSetArgSealed for [$type; N] {}
 
         impl<'a, const N: usize> MultiValuesSetArg<'a> for [$type; N] {
             type Item = $type;
@@ -101,7 +105,7 @@ macro_rules! impl_multi_values_set_arg {
             }
         }
 
-        impl<'a, const N: usize> super::sealed::MultiValuesSetArgSealed for &'a [$type; N] {}
+        impl<'a, const N: usize> MultiValuesSetArgSealed for &'a [$type; N] {}
 
         impl<'a, const N: usize> MultiValuesSetArg<'a> for &'a [$type; N]
         where
@@ -118,7 +122,7 @@ macro_rules! impl_multi_values_set_arg {
             }
         }
 
-        impl super::sealed::MultiValuesSetArgSealed for $type {}
+        impl MultiValuesSetArgSealed for $type {}
 
         impl<'a> MultiValuesSetArg<'a> for $type {
             type Item = $type;
@@ -159,7 +163,7 @@ impl_multi_values_set_arg!(Url);
 impl_multi_values_set_arg!(HashMap<String, String>);
 impl_multi_values_set_arg!(serde_json::Value);
 
-impl super::sealed::MultiValuesSetArgSealed for &str {}
+impl MultiValuesSetArgSealed for &str {}
 
 impl MultiValuesSetArg<'_> for &str {
     type Item = String;
@@ -170,7 +174,7 @@ impl MultiValuesSetArg<'_> for &str {
     }
 }
 
-impl super::sealed::MultiValuesSetArgSealed for Vec<&str> {}
+impl MultiValuesSetArgSealed for Vec<&str> {}
 
 impl MultiValuesSetArg<'_> for Vec<&str> {
     type Item = String;
@@ -182,7 +186,7 @@ impl MultiValuesSetArg<'_> for Vec<&str> {
     }
 }
 
-impl<'b> super::sealed::MultiValuesSetArgSealed for &'b [&'b str] {}
+impl<'b> MultiValuesSetArgSealed for &'b [&'b str] {}
 
 impl<'b> MultiValuesSetArg<'b> for &'b [&'b str] {
     type Item = String;
@@ -194,7 +198,7 @@ impl<'b> MultiValuesSetArg<'b> for &'b [&'b str] {
     }
 }
 
-impl super::sealed::MultiValuesSetArgSealed for &Vec<&str> {}
+impl MultiValuesSetArgSealed for &Vec<&str> {}
 
 impl MultiValuesSetArg<'_> for &Vec<&str> {
     type Item = String;
@@ -206,7 +210,7 @@ impl MultiValuesSetArg<'_> for &Vec<&str> {
     }
 }
 
-impl<const N: usize> super::sealed::MultiValuesSetArgSealed for [&str; N] {}
+impl<const N: usize> MultiValuesSetArgSealed for [&str; N] {}
 
 impl<const N: usize> MultiValuesSetArg<'_> for [&str; N] {
     type Item = String;
@@ -218,7 +222,7 @@ impl<const N: usize> MultiValuesSetArg<'_> for [&str; N] {
     }
 }
 
-impl<const N: usize> super::sealed::MultiValuesSetArgSealed for &[&str; N] {}
+impl<const N: usize> MultiValuesSetArgSealed for &[&str; N] {}
 
 impl<const N: usize> MultiValuesSetArg<'_> for &[&str; N] {
     type Item = String;

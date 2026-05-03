@@ -19,11 +19,15 @@ use crate::value_error::{
 
 use super::multi_values::MultiValues;
 
+/// Private marker trait used to prevent downstream implementations.
+trait MultiValuesGetterSealed<T> {}
+
 /// Internal trait used to extract multiple values from `MultiValues`.
 ///
 /// This trait backs `MultiValues::get<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-pub trait MultiValuesGetter<T>: super::sealed::MultiValuesGetterSealed<T> {
+#[allow(private_bounds)]
+pub trait MultiValuesGetter<T>: MultiValuesGetterSealed<T> {
     /// Gets all stored values as `Vec<T>`.
     ///
     /// # Returns
@@ -35,7 +39,7 @@ pub trait MultiValuesGetter<T>: super::sealed::MultiValuesGetterSealed<T> {
 
 macro_rules! impl_multi_values_getter {
     ($type:ty, $variant:ident, $data_type:expr) => {
-        impl super::sealed::MultiValuesGetterSealed<$type> for MultiValues {}
+        impl MultiValuesGetterSealed<$type> for MultiValues {}
 
         impl MultiValuesGetter<$type> for MultiValues {
             #[inline]

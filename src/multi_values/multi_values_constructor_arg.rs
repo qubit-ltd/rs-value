@@ -40,15 +40,19 @@ where
     result
 }
 
+/// Private marker trait used to prevent downstream implementations.
+trait MultiValuesConstructorArgSealed {}
+
 /// Internal dispatch trait for `MultiValues::new<S>()` arguments.
-pub trait MultiValuesConstructorArg<'a>: super::sealed::MultiValuesConstructorArgSealed {
+#[allow(private_bounds)]
+pub trait MultiValuesConstructorArg<'a>: MultiValuesConstructorArgSealed {
     /// Builds a `MultiValues` instance from this argument.
     fn into_multi_values(self) -> MultiValues;
 }
 
 macro_rules! impl_multi_values_constructor_arg {
     ($type:ty) => {
-        impl super::sealed::MultiValuesConstructorArgSealed for Vec<$type> {}
+        impl MultiValuesConstructorArgSealed for Vec<$type> {}
 
         impl<'a> MultiValuesConstructorArg<'a> for Vec<$type> {
             #[inline]
@@ -57,7 +61,7 @@ macro_rules! impl_multi_values_constructor_arg {
             }
         }
 
-        impl<'a> super::sealed::MultiValuesConstructorArgSealed for &'a [$type] {}
+        impl<'a> MultiValuesConstructorArgSealed for &'a [$type] {}
 
         impl<'a> MultiValuesConstructorArg<'a> for &'a [$type]
         where
@@ -69,7 +73,7 @@ macro_rules! impl_multi_values_constructor_arg {
             }
         }
 
-        impl<'a> super::sealed::MultiValuesConstructorArgSealed for &'a Vec<$type> {}
+        impl<'a> MultiValuesConstructorArgSealed for &'a Vec<$type> {}
 
         impl<'a> MultiValuesConstructorArg<'a> for &'a Vec<$type>
         where
@@ -81,7 +85,7 @@ macro_rules! impl_multi_values_constructor_arg {
             }
         }
 
-        impl<const N: usize> super::sealed::MultiValuesConstructorArgSealed for [$type; N] {}
+        impl<const N: usize> MultiValuesConstructorArgSealed for [$type; N] {}
 
         impl<'a, const N: usize> MultiValuesConstructorArg<'a> for [$type; N] {
             #[inline]
@@ -90,7 +94,7 @@ macro_rules! impl_multi_values_constructor_arg {
             }
         }
 
-        impl<'a, const N: usize> super::sealed::MultiValuesConstructorArgSealed for &'a [$type; N] {}
+        impl<'a, const N: usize> MultiValuesConstructorArgSealed for &'a [$type; N] {}
 
         impl<'a, const N: usize> MultiValuesConstructorArg<'a> for &'a [$type; N]
         where
@@ -132,7 +136,7 @@ impl_multi_values_constructor_arg!(Url);
 impl_multi_values_constructor_arg!(HashMap<String, String>);
 impl_multi_values_constructor_arg!(serde_json::Value);
 
-impl super::sealed::MultiValuesConstructorArgSealed for Vec<&str> {}
+impl MultiValuesConstructorArgSealed for Vec<&str> {}
 
 impl MultiValuesConstructorArg<'_> for Vec<&str> {
     #[inline]
@@ -141,7 +145,7 @@ impl MultiValuesConstructorArg<'_> for Vec<&str> {
     }
 }
 
-impl super::sealed::MultiValuesConstructorArgSealed for &[&str] {}
+impl MultiValuesConstructorArgSealed for &[&str] {}
 
 impl MultiValuesConstructorArg<'_> for &[&str] {
     #[inline]
@@ -150,7 +154,7 @@ impl MultiValuesConstructorArg<'_> for &[&str] {
     }
 }
 
-impl super::sealed::MultiValuesConstructorArgSealed for &Vec<&str> {}
+impl MultiValuesConstructorArgSealed for &Vec<&str> {}
 
 impl MultiValuesConstructorArg<'_> for &Vec<&str> {
     #[inline]
@@ -159,7 +163,7 @@ impl MultiValuesConstructorArg<'_> for &Vec<&str> {
     }
 }
 
-impl<const N: usize> super::sealed::MultiValuesConstructorArgSealed for [&str; N] {}
+impl<const N: usize> MultiValuesConstructorArgSealed for [&str; N] {}
 
 impl<const N: usize> MultiValuesConstructorArg<'_> for [&str; N] {
     #[inline]
@@ -168,7 +172,7 @@ impl<const N: usize> MultiValuesConstructorArg<'_> for [&str; N] {
     }
 }
 
-impl<const N: usize> super::sealed::MultiValuesConstructorArgSealed for &[&str; N] {}
+impl<const N: usize> MultiValuesConstructorArgSealed for &[&str; N] {}
 
 impl<const N: usize> MultiValuesConstructorArg<'_> for &[&str; N] {
     #[inline]
