@@ -82,6 +82,27 @@ fn test_value_defaulted_reads_use_default_only_for_empty() {
     let invalid = Value::String("not-a-port".to_string());
     assert!(invalid.to_or::<u16>(8080).is_err());
 }
+
+#[test]
+fn test_value_get_or_rejects_empty_value_with_mismatched_type() {
+    let empty_int = Value::Empty(DataType::Int32);
+
+    assert!(matches!(
+        empty_int.get_or::<String>("fallback"),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::String,
+            actual: DataType::Int32,
+        })
+    ));
+
+    assert!(matches!(
+        empty_int.get_string(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::String,
+            actual: DataType::Int32,
+        })
+    ));
+}
 #[test]
 fn test_value_generic_get_type_mismatch() {
     let v = Value::Int32(42);
