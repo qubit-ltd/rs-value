@@ -18,7 +18,10 @@ exclude = [
     "COVERAGE.md",
     "COVERAGE.zh_CN.md",
     ".circleci/*",
+    ".rs-ci/*",
     "ci-check.sh",
+    "align-ci.sh",
+    "style-check.sh",
     ".llvm-cov.toml",
     ".cargo-audit.toml.example",
 ]
