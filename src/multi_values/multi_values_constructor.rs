@@ -14,7 +14,6 @@
 ///
 /// This trait backs `MultiValues::new<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
 pub trait MultiValuesConstructor<T>: super::sealed::MultiValuesConstructorSealed<T> {
     /// Builds a `MultiValues` instance from `values`.
     ///

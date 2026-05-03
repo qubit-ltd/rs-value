@@ -23,7 +23,6 @@ use super::multi_values::MultiValues;
 ///
 /// This trait backs `MultiValues::get<T>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
 pub trait MultiValuesGetter<T>: super::sealed::MultiValuesGetterSealed<T> {
     /// Gets all stored values as `Vec<T>`.
     ///

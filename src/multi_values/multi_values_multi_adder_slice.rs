@@ -37,7 +37,6 @@ use super::multi_values::MultiValues;
 /// This trait backs slice arguments to `MultiValues::add<S>()`; downstream code
 /// should call the inherent method instead of implementing or naming this trait
 /// directly.
-#[doc(hidden)]
 pub(crate) trait MultiValuesMultiAdderSlice<T> {
     /// Appends all values from `values`.
     ///

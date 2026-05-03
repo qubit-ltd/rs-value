@@ -31,7 +31,6 @@ use super::multi_values::MultiValues;
 ///
 /// This trait backs `MultiValues::set<S>()`; downstream code should call the
 /// inherent method instead of implementing or naming this trait directly.
-#[doc(hidden)]
 pub trait MultiValuesSingleSetter<T>: super::sealed::MultiValuesSingleSetterSealed<T> {
     /// Replaces the stored values with one `value`.
     ///

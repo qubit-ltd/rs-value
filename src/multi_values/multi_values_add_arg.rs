@@ -33,7 +33,6 @@ use super::multi_values_multi_adder_slice::MultiValuesMultiAdderSlice;
 /// Internal dispatch trait for `MultiValues::add<S>()`.
 ///
 /// Implementations route `T`, `Vec<T>`, and `&[T]` to the matching add path.
-#[doc(hidden)]
 pub trait MultiValuesAddArg<'a>: super::sealed::MultiValuesAddArgSealed {
     /// Element type being added.
     type Item: 'a + Clone;
