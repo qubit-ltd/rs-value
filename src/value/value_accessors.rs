@@ -40,7 +40,11 @@ macro_rules! impl_get_value {
         pub fn $method(&self) -> ValueResult<$type> {
             match self {
                 Value::$variant(v) => Ok(*v),
-                Value::Empty(_) => Err(ValueError::NoValue),
+                Value::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                    expected: $data_type,
+                    actual: *dt,
+                }),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -60,7 +64,11 @@ macro_rules! impl_get_value {
                     let conv_fn: fn(&_) -> $ret_type = $conversion;
                     Ok(conv_fn(v))
                 },
-                Value::Empty(_) => Err(ValueError::NoValue),
+                Value::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                    expected: $data_type,
+                    actual: *dt,
+                }),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
