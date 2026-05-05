@@ -11,6 +11,24 @@
 //!
 //! Integration tests for `MultiValues` module.
 
+mod multi_values_add_arg_tests;
+mod multi_values_adder_tests;
+mod multi_values_adders_tests;
+mod multi_values_constructor_arg_tests;
+mod multi_values_constructor_tests;
+mod multi_values_converters_tests;
+mod multi_values_core_tests;
+mod multi_values_first_getter_tests;
 mod multi_values_generic_coverage_tests;
+mod multi_values_getter_tests;
+mod multi_values_getters_tests;
+mod multi_values_multi_adder_slice_tests;
+mod multi_values_multi_adder_tests;
+mod multi_values_set_arg_tests;
+mod multi_values_setter_slice_tests;
+mod multi_values_setter_tests;
+mod multi_values_setters_tests;
+mod multi_values_single_setter_tests;
 mod multi_values_tests;
+mod multi_values_type_table_tests;
 mod multi_values_v030_tests;
