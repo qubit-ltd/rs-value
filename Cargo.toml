@@ -1,6 +1,6 @@
 [package]
 name = "qubit-value"
-version = "0.7.3"
+version = "0.7.4"
 edition = "2024"
 rust-version = "1.94"
 autotests = false
@@ -14,14 +14,12 @@ readme = "README.md"
 keywords = ["value", "container", "type-safe", "serde", "qubit"]
 categories = ["data-structures", "config", "development-tools"]
 exclude = [
-    "coverage.sh",
-    "COVERAGE.md",
-    "COVERAGE.zh_CN.md",
-    ".circleci/*",
-    ".rs-ci/*",
-    "ci-check.sh",
     "align-ci.sh",
+    "ci-check.sh",
+    "coverage.sh",
     "style-check.sh",
+    "update-submodule.sh",
+    ".github/*",
     ".llvm-cov.toml",
     ".cargo-audit.toml.example",
 ]
