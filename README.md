@@ -1,7 +1,7 @@
 # Qubit Value
 
 [![Rust CI](https://github.com/qubit-ltd/rs-value/actions/workflows/ci.yml/badge.svg)](https://github.com/qubit-ltd/rs-value/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/qubit-ltd/rs-value/badge.svg?branch=main)](https://coveralls.io/github/qubit-ltd/rs-value?branch=main)
+[![Coverage](https://img.shields.io/endpoint?url=https://qubit-ltd.github.io/rs-value/coverage-badge.json)](https://qubit-ltd.github.io/rs-value/coverage/)
 [![Crates.io](https://img.shields.io/crates/v/qubit-value.svg?color=blue)](https://crates.io/crates/qubit-value)
 [![Rust](https://img.shields.io/badge/rust-1.94+-blue.svg?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
@@ -66,7 +66,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = "0.7"
+qubit-value = "0.7.6"
 ```
 
 ## Usage Examples
