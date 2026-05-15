@@ -15,7 +15,7 @@
 #[macro_use]
 mod multi_values;
 mod multi_values_adders;
-mod multi_values_constructor_arg;
+mod multi_values_constructor;
 #[macro_use]
 mod multi_values_type_table;
 mod multi_values_converters;

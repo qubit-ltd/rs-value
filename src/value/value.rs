@@ -240,8 +240,13 @@ impl Value {
     ///
     /// # Returns
     ///
-    /// If types match, returns the value of the corresponding type;
-    /// otherwise returns an error
+    /// Returns the stored value when its type matches `T`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when the value is empty with the
+    /// requested type, or [`ValueError::TypeMismatch`] when the stored type
+    /// differs from `T`.
     ///
     /// # Example
     ///

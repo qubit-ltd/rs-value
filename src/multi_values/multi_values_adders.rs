@@ -47,7 +47,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         ///
         /// # Example
         ///
@@ -70,7 +70,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_char, Char, char, DataType::Char
     }
 
@@ -83,7 +83,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int8, Int8, i8, DataType::Int8
     }
 
@@ -96,7 +96,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int16, Int16, i16, DataType::Int16
     }
 
@@ -109,7 +109,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int32, Int32, i32, DataType::Int32
     }
 
@@ -122,7 +122,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int64, Int64, i64, DataType::Int64
     }
 
@@ -135,7 +135,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int128, Int128, i128, DataType::Int128
     }
 
@@ -148,7 +148,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint8, UInt8, u8, DataType::UInt8
     }
 
@@ -161,7 +161,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint16, UInt16, u16, DataType::UInt16
     }
 
@@ -174,7 +174,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint32, UInt32, u32, DataType::UInt32
     }
 
@@ -187,7 +187,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint64, UInt64, u64, DataType::UInt64
     }
 
@@ -200,7 +200,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint128, UInt128, u128, DataType::UInt128
     }
 
@@ -213,7 +213,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_float32, Float32, f32, DataType::Float32
     }
 
@@ -226,7 +226,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_float64, Float64, f64, DataType::Float64
     }
 
@@ -239,7 +239,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_string, String, String, DataType::String
     }
 
@@ -252,7 +252,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_date, Date, NaiveDate, DataType::Date
     }
 
@@ -265,7 +265,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_time, Time, NaiveTime, DataType::Time
     }
 
@@ -278,7 +278,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -291,7 +291,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -304,7 +304,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_biginteger, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -317,7 +317,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
@@ -364,7 +364,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         ///
         /// # Example
         ///
@@ -387,7 +387,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_chars, Char, char, DataType::Char
     }
 
@@ -400,7 +400,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int8s, Int8, i8, DataType::Int8
     }
 
@@ -413,7 +413,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int16s, Int16, i16, DataType::Int16
     }
 
@@ -426,7 +426,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int32s, Int32, i32, DataType::Int32
     }
 
@@ -439,7 +439,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int64s, Int64, i64, DataType::Int64
     }
 
@@ -452,7 +452,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int128s, Int128, i128, DataType::Int128
     }
 
@@ -465,7 +465,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint8s, UInt8, u8, DataType::UInt8
     }
 
@@ -478,7 +478,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint16s, UInt16, u16, DataType::UInt16
     }
 
@@ -491,7 +491,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint32s, UInt32, u32, DataType::UInt32
     }
 
@@ -504,7 +504,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint64s, UInt64, u64, DataType::UInt64
     }
 
@@ -517,7 +517,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint128s, UInt128, u128, DataType::UInt128
     }
 
@@ -530,7 +530,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_float32s, Float32, f32, DataType::Float32
     }
 
@@ -543,7 +543,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_float64s, Float64, f64, DataType::Float64
     }
 
@@ -556,7 +556,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         ///
         /// # Example
         ///
@@ -579,7 +579,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_dates, Date, NaiveDate, DataType::Date
     }
 
@@ -592,7 +592,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_times, Time, NaiveTime, DataType::Time
     }
 
@@ -605,7 +605,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_datetimes, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -618,7 +618,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_instants, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -631,7 +631,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_bigintegers, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -644,7 +644,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
@@ -691,7 +691,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_bools_slice, Bool, bool, DataType::Bool
     }
 
@@ -704,7 +704,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_chars_slice, Char, char, DataType::Char
     }
 
@@ -717,7 +717,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int8s_slice, Int8, i8, DataType::Int8
     }
 
@@ -730,7 +730,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int16s_slice, Int16, i16, DataType::Int16
     }
 
@@ -743,7 +743,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int32s_slice, Int32, i32, DataType::Int32
     }
 
@@ -756,7 +756,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int64s_slice, Int64, i64, DataType::Int64
     }
 
@@ -769,7 +769,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_int128s_slice, Int128, i128, DataType::Int128
     }
 
@@ -782,7 +782,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint8s_slice, UInt8, u8, DataType::UInt8
     }
 
@@ -795,7 +795,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint16s_slice, UInt16, u16, DataType::UInt16
     }
 
@@ -808,7 +808,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint32s_slice, UInt32, u32, DataType::UInt32
     }
 
@@ -821,7 +821,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint64s_slice, UInt64, u64, DataType::UInt64
     }
 
@@ -834,7 +834,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_uint128s_slice, UInt128, u128, DataType::UInt128
     }
 
@@ -847,7 +847,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_float32s_slice, Float32, f32, DataType::Float32
     }
 
@@ -860,7 +860,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_float64s_slice, Float64, f64, DataType::Float64
     }
 
@@ -873,7 +873,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_strings_slice, String, String, DataType::String
     }
 
@@ -886,7 +886,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_dates_slice, Date, NaiveDate, DataType::Date
     }
 
@@ -899,7 +899,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_times_slice, Time, NaiveTime, DataType::Time
     }
 
@@ -912,7 +912,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_datetimes_slice, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -925,7 +925,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_instants_slice, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -938,7 +938,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_bigintegers_slice, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -951,7 +951,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns `Ok(())`; otherwise returns an error
+        /// If types match, returns `Ok(())`; see `# Errors`.
         add_bigdecimals_slice, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
