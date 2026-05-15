@@ -40,6 +40,12 @@ macro_rules! impl_get_value {
     // Copy type: directly dereference and return
     ($(#[$attr:meta])* copy: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = ""]
+        #[doc = "Returns [`ValueError::NoValue`] when the value is empty with"]
+        #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
+        #[doc = "stored data type differs."]
         #[inline]
         pub fn $method(&self) -> ValueResult<$type> {
             match self {
@@ -61,6 +67,12 @@ macro_rules! impl_get_value {
     // fixing lifetime issues
     ($(#[$attr:meta])* ref: $method:ident, $variant:ident, $ret_type:ty, $data_type:expr, $conversion:expr) => {
         $(#[$attr])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = ""]
+        #[doc = "Returns [`ValueError::NoValue`] when the value is empty with"]
+        #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
+        #[doc = "stored data type differs."]
         #[inline]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match self {
@@ -126,8 +138,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the boolean value; otherwise returns an
-        /// error.
+        /// If types match, returns the boolean value; see `# Errors`.
         ///
         /// # Example
         ///
@@ -145,8 +156,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the character value; otherwise returns an
-        /// error.
+        /// If types match, returns the character value; see `# Errors`.
         ///
         /// # Example
         ///
@@ -164,7 +174,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the int8 value; otherwise returns an error.
+        /// If types match, returns the int8 value; see `# Errors`.
         copy: get_int8, Int8, i8, DataType::Int8
     }
 
@@ -173,7 +183,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the int16 value; otherwise returns an error
+        /// If types match, returns the int16 value; see `# Errors`.
         copy: get_int16, Int16, i16, DataType::Int16
     }
 
@@ -182,7 +192,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the int32 value; otherwise returns an error.
+        /// If types match, returns the int32 value; see `# Errors`.
         copy: get_int32, Int32, i32, DataType::Int32
     }
 
@@ -191,7 +201,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the int64 value; otherwise returns an error
+        /// If types match, returns the int64 value; see `# Errors`.
         copy: get_int64, Int64, i64, DataType::Int64
     }
 
@@ -200,7 +210,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the int128 value; otherwise returns an error.
+        /// If types match, returns the int128 value; see `# Errors`.
         copy: get_int128, Int128, i128, DataType::Int128
     }
 
@@ -209,7 +219,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the uint8 value; otherwise returns an error
+        /// If types match, returns the uint8 value; see `# Errors`.
         copy: get_uint8, UInt8, u8, DataType::UInt8
     }
 
@@ -218,7 +228,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the uint16 value; otherwise returns an error.
+        /// If types match, returns the uint16 value; see `# Errors`.
         copy: get_uint16, UInt16, u16, DataType::UInt16
     }
 
@@ -227,7 +237,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the uint32 value; otherwise returns an error.
+        /// If types match, returns the uint32 value; see `# Errors`.
         copy: get_uint32, UInt32, u32, DataType::UInt32
     }
 
@@ -236,7 +246,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the uint64 value; otherwise returns an error.
+        /// If types match, returns the uint64 value; see `# Errors`.
         copy: get_uint64, UInt64, u64, DataType::UInt64
     }
 
@@ -245,7 +255,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the uint128 value; otherwise returns an error
+        /// If types match, returns the uint128 value; see `# Errors`.
         copy: get_uint128, UInt128, u128, DataType::UInt128
     }
 
@@ -254,7 +264,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the float32 value; otherwise returns an error.
+        /// If types match, returns the float32 value; see `# Errors`.
         copy: get_float32, Float32, f32, DataType::Float32
     }
 
@@ -263,7 +273,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the float64 value; otherwise returns an error
+        /// If types match, returns the float64 value; see `# Errors`.
         copy: get_float64, Float64, f64, DataType::Float64
     }
 
@@ -272,8 +282,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the string; otherwise returns
-        /// an error.
+        /// If types match, returns a reference to the string; see `# Errors`.
         ///
         /// # Example
         ///
@@ -291,7 +300,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the date value; otherwise returns an error.
+        /// If types match, returns the date value; see `# Errors`.
         copy: get_date, Date, NaiveDate, DataType::Date
     }
 
@@ -300,7 +309,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the time value; otherwise returns an error.
+        /// If types match, returns the time value; see `# Errors`.
         copy: get_time, Time, NaiveTime, DataType::Time
     }
 
@@ -309,7 +318,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the datetime value; otherwise returns an error.
+        /// If types match, returns the datetime value; see `# Errors`.
         copy: get_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -318,7 +327,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the UTC instant value; otherwise returns an error.
+        /// If types match, returns the UTC instant value; see `# Errors`.
         copy: get_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -331,7 +340,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the big integer value; otherwise returns an error.
+        /// If types match, returns the big integer value; see `# Errors`.
         ///
         /// # Example
         ///
@@ -354,8 +363,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the big decimal value; otherwise returns an
-        /// error.
+        /// If types match, returns the big decimal value; see `# Errors`.
         ///
         /// # Example
         ///
@@ -703,7 +711,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the isize value; otherwise returns an error.
+        /// If types match, returns the isize value; see `# Errors`.
         copy: get_intsize, IntSize, isize, DataType::IntSize
     }
 
@@ -712,7 +720,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the usize value; otherwise returns an error.
+        /// If types match, returns the usize value; see `# Errors`.
         copy: get_uintsize, UIntSize, usize, DataType::UIntSize
     }
 
@@ -721,8 +729,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the Duration value; otherwise returns an
-        /// error.
+        /// If types match, returns the Duration value; see `# Errors`.
         copy: get_duration, Duration, Duration, DataType::Duration
     }
 
@@ -734,7 +741,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the URL value; otherwise returns an error.
+        /// If types match, returns the URL value; see `# Errors`.
         ref: get_url, Url, Url, DataType::Url, |v: &Url| v.clone()
     }
 
@@ -747,8 +754,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the string map value; otherwise returns an
-        /// error.
+        /// If types match, returns the string map value; see `# Errors`.
         ref: get_string_map, StringMap, HashMap<String, String>, DataType::StringMap,
             |v: &HashMap<String, String>| v.clone()
     }
@@ -761,12 +767,18 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If types match, returns the JSON value; otherwise returns an error.
+        /// If types match, returns the JSON value; see `# Errors`.
         ref: get_json, Json, serde_json::Value, DataType::Json,
             |v: &serde_json::Value| v.clone()
     }
 
     /// Borrow the inner `BigInt` without cloning.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// `DataType::BigInteger`, or [`ValueError::TypeMismatch`] when the stored
+    /// data type differs.
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         match self {
             Value::BigInteger(v) => Ok(v),
@@ -783,6 +795,12 @@ impl Value {
     }
 
     /// Borrow the inner `BigDecimal` without cloning.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// `DataType::BigDecimal`, or [`ValueError::TypeMismatch`] when the stored
+    /// data type differs.
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         match self {
             Value::BigDecimal(v) => Ok(v),
@@ -799,6 +817,12 @@ impl Value {
     }
 
     /// Borrow the inner `Url` without cloning.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// `DataType::Url`, or [`ValueError::TypeMismatch`] when the stored data
+    /// type differs.
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match self {
             Value::Url(v) => Ok(v),
@@ -815,6 +839,12 @@ impl Value {
     }
 
     /// Borrow the inner `HashMap<String, String>` without cloning.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// `DataType::StringMap`, or [`ValueError::TypeMismatch`] when the stored
+    /// data type differs.
     pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
         match self {
             Value::StringMap(v) => Ok(v),
@@ -831,6 +861,12 @@ impl Value {
     }
 
     /// Borrow the inner JSON value without cloning.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// `DataType::Json`, or [`ValueError::TypeMismatch`] when the stored data
+    /// type differs.
     pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
         match self {
             Value::Json(v) => Ok(v),

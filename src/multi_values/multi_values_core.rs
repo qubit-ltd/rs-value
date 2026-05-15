@@ -111,7 +111,12 @@ impl MultiValues {
     ///
     /// # Returns
     ///
-    /// If types match, returns the list of values; otherwise returns an error.
+    /// Returns the list of values when the stored type matches `T`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
+    /// `T`.
     ///
     /// # Example
     ///
@@ -166,8 +171,14 @@ impl MultiValues {
     ///
     /// # Returns
     ///
-    /// If types match and a value exists, returns the first value; otherwise
-    /// returns an error.
+    /// Returns the first value when the stored type matches `T` and at least
+    /// one value exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when the requested type matches but no
+    /// value is stored, or [`ValueError::TypeMismatch`] when the stored type
+    /// differs from `T`.
     ///
     /// # Example
     ///
@@ -284,10 +295,17 @@ impl MultiValues {
     /// element types.
     ///
     /// The converted input must have the same data type as the current container.
+    /// An empty container keeps its declared type until non-empty values of the
+    /// same type are appended.
     ///
     /// # Type Parameters
     ///
     /// * `S` - Input type convertible into [`MultiValues`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::TypeMismatch`] when the converted input data type
+    /// differs from the current container data type.
     ///
     /// # Example
     ///

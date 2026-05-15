@@ -3559,7 +3559,7 @@ fn test_multi_values_getter_empty_type_mismatch_branch() {
 }
 
 #[test]
-fn test_multi_values_first_getter_non_empty_branch() {
+fn test_multi_values_core_get_first_non_empty_branch() {
     // Test the normal first-element branch.
     // Ensure all types can correctly get first element
 
@@ -3581,7 +3581,7 @@ fn test_multi_values_first_getter_non_empty_branch() {
 }
 
 #[test]
-fn test_multi_values_first_getter_no_value_branches() {
+fn test_multi_values_core_get_first_no_value_branches() {
     let mv = MultiValues::Bool(Vec::new());
     let result: Result<bool, ValueError> = mv.get_first();
     assert!(matches!(result, Err(ValueError::NoValue)));
@@ -3596,7 +3596,7 @@ fn test_multi_values_first_getter_no_value_branches() {
 }
 
 #[test]
-fn test_multi_values_adder_type_mismatch_branch() {
+fn test_multi_values_core_add_type_mismatch_branch() {
     // Test type mismatch when adding an owned vector.
     let mut mv = MultiValues::Int32(vec![1, 2]);
     // Try to add Vec<String> to Int32 MultiValues
@@ -3610,7 +3610,7 @@ fn test_multi_values_adder_type_mismatch_branch() {
 }
 
 #[test]
-fn test_multi_values_adder_slice_type_mismatch_branch() {
+fn test_multi_values_core_add_slice_type_mismatch_branch() {
     // Test type mismatch when adding a slice.
     let mut mv = MultiValues::String(vec!["hello".to_string()]);
     let int_slice: &[i32] = &[42i32, 100];
@@ -3626,7 +3626,7 @@ fn test_multi_values_adder_slice_type_mismatch_branch() {
 }
 
 #[test]
-fn test_multi_values_adder_slice_success_branches() {
+fn test_multi_values_core_add_slice_success_branches() {
     let mut mv = MultiValues::Bool(vec![false]);
     let values: &[bool] = &[true, false];
     mv.add(values).unwrap();

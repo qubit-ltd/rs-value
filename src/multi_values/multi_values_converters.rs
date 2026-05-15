@@ -423,7 +423,12 @@ impl MultiValues {
     ///
     /// # Returns
     ///
-    /// If types match, returns `Ok(())`; otherwise returns an error
+    /// Returns `Ok(())` after appending all values from `other`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::TypeMismatch`] when `other` has a different data
+    /// type from this container.
     ///
     /// # Example
     ///

@@ -43,8 +43,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first boolean value;
-        /// otherwise returns an error.
+        /// If types match and a value exists, returns the first boolean value; see `# Errors`.
         ///
         /// # Example
         ///
@@ -62,8 +61,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first character value;
-        /// otherwise returns an error.
+        /// If types match and a value exists, returns the first character value; see `# Errors`.
         copy: get_first_char, Char, char, DataType::Char
     }
 
@@ -72,8 +70,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int8 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first int8 value; see `# Errors`.
         copy: get_first_int8, Int8, i8, DataType::Int8
     }
 
@@ -82,8 +79,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int16 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first int16 value; see `# Errors`.
         copy: get_first_int16, Int16, i16, DataType::Int16
     }
 
@@ -92,8 +88,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int32 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first int32 value; see `# Errors`.
         copy: get_first_int32, Int32, i32, DataType::Int32
     }
 
@@ -102,8 +97,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int64 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first int64 value; see `# Errors`.
         copy: get_first_int64, Int64, i64, DataType::Int64
     }
 
@@ -112,8 +106,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first int128 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first int128 value; see `# Errors`.
         copy: get_first_int128, Int128, i128, DataType::Int128
     }
 
@@ -122,8 +115,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint8 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first uint8 value; see `# Errors`.
         copy: get_first_uint8, UInt8, u8, DataType::UInt8
     }
 
@@ -132,8 +124,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint16 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first uint16 value; see `# Errors`.
         copy: get_first_uint16, UInt16, u16, DataType::UInt16
     }
 
@@ -142,8 +133,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint32 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first uint32 value; see `# Errors`.
         copy: get_first_uint32, UInt32, u32, DataType::UInt32
     }
 
@@ -152,8 +142,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint64 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first uint64 value; see `# Errors`.
         copy: get_first_uint64, UInt64, u64, DataType::UInt64
     }
 
@@ -162,8 +151,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first uint128 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first uint128 value; see `# Errors`.
         copy: get_first_uint128, UInt128, u128, DataType::UInt128
     }
 
@@ -172,8 +160,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first float32 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first float32 value; see `# Errors`.
         copy: get_first_float32, Float32, f32, DataType::Float32
     }
 
@@ -182,8 +169,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first float64 value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first float64 value; see `# Errors`.
         copy: get_first_float64, Float64, f64, DataType::Float64
     }
 
@@ -193,7 +179,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match and a value exists, returns a reference to the first
-        /// string; otherwise returns an error
+        /// string; see `# Errors`.
         ref: get_first_string, String, &str, DataType::String, |s: &String| s.as_str()
     }
 
@@ -202,8 +188,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first date value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first date value; see `# Errors`.
         copy: get_first_date, Date, NaiveDate, DataType::Date
     }
 
@@ -212,8 +197,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first time value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first time value; see `# Errors`.
         copy: get_first_time, Time, NaiveTime, DataType::Time
     }
 
@@ -222,8 +206,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match and a value exists, returns the first datetime value;
-        /// otherwise returns an error
+        /// If types match and a value exists, returns the first datetime value; see `# Errors`.
         copy: get_first_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -233,7 +216,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match and a value exists, returns the first UTC instant
-        /// value; otherwise returns an error
+        /// value; see `# Errors`.
         copy: get_first_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -243,7 +226,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match and a value exists, returns the first big integer
-        /// value; otherwise returns an error
+        /// value; see `# Errors`.
         ref: get_first_biginteger, BigInteger, BigInt, DataType::BigInteger, |v: &BigInt| v.clone()
     }
 
@@ -253,7 +236,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match and a value exists, returns the first big decimal
-        /// value; otherwise returns an error
+        /// value; see `# Errors`.
         ref: get_first_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
     }
 
@@ -296,8 +279,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the boolean value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the boolean value array; see `# Errors`.
         ///
         /// # Example
         ///
@@ -315,8 +297,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the character value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the character value array; see `# Errors`.
         slice: get_chars, Char, char, DataType::Char
     }
 
@@ -325,8 +306,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int8 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the int8 value array; see `# Errors`.
         slice: get_int8s, Int8, i8, DataType::Int8
     }
 
@@ -335,8 +315,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int16 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the int16 value array; see `# Errors`.
         slice: get_int16s, Int16, i16, DataType::Int16
     }
 
@@ -345,8 +324,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int32 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the int32 value array; see `# Errors`.
         slice: get_int32s, Int32, i32, DataType::Int32
     }
 
@@ -355,8 +333,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int64 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the int64 value array; see `# Errors`.
         slice: get_int64s, Int64, i64, DataType::Int64
     }
 
@@ -365,8 +342,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the int128 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the int128 value array; see `# Errors`.
         slice: get_int128s, Int128, i128, DataType::Int128
     }
 
@@ -375,8 +351,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint8 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the uint8 value array; see `# Errors`.
         slice: get_uint8s, UInt8, u8, DataType::UInt8
     }
 
@@ -385,8 +360,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint16 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the uint16 value array; see `# Errors`.
         slice: get_uint16s, UInt16, u16, DataType::UInt16
     }
 
@@ -395,8 +369,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint32 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the uint32 value array; see `# Errors`.
         slice: get_uint32s, UInt32, u32, DataType::UInt32
     }
 
@@ -405,8 +378,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint64 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the uint64 value array; see `# Errors`.
         slice: get_uint64s, UInt64, u64, DataType::UInt64
     }
 
@@ -415,8 +387,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the uint128 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the uint128 value array; see `# Errors`.
         slice: get_uint128s, UInt128, u128, DataType::UInt128
     }
 
@@ -425,8 +396,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the float32 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the float32 value array; see `# Errors`.
         slice: get_float32s, Float32, f32, DataType::Float32
     }
 
@@ -435,8 +405,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the float64 value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the float64 value array; see `# Errors`.
         slice: get_float64s, Float64, f64, DataType::Float64
     }
 
@@ -455,8 +424,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the date value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the date value array; see `# Errors`.
         slice: get_dates, Date, NaiveDate, DataType::Date
     }
 
@@ -465,8 +433,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the time value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the time value array; see `# Errors`.
         slice: get_times, Time, NaiveTime, DataType::Time
     }
 
@@ -475,8 +442,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the datetime value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the datetime value array; see `# Errors`.
         slice: get_datetimes, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -485,8 +451,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the UTC instant value array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the UTC instant value array; see `# Errors`.
         slice: get_instants, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -495,8 +460,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the big integer array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the big integer array; see `# Errors`.
         vec: get_bigintegers, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -505,8 +469,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If types match, returns a reference to the big decimal array;
-        /// otherwise returns an error
+        /// If types match, returns a reference to the big decimal array; see `# Errors`.
         vec: get_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 

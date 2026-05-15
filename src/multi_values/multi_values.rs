@@ -142,6 +142,11 @@ macro_rules! impl_get_multi_values {
     // Simple type: return slice reference
     ($(#[$attr:meta])* slice: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = ""]
+        #[doc = "Returns [`ValueError::TypeMismatch`] when the stored data type"]
+        #[doc = "differs. Empty values of the requested type return an empty slice."]
         #[inline]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
@@ -158,6 +163,11 @@ macro_rules! impl_get_multi_values {
     // Complex type: return Vec reference (e.g., Vec<String>, Vec<Vec<u8>>)
     ($(#[$attr:meta])* vec: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = ""]
+        #[doc = "Returns [`ValueError::TypeMismatch`] when the stored data type"]
+        #[doc = "differs. Empty values of the requested type return an empty slice."]
         #[inline]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
@@ -187,6 +197,12 @@ macro_rules! impl_get_first_value {
     // Copy type: directly return value
     ($(#[$attr:meta])* copy: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = ""]
+        #[doc = "Returns [`ValueError::NoValue`] when the requested type matches"]
+        #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
+        #[doc = "the stored data type differs."]
         #[inline]
         pub fn $method(&self) -> ValueResult<$type> {
             match self {
@@ -204,6 +220,12 @@ macro_rules! impl_get_first_value {
     // Reference type: return reference
     ($(#[$attr:meta])* ref: $method:ident, $variant:ident, $ret_type:ty, $data_type:expr, $conversion:expr) => {
         $(#[$attr])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = ""]
+        #[doc = "Returns [`ValueError::NoValue`] when the requested type matches"]
+        #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
+        #[doc = "the stored data type differs."]
         #[inline]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match self {
@@ -235,6 +257,11 @@ macro_rules! impl_get_first_value {
 macro_rules! impl_add_single_value {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = ""]
+        #[doc = "Returns [`ValueError::TypeMismatch`] when the current stored"]
+        #[doc = "data type differs from the value being appended."]
         #[inline]
         pub fn $method(&mut self, value: $type) -> ValueResult<()> {
             match self {
@@ -268,6 +295,11 @@ macro_rules! impl_add_single_value {
 macro_rules! impl_add_multi_values {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = ""]
+        #[doc = "Returns [`ValueError::TypeMismatch`] when the current stored"]
+        #[doc = "data type differs from the values being appended."]
         #[inline]
         pub fn $method(&mut self, values: Vec<$type>) -> ValueResult<()> {
             match self {
@@ -297,6 +329,11 @@ macro_rules! impl_add_multi_values {
 macro_rules! impl_add_multi_values_slice {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = ""]
+        #[doc = "Returns [`ValueError::TypeMismatch`] when the current stored"]
+        #[doc = "data type differs from the slice values being appended."]
         #[inline]
         pub fn $method(&mut self, values: &[$type]) -> ValueResult<()> {
             match self {
