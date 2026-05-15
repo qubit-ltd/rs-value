@@ -385,7 +385,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         ///
         /// # Example
         ///
@@ -409,7 +409,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_char, Char, char, DataType::Char
     }
 
@@ -422,7 +422,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_int8, Int8, i8, DataType::Int8
     }
 
@@ -435,7 +435,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_int16, Int16, i16, DataType::Int16
     }
 
@@ -448,7 +448,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_int32, Int32, i32, DataType::Int32
     }
 
@@ -461,7 +461,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_int64, Int64, i64, DataType::Int64
     }
 
@@ -474,7 +474,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_int128, Int128, i128, DataType::Int128
     }
 
@@ -487,7 +487,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_uint8, UInt8, u8, DataType::UInt8
     }
 
@@ -500,7 +500,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_uint16, UInt16, u16, DataType::UInt16
     }
 
@@ -513,7 +513,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_uint32, UInt32, u32, DataType::UInt32
     }
 
@@ -526,7 +526,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_uint64, UInt64, u64, DataType::UInt64
     }
 
@@ -539,7 +539,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_uint128, UInt128, u128, DataType::UInt128
     }
 
@@ -552,7 +552,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_float32, Float32, f32, DataType::Float32
     }
 
@@ -565,7 +565,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_float64, Float64, f64, DataType::Float64
     }
 
@@ -578,7 +578,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         ///
         /// # Example
         ///
@@ -602,7 +602,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_date, Date, NaiveDate, DataType::Date
     }
 
@@ -615,7 +615,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_time, Time, NaiveTime, DataType::Time
     }
 
@@ -628,7 +628,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -641,7 +641,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         copy: set_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -654,7 +654,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         ///
         /// # Example
         ///
@@ -679,7 +679,7 @@ impl Value {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+        /// Always returns `Ok(())` for this supported setter.
         ///
         /// # Example
         ///

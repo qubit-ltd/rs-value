@@ -9,8 +9,8 @@
  ******************************************************************************/
 //! # Public API Boundary Tests
 //!
-//! Verifies that external callers can use the generic APIs without importing
-//! the doc-hidden implementation traits that back their bounds.
+//! Verifies that external callers can use the generic APIs through exported
+//! types and standard conversion traits.
 //!
 
 use qubit_datatype::DataType;
@@ -20,7 +20,7 @@ use qubit_value::{
 };
 
 #[test]
-fn test_value_generic_api_works_without_hidden_trait_imports() {
+fn test_value_generic_api_uses_public_bounds() {
     let value = Value::new(42i32);
 
     let strict: i32 = value.get().unwrap();
@@ -36,7 +36,7 @@ fn test_value_generic_api_works_without_hidden_trait_imports() {
 }
 
 #[test]
-fn test_multi_values_generic_api_works_without_hidden_trait_imports() {
+fn test_multi_values_generic_api_uses_public_bounds() {
     let values = MultiValues::new(vec![1i32, 2, 3]);
 
     let all: Vec<i32> = values.get().unwrap();
