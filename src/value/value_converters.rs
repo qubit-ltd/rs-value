@@ -29,7 +29,6 @@ use chrono::{
 use num_bigint::BigInt;
 
 use qubit_datatype::{
-    DataConversionError,
     DataConversionOptions,
     DataConvertTo,
     DataConverter,
@@ -38,26 +37,9 @@ use qubit_datatype::{
 use super::value::Value;
 use super::value_converter::ValueConverter;
 use crate::value_error::{
-    ValueError,
     ValueResult,
+    map_data_conversion_error,
 };
-
-/// Maps a shared single-value conversion error into `ValueError`.
-fn map_data_conversion_error(error: DataConversionError) -> ValueError {
-    match error {
-        DataConversionError::NoValue => ValueError::NoValue,
-        DataConversionError::ConversionFailed { from, to } => {
-            ValueError::ConversionFailed { from, to }
-        }
-        DataConversionError::ConversionError(message) => ValueError::ConversionError(message),
-        DataConversionError::JsonSerializationError(message) => {
-            ValueError::JsonSerializationError(message)
-        }
-        DataConversionError::JsonDeserializationError(message) => {
-            ValueError::JsonDeserializationError(message)
-        }
-    }
-}
 
 /// Wraps a `Value` into the common conversion helper for the `qubit_datatype`
 /// conversion API.

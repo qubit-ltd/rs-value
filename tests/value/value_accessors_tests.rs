@@ -79,6 +79,9 @@ fn test_value_defaulted_reads_use_default_only_for_empty() {
     let value = Value::String("8081".to_string());
     assert_eq!(value.to_or::<u16>(8080).unwrap(), 8081);
 
+    let padded = Value::String(" 8082 ".to_string());
+    assert_eq!(padded.to_or_with::<u16>(8080, &options).unwrap(), 8082);
+
     let invalid = Value::String("not-a-port".to_string());
     assert!(invalid.to_or::<u16>(8080).is_err());
 }
@@ -562,6 +565,45 @@ fn test_value_borrowing_getters_error_branches() {
     assert!(matches!(
         wrong_json_type.get_json_ref(),
         Err(ValueError::TypeMismatch { .. })
+    ));
+
+    let wrong_empty = Value::Empty(DataType::String);
+    assert_ne!(wrong_empty.data_type(), DataType::BigInteger);
+    assert_eq!(wrong_empty.data_type(), DataType::String);
+    assert_eq!(
+        wrong_empty.get_biginteger_ref().map(|_| ()),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::BigInteger,
+            actual: DataType::String,
+        })
+    );
+    assert!(matches!(
+        wrong_empty.get_bigdecimal_ref(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::BigDecimal,
+            actual: DataType::String,
+        })
+    ));
+    assert!(matches!(
+        wrong_empty.get_url_ref(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Url,
+            actual: DataType::String,
+        })
+    ));
+    assert!(matches!(
+        wrong_empty.get_string_map_ref(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::StringMap,
+            actual: DataType::String,
+        })
+    ));
+    assert!(matches!(
+        wrong_empty.get_json_ref(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Json,
+            actual: DataType::String,
+        })
     ));
 }
 #[test]
