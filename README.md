@@ -493,8 +493,8 @@ deserialization.
 - **Reference Returns**: `get_string()` returns `&str` to avoid cloning
 - **Borrow Support**: `Value::new()` and `set()` accept `&str` (converted to
   `String`)
-- **Smart Dispatch**: `MultiValues::new/set/add` accept direct arrays, slices,
-  vectors, and borrowed vectors, then dispatch to the optimal internal path
+- **Flexible Inputs**: `MultiValues::new/set/add` accept direct arrays, slices,
+  vectors, and borrowed vectors for supported element types
 - **Borrowed Defaults**: Defaulted reads can use borrowed string literals and
   borrowed collection values without forcing callers to allocate first
 
@@ -508,7 +508,6 @@ serde_json = "1.0"
 thiserror = "2.0"
 chrono = { version = "0.4", features = ["serde"] }
 url = { version = "2.5", features = ["serde"] }
-num-traits = "0.2"
 num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 ```

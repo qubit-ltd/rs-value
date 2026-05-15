@@ -10,23 +10,7 @@
 
 //! Internal implementations for value conversion support.
 //!
-//! This module focuses on conversion helpers and `ValueConverter<T>` impls. The
-//! generic trait impls for getter/setter/constructor are defined in
-//! `value_getter.rs`, `value_setter.rs`, and `value_constructor.rs` to keep
-//! trait concerns separate.
-
-use std::collections::HashMap;
-use std::time::Duration;
-
-use bigdecimal::BigDecimal;
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
-use num_bigint::BigInt;
+//! This module focuses on conversion helpers backed by `qubit_datatype`.
 
 use qubit_datatype::{
     DataConversionOptions,
@@ -35,7 +19,6 @@ use qubit_datatype::{
 };
 
 use super::value::Value;
-use super::value_converter::ValueConverter;
 use crate::value_error::{
     ValueResult,
     map_data_conversion_error,
@@ -76,14 +59,6 @@ fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
     }
 }
 
-/// Converts a single `Value` into `T` using shared conversion helpers.
-fn convert_with_data_converter<T>(value: &Value) -> ValueResult<T>
-where
-    for<'a> DataConverter<'a>: DataConvertTo<T>,
-{
-    convert_with_data_converter_with(value, &DataConversionOptions::default())
-}
-
 /// Converts a single `Value` into `T` using shared conversion helpers and options.
 ///
 /// # Parameters
@@ -110,42 +85,3 @@ where
         .to_with::<T>(options)
         .map_err(map_data_conversion_error)
 }
-
-macro_rules! impl_data_value_converter {
-    ($type:ty) => {
-        impl ValueConverter<$type> for Value {
-            #[inline]
-            fn convert(&self) -> ValueResult<$type> {
-                convert_with_data_converter(self)
-            }
-        }
-    };
-}
-
-impl_data_value_converter!(String);
-impl_data_value_converter!(bool);
-impl_data_value_converter!(char);
-impl_data_value_converter!(i8);
-impl_data_value_converter!(i16);
-impl_data_value_converter!(i32);
-impl_data_value_converter!(i64);
-impl_data_value_converter!(i128);
-impl_data_value_converter!(u8);
-impl_data_value_converter!(u16);
-impl_data_value_converter!(u32);
-impl_data_value_converter!(u64);
-impl_data_value_converter!(u128);
-impl_data_value_converter!(isize);
-impl_data_value_converter!(usize);
-impl_data_value_converter!(f32);
-impl_data_value_converter!(f64);
-impl_data_value_converter!(NaiveDate);
-impl_data_value_converter!(NaiveTime);
-impl_data_value_converter!(NaiveDateTime);
-impl_data_value_converter!(DateTime<Utc>);
-impl_data_value_converter!(BigInt);
-impl_data_value_converter!(BigDecimal);
-impl_data_value_converter!(Duration);
-impl_data_value_converter!(url::Url);
-impl_data_value_converter!(HashMap<String, String>);
-impl_data_value_converter!(serde_json::Value);

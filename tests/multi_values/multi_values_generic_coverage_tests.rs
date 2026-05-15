@@ -197,7 +197,7 @@ fn test_generic_set_convenient_inputs_for_coverage() {
     assert_eq!(values.get_int32s().unwrap(), &[3, 4]);
 
     let array_ref = [5i32, 6];
-    values.set(&array_ref).unwrap();
+    values.set(array_ref).unwrap();
     assert_eq!(values.get_int32s().unwrap(), &[5, 6]);
 
     let mut values = MultiValues::Empty(DataType::String);
@@ -220,7 +220,7 @@ fn test_generic_set_convenient_inputs_for_coverage() {
     assert_eq!(values.get_strings().unwrap(), &["i", "j"]);
 
     let str_array_ref = ["k", "l"];
-    values.set(&str_array_ref).unwrap();
+    values.set(str_array_ref).unwrap();
     assert_eq!(values.get_strings().unwrap(), &["k", "l"]);
 }
 
@@ -235,7 +235,7 @@ fn test_generic_add_convenient_inputs_for_coverage() {
     assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3, 4, 5]);
 
     let array_ref = [6i32, 7];
-    values.add(&array_ref).unwrap();
+    values.add(array_ref).unwrap();
     assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3, 4, 5, 6, 7]);
 
     let mut values = MultiValues::String(vec!["a".to_string()]);
@@ -267,7 +267,7 @@ fn test_generic_add_convenient_inputs_for_coverage() {
     );
 
     let str_array_ref = ["l", "m"];
-    values.add(&str_array_ref).unwrap();
+    values.add(str_array_ref).unwrap();
     assert_eq!(
         values.get_strings().unwrap(),
         &[

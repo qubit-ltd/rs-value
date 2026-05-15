@@ -8,10 +8,7 @@
  *
  ******************************************************************************/
 
-//! Internal implementations of `ValueGetter<T>` for all supported `Value` types.
-//!
-//! These impls are intentionally colocated with the trait definition to keep the
-//! generic read path implementation and trait contract together.
+//! `TryFrom<&Value>` implementations for strict typed reads.
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -28,73 +25,58 @@ use num_bigint::BigInt;
 use url::Url;
 
 use super::value::Value;
-use crate::value_error::ValueResult;
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
-/// Private marker trait used to prevent downstream implementations.
-trait ValueGetterSealed<T> {}
-
-/// Internal trait used to extract specific types from `Value`.
-///
-/// This trait backs `Value::get<T>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[allow(private_bounds)]
-pub trait ValueGetter<T>: ValueGetterSealed<T> {
-    /// Gets the value as `T`.
-    ///
-    /// # Returns
-    ///
-    /// Returns the typed value when the stored variant matches `T`, or a
-    /// `ValueError` describing the mismatch or missing value.
-    fn get_value(&self) -> ValueResult<T>;
-}
-
-macro_rules! impl_value_getter_copy {
+macro_rules! impl_value_try_from_ref {
     ($type:ty, $method:ident) => {
-        impl ValueGetterSealed<$type> for Value {}
+        impl TryFrom<&Value> for $type {
+            type Error = ValueError;
 
-        impl ValueGetter<$type> for Value {
             #[inline]
-            fn get_value(&self) -> ValueResult<$type> {
-                self.$method()
+            fn try_from(value: &Value) -> ValueResult<$type> {
+                value.$method()
             }
         }
     };
 }
 
 // Primitive and common value types
-impl_value_getter_copy!(bool, get_bool);
-impl_value_getter_copy!(char, get_char);
-impl_value_getter_copy!(i8, get_int8);
-impl_value_getter_copy!(i16, get_int16);
-impl_value_getter_copy!(i32, get_int32);
-impl_value_getter_copy!(i64, get_int64);
-impl_value_getter_copy!(i128, get_int128);
-impl_value_getter_copy!(u8, get_uint8);
-impl_value_getter_copy!(u16, get_uint16);
-impl_value_getter_copy!(u32, get_uint32);
-impl_value_getter_copy!(u64, get_uint64);
-impl_value_getter_copy!(u128, get_uint128);
-impl_value_getter_copy!(f32, get_float32);
-impl_value_getter_copy!(f64, get_float64);
-impl_value_getter_copy!(NaiveDate, get_date);
-impl_value_getter_copy!(NaiveTime, get_time);
-impl_value_getter_copy!(NaiveDateTime, get_datetime);
-impl_value_getter_copy!(DateTime<Utc>, get_instant);
-impl_value_getter_copy!(BigInt, get_biginteger);
-impl_value_getter_copy!(BigDecimal, get_bigdecimal);
-impl_value_getter_copy!(isize, get_intsize);
-impl_value_getter_copy!(usize, get_uintsize);
-impl_value_getter_copy!(Duration, get_duration);
-impl_value_getter_copy!(Url, get_url);
-impl_value_getter_copy!(HashMap<String, String>, get_string_map);
-impl_value_getter_copy!(serde_json::Value, get_json);
+impl_value_try_from_ref!(bool, get_bool);
+impl_value_try_from_ref!(char, get_char);
+impl_value_try_from_ref!(i8, get_int8);
+impl_value_try_from_ref!(i16, get_int16);
+impl_value_try_from_ref!(i32, get_int32);
+impl_value_try_from_ref!(i64, get_int64);
+impl_value_try_from_ref!(i128, get_int128);
+impl_value_try_from_ref!(u8, get_uint8);
+impl_value_try_from_ref!(u16, get_uint16);
+impl_value_try_from_ref!(u32, get_uint32);
+impl_value_try_from_ref!(u64, get_uint64);
+impl_value_try_from_ref!(u128, get_uint128);
+impl_value_try_from_ref!(f32, get_float32);
+impl_value_try_from_ref!(f64, get_float64);
+impl_value_try_from_ref!(NaiveDate, get_date);
+impl_value_try_from_ref!(NaiveTime, get_time);
+impl_value_try_from_ref!(NaiveDateTime, get_datetime);
+impl_value_try_from_ref!(DateTime<Utc>, get_instant);
+impl_value_try_from_ref!(BigInt, get_biginteger);
+impl_value_try_from_ref!(BigDecimal, get_bigdecimal);
+impl_value_try_from_ref!(isize, get_intsize);
+impl_value_try_from_ref!(usize, get_uintsize);
+impl_value_try_from_ref!(Duration, get_duration);
+impl_value_try_from_ref!(Url, get_url);
+impl_value_try_from_ref!(HashMap<String, String>, get_string_map);
+impl_value_try_from_ref!(serde_json::Value, get_json);
 
 /// String specialization because `Value::get_string()` returns `&str`.
-impl ValueGetterSealed<String> for Value {}
+impl TryFrom<&Value> for String {
+    type Error = ValueError;
 
-impl ValueGetter<String> for Value {
     #[inline]
-    fn get_value(&self) -> ValueResult<String> {
-        self.get_string().map(|s| s.to_string())
+    fn try_from(value: &Value) -> ValueResult<String> {
+        value.get_string().map(|s| s.to_string())
     }
 }

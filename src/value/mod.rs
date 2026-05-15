@@ -15,9 +15,7 @@
 mod value;
 mod value_accessors;
 mod value_constructor;
-mod value_converter;
 mod value_converters;
 mod value_getter;
-mod value_setter;
 
 pub use value::Value;

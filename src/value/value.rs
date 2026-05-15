@@ -133,11 +133,6 @@ pub enum Value {
     Json(serde_json::Value),
 }
 
-use super::value_constructor::ValueConstructor;
-use super::value_converter::ValueConverter;
-use super::value_getter::ValueGetter;
-use super::value_setter::ValueSetter;
-
 // ============================================================================
 // Getter method generation macro
 // ============================================================================
@@ -205,9 +200,9 @@ impl Value {
     #[inline]
     pub fn new<T>(value: T) -> Self
     where
-        Self: ValueConstructor<T>,
+        T: Into<Self>,
     {
-        <Self as ValueConstructor<T>>::from_type(value)
+        value.into()
     }
 
     /// Generic getter method
@@ -276,9 +271,9 @@ impl Value {
     #[inline]
     pub fn get<T>(&self) -> ValueResult<T>
     where
-        Self: ValueGetter<T>,
+        for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
-        <Self as ValueGetter<T>>::get_value(self)
+        T::try_from(self)
     }
 
     /// Generic getter method with a default value.
@@ -288,7 +283,7 @@ impl Value {
     #[inline]
     pub fn get_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
-        Self: ValueGetter<T>,
+        for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
             Err(ValueError::NoValue) => Ok(default.into_value_default()),
@@ -498,9 +493,9 @@ impl Value {
     #[inline]
     pub fn to<T>(&self) -> ValueResult<T>
     where
-        Self: ValueConverter<T>,
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
-        <Self as ValueConverter<T>>::convert(self)
+        self.to_with(&DataConversionOptions::default())
     }
 
     /// Converts this value to `T`, or returns `default` when it is empty.
@@ -509,7 +504,7 @@ impl Value {
     #[inline]
     pub fn to_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
-        Self: ValueConverter<T>,
+        for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
         match self.to() {
             Err(ValueError::NoValue) => Ok(default.into_value_default()),
@@ -628,9 +623,10 @@ impl Value {
     #[inline]
     pub fn set<T>(&mut self, value: T) -> ValueResult<()>
     where
-        Self: ValueSetter<T>,
+        T: Into<Self>,
     {
-        <Self as ValueSetter<T>>::set_value(self, value)
+        *self = value.into();
+        Ok(())
     }
 
     /// Get the data type of the value

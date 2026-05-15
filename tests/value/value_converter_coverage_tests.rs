@@ -7,19 +7,19 @@
  *    Licensed under the Apache License, Version 2.0.
  *
  ******************************************************************************/
-//! # ValueConverter 覆盖率补充测试
+//! # Value::to 覆盖率补充测试
 //!
-//! 覆盖 `src/value/value_converters.rs` 中 `ValueConverter` trait 各类型实现的未覆盖分支，包括：
+//! 覆盖 `Value::to` 类型转换的未覆盖分支，包括：
 //! - `parse_duration_string` 的错误分支
-//! - `ValueConverter<Duration>` 的 Empty / 非法类型分支
-//! - `ValueConverter<Url>` 的 Empty / 非法类型分支
-//! - `ValueConverter<serde_json::Value>` 的 Empty / 非法类型分支
-//! - `ValueConverter<u8>` 的全部分支
-//! - `ValueConverter<u16>` 的全部分支
-//! - `ValueConverter<u32>` 的全部分支
-//! - `ValueConverter<u64>` 的全部分支
-//! - `ValueConverter<u128>` 的全部分支
-//! - `ValueConverter<f32>` 的全部分支
+//! - `Duration` 转换的 Empty / 非法类型分支
+//! - `Url` 转换的 Empty / 非法类型分支
+//! - `serde_json::Value` 转换的 Empty / 非法类型分支
+//! - `u8` 的全部转换分支
+//! - `u16` 的全部转换分支
+//! - `u32` 的全部转换分支
+//! - `u64` 的全部转换分支
+//! - `u128` 的全部转换分支
+//! - `f32` 的全部转换分支
 //!
 
 use qubit_datatype::DataType;
@@ -56,7 +56,7 @@ fn test_parse_duration_string_overflow_seconds() {
 }
 
 // ============================================================================
-// ValueConverter<Duration> — Empty / 非法类型分支
+// Duration conversion — Empty / invalid type branches
 // ============================================================================
 
 #[test]
@@ -74,7 +74,7 @@ fn test_value_converter_duration_wrong_type() {
 }
 
 // ============================================================================
-// ValueConverter<Url> — Empty / 非法类型分支
+// Url conversion — Empty / invalid type branches
 // ============================================================================
 
 #[test]
@@ -92,7 +92,7 @@ fn test_value_converter_url_wrong_type() {
 }
 
 // ============================================================================
-// ValueConverter<serde_json::Value> — Empty / 非法类型分支
+// serde_json::Value conversion — Empty / invalid type branches
 // ============================================================================
 
 #[test]
@@ -110,7 +110,7 @@ fn test_value_converter_json_wrong_type() {
 }
 
 // ============================================================================
-// ValueConverter<u8> — 全部分支
+// u8 conversion — all branches
 // ============================================================================
 
 #[test]
@@ -252,7 +252,7 @@ fn test_to_u8_wrong_type() {
 }
 
 // ============================================================================
-// ValueConverter<u16> — 全部分支
+// u16 conversion — all branches
 // ============================================================================
 
 #[test]
@@ -386,7 +386,7 @@ fn test_to_u16_wrong_type() {
 }
 
 // ============================================================================
-// ValueConverter<u32> — 全部分支
+// u32 conversion — all branches
 // ============================================================================
 
 #[test]
@@ -520,7 +520,7 @@ fn test_to_u32_wrong_type() {
 }
 
 // ============================================================================
-// ValueConverter<u64> — 全部分支
+// u64 conversion — all branches
 // ============================================================================
 
 #[test]
@@ -650,7 +650,7 @@ fn test_to_u64_wrong_type() {
 }
 
 // ============================================================================
-// ValueConverter<u128> — 全部分支
+// u128 conversion — all branches
 // ============================================================================
 
 #[test]
@@ -780,7 +780,7 @@ fn test_to_u128_wrong_type() {
 }
 
 // ============================================================================
-// ValueConverter<f32> — 全部分支
+// f32 conversion — all branches
 // ============================================================================
 
 #[test]
@@ -954,7 +954,7 @@ fn test_to_f32_wrong_type() {
 }
 
 // ============================================================================
-// ValueConverter<f64> — BigInteger/BigDecimal 转换路径
+// f64 conversion — BigInteger/BigDecimal paths
 // ============================================================================
 
 #[test]
@@ -1014,7 +1014,7 @@ fn test_to_f64_from_bigdecimal_out_of_range() {
 }
 
 // ============================================================================
-// ValueConverter<f32> — 整数类型 to_f32() 失败路径
+// f32 conversion — integer to_f32() failure path
 // ============================================================================
 // 注意：对于常规整数值，to_f32() 通常返回 Some，以下测试验证成功路径
 // 同时通过调用确保 ok_or_else 的闭包代码被编译器保留
@@ -1075,7 +1075,7 @@ fn test_to_f32_from_uint128_success() {
 }
 
 // ============================================================================
-// 补充：ValueConverter<HashMap<String, String>> 的 StringMap 路径
+// 补充：HashMap<String, String> 转换的 StringMap 路径
 // ============================================================================
 
 #[test]
