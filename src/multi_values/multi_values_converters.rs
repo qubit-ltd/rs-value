@@ -10,8 +10,8 @@
 
 //! Internal conversion and interoperability implementations for `MultiValues`.
 //!
-//! This module keeps generic conversion logic (`to`, `to_list`, `to_value`, etc.)
-//! while dispatch traits are implemented in dedicated `multi_values_*` modules.
+//! This module keeps generic conversion logic (`to`, `to_list`, `to_value`,
+//! `merge`, etc.) and interoperability with [`Value`].
 
 use qubit_datatype::{
     DataConversionOptions,

@@ -12,13 +12,10 @@
 
 use qubit_datatype::DataType;
 
+use crate::IntoValueDefault;
 use crate::value_error::{
     ValueError,
     ValueResult,
-};
-use crate::{
-    IntoValueDefault,
-    Value,
 };
 
 use super::multi_values::MultiValues;
@@ -67,16 +64,20 @@ macro_rules! multi_values_append_match {
 impl MultiValues {
     /// Generic constructor method
     ///
-    /// Creates `MultiValues` from `Vec<T>`, avoiding direct use of enum
-    /// variants.
+    /// Creates `MultiValues` from any supported input form, avoiding direct
+    /// use of enum variants at call sites.
+    ///
+    /// Supported input forms include single values, vectors, slices, arrays,
+    /// borrowed vectors, and borrowed string collections for supported element
+    /// types.
     ///
     /// # Type Parameters
     ///
-    /// * `T` - Element type
+    /// * `S` - Input type convertible into [`MultiValues`].
     ///
     /// # Returns
     ///
-    /// Returns `MultiValues` wrapping the given value list
+    /// Returns `MultiValues` wrapping the converted input values.
     ///
     /// # Example
     ///
@@ -154,8 +155,10 @@ impl MultiValues {
 
     /// Generic getter method for the first value
     ///
-    /// Automatically selects the correct getter method based on the target type,
-    /// performing strict type checking.
+    /// Reads the first stored value as `T`, performing strict type checking.
+    ///
+    /// `get_first<T>()` does not do cross-type conversion. Use [`Self::to`] if
+    /// conversion between compatible data types is desired.
     ///
     /// # Type Parameters
     ///
@@ -189,9 +192,9 @@ impl MultiValues {
     #[inline]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
-        for<'a> T: TryFrom<&'a Value, Error = ValueError>,
+        for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
-        self.to_value().get()
+        T::try_from(self)
     }
 
     /// Generic first-value getter with a default value.
@@ -201,7 +204,7 @@ impl MultiValues {
     #[inline]
     pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
-        for<'a> T: TryFrom<&'a Value, Error = ValueError>,
+        for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get_first() {
             Err(ValueError::NoValue) => Ok(default.into_value_default()),
@@ -233,7 +236,8 @@ impl MultiValues {
     ///
     /// # Returns
     ///
-    /// If setting succeeds, returns `Ok(())`; otherwise returns an error.
+    /// Always returns `Ok(())` for supported input types. Unsupported input
+    /// types fail to compile because they do not implement `Into<MultiValues>`.
     ///
     /// # Example
     ///

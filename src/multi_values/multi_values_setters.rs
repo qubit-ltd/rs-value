@@ -42,7 +42,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         ///
         /// # Example
         ///
@@ -66,7 +66,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_chars, Char, char, DataType::Char
     }
 
@@ -79,7 +79,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int8s, Int8, i8, DataType::Int8
     }
 
@@ -92,7 +92,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int16s, Int16, i16, DataType::Int16
     }
 
@@ -105,7 +105,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int32s, Int32, i32, DataType::Int32
     }
 
@@ -118,7 +118,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int64s, Int64, i64, DataType::Int64
     }
 
@@ -131,7 +131,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int128s, Int128, i128, DataType::Int128
     }
 
@@ -144,7 +144,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint8s, UInt8, u8, DataType::UInt8
     }
 
@@ -157,7 +157,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint16s, UInt16, u16, DataType::UInt16
     }
 
@@ -170,7 +170,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint32s, UInt32, u32, DataType::UInt32
     }
 
@@ -183,7 +183,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint64s, UInt64, u64, DataType::UInt64
     }
 
@@ -196,7 +196,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint128s, UInt128, u128, DataType::UInt128
     }
 
@@ -209,7 +209,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_float32s, Float32, f32, DataType::Float32
     }
 
@@ -222,7 +222,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_float64s, Float64, f64, DataType::Float64
     }
 
@@ -235,7 +235,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         ///
         /// # Example
         ///
@@ -259,7 +259,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_dates, Date, NaiveDate, DataType::Date
     }
 
@@ -272,7 +272,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_times, Time, NaiveTime, DataType::Time
     }
 
@@ -285,7 +285,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_datetimes, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -298,7 +298,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_instants, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -311,7 +311,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_bigintegers, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -324,7 +324,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
@@ -371,7 +371,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_bools_slice, Bool, bool, DataType::Bool
     }
 
@@ -384,7 +384,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_chars_slice, Char, char, DataType::Char
     }
 
@@ -397,7 +397,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int8s_slice, Int8, i8, DataType::Int8
     }
 
@@ -410,7 +410,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int16s_slice, Int16, i16, DataType::Int16
     }
 
@@ -423,7 +423,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int32s_slice, Int32, i32, DataType::Int32
     }
 
@@ -436,7 +436,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int64s_slice, Int64, i64, DataType::Int64
     }
 
@@ -449,7 +449,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int128s_slice, Int128, i128, DataType::Int128
     }
 
@@ -462,7 +462,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint8s_slice, UInt8, u8, DataType::UInt8
     }
 
@@ -475,7 +475,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint16s_slice, UInt16, u16, DataType::UInt16
     }
 
@@ -488,7 +488,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint32s_slice, UInt32, u32, DataType::UInt32
     }
 
@@ -501,7 +501,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint64s_slice, UInt64, u64, DataType::UInt64
     }
 
@@ -514,7 +514,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint128s_slice, UInt128, u128, DataType::UInt128
     }
 
@@ -527,7 +527,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_float32s_slice, Float32, f32, DataType::Float32
     }
 
@@ -540,7 +540,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_float64s_slice, Float64, f64, DataType::Float64
     }
 
@@ -553,7 +553,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_strings_slice, String, String, DataType::String
     }
 
@@ -566,7 +566,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_dates_slice, Date, NaiveDate, DataType::Date
     }
 
@@ -579,7 +579,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_times_slice, Time, NaiveTime, DataType::Time
     }
 
@@ -592,7 +592,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_datetimes_slice, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -605,7 +605,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_instants_slice, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -618,7 +618,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_bigintegers_slice, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -631,7 +631,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_bigdecimals_slice, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
@@ -678,7 +678,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         ///
         /// # Example
         ///
@@ -702,7 +702,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_char, Char, char, DataType::Char
     }
 
@@ -715,7 +715,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int8, Int8, i8, DataType::Int8
     }
 
@@ -728,7 +728,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int16, Int16, i16, DataType::Int16
     }
 
@@ -741,7 +741,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int32, Int32, i32, DataType::Int32
     }
 
@@ -754,7 +754,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int64, Int64, i64, DataType::Int64
     }
 
@@ -767,7 +767,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_int128, Int128, i128, DataType::Int128
     }
 
@@ -780,7 +780,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint8, UInt8, u8, DataType::UInt8
     }
 
@@ -793,7 +793,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint16, UInt16, u16, DataType::UInt16
     }
 
@@ -806,7 +806,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint32, UInt32, u32, DataType::UInt32
     }
 
@@ -819,7 +819,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint64, UInt64, u64, DataType::UInt64
     }
 
@@ -832,7 +832,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_uint128, UInt128, u128, DataType::UInt128
     }
 
@@ -845,7 +845,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_float32, Float32, f32, DataType::Float32
     }
 
@@ -858,7 +858,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_float64, Float64, f64, DataType::Float64
     }
 
@@ -871,7 +871,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         ///
         /// # Example
         ///
@@ -895,7 +895,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_date, Date, NaiveDate, DataType::Date
     }
 
@@ -908,7 +908,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_time, Time, NaiveTime, DataType::Time
     }
 
@@ -921,7 +921,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -934,7 +934,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -947,7 +947,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_biginteger, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -960,7 +960,7 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+        /// Always returns `Ok(())` for this supported setter.
         set_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 

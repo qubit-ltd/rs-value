@@ -563,8 +563,7 @@ impl Value {
 
     /// Generic setter method
     ///
-    /// Automatically selects the correct setter method based on the target
-    /// type and replaces the current value.
+    /// Replaces the current value with any supported input value.
     ///
     /// This operation updates the stored type to `T` when needed. It does not
     /// perform runtime type-mismatch validation against the previous variant.
@@ -589,7 +588,7 @@ impl Value {
     ///
     /// # Type Parameters
     ///
-    /// * `T` - The target type to set
+    /// * `T` - Input type convertible into [`Value`].
     ///
     /// # Parameters
     ///
@@ -597,7 +596,8 @@ impl Value {
     ///
     /// # Returns
     ///
-    /// If setting succeeds, returns `Ok(())`; otherwise returns an error
+    /// Always returns `Ok(())` for supported input types. Unsupported input
+    /// types fail to compile because they do not implement `Into<Value>`.
     ///
     /// # Example
     ///
