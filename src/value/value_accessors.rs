@@ -24,12 +24,16 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 
-use qubit_datatype::DataType;
+use qubit_datatype::{
+    DataConversionError,
+    DataType,
+};
 
 use super::value::Value;
 use crate::value_error::{
     ValueError,
     ValueResult,
+    map_data_conversion_error,
 };
 
 macro_rules! impl_get_value {
@@ -766,7 +770,11 @@ impl Value {
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         match self {
             Value::BigInteger(v) => Ok(v),
-            Value::Empty(_) => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::BigInteger => Err(ValueError::NoValue),
+            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                expected: DataType::BigInteger,
+                actual: *dt,
+            }),
             _ => Err(ValueError::TypeMismatch {
                 expected: DataType::BigInteger,
                 actual: self.data_type(),
@@ -778,7 +786,11 @@ impl Value {
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         match self {
             Value::BigDecimal(v) => Ok(v),
-            Value::Empty(_) => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::BigDecimal => Err(ValueError::NoValue),
+            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                expected: DataType::BigDecimal,
+                actual: *dt,
+            }),
             _ => Err(ValueError::TypeMismatch {
                 expected: DataType::BigDecimal,
                 actual: self.data_type(),
@@ -790,7 +802,11 @@ impl Value {
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match self {
             Value::Url(v) => Ok(v),
-            Value::Empty(_) => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::Url => Err(ValueError::NoValue),
+            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                expected: DataType::Url,
+                actual: *dt,
+            }),
             _ => Err(ValueError::TypeMismatch {
                 expected: DataType::Url,
                 actual: self.data_type(),
@@ -802,7 +818,11 @@ impl Value {
     pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
         match self {
             Value::StringMap(v) => Ok(v),
-            Value::Empty(_) => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::StringMap => Err(ValueError::NoValue),
+            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                expected: DataType::StringMap,
+                actual: *dt,
+            }),
             _ => Err(ValueError::TypeMismatch {
                 expected: DataType::StringMap,
                 actual: self.data_type(),
@@ -814,7 +834,11 @@ impl Value {
     pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
         match self {
             Value::Json(v) => Ok(v),
-            Value::Empty(_) => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::Json => Err(ValueError::NoValue),
+            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                expected: DataType::Json,
+                actual: *dt,
+            }),
             _ => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
                 actual: self.data_type(),
@@ -881,8 +905,11 @@ impl Value {
     /// Returns `Ok(Value::Json(...))` on success, or an error if
     /// serialization fails.
     pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
-        let json = serde_json::to_value(value)
-            .map_err(|e| ValueError::JsonSerializationError(e.to_string()))?;
+        let json = serde_json::to_value(value).map_err(|error| {
+            map_data_conversion_error(DataConversionError::JsonSerializationError(
+                error.to_string(),
+            ))
+        })?;
         Ok(Value::Json(json))
     }
 
@@ -900,8 +927,11 @@ impl Value {
     /// or deserialization fails.
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match self {
-            Value::Json(v) => serde_json::from_value(v.clone())
-                .map_err(|e| ValueError::JsonDeserializationError(e.to_string())),
+            Value::Json(v) => serde_json::from_value(v.clone()).map_err(|error| {
+                map_data_conversion_error(DataConversionError::JsonDeserializationError(
+                    error.to_string(),
+                ))
+            }),
             Value::Empty(_) => Err(ValueError::NoValue),
             _ => Err(ValueError::ConversionFailed {
                 from: self.data_type(),

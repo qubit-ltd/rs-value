@@ -511,6 +511,19 @@ fn test_multi_value_defaulted_reads_use_default_only_for_empty() {
         "42"
     );
     assert_eq!(values.to_or::<u16>(7).unwrap(), 42);
+    assert_eq!(
+        values
+            .to_or_with::<u16>(7, &DataConversionOptions::default())
+            .unwrap(),
+        42
+    );
+    assert_eq!(values.to_list_or::<u16>([7]).unwrap(), vec![42]);
+    assert_eq!(
+        values
+            .to_list_or_with::<u16>([7], &DataConversionOptions::default())
+            .unwrap(),
+        vec![42]
+    );
 
     let invalid = MultiValues::String(vec!["not-a-number".to_string()]);
     assert!(invalid.get_first_or::<u16>(7).is_err());

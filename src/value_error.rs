@@ -12,7 +12,10 @@
 //! Defines various errors that may occur during value processing.
 //!
 
-use qubit_datatype::DataType;
+use qubit_datatype::{
+    DataConversionError,
+    DataType,
+};
 use thiserror::Error;
 
 /// Value processing error type
@@ -84,3 +87,28 @@ pub enum ValueError {
 
 /// Value processing result type
 pub type ValueResult<T> = Result<T, ValueError>;
+
+/// Maps a shared `qubit_datatype` conversion error into this crate's error type.
+///
+/// # Parameters
+///
+/// * `error` - The error returned by the shared data conversion layer.
+///
+/// # Returns
+///
+/// Returns the corresponding [`ValueError`] variant.
+pub(crate) fn map_data_conversion_error(error: DataConversionError) -> ValueError {
+    match error {
+        DataConversionError::NoValue => ValueError::NoValue,
+        DataConversionError::ConversionFailed { from, to } => {
+            ValueError::ConversionFailed { from, to }
+        }
+        DataConversionError::ConversionError(message) => ValueError::ConversionError(message),
+        DataConversionError::JsonSerializationError(message) => {
+            ValueError::JsonSerializationError(message)
+        }
+        DataConversionError::JsonDeserializationError(message) => {
+            ValueError::JsonDeserializationError(message)
+        }
+    }
+}

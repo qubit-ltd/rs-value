@@ -14,7 +14,6 @@
 //! while dispatch traits are implemented in dedicated `multi_values_*` modules.
 
 use qubit_datatype::{
-    DataConversionError,
     DataConversionOptions,
     DataConvertTo,
     DataConverter,
@@ -27,6 +26,7 @@ use qubit_datatype::{
 use crate::value_error::{
     ValueError,
     ValueResult,
+    map_data_conversion_error,
 };
 use crate::{
     IntoValueDefault,
@@ -67,31 +67,6 @@ macro_rules! multi_values_merge_match {
 // ============================================================================
 // Inherent conversion APIs and `Value` interop
 // ============================================================================
-
-/// Maps a shared single-value conversion error into `ValueError`.
-///
-/// # Parameters
-///
-/// * `error` - Error returned by `DataConverter`.
-///
-/// # Returns
-///
-/// Returns the corresponding `ValueError` variant.
-fn map_data_conversion_error(error: DataConversionError) -> ValueError {
-    match error {
-        DataConversionError::NoValue => ValueError::NoValue,
-        DataConversionError::ConversionFailed { from, to } => {
-            ValueError::ConversionFailed { from, to }
-        }
-        DataConversionError::ConversionError(message) => ValueError::ConversionError(message),
-        DataConversionError::JsonSerializationError(message) => {
-            ValueError::JsonSerializationError(message)
-        }
-        DataConversionError::JsonDeserializationError(message) => {
-            ValueError::JsonDeserializationError(message)
-        }
-    }
-}
 
 /// Maps a shared batch conversion error into `ValueError`.
 ///
