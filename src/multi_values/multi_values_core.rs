@@ -12,23 +12,16 @@
 
 use qubit_datatype::DataType;
 
-use crate::IntoValueDefault;
 use crate::value_error::{
     ValueError,
     ValueResult,
 };
+use crate::{
+    IntoValueDefault,
+    Value,
+};
 
 use super::multi_values::MultiValues;
-use super::multi_values_add_arg::MultiValuesAddArg;
-use super::multi_values_adder::MultiValuesAdder;
-use super::multi_values_constructor_arg::MultiValuesConstructorArg;
-use super::multi_values_first_getter::MultiValuesFirstGetter;
-use super::multi_values_getter::MultiValuesGetter;
-use super::multi_values_multi_adder::MultiValuesMultiAdder;
-use super::multi_values_set_arg::MultiValuesSetArg;
-use super::multi_values_setter::MultiValuesSetter;
-use super::multi_values_setter_slice::MultiValuesSetterSlice;
-use super::multi_values_single_setter::MultiValuesSingleSetter;
 
 macro_rules! multi_values_data_type_match {
     ($value:expr; $(($variant:ident, $type:ty, $data_type:expr)),+ $(,)?) => {
@@ -53,6 +46,20 @@ macro_rules! multi_values_clear_match {
         match $value {
             MultiValues::Empty(_) => {}
             $(MultiValues::$variant(values) => values.clear(),)+
+        }
+    };
+}
+
+macro_rules! multi_values_append_match {
+    ($left:expr, $right:expr; $(($variant:ident, $type:ty, $data_type:expr)),+ $(,)?) => {
+        match ($left, $right) {
+            $(
+                (MultiValues::$variant(values), MultiValues::$variant(mut other_values)) => {
+                    values.append(&mut other_values);
+                }
+            )+
+            (slot @ MultiValues::Empty(_), other_values) => *slot = other_values,
+            _ => unreachable!(),
         }
     };
 }
@@ -85,11 +92,11 @@ impl MultiValues {
     /// assert_eq!(mv.count(), 2);
     /// ```
     #[inline]
-    pub fn new<'a, S>(values: S) -> Self
+    pub fn new<S>(values: S) -> Self
     where
-        S: MultiValuesConstructorArg<'a>,
+        S: Into<Self>,
     {
-        values.into_multi_values()
+        values.into()
     }
 
     /// Generic getter method for multiple values
@@ -123,9 +130,9 @@ impl MultiValues {
     #[inline]
     pub fn get<T>(&self) -> ValueResult<Vec<T>>
     where
-        Self: MultiValuesGetter<T>,
+        for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
-        <Self as MultiValuesGetter<T>>::get_values(self)
+        Vec::<T>::try_from(self)
     }
 
     /// Generic getter method with a default value list.
@@ -135,7 +142,7 @@ impl MultiValues {
     #[inline]
     pub fn get_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
     where
-        Self: MultiValuesGetter<T>,
+        for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
         let values = self.get()?;
         if values.is_empty() {
@@ -182,9 +189,9 @@ impl MultiValues {
     #[inline]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
-        Self: MultiValuesFirstGetter<T>,
+        for<'a> T: TryFrom<&'a Value, Error = ValueError>,
     {
-        <Self as MultiValuesFirstGetter<T>>::get_first_value(self)
+        self.to_value().get()
     }
 
     /// Generic first-value getter with a default value.
@@ -194,7 +201,7 @@ impl MultiValues {
     #[inline]
     pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
-        Self: MultiValuesFirstGetter<T>,
+        for<'a> T: TryFrom<&'a Value, Error = ValueError>,
     {
         match self.get_first() {
             Err(ValueError::NoValue) => Ok(default.into_value_default()),
@@ -204,27 +211,25 @@ impl MultiValues {
 
     /// Generic setter method
     ///
-    /// Automatically selects the optimal setter path based on the input type,
-    /// replacing the entire list.
+    /// Replaces the entire list with the converted input values.
     ///
     /// This operation updates the stored type to the input element type and
     /// does not validate runtime compatibility with the previous variant.
     ///
-    /// Supports three input forms, all unified to this method via internal
-    /// dispatch traits:
+    /// Supports any input that can be converted into [`MultiValues`], including
+    /// single values, vectors, slices, arrays, and borrowed vectors for supported
+    /// element types.
     ///
-    /// - `Vec<T>`: Takes `set_values(Vec<T>)` path with zero additional allocation
-    /// - `&[T]`: Takes `set_values_slice(&[T])` path
-    /// - `T`: Takes `set_single_value(T)` path
+    /// Existing values are replaced, and the stored type becomes the converted
+    /// input type.
     ///
     /// # Type Parameters
     ///
-    /// * `S` - Input type, can be `Vec<T>`, `&[T]`, or a single `T`
+    /// * `S` - Input type convertible into [`MultiValues`].
     ///
     /// # Parameters
     ///
-    /// * `values` - The value collection to set, can be `Vec<T>`, `&[T]`, or a
-    ///   single `T`
+    /// * `values` - The values to set.
     ///
     /// # Returns
     ///
@@ -258,30 +263,27 @@ impl MultiValues {
     /// assert_eq!(mv.get_strings().unwrap(), &["hello", "world"]);
     /// ```
     #[inline]
-    pub fn set<'a, S>(&mut self, values: S) -> ValueResult<()>
+    pub fn set<S>(&mut self, values: S) -> ValueResult<()>
     where
-        S: MultiValuesSetArg<'a>,
-        Self: MultiValuesSetter<S::Item>
-            + MultiValuesSetterSlice<S::Item>
-            + MultiValuesSingleSetter<S::Item>,
+        S: Into<Self>,
     {
-        values.apply(self)
+        *self = values.into();
+        Ok(())
     }
 
     /// Generic add method
     ///
-    /// Automatically selects the optimal add path based on the input type,
-    /// appending elements to the existing list with strict type checking.
+    /// Appends converted input values to the existing list with strict type checking.
     ///
-    /// Supports three input forms:
+    /// Supports any input that can be converted into [`MultiValues`], including
+    /// single values, vectors, slices, arrays, and borrowed vectors for supported
+    /// element types.
     ///
-    /// - `T`: Takes `add_value(T)` path, appending a single element
-    /// - `Vec<T>`: Takes `add_values(Vec<T>)` path, batch append (zero additional allocation)
-    /// - `&[T]`: Takes `add_values_slice(&[T])` path, batch append (using slice)
+    /// The converted input must have the same data type as the current container.
     ///
     /// # Type Parameters
     ///
-    /// * `S` - Input type, can be a single `T`, `Vec<T>`, or `&[T]`
+    /// * `S` - Input type convertible into [`MultiValues`].
     ///
     /// # Example
     ///
@@ -304,12 +306,24 @@ impl MultiValues {
     /// assert_eq!(mv.get_int32s().unwrap(), &[42, 100, 200, 300, 400, 500]);
     /// ```
     #[inline]
-    pub fn add<'a, S>(&mut self, values: S) -> ValueResult<()>
+    pub fn add<S>(&mut self, values: S) -> ValueResult<()>
     where
-        S: MultiValuesAddArg<'a>,
-        Self: MultiValuesAdder<S::Item> + MultiValuesMultiAdder<S::Item>,
+        S: Into<Self>,
     {
-        values.apply_add(self)
+        let other = values.into();
+        if self.data_type() != other.data_type() {
+            return Err(ValueError::TypeMismatch {
+                expected: self.data_type(),
+                actual: other.data_type(),
+            });
+        }
+        if other.count() == 0 {
+            return Ok(());
+        }
+
+        for_each_multi_value_type!(multi_values_append_match, self, other);
+
+        Ok(())
     }
 
     /// Get the data type of the values

@@ -14,24 +14,14 @@
 #[allow(clippy::module_inception)]
 #[macro_use]
 mod multi_values;
-mod multi_values_add_arg;
-mod multi_values_adder;
 mod multi_values_adders;
-mod multi_values_constructor;
 mod multi_values_constructor_arg;
 #[macro_use]
 mod multi_values_type_table;
 mod multi_values_converters;
 mod multi_values_core;
-mod multi_values_first_getter;
 mod multi_values_getter;
 mod multi_values_getters;
-mod multi_values_multi_adder;
-mod multi_values_multi_adder_slice;
-mod multi_values_set_arg;
-mod multi_values_setter;
-mod multi_values_setter_slice;
 mod multi_values_setters;
-mod multi_values_single_setter;
 
 pub use multi_values::MultiValues;

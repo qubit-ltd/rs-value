@@ -8,8 +8,7 @@
  *
  ******************************************************************************/
 
-//! Internal implementations of `ValueConstructor<T>` for all supported `Value`
-//! types.
+//! `From<T>` implementations for all supported `Value` input types.
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -27,70 +26,48 @@ use url::Url;
 
 use super::value::Value;
 
-/// Private marker trait used to prevent downstream implementations.
-trait ValueConstructorSealed<T> {}
-
-/// Internal trait used to create `Value` from supported Rust types.
-///
-/// This trait backs `Value::new<T>()`; downstream code should call the
-/// inherent method instead of implementing or naming this trait directly.
-#[allow(private_bounds)]
-pub trait ValueConstructor<T>: ValueConstructorSealed<T> {
-    /// Builds a `Value` that wraps `value`.
-    ///
-    /// # Returns
-    ///
-    /// Returns the enum variant corresponding to `T`.
-    fn from_type(value: T) -> Self;
-}
-
-macro_rules! impl_value_constructor {
+macro_rules! impl_value_from {
     ($type:ty, $variant:expr) => {
-        impl ValueConstructorSealed<$type> for Value {}
-
-        impl ValueConstructor<$type> for Value {
+        impl From<$type> for Value {
             #[inline]
-            fn from_type(value: $type) -> Self {
+            fn from(value: $type) -> Self {
                 $variant(value)
             }
         }
     };
 }
 
-impl_value_constructor!(bool, Value::Bool);
-impl_value_constructor!(char, Value::Char);
-impl_value_constructor!(i8, Value::Int8);
-impl_value_constructor!(i16, Value::Int16);
-impl_value_constructor!(i32, Value::Int32);
-impl_value_constructor!(i64, Value::Int64);
-impl_value_constructor!(i128, Value::Int128);
-impl_value_constructor!(u8, Value::UInt8);
-impl_value_constructor!(u16, Value::UInt16);
-impl_value_constructor!(u32, Value::UInt32);
-impl_value_constructor!(u64, Value::UInt64);
-impl_value_constructor!(u128, Value::UInt128);
-impl_value_constructor!(f32, Value::Float32);
-impl_value_constructor!(f64, Value::Float64);
-impl_value_constructor!(NaiveDate, Value::Date);
-impl_value_constructor!(NaiveTime, Value::Time);
-impl_value_constructor!(NaiveDateTime, Value::DateTime);
-impl_value_constructor!(DateTime<Utc>, Value::Instant);
-impl_value_constructor!(BigInt, Value::BigInteger);
-impl_value_constructor!(BigDecimal, Value::BigDecimal);
-impl_value_constructor!(isize, Value::IntSize);
-impl_value_constructor!(usize, Value::UIntSize);
-impl_value_constructor!(Duration, Value::Duration);
-impl_value_constructor!(Url, Value::Url);
-impl_value_constructor!(HashMap<String, String>, Value::StringMap);
-impl_value_constructor!(serde_json::Value, Value::Json);
+impl_value_from!(bool, Value::Bool);
+impl_value_from!(char, Value::Char);
+impl_value_from!(i8, Value::Int8);
+impl_value_from!(i16, Value::Int16);
+impl_value_from!(i32, Value::Int32);
+impl_value_from!(i64, Value::Int64);
+impl_value_from!(i128, Value::Int128);
+impl_value_from!(u8, Value::UInt8);
+impl_value_from!(u16, Value::UInt16);
+impl_value_from!(u32, Value::UInt32);
+impl_value_from!(u64, Value::UInt64);
+impl_value_from!(u128, Value::UInt128);
+impl_value_from!(f32, Value::Float32);
+impl_value_from!(f64, Value::Float64);
+impl_value_from!(NaiveDate, Value::Date);
+impl_value_from!(NaiveTime, Value::Time);
+impl_value_from!(NaiveDateTime, Value::DateTime);
+impl_value_from!(DateTime<Utc>, Value::Instant);
+impl_value_from!(BigInt, Value::BigInteger);
+impl_value_from!(BigDecimal, Value::BigDecimal);
+impl_value_from!(isize, Value::IntSize);
+impl_value_from!(usize, Value::UIntSize);
+impl_value_from!(Duration, Value::Duration);
+impl_value_from!(Url, Value::Url);
+impl_value_from!(HashMap<String, String>, Value::StringMap);
+impl_value_from!(serde_json::Value, Value::Json);
+impl_value_from!(String, Value::String);
 
-impl_value_constructor!(String, Value::String);
-
-impl ValueConstructorSealed<&str> for Value {}
-
-impl ValueConstructor<&str> for Value {
+impl From<&str> for Value {
     #[inline]
-    fn from_type(value: &str) -> Self {
+    fn from(value: &str) -> Self {
         Value::String(value.to_string())
     }
 }

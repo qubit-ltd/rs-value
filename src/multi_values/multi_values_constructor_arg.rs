@@ -8,7 +8,7 @@
  *
  ******************************************************************************/
 
-//! Internal dispatch implementations for `MultiValues::new<S>()` arguments.
+//! `From<T>` implementations for supported `MultiValues` input forms.
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -25,7 +25,6 @@ use num_bigint::BigInt;
 use url::Url;
 
 use super::multi_values::MultiValues;
-use super::multi_values_constructor::MultiValuesConstructor;
 
 /// Collects borrowed string values into owned strings.
 #[inline]
@@ -40,143 +39,127 @@ where
     result
 }
 
-/// Private marker trait used to prevent downstream implementations.
-trait MultiValuesConstructorArgSealed {}
-
-/// Internal dispatch trait for `MultiValues::new<S>()` arguments.
-#[allow(private_bounds)]
-pub trait MultiValuesConstructorArg<'a>: MultiValuesConstructorArgSealed {
-    /// Builds a `MultiValues` instance from this argument.
-    fn into_multi_values(self) -> MultiValues;
-}
-
-macro_rules! impl_multi_values_constructor_arg {
-    ($type:ty) => {
-        impl MultiValuesConstructorArgSealed for Vec<$type> {}
-
-        impl<'a> MultiValuesConstructorArg<'a> for Vec<$type> {
+macro_rules! impl_multi_values_from {
+    ($type:ty, $variant:ident) => {
+        impl From<$type> for MultiValues {
             #[inline]
-            fn into_multi_values(self) -> MultiValues {
-                <MultiValues as MultiValuesConstructor<$type>>::from_vec(self)
+            fn from(value: $type) -> Self {
+                MultiValues::$variant(vec![value])
             }
         }
 
-        impl<'a> MultiValuesConstructorArgSealed for &'a [$type] {}
+        impl From<Vec<$type>> for MultiValues {
+            #[inline]
+            fn from(values: Vec<$type>) -> Self {
+                MultiValues::$variant(values)
+            }
+        }
 
-        impl<'a> MultiValuesConstructorArg<'a> for &'a [$type]
+        impl From<&[$type]> for MultiValues
         where
             $type: Clone,
         {
             #[inline]
-            fn into_multi_values(self) -> MultiValues {
-                <MultiValues as MultiValuesConstructor<$type>>::from_vec(self.to_vec())
+            fn from(values: &[$type]) -> Self {
+                MultiValues::$variant(values.to_vec())
             }
         }
 
-        impl<'a> MultiValuesConstructorArgSealed for &'a Vec<$type> {}
-
-        impl<'a> MultiValuesConstructorArg<'a> for &'a Vec<$type>
+        impl From<&Vec<$type>> for MultiValues
         where
             $type: Clone,
         {
             #[inline]
-            fn into_multi_values(self) -> MultiValues {
-                <MultiValues as MultiValuesConstructor<$type>>::from_vec(self.clone())
+            fn from(values: &Vec<$type>) -> Self {
+                MultiValues::$variant(values.clone())
             }
         }
 
-        impl<const N: usize> MultiValuesConstructorArgSealed for [$type; N] {}
-
-        impl<'a, const N: usize> MultiValuesConstructorArg<'a> for [$type; N] {
+        impl<const N: usize> From<[$type; N]> for MultiValues {
             #[inline]
-            fn into_multi_values(self) -> MultiValues {
-                <MultiValues as MultiValuesConstructor<$type>>::from_vec(Vec::from(self))
+            fn from(values: [$type; N]) -> Self {
+                MultiValues::$variant(Vec::from(values))
             }
         }
 
-        impl<'a, const N: usize> MultiValuesConstructorArgSealed for &'a [$type; N] {}
-
-        impl<'a, const N: usize> MultiValuesConstructorArg<'a> for &'a [$type; N]
+        impl<const N: usize> From<&[$type; N]> for MultiValues
         where
             $type: Clone,
         {
             #[inline]
-            fn into_multi_values(self) -> MultiValues {
-                <MultiValues as MultiValuesConstructor<$type>>::from_vec(self.to_vec())
+            fn from(values: &[$type; N]) -> Self {
+                MultiValues::$variant(values.to_vec())
             }
         }
     };
 }
 
-impl_multi_values_constructor_arg!(bool);
-impl_multi_values_constructor_arg!(char);
-impl_multi_values_constructor_arg!(i8);
-impl_multi_values_constructor_arg!(i16);
-impl_multi_values_constructor_arg!(i32);
-impl_multi_values_constructor_arg!(i64);
-impl_multi_values_constructor_arg!(i128);
-impl_multi_values_constructor_arg!(u8);
-impl_multi_values_constructor_arg!(u16);
-impl_multi_values_constructor_arg!(u32);
-impl_multi_values_constructor_arg!(u64);
-impl_multi_values_constructor_arg!(u128);
-impl_multi_values_constructor_arg!(isize);
-impl_multi_values_constructor_arg!(usize);
-impl_multi_values_constructor_arg!(f32);
-impl_multi_values_constructor_arg!(f64);
-impl_multi_values_constructor_arg!(String);
-impl_multi_values_constructor_arg!(NaiveDate);
-impl_multi_values_constructor_arg!(NaiveTime);
-impl_multi_values_constructor_arg!(NaiveDateTime);
-impl_multi_values_constructor_arg!(DateTime<Utc>);
-impl_multi_values_constructor_arg!(BigInt);
-impl_multi_values_constructor_arg!(BigDecimal);
-impl_multi_values_constructor_arg!(Duration);
-impl_multi_values_constructor_arg!(Url);
-impl_multi_values_constructor_arg!(HashMap<String, String>);
-impl_multi_values_constructor_arg!(serde_json::Value);
+impl_multi_values_from!(bool, Bool);
+impl_multi_values_from!(char, Char);
+impl_multi_values_from!(i8, Int8);
+impl_multi_values_from!(i16, Int16);
+impl_multi_values_from!(i32, Int32);
+impl_multi_values_from!(i64, Int64);
+impl_multi_values_from!(i128, Int128);
+impl_multi_values_from!(u8, UInt8);
+impl_multi_values_from!(u16, UInt16);
+impl_multi_values_from!(u32, UInt32);
+impl_multi_values_from!(u64, UInt64);
+impl_multi_values_from!(u128, UInt128);
+impl_multi_values_from!(isize, IntSize);
+impl_multi_values_from!(usize, UIntSize);
+impl_multi_values_from!(f32, Float32);
+impl_multi_values_from!(f64, Float64);
+impl_multi_values_from!(String, String);
+impl_multi_values_from!(NaiveDate, Date);
+impl_multi_values_from!(NaiveTime, Time);
+impl_multi_values_from!(NaiveDateTime, DateTime);
+impl_multi_values_from!(DateTime<Utc>, Instant);
+impl_multi_values_from!(BigInt, BigInteger);
+impl_multi_values_from!(BigDecimal, BigDecimal);
+impl_multi_values_from!(Duration, Duration);
+impl_multi_values_from!(Url, Url);
+impl_multi_values_from!(HashMap<String, String>, StringMap);
+impl_multi_values_from!(serde_json::Value, Json);
 
-impl MultiValuesConstructorArgSealed for Vec<&str> {}
-
-impl MultiValuesConstructorArg<'_> for Vec<&str> {
+impl From<&str> for MultiValues {
     #[inline]
-    fn into_multi_values(self) -> MultiValues {
-        MultiValues::String(collect_strings(self))
+    fn from(value: &str) -> Self {
+        MultiValues::String(vec![value.to_string()])
     }
 }
 
-impl MultiValuesConstructorArgSealed for &[&str] {}
-
-impl MultiValuesConstructorArg<'_> for &[&str] {
+impl<'a> From<Vec<&'a str>> for MultiValues {
     #[inline]
-    fn into_multi_values(self) -> MultiValues {
-        MultiValues::String(collect_strings(self.iter().copied()))
+    fn from(values: Vec<&'a str>) -> Self {
+        MultiValues::String(collect_strings(values))
     }
 }
 
-impl MultiValuesConstructorArgSealed for &Vec<&str> {}
-
-impl MultiValuesConstructorArg<'_> for &Vec<&str> {
+impl<'a, 'b> From<&'a [&'b str]> for MultiValues {
     #[inline]
-    fn into_multi_values(self) -> MultiValues {
-        MultiValues::String(collect_strings(self.iter().copied()))
+    fn from(values: &'a [&'b str]) -> Self {
+        MultiValues::String(collect_strings(values.iter().copied()))
     }
 }
 
-impl<const N: usize> MultiValuesConstructorArgSealed for [&str; N] {}
-
-impl<const N: usize> MultiValuesConstructorArg<'_> for [&str; N] {
+impl<'a, 'b> From<&'a Vec<&'b str>> for MultiValues {
     #[inline]
-    fn into_multi_values(self) -> MultiValues {
-        MultiValues::String(collect_strings(self))
+    fn from(values: &'a Vec<&'b str>) -> Self {
+        MultiValues::String(collect_strings(values.iter().copied()))
     }
 }
 
-impl<const N: usize> MultiValuesConstructorArgSealed for &[&str; N] {}
-
-impl<const N: usize> MultiValuesConstructorArg<'_> for &[&str; N] {
+impl<'a, const N: usize> From<[&'a str; N]> for MultiValues {
     #[inline]
-    fn into_multi_values(self) -> MultiValues {
-        MultiValues::String(collect_strings(self.iter().copied()))
+    fn from(values: [&'a str; N]) -> Self {
+        MultiValues::String(collect_strings(values))
+    }
+}
+
+impl<'a, 'b, const N: usize> From<&'a [&'b str; N]> for MultiValues {
+    #[inline]
+    fn from(values: &'a [&'b str; N]) -> Self {
+        MultiValues::String(collect_strings(values.iter().copied()))
     }
 }

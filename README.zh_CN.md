@@ -470,8 +470,8 @@ ValueError::JsonDeserializationError(String)  // JSON 反序列化失败
 
 - **引用返回**: `get_string()` 返回 `&str` 避免克隆
 - **借用支持**: `Value::new()` 和 `set()` 接受 `&str`（自动转换为 `String`）
-- **智能分发**: `MultiValues::new/set/add` 接受直接数组、切片、vector
-  和借用的 vector，内部自动分派最优路径
+- **灵活输入**: `MultiValues::new/set/add` 接受直接数组、切片、vector
+  和借用的 vector，支持所有已实现的元素类型
 - **借用默认值**: 带默认值的读取接口可以直接使用借用字符串字面量和借用集合，
   调用方无需提前分配 owned fallback
 
@@ -485,7 +485,6 @@ serde_json = "1.0"
 thiserror = "2.0"
 chrono = { version = "0.4", features = ["serde"] }
 url = { version = "2.5", features = ["serde"] }
-num-traits = "0.2"
 num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 ```

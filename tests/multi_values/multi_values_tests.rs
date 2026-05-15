@@ -3560,7 +3560,7 @@ fn test_multi_values_getter_empty_type_mismatch_branch() {
 
 #[test]
 fn test_multi_values_first_getter_non_empty_branch() {
-    // Test normal branch of v[0] in MultiValuesFirstGetter
+    // Test the normal first-element branch.
     // Ensure all types can correctly get first element
 
     let mv = MultiValues::Int32(vec![42, 100]);
@@ -3597,7 +3597,7 @@ fn test_multi_values_first_getter_no_value_branches() {
 
 #[test]
 fn test_multi_values_adder_type_mismatch_branch() {
-    // Test _ branch of MultiValuesMultiAdder (type mismatch)
+    // Test type mismatch when adding an owned vector.
     let mut mv = MultiValues::Int32(vec![1, 2]);
     // Try to add Vec<String> to Int32 MultiValues
     let result = mv.add(vec!["a".to_string(), "b".to_string()]);
@@ -3611,7 +3611,7 @@ fn test_multi_values_adder_type_mismatch_branch() {
 
 #[test]
 fn test_multi_values_adder_slice_type_mismatch_branch() {
-    // Test _ branch of MultiValuesMultiAdderSlice (type mismatch)
+    // Test type mismatch when adding a slice.
     let mut mv = MultiValues::String(vec!["hello".to_string()]);
     let int_slice: &[i32] = &[42i32, 100];
     // Try to add &[i32] to String MultiValues
@@ -3685,7 +3685,7 @@ fn test_multi_values_adder_slice_success_branches() {
 
 #[test]
 fn test_multi_values_set_with_str_slice() {
-    // Test impl<'b, 'a> MultiValuesSetArg<'a> for &'b [&'b str]
+    // Test setting borrowed string slices.
     let mut mv = MultiValues::Empty(DataType::String);
     let str_slice: &[&str] = &["hello", "world", "test"];
     mv.set(str_slice).unwrap();
@@ -3702,7 +3702,7 @@ fn test_multi_values_set_with_str_slice() {
 
 #[test]
 fn test_multi_values_set_with_str_vec() {
-    // Test impl<'b, 'a> MultiValuesSetArg<'a> for Vec<&'b str>
+    // Test setting borrowed string vectors.
     // Especially the line into_iter().map(|s| s.to_string()).collect()
     let mut mv = MultiValues::Empty(DataType::String);
     let str_vec: Vec<&str> = vec!["alpha", "beta", "gamma"];
@@ -3720,7 +3720,7 @@ fn test_multi_values_set_with_str_vec() {
 
 #[test]
 fn test_multi_values_add_with_str_vec() {
-    // Test impl<'b, 'a> MultiValuesAddArg<'a> for Vec<&'b str>
+    // Test adding borrowed string vectors.
     let mut mv = MultiValues::String(vec!["hello".to_string()]);
     let str_vec: Vec<&str> = vec!["world", "rust"];
     mv.add(str_vec).unwrap();
@@ -3737,7 +3737,7 @@ fn test_multi_values_add_with_str_vec() {
 
 #[test]
 fn test_multi_values_add_with_str_slice() {
-    // Test impl<'b, 'a> MultiValuesAddArg<'a> for &'b [&'b str]
+    // Test adding borrowed string slices.
     let mut mv = MultiValues::String(vec!["existing".to_string()]);
     let str_slice: &[&str] = &["new1", "new2", "new3"];
     mv.add(str_slice).unwrap();
