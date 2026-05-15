@@ -205,10 +205,9 @@ impl Value {
         value.into()
     }
 
-    /// Generic getter method
+    /// Generic getter method.
     ///
-    /// Automatically selects the correct getter method based on the target
-    /// type, performing strict type checking.
+    /// Performs a strict typed read of the stored value as `T`.
     ///
     /// `get<T>()` performs strict type matching. It does not do cross-type
     /// conversion.

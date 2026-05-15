@@ -100,10 +100,9 @@ impl MultiValues {
         values.into()
     }
 
-    /// Generic getter method for multiple values
+    /// Generic getter method for multiple values.
     ///
-    /// Automatically selects the correct getter method based on the target
-    /// type, performing strict type checking.
+    /// Performs a strict typed read of all stored values as `Vec<T>`.
     ///
     /// # Type Parameters
     ///
