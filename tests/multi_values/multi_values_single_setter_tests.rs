@@ -10,12 +10,11 @@
 
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
-use qubit_value::multi_values::MultiValuesSingleSetter;
 
 #[test]
 fn test_multi_values_single_setter_replaces_existing_list() {
     let mut values = MultiValues::Int32(vec![1, 2, 3]);
-    values.set_single_value(9).unwrap();
+    values.set(9).unwrap();
 
     assert_eq!(values.data_type(), DataType::Int32);
     assert_eq!(values.get_int32s().unwrap(), &[9]);

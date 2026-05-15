@@ -10,13 +10,12 @@
 
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
-use qubit_value::multi_values::MultiValuesMultiAdder;
 
 #[test]
 fn test_multi_values_multi_adder_initializes_empty_and_extends_existing() {
     let mut values = MultiValues::Empty(DataType::Int32);
-    values.add_values(vec![1, 2]).unwrap();
-    values.add_values(vec![3, 4]).unwrap();
+    values.add(vec![1, 2]).unwrap();
+    values.add(vec![3, 4]).unwrap();
 
     assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3, 4]);
 }
