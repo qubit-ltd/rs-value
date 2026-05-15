@@ -10,13 +10,12 @@
 
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
-use qubit_value::multi_values::MultiValuesSetter;
 
 #[test]
 fn test_multi_values_setter_sets_owned_vectors() {
     let mut values = MultiValues::Empty(DataType::String);
     values
-        .set_values(vec!["alpha".to_string(), "beta".to_string()])
+        .set(vec!["alpha".to_string(), "beta".to_string()])
         .unwrap();
 
     assert_eq!(values.data_type(), DataType::String);

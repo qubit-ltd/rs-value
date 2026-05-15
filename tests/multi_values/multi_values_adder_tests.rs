@@ -8,7 +8,6 @@
  *
  ******************************************************************************/
 
-use qubit_value::multi_values::MultiValuesAdder;
 use qubit_value::{
     MultiValues,
     ValueError,
@@ -17,12 +16,12 @@ use qubit_value::{
 #[test]
 fn test_multi_values_adder_appends_matching_single_value() {
     let mut values = MultiValues::Bool(vec![true]);
-    values.add_value(false).unwrap();
+    values.add(false).unwrap();
     assert_eq!(values.get_bools().unwrap(), &[true, false]);
 
     let mut strings = MultiValues::String(vec!["x".to_string()]);
     assert!(matches!(
-        strings.add_value(1i32),
+        strings.add(1i32),
         Err(ValueError::TypeMismatch { .. })
     ));
 }
