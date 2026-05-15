@@ -344,8 +344,8 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 
 #### Type Conversion
 - **`Value::to<T>(&self) -> ValueResult<T>`** — converts to `T` according to
-  the rules defined by `ValueConverter<T>`. Supports cross-type conversion
-  with range checking where applicable.
+  the shared conversion rules. Supports cross-type conversion with range
+  checking where applicable.
 - **`Value::to_or<T>(&self, default) -> ValueResult<T>`** — converts to `T`,
   or returns the default when the value is empty.
 - **`Value::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
@@ -513,11 +513,10 @@ num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 ```
 
-## Testing & Code Coverage
+## Testing
 
 This project maintains comprehensive test coverage with detailed validation of
-all functionality. For coverage reports and testing instructions, see the
-[COVERAGE.md](COVERAGE.md) documentation.
+all functionality. Run `./ci-check.sh` before publishing or committing changes.
 
 ## License
 

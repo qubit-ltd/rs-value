@@ -327,8 +327,8 @@ assert_eq!(val, 8080);
     和 `&[&str; N]`
 
 #### 类型转换
-- **`Value::to<T>(&self) -> ValueResult<T>`** — 按 `ValueConverter<T>` 定义的规则
-  将当前值转换为 `T`，支持跨类型转换，必要时进行范围检查。
+- **`Value::to<T>(&self) -> ValueResult<T>`** — 按共享转换规则将当前值转换为
+  `T`，支持跨类型转换，必要时进行范围检查。
 - **`Value::to_or<T>(&self, default) -> ValueResult<T>`** — 转换为 `T`，
   如果值为空则返回默认值。
 - **`Value::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
@@ -490,10 +490,10 @@ num-bigint = { version = "0.4", features = ["serde"] }
 bigdecimal = { version = "0.4", features = ["serde"] }
 ```
 
-## 测试与代码覆盖率
+## 测试
 
-本项目保持全面的测试覆盖，对所有功能进行详细验证。有关覆盖率报告和测试说明，
-请参阅 [COVERAGE.zh_CN.md](COVERAGE.zh_CN.md) 文档。
+本项目保持全面的测试覆盖，对所有功能进行详细验证。发布或提交前请运行
+`./ci-check.sh`。
 
 ## 许可证
 
