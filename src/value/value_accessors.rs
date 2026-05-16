@@ -959,8 +959,14 @@ impl Value {
     ///
     /// # Returns
     ///
-    /// Returns `Ok(T)` on success, or an error if the value is not JSON
-    /// or deserialization fails.
+    /// Returns `Ok(T)` on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] when this value is `Empty(Json)`,
+    /// [`ValueError::TypeMismatch`] when this value has a non-JSON data type,
+    /// or [`ValueError::JsonDeserializationError`] when JSON deserialization
+    /// fails.
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match self {
             Value::Json(v) => serde_json::from_value(v.clone()).map_err(|error| {
@@ -968,10 +974,14 @@ impl Value {
                     error.to_string(),
                 ))
             }),
-            Value::Empty(_) => Err(ValueError::NoValue),
-            _ => Err(ValueError::ConversionFailed {
-                from: self.data_type(),
-                to: DataType::Json,
+            Value::Empty(dt) if *dt == DataType::Json => Err(ValueError::NoValue),
+            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                expected: DataType::Json,
+                actual: *dt,
+            }),
+            _ => Err(ValueError::TypeMismatch {
+                expected: DataType::Json,
+                actual: self.data_type(),
             }),
         }
     }

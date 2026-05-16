@@ -225,7 +225,7 @@ fn test_value_duration_generic_set() {
 }
 
 #[test]
-fn test_value_duration_as_string_nanoseconds() {
+fn test_value_duration_as_string_uses_default_milliseconds() {
     let d = Duration::from_nanos(1_500_000_000);
     let v = Value::Duration(d);
     assert_eq!(v.to::<String>().unwrap(), "1500ms");
@@ -692,17 +692,36 @@ fn test_value_from_serializable_error() {
 }
 
 #[test]
-fn test_value_deserialize_json_on_non_json_returns_error() {
+fn test_value_deserialize_json_on_non_json_returns_type_mismatch() {
     let v = Value::Int32(42);
     let result = v.deserialize_json::<Config>();
-    assert!(result.is_err());
+    assert!(matches!(
+        result,
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Json,
+            actual: DataType::Int32,
+        })
+    ));
 }
 
 #[test]
-fn test_value_deserialize_json_on_empty_returns_error() {
+fn test_value_deserialize_json_on_empty_json_returns_no_value() {
     let v = Value::Empty(DataType::Json);
     let result = v.deserialize_json::<Config>();
     assert!(matches!(result, Err(ValueError::NoValue)));
+}
+
+#[test]
+fn test_value_deserialize_json_on_empty_non_json_returns_type_mismatch() {
+    let v = Value::Empty(DataType::Int32);
+    let result = v.deserialize_json::<Config>();
+    assert!(matches!(
+        result,
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Json,
+            actual: DataType::Int32,
+        })
+    ));
 }
 
 #[test]

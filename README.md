@@ -122,10 +122,10 @@ use std::collections::HashMap;
 let v = Value::new(Duration::from_secs(30));
 let d: Duration = v.get()?;
 assert_eq!(d, Duration::from_secs(30));
-// String round-trip: "<nanoseconds>ns"
+// Default String conversion uses milliseconds.
 let s: String = v.to()?;
-assert_eq!(s, "30000000000ns");
-let v2 = Value::String("30000000000ns".to_string());
+assert_eq!(s, "30000ms");
+let v2 = Value::String("30s".to_string());
 let d2: Duration = v2.to()?;
 assert_eq!(d2, Duration::from_secs(30));
 
@@ -392,7 +392,7 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 | `DateTime<Utc>` | `Instant` |
 | `BigInt` | `BigInteger` |
 | `BigDecimal` | `BigDecimal` |
-| `Duration` | `Duration`; `String` (format: `<nanoseconds>ns`) |
+| `Duration` | `Duration`; integer variants and `BigInteger` using the configured duration unit; `String` with optional `ns`/`us`/`ms`/`s`/`m`/`h`/`d` suffix |
 | `Url` | `Url`; `String` |
 | `HashMap<String, String>` | `StringMap` |
 | `serde_json::Value` | `Json`; `String` (parsed as JSON); `StringMap` |
@@ -475,7 +475,9 @@ All operations that may fail return `ValueResult<T> = Result<T, ValueError>`.
 
 ### Extended Types
 - **`isize` / `usize`**: Platform-dependent integers
-- **`Duration`**: `std::time::Duration`; string representation `<ns>ns`
+- **`Duration`**: `std::time::Duration`; string conversion uses the
+  configured duration unit, defaulting to milliseconds such as `1500ms`.
+  Parsing accepts `ns`, `us`, `ms`, `s`, `m`, `h`, and `d` suffixes.
 - **`Url`**: `url::Url`; string representation is the URL text
 - **`HashMap<String, String>`**: String map; string representation is JSON
 - **`serde_json::Value`**: JSON escape hatch for complex/custom types

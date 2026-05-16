@@ -56,7 +56,7 @@ fn test_parse_duration_string_overflow_seconds() {
 }
 
 // ============================================================================
-// Duration conversion — Empty / invalid type branches
+// Duration conversion — Empty / numeric source branches
 // ============================================================================
 
 #[test]
@@ -67,7 +67,7 @@ fn test_value_converter_duration_empty() {
 }
 
 #[test]
-fn test_value_converter_duration_wrong_type() {
+fn test_value_converter_duration_from_integer_uses_default_milliseconds() {
     let v = Value::Int32(42);
     let result = v.to::<Duration>();
     assert_eq!(result.unwrap(), Duration::from_millis(42));
