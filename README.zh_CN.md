@@ -374,7 +374,7 @@ assert_eq!(val, 8080);
 | `DateTime<Utc>` | `Instant` |
 | `BigInt` | `BigInteger` |
 | `BigDecimal` | `BigDecimal` |
-| `Duration` | `Duration`；整数变体和 `BigInteger`（使用配置的时长单位）；`String`（可带 `ns`/`us`/`ms`/`s`/`m`/`h`/`d` 后缀） |
+| `Duration` | `Duration`；整数变体和 `BigInteger`（使用配置的时长单位）；`String`（可带 `ns`/`us`/`ms`/`s`/`m`/`h`/`d` 后缀；无后缀时使用配置的时长单位） |
 | `Url` | `Url`；`String` |
 | `HashMap<String, String>` | `StringMap` |
 | `serde_json::Value` | `Json`；`String`（解析为 JSON）；`StringMap` |
@@ -456,7 +456,7 @@ ValueError::JsonDeserializationError(String)  // JSON 反序列化失败
 - **`isize` / `usize`**: 平台相关整数
 - **`Duration`**: `std::time::Duration`；字符串转换使用配置的时长单位，
   默认是毫秒，例如 `1500ms`。解析时支持 `ns`、`us`、`ms`、`s`、`m`、
-  `h` 和 `d` 后缀。
+  `h` 和 `d` 后缀；无后缀字符串使用配置的时长单位解析。
 - **`Url`**: `url::Url`；字符串表示为 URL 文本
 - **`HashMap<String, String>`**: 字符串映射；字符串表示为 JSON
 - **`serde_json::Value`**: 用于复杂/自定义类型的 JSON 逃生舱
