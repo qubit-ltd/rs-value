@@ -392,7 +392,7 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 | `DateTime<Utc>` | `Instant` |
 | `BigInt` | `BigInteger` |
 | `BigDecimal` | `BigDecimal` |
-| `Duration` | `Duration`; integer variants and `BigInteger` using the configured duration unit; `String` with optional `ns`/`us`/`ms`/`s`/`m`/`h`/`d` suffix |
+| `Duration` | `Duration`; integer variants and `BigInteger` using the configured duration unit; `String` with optional `ns`/`us`/`ms`/`s`/`m`/`h`/`d` suffix, or the configured duration unit when no suffix is present |
 | `Url` | `Url`; `String` |
 | `HashMap<String, String>` | `StringMap` |
 | `serde_json::Value` | `Json`; `String` (parsed as JSON); `StringMap` |
@@ -477,7 +477,8 @@ All operations that may fail return `ValueResult<T> = Result<T, ValueError>`.
 - **`isize` / `usize`**: Platform-dependent integers
 - **`Duration`**: `std::time::Duration`; string conversion uses the
   configured duration unit, defaulting to milliseconds such as `1500ms`.
-  Parsing accepts `ns`, `us`, `ms`, `s`, `m`, `h`, and `d` suffixes.
+  Parsing accepts `ns`, `us`, `ms`, `s`, `m`, `h`, and `d` suffixes; strings
+  without a suffix are interpreted using the configured duration unit.
 - **`Url`**: `url::Url`; string representation is the URL text
 - **`HashMap<String, String>`**: String map; string representation is JSON
 - **`serde_json::Value`**: JSON escape hatch for complex/custom types
