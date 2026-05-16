@@ -427,7 +427,9 @@ impl Value {
     ///   - `Value::Date`, `Value::Time`, `Value::DateTime`, `Value::Instant`
     ///   - `Value::BigInteger`, `Value::BigDecimal`
     ///   - `Value::IntSize`, `Value::UIntSize`
-    ///   - `Value::Duration`, formatted as `<nanoseconds>ns`
+    ///   - `Value::Duration`, formatted with the configured duration unit.
+    ///     The default conversion options use milliseconds and append the
+    ///     unit suffix, for example `1500ms`.
     ///   - `Value::Url`
     ///   - `Value::StringMap`, serialized as JSON text
     ///   - `Value::Json`, serialized as JSON text
@@ -459,7 +461,11 @@ impl Value {
     ///   - `Value::String`, parsed as `usize`
     /// - `Duration`
     ///   - `Value::Duration`
-    ///   - `Value::String`, parsed from `<nanoseconds>ns`
+    ///   - integer variants and `Value::BigInteger`, interpreted in the
+    ///     configured duration unit
+    ///   - `Value::String`, parsed as duration text. Explicit suffixes
+    ///     `ns`, `us`, `ms`, `s`, `m`, `h`, and `d` are supported; text
+    ///     without a suffix uses the configured duration unit.
     /// - `Url`
     ///   - `Value::Url`
     ///   - `Value::String`, parsed as URL text
