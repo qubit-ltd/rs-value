@@ -154,14 +154,8 @@ fn test_named_value_get_string() {
 
 #[test]
 fn test_named_value_get_date() {
-    let nv = NamedValue::new(
-        "d",
-        Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()),
-    );
-    assert_eq!(
-        nv.get_date().unwrap(),
-        NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()
-    );
+    let nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()));
+    assert_eq!(nv.get_date().unwrap(), NaiveDate::from_ymd_opt(2020, 5, 17).unwrap());
 }
 
 #[test]
@@ -325,10 +319,7 @@ fn test_named_value_set_get_string() {
 
 #[test]
 fn test_named_value_set_get_date() {
-    let mut nv = NamedValue::new(
-        "d",
-        Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()),
-    );
+    let mut nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()));
     let date = NaiveDate::from_ymd_opt(2020, 5, 17).unwrap();
     nv.set(date).unwrap();
     let got: NaiveDate = nv.get().unwrap();

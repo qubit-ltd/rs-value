@@ -25,10 +25,7 @@ use std::str::FromStr;
 fn test_value_type_check() {
     let v = Value::Bool(true);
     assert!(v.get_bool().unwrap());
-    assert!(matches!(
-        v.get_int32(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(matches!(v.get_int32(), Err(ValueError::TypeMismatch { .. })));
 }
 #[test]
 fn test_value_generic_get() {
@@ -69,8 +66,8 @@ fn test_value_defaulted_reads_use_default_only_for_empty() {
     assert_eq!(empty.get_or::<String>("fallback").unwrap(), "fallback");
     assert_eq!(empty.to_or::<u16>(8080).unwrap(), 8080);
 
-    let options = DataConversionOptions::default()
-        .with_string_options(StringConversionOptions::default().with_trim(true));
+    let options =
+        DataConversionOptions::default().with_string_options(StringConversionOptions::default().with_trim(true));
     assert_eq!(
         empty.to_or_with::<String>(" fallback ", &options).unwrap(),
         " fallback "
@@ -129,10 +126,7 @@ fn test_value_generic_get_all_types() {
     assert_eq!(Value::UInt128(128).get::<u128>().unwrap(), 128);
     assert!((Value::Float32(3.5).get::<f32>().unwrap() - 3.5).abs() < 0.001);
     assert!((Value::Float64(3.5).get::<f64>().unwrap() - 3.5).abs() < 0.001);
-    assert_eq!(
-        Value::String("test".to_string()).get::<String>().unwrap(),
-        "test"
-    );
+    assert_eq!(Value::String("test".to_string()).get::<String>().unwrap(), "test");
 }
 #[test]
 fn test_value_set_methods() {
@@ -274,19 +268,13 @@ fn test_biginteger_bigdecimal_type_mismatch() {
     let value = Value::BigInteger(big_int);
 
     // Attempting to get wrong type should fail
-    assert!(matches!(
-        value.get_bigdecimal(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(matches!(value.get_bigdecimal(), Err(ValueError::TypeMismatch { .. })));
 
     let big_decimal = BigDecimal::from_str("123.456").unwrap();
     let value = Value::BigDecimal(big_decimal);
 
     // Attempting to get wrong type should fail
-    assert!(matches!(
-        value.get_biginteger(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(matches!(value.get_biginteger(), Err(ValueError::TypeMismatch { .. })));
 }
 #[test]
 fn test_value_set_all_integer_types() {
@@ -302,9 +290,7 @@ fn test_value_set_all_integer_types() {
 
     // Test UInt128
     let mut value = Value::Empty(DataType::UInt128);
-    value
-        .set_uint128(340282366920938463463374607431768211455u128)
-        .unwrap();
+    value.set_uint128(340282366920938463463374607431768211455u128).unwrap();
     assert_eq!(
         value.get_uint128().unwrap(),
         340282366920938463463374607431768211455u128
@@ -399,26 +385,11 @@ fn test_value_type_mismatch_errors() {
     // Test type mismatch errors
     let value = Value::Int32(42);
 
-    assert!(matches!(
-        value.get_bool(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
-    assert!(matches!(
-        value.get_char(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
-    assert!(matches!(
-        value.get_string(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
-    assert!(matches!(
-        value.get_float64(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
-    assert!(matches!(
-        value.get_date(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(matches!(value.get_bool(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(value.get_char(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(value.get_string(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(value.get_float64(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(value.get_date(), Err(ValueError::TypeMismatch { .. })));
 }
 #[test]
 fn test_value_setter_type_mismatch() {
@@ -499,10 +470,7 @@ fn test_value_borrowing_getters_for_non_copy_types() {
 #[test]
 fn test_value_borrowing_getters_error_branches() {
     let empty_json = Value::Empty(DataType::Json);
-    assert!(matches!(
-        empty_json.get_json_ref(),
-        Err(ValueError::NoValue)
-    ));
+    assert!(matches!(empty_json.get_json_ref(), Err(ValueError::NoValue)));
 
     let empty_biginteger = Value::Empty(DataType::BigInteger);
     assert!(matches!(
@@ -526,10 +494,7 @@ fn test_value_borrowing_getters_error_branches() {
     ));
 
     let wrong_type = Value::Bool(true);
-    assert!(matches!(
-        wrong_type.get_url_ref(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(matches!(wrong_type.get_url_ref(), Err(ValueError::TypeMismatch { .. })));
     assert!(matches!(
         wrong_type.get_biginteger_ref(),
         Err(ValueError::TypeMismatch { .. })
@@ -552,10 +517,7 @@ fn test_value_borrowing_getters_error_branches() {
         wrong_type.get_json_ref(),
         Err(ValueError::TypeMismatch { .. })
     ));
-    assert!(matches!(
-        wrong_type.get_url_ref(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(matches!(wrong_type.get_url_ref(), Err(ValueError::TypeMismatch { .. })));
     assert!(matches!(
         wrong_type.get_biginteger_ref(),
         Err(ValueError::TypeMismatch { .. })
@@ -620,8 +582,5 @@ fn test_generic_set_for_coverage() {
 
     let mut v = Value::new(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
     v.set(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()).unwrap();
-    assert_eq!(
-        v.get_date().unwrap(),
-        NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()
-    );
+    assert_eq!(v.get_date().unwrap(), NaiveDate::from_ymd_opt(2025, 1, 1).unwrap());
 }
