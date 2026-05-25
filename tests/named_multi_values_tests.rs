@@ -66,10 +66,7 @@ fn test_named_value_to_named_multi_value() {
 
 #[test]
 fn test_named_multi_value_struct_access() {
-    let nmv = NamedMultiValues::new(
-        "items",
-        MultiValues::String(vec!["a".to_string(), "b".to_string()]),
-    );
+    let nmv = NamedMultiValues::new("items", MultiValues::String(vec!["a".to_string(), "b".to_string()]));
     assert_eq!(nmv.name(), "items");
     assert_eq!(nmv.count(), 2);
 }
@@ -106,10 +103,7 @@ fn test_nmv_get_i32_list() {
 
 #[test]
 fn test_nmv_get_string_list() {
-    let nmv = NamedMultiValues::new(
-        "s",
-        MultiValues::String(vec!["a".to_string(), "b".to_string()]),
-    );
+    let nmv = NamedMultiValues::new("s", MultiValues::String(vec!["a".to_string(), "b".to_string()]));
     let v: Vec<String> = nmv.get().unwrap();
     assert_eq!(v, vec!["a".to_string(), "b".to_string()]);
 }
@@ -172,10 +166,7 @@ fn test_nmv_get_first_i32() {
 
 #[test]
 fn test_nmv_get_first_string() {
-    let nmv = NamedMultiValues::new(
-        "s",
-        MultiValues::String(vec!["x".to_string(), "y".to_string()]),
-    );
+    let nmv = NamedMultiValues::new("s", MultiValues::String(vec!["x".to_string(), "y".to_string()]));
     let first: String = nmv.get_first().unwrap();
     assert_eq!(first, "x");
 }
@@ -263,10 +254,7 @@ fn test_named_multi_values_to_named_value_empty_preserves_type() {
     let named = nmv.to_named_value();
     assert_eq!(named.name(), "threshold");
     assert_eq!(named.data_type(), DataType::Float64);
-    assert!(matches!(
-        named.get_float64(),
-        Err(qubit_value::ValueError::NoValue)
-    ));
+    assert!(matches!(named.get_float64(), Err(qubit_value::ValueError::NoValue)));
 }
 
 #[test]

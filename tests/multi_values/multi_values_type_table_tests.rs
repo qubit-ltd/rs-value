@@ -15,12 +15,6 @@ use qubit_value::MultiValues;
 fn test_multi_values_type_table_maps_representative_variants() {
     assert_eq!(MultiValues::Bool(vec![true]).data_type(), DataType::Bool);
     assert_eq!(MultiValues::Char(vec!['x']).data_type(), DataType::Char);
-    assert_eq!(
-        MultiValues::Float64(vec![1.25]).data_type(),
-        DataType::Float64
-    );
-    assert_eq!(
-        MultiValues::Empty(DataType::Json).data_type(),
-        DataType::Json
-    );
+    assert_eq!(MultiValues::Float64(vec![1.25]).data_type(), DataType::Float64);
+    assert_eq!(MultiValues::Empty(DataType::Json).data_type(), DataType::Json);
 }

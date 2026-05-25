@@ -19,10 +19,7 @@ fn test_value_converter_converts_and_reports_invalid_input() {
     assert_eq!(value.to::<i32>().unwrap(), 42);
 
     let invalid = Value::String("not-a-number".to_string());
-    assert!(matches!(
-        invalid.to::<i32>(),
-        Err(ValueError::ConversionError(_))
-    ));
+    assert!(matches!(invalid.to::<i32>(), Err(ValueError::ConversionError(_))));
 }
 
 #[test]
