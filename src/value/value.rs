@@ -557,11 +557,7 @@ impl Value {
     ///
     /// Conversion failures from non-empty values are preserved.
     #[inline]
-    pub fn to_or_with<T>(
-        &self,
-        default: impl IntoValueDefault<T>,
-        options: &DataConversionOptions,
-    ) -> ValueResult<T>
+    pub fn to_or_with<T>(&self, default: impl IntoValueDefault<T>, options: &DataConversionOptions) -> ValueResult<T>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
