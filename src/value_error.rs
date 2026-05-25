@@ -100,15 +100,9 @@ pub type ValueResult<T> = Result<T, ValueError>;
 pub(crate) fn map_data_conversion_error(error: DataConversionError) -> ValueError {
     match error {
         DataConversionError::NoValue => ValueError::NoValue,
-        DataConversionError::ConversionFailed { from, to } => {
-            ValueError::ConversionFailed { from, to }
-        }
+        DataConversionError::ConversionFailed { from, to } => ValueError::ConversionFailed { from, to },
         DataConversionError::ConversionError(message) => ValueError::ConversionError(message),
-        DataConversionError::JsonSerializationError(message) => {
-            ValueError::JsonSerializationError(message)
-        }
-        DataConversionError::JsonDeserializationError(message) => {
-            ValueError::JsonDeserializationError(message)
-        }
+        DataConversionError::JsonSerializationError(message) => ValueError::JsonSerializationError(message),
+        DataConversionError::JsonDeserializationError(message) => ValueError::JsonDeserializationError(message),
     }
 }

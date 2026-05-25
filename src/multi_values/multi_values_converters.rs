@@ -81,10 +81,7 @@ macro_rules! multi_values_merge_match {
 #[inline]
 fn map_data_list_conversion_error(error: DataListConversionError) -> ValueError {
     let source = map_data_conversion_error(error.source);
-    ValueError::ConversionError(format!(
-        "Cannot convert value at index {}: {}",
-        error.index, source
-    ))
+    ValueError::ConversionError(format!("Cannot convert value at index {}: {}", error.index, source))
 }
 
 /// Converts the first item from a batch converter using conversion options.
@@ -108,18 +105,13 @@ fn map_data_list_conversion_error(error: DataListConversionError) -> ValueError 
 /// Returns `ValueError::NoValue` for empty sources or the mapped single-value
 /// conversion error for an invalid first source value.
 #[inline]
-fn convert_first_with<'a, T, I>(
-    values: DataConverters<'a, I>,
-    options: &DataConversionOptions,
-) -> ValueResult<T>
+fn convert_first_with<'a, T, I>(values: DataConverters<'a, I>, options: &DataConversionOptions) -> ValueResult<T>
 where
     DataConverter<'a>: DataConvertTo<T>,
     I: Iterator,
     I::Item: Into<DataConverter<'a>>,
 {
-    values
-        .to_first_with(options)
-        .map_err(map_data_conversion_error)
+    values.to_first_with(options).map_err(map_data_conversion_error)
 }
 
 /// Converts every item from a batch converter using conversion options.
@@ -142,18 +134,13 @@ where
 ///
 /// Returns a mapped batch conversion error containing the failing source index.
 #[inline]
-fn convert_values_with<'a, T, I>(
-    values: DataConverters<'a, I>,
-    options: &DataConversionOptions,
-) -> ValueResult<Vec<T>>
+fn convert_values_with<'a, T, I>(values: DataConverters<'a, I>, options: &DataConversionOptions) -> ValueResult<Vec<T>>
 where
     DataConverter<'a>: DataConvertTo<T>,
     I: Iterator,
     I::Item: Into<DataConverter<'a>>,
 {
-    values
-        .to_vec_with(options)
-        .map_err(map_data_list_conversion_error)
+    values.to_vec_with(options).map_err(map_data_list_conversion_error)
 }
 
 impl MultiValues {
@@ -244,11 +231,9 @@ impl MultiValues {
             MultiValues::Float64(v) => convert_first_with(DataConverters::from(v), options),
             MultiValues::BigInteger(v) => convert_first_with(DataConverters::from(v), options),
             MultiValues::BigDecimal(v) => convert_first_with(DataConverters::from(v), options),
-            MultiValues::String(v) if v.len() == 1 => {
-                ScalarStringDataConverters::from(v[0].as_str())
-                    .to_first_with(options)
-                    .map_err(map_data_conversion_error)
-            }
+            MultiValues::String(v) if v.len() == 1 => ScalarStringDataConverters::from(v[0].as_str())
+                .to_first_with(options)
+                .map_err(map_data_conversion_error),
             MultiValues::String(v) => convert_first_with(DataConverters::from(v), options),
             MultiValues::Date(v) => convert_first_with(DataConverters::from(v), options),
             MultiValues::Time(v) => convert_first_with(DataConverters::from(v), options),
@@ -264,11 +249,7 @@ impl MultiValues {
     /// Converts the first stored value to `T` using conversion options, or
     /// returns `default` when no value is stored.
     #[inline]
-    pub fn to_or_with<T>(
-        &self,
-        default: impl IntoValueDefault<T>,
-        options: &DataConversionOptions,
-    ) -> ValueResult<T>
+    pub fn to_or_with<T>(&self, default: impl IntoValueDefault<T>, options: &DataConversionOptions) -> ValueResult<T>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
@@ -365,11 +346,9 @@ impl MultiValues {
             MultiValues::Float64(v) => convert_values_with(DataConverters::from(v), options),
             MultiValues::BigInteger(v) => convert_values_with(DataConverters::from(v), options),
             MultiValues::BigDecimal(v) => convert_values_with(DataConverters::from(v), options),
-            MultiValues::String(v) if v.len() == 1 => {
-                ScalarStringDataConverters::from(v[0].as_str())
-                    .to_vec_with(options)
-                    .map_err(map_data_list_conversion_error)
-            }
+            MultiValues::String(v) if v.len() == 1 => ScalarStringDataConverters::from(v[0].as_str())
+                .to_vec_with(options)
+                .map_err(map_data_list_conversion_error),
             MultiValues::String(v) => convert_values_with(DataConverters::from(v), options),
             MultiValues::Date(v) => convert_values_with(DataConverters::from(v), options),
             MultiValues::Time(v) => convert_values_with(DataConverters::from(v), options),

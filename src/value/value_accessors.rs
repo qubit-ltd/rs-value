@@ -942,9 +942,7 @@ impl Value {
     /// serialization fails.
     pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
         let json = serde_json::to_value(value).map_err(|error| {
-            map_data_conversion_error(DataConversionError::JsonSerializationError(
-                error.to_string(),
-            ))
+            map_data_conversion_error(DataConversionError::JsonSerializationError(error.to_string()))
         })?;
         Ok(Value::Json(json))
     }
@@ -970,9 +968,7 @@ impl Value {
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match self {
             Value::Json(v) => serde_json::from_value(v.clone()).map_err(|error| {
-                map_data_conversion_error(DataConversionError::JsonDeserializationError(
-                    error.to_string(),
-                ))
+                map_data_conversion_error(DataConversionError::JsonDeserializationError(error.to_string()))
             }),
             Value::Empty(dt) if *dt == DataType::Json => Err(ValueError::NoValue),
             Value::Empty(dt) => Err(ValueError::TypeMismatch {

@@ -74,10 +74,7 @@ fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
 ///
 /// Returns a `ValueError` mapped from the shared conversion error when the
 /// source value is missing, unsupported, or invalid for `T`.
-pub(super) fn convert_with_data_converter_with<T>(
-    value: &Value,
-    options: &DataConversionOptions,
-) -> ValueResult<T>
+pub(super) fn convert_with_data_converter_with<T>(value: &Value, options: &DataConversionOptions) -> ValueResult<T>
 where
     for<'a> DataConverter<'a>: DataConvertTo<T>,
 {
