@@ -1,12 +1,10 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 
 use qubit_datatype::DataType;
 use qubit_value::ValueError;
@@ -17,7 +15,10 @@ fn test_value_error_display_includes_context() {
         expected: DataType::String,
         actual: DataType::Int32,
     };
-    assert_eq!(mismatch.to_string(), "Type mismatch: expected string, actual int32");
+    assert_eq!(
+        mismatch.to_string(),
+        "Type mismatch: expected string, actual int32"
+    );
 
     let index = ValueError::IndexOutOfBounds { index: 3, len: 2 };
     assert_eq!(index.to_string(), "Index out of bounds: index 3, length 2");

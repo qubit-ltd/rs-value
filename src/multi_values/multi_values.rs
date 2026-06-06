@@ -1,16 +1,13 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Multiple Values Container
 //!
 //! Provides type-safe storage and access functionality for multiple values.
-//!
 
 use bigdecimal::BigDecimal;
 use chrono::{
@@ -61,8 +58,6 @@ use qubit_datatype::DataType;
 /// values.add(4).unwrap();
 /// assert_eq!(values.count(), 4);
 /// ```
-///
-///
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MultiValues {
     /// Empty value (has type but no values)
@@ -136,8 +131,6 @@ pub enum MultiValues {
 ///
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
-///
-///
 macro_rules! impl_get_multi_values {
     // Simple type: return slice reference
     ($(#[$attr:meta])* slice: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
@@ -191,8 +184,6 @@ macro_rules! impl_get_multi_values {
 ///
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
-///
-///
 macro_rules! impl_get_first_value {
     // Copy type: directly return value
     ($(#[$attr:meta])* copy: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
@@ -252,8 +243,6 @@ macro_rules! impl_get_first_value {
 ///
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
-///
-///
 macro_rules! impl_add_single_value {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
@@ -284,14 +273,13 @@ macro_rules! impl_add_single_value {
 
 /// Unified multiple values add multiple method generation macro
 ///
-/// Generates `add_[xxx]s` methods for `MultiValues`, used to add multiple values.
+/// Generates `add_[xxx]s` methods for `MultiValues`, used to add multiple
+/// values.
 ///
 /// # Documentation Comment Support
 ///
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
-///
-///
 macro_rules! impl_add_multi_values {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
@@ -324,8 +312,6 @@ macro_rules! impl_add_multi_values {
 ///
 /// Generates `add_[xxx]s_slice` methods for `MultiValues`, used to append
 /// multiple values at once from a slice.
-///
-///
 macro_rules! impl_add_multi_values_slice {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
@@ -363,8 +349,6 @@ macro_rules! impl_add_multi_values_slice {
 ///
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
-///
-///
 macro_rules! impl_set_single_value {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
@@ -384,8 +368,6 @@ macro_rules! impl_set_single_value {
 ///
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
-///
-///
 macro_rules! impl_set_multi_values {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
@@ -408,8 +390,6 @@ macro_rules! impl_set_multi_values {
 ///
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
-///
-///
 macro_rules! impl_set_multi_values_slice {
     ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*

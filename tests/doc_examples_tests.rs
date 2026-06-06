@@ -1,12 +1,10 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! Regression tests for public documentation examples.
 
 use qubit_datatype::DataType;
@@ -69,7 +67,8 @@ fn test_doc_example_named_value_operations() {
     nv.set(45i32).unwrap();
     assert_eq!(nv.get_int32().unwrap(), 45);
 
-    let mut nmv = NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
+    let mut nmv =
+        NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
     nmv.add(8082).unwrap();
     let first_port: i32 = nmv.get_first().unwrap();
     assert_eq!(first_port, 8080);

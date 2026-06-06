@@ -1,18 +1,15 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Named Multiple Values
 //!
-//! Provides a lightweight container for binding names to multiple value collections,
-//! facilitating human-readable identification of groups of values in configurations,
-//! serialization, logging, and other scenarios.
-//!
+//! Provides a lightweight container for binding names to multiple value
+//! collections, facilitating human-readable identification of groups of values
+//! in configurations, serialization, logging, and other scenarios.
 
 use serde::{
     Deserialize,
@@ -28,19 +25,22 @@ use super::named_value::NamedValue;
 
 /// Named multiple values
 ///
-/// A container that associates a readable name with a set of `MultiValues`, suitable for
-/// organizing data in key-value (name-multiple values) scenarios, such as configuration items,
-/// command-line parameter aggregation, structured log fields, etc.
+/// A container that associates a readable name with a set of `MultiValues`,
+/// suitable for organizing data in key-value (name-multiple values) scenarios,
+/// such as configuration items, command-line parameter aggregation, structured
+/// log fields, etc.
 ///
 /// # Features
 ///
 /// - Provides clear name identification for multiple value collections
-/// - Transparently reuses all capabilities of `MultiValues` through `Deref/DerefMut`
+/// - Transparently reuses all capabilities of `MultiValues` through
+///   `Deref/DerefMut`
 /// - Supports `serde` serialization and deserialization
 ///
 /// # Use Cases
 ///
-/// - Aggregating a set of ports, hostnames, etc., as semantically meaningful fields
+/// - Aggregating a set of ports, hostnames, etc., as semantically meaningful
+///   fields
 /// - Outputting named multiple value lists in configurations/logs
 ///
 /// # Example
@@ -57,8 +57,6 @@ use super::named_value::NamedValue;
 /// assert_eq!(named.name(), "ports");
 /// assert_eq!(named.count(), 3);
 /// ```
-///
-///
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NamedMultiValues {
     /// Name of the values
@@ -70,7 +68,8 @@ pub struct NamedMultiValues {
 impl NamedMultiValues {
     /// Create a new named multiple values
     ///
-    /// Associates a given name with `MultiValues`, generating a container that can be referenced by name.
+    /// Associates a given name with `MultiValues`, generating a container that
+    /// can be referenced by name.
     ///
     /// # Use Cases
     ///
@@ -160,10 +159,12 @@ impl NamedMultiValues {
         NamedValue::new(self.name.as_str(), self.value.to_value())
     }
 
-    // Values can be directly assigned or mutable methods called on the inner value through DerefMut
+    // Values can be directly assigned or mutable methods called on the inner
+    // value through DerefMut
 }
 
-/// Transparently delegate read-only methods to the inner `MultiValues` through `Deref`.
+/// Transparently delegate read-only methods to the inner `MultiValues` through
+/// `Deref`.
 impl Deref for NamedMultiValues {
     type Target = MultiValues;
 
@@ -173,7 +174,8 @@ impl Deref for NamedMultiValues {
     }
 }
 
-/// Transparently delegate mutable methods to the inner `MultiValues` through `DerefMut`.
+/// Transparently delegate mutable methods to the inner `MultiValues` through
+/// `DerefMut`.
 impl DerefMut for NamedMultiValues {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
@@ -184,7 +186,8 @@ impl DerefMut for NamedMultiValues {
 impl From<NamedValue> for NamedMultiValues {
     /// Construct `NamedMultiValues` from `NamedValue`
     ///
-    /// Reuses the name and promotes the single value to a `MultiValues` containing only one element.
+    /// Reuses the name and promotes the single value to a `MultiValues`
+    /// containing only one element.
     #[inline]
     fn from(named: NamedValue) -> Self {
         let (name, value) = named.into_parts();

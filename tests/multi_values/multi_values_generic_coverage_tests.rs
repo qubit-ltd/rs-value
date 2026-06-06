@@ -1,15 +1,14 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # MultiValues Generic Coverage Tests
 //!
-//! Covers the four generic entry points `set`/`add`/`get`/`get_first`, verifying all supported types and three parameter categories。
+//! Covers the four generic entry points `set`/`add`/`get`/`get_first`,
+//! verifying all supported types and three parameter categories。
 
 use chrono::{
     DateTime,
@@ -248,7 +247,10 @@ fn test_generic_add_convenient_inputs_for_coverage() {
 
     let owned_array_ref = ["f".to_string(), "g".to_string()];
     values.add(&owned_array_ref).unwrap();
-    assert_eq!(values.get_strings().unwrap(), &["a", "b", "c", "d", "e", "f", "g"]);
+    assert_eq!(
+        values.get_strings().unwrap(),
+        &["a", "b", "c", "d", "e", "f", "g"]
+    );
 
     let str_vec_ref = vec!["h", "i"];
     values.add(&str_vec_ref).unwrap();
@@ -267,7 +269,9 @@ fn test_generic_add_convenient_inputs_for_coverage() {
     values.add(str_array_ref).unwrap();
     assert_eq!(
         values.get_strings().unwrap(),
-        &["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"]
+        &[
+            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"
+        ]
     );
 }
 
@@ -303,7 +307,9 @@ fn test_into_value_default_inputs_for_coverage() {
 
     let array_ref = [7i32, 8];
     let array_ref_arg: &[i32; 2] = &array_ref;
-    let value = <&[i32; 2] as IntoValueDefault<Vec<i32>>>::into_value_default(array_ref_arg);
+    let value = <&[i32; 2] as IntoValueDefault<Vec<i32>>>::into_value_default(
+        array_ref_arg,
+    );
     assert_eq!(value, vec![7, 8]);
 
     let value: Vec<String> = into_default(vec!["a", "b"]);
@@ -322,7 +328,10 @@ fn test_into_value_default_inputs_for_coverage() {
 
     let str_array_ref = ["i", "j"];
     let str_array_ref_arg: &[&str; 2] = &str_array_ref;
-    let value = <&[&str; 2] as IntoValueDefault<Vec<String>>>::into_value_default(str_array_ref_arg);
+    let value =
+        <&[&str; 2] as IntoValueDefault<Vec<String>>>::into_value_default(
+            str_array_ref_arg,
+        );
     assert_eq!(value, vec!["i".to_string(), "j".to_string()]);
 }
 

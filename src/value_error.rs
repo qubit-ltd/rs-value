@@ -1,16 +1,13 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Value Processing Error Types
 //!
 //! Defines various errors that may occur during value processing.
-//!
 
 use qubit_datatype::{
     DataConversionError,
@@ -37,8 +34,6 @@ use thiserror::Error;
 /// let error = ValueError::NoValue;
 /// assert_eq!(error.to_string(), "No value");
 /// ```
-///
-///
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum ValueError {
     /// No value
@@ -88,7 +83,8 @@ pub enum ValueError {
 /// Value processing result type
 pub type ValueResult<T> = Result<T, ValueError>;
 
-/// Maps a shared `qubit_datatype` conversion error into this crate's error type.
+/// Maps a shared `qubit_datatype` conversion error into this crate's error
+/// type.
 ///
 /// # Parameters
 ///
@@ -97,12 +93,22 @@ pub type ValueResult<T> = Result<T, ValueError>;
 /// # Returns
 ///
 /// Returns the corresponding [`ValueError`] variant.
-pub(crate) fn map_data_conversion_error(error: DataConversionError) -> ValueError {
+pub(crate) fn map_data_conversion_error(
+    error: DataConversionError,
+) -> ValueError {
     match error {
         DataConversionError::NoValue => ValueError::NoValue,
-        DataConversionError::ConversionFailed { from, to } => ValueError::ConversionFailed { from, to },
-        DataConversionError::ConversionError(message) => ValueError::ConversionError(message),
-        DataConversionError::JsonSerializationError(message) => ValueError::JsonSerializationError(message),
-        DataConversionError::JsonDeserializationError(message) => ValueError::JsonDeserializationError(message),
+        DataConversionError::ConversionFailed { from, to } => {
+            ValueError::ConversionFailed { from, to }
+        }
+        DataConversionError::ConversionError(message) => {
+            ValueError::ConversionError(message)
+        }
+        DataConversionError::JsonSerializationError(message) => {
+            ValueError::JsonSerializationError(message)
+        }
+        DataConversionError::JsonDeserializationError(message) => {
+            ValueError::JsonDeserializationError(message)
+        }
     }
 }

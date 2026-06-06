@@ -1,12 +1,10 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Value v0.3.0 新增类型单元测试
 //!
 //! 覆盖 v0.3.0 新增的以下类型：
@@ -15,7 +13,6 @@
 //! - `url::Url`
 //! - `HashMap<String, String>`
 //! - `serde_json::Value` (Json escape hatch)
-//!
 
 use qubit_datatype::DataType;
 use qubit_value::{
@@ -63,7 +60,10 @@ fn test_value_intsize_set() {
 #[test]
 fn test_value_intsize_type_mismatch() {
     let v = Value::IntSize(1isize);
-    assert!(matches!(v.get_uintsize(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        v.get_uintsize(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
@@ -135,7 +135,10 @@ fn test_value_uintsize_set() {
 #[test]
 fn test_value_uintsize_type_mismatch() {
     let v = Value::UIntSize(1usize);
-    assert!(matches!(v.get_intsize(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        v.get_intsize(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
@@ -189,7 +192,10 @@ fn test_value_duration_set() {
 #[test]
 fn test_value_duration_type_mismatch() {
     let v = Value::Duration(Duration::from_secs(1));
-    assert!(matches!(v.get_intsize(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        v.get_intsize(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
@@ -232,13 +238,19 @@ fn test_value_duration_as_duration_from_duration() {
 #[test]
 fn test_value_duration_as_duration_from_string() {
     let v = Value::String("1500000000ns".to_string());
-    assert_eq!(v.to::<Duration>().unwrap(), Duration::from_nanos(1_500_000_000));
+    assert_eq!(
+        v.to::<Duration>().unwrap(),
+        Duration::from_nanos(1_500_000_000)
+    );
 }
 
 #[test]
 fn test_value_duration_as_duration_invalid_string() {
     let v = Value::String("1.5s".to_string());
-    assert!(matches!(v.to::<Duration>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        v.to::<Duration>(),
+        Err(ValueError::ConversionError(_))
+    ));
 }
 
 #[test]
@@ -295,7 +307,10 @@ fn test_value_url_set() {
 fn test_value_url_type_mismatch() {
     let url = Url::parse("https://example.com").unwrap();
     let v = Value::Url(url);
-    assert!(matches!(v.get_string(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        v.get_string(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
@@ -358,7 +373,9 @@ fn test_value_url_clear() {
 
 #[test]
 fn test_value_url_serde_roundtrip() {
-    let original = Value::Url(Url::parse("https://example.com/path?key=value#anchor").unwrap());
+    let original = Value::Url(
+        Url::parse("https://example.com/path?key=value#anchor").unwrap(),
+    );
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
@@ -369,7 +386,10 @@ fn test_value_url_serde_roundtrip() {
 // ============================================================================
 
 fn make_map(pairs: &[(&str, &str)]) -> HashMap<String, String> {
-    pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    pairs
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect()
 }
 
 #[test]
@@ -405,7 +425,10 @@ fn test_value_stringmap_empty_map() {
 #[test]
 fn test_value_stringmap_type_mismatch() {
     let v = Value::StringMap(HashMap::new());
-    assert!(matches!(v.get_string(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        v.get_string(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
@@ -451,7 +474,10 @@ fn test_value_stringmap_clear() {
 
 #[test]
 fn test_value_stringmap_serde_roundtrip() {
-    let original = Value::StringMap(make_map(&[("Content-Type", "application/json"), ("Accept", "*/*")]));
+    let original = Value::StringMap(make_map(&[
+        ("Content-Type", "application/json"),
+        ("Accept", "*/*"),
+    ]));
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
@@ -487,7 +513,10 @@ fn test_value_json_set() {
 #[test]
 fn test_value_json_type_mismatch() {
     let v = Value::Json(serde_json::json!(null));
-    assert!(matches!(v.get_string(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        v.get_string(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
@@ -600,7 +629,8 @@ fn test_value_json_clear() {
 
 #[test]
 fn test_value_json_serde_roundtrip() {
-    let original = Value::Json(serde_json::json!({"nested": {"arr": [1, 2, 3]}}));
+    let original =
+        Value::Json(serde_json::json!({"nested": {"arr": [1, 2, 3]}}));
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
@@ -626,7 +656,9 @@ impl Serialize for FailingSerialize {
     where
         S: serde::Serializer,
     {
-        Err(serde::ser::Error::custom("intentional serialization failure"))
+        Err(serde::ser::Error::custom(
+            "intentional serialization failure",
+        ))
     }
 }
 
@@ -700,7 +732,10 @@ fn test_value_deserialize_json_invalid_shape_returns_error() {
         "enabled": true,
     }));
     let result = v.deserialize_json::<Config>();
-    assert!(matches!(result, Err(ValueError::JsonDeserializationError(_))));
+    assert!(matches!(
+        result,
+        Err(ValueError::JsonDeserializationError(_))
+    ));
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
