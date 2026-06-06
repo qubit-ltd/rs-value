@@ -1,12 +1,10 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 
 use qubit_datatype::DataType;
 use qubit_value::{
@@ -27,7 +25,10 @@ fn test_multi_values_core_tracks_count_and_type_changes() {
     values.set_type(DataType::String);
     assert!(values.is_empty());
     assert_eq!(values.data_type(), DataType::String);
-    assert!(matches!(values.get_first::<String>(), Err(ValueError::NoValue)));
+    assert!(matches!(
+        values.get_first::<String>(),
+        Err(ValueError::NoValue)
+    ));
 }
 
 #[test]
@@ -80,7 +81,9 @@ fn test_multi_values_core_set_clones_slice_values() {
 #[test]
 fn test_multi_values_core_set_sets_owned_vectors() {
     let mut values = MultiValues::Empty(DataType::String);
-    values.set(vec!["alpha".to_string(), "beta".to_string()]).unwrap();
+    values
+        .set(vec!["alpha".to_string(), "beta".to_string()])
+        .unwrap();
 
     assert_eq!(values.data_type(), DataType::String);
     assert_eq!(values.get_strings().unwrap(), &["alpha", "beta"]);
@@ -112,7 +115,10 @@ fn test_multi_values_core_add_appends_matching_single_value() {
     assert_eq!(values.get_bools().unwrap(), &[true, false]);
 
     let mut strings = MultiValues::String(vec!["x".to_string()]);
-    assert!(matches!(strings.add(1i32), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        strings.add(1i32),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]

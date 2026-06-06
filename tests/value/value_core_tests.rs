@@ -1,16 +1,13 @@
-/*****************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Value Core Unit Tests
 //!
 //! Tests for core and structural `Value` operations.
-//!
 
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
@@ -121,7 +118,10 @@ fn test_value_new_various_types() {
     assert!((Value::new(2.5f64).get_float64().unwrap() - 2.5).abs() < 0.001);
 
     // Strings (String vs &str)
-    assert_eq!(Value::new("hello".to_string()).get_string().unwrap(), "hello");
+    assert_eq!(
+        Value::new("hello".to_string()).get_string().unwrap(),
+        "hello"
+    );
     assert_eq!(Value::new("world").get_string().unwrap(), "world");
 }
 #[test]
@@ -191,7 +191,10 @@ fn test_set_on_non_empty_for_coverage() {
     assert_eq!(v.data_type(), DataType::String);
     assert!(!v.is_empty());
     assert_eq!(v.get_string().unwrap(), "hello");
-    assert!(matches!(v.get_int32(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        v.get_int32(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 
     // Overwrite with the same type
     v.set_string("world".to_string()).unwrap();
@@ -218,16 +221,37 @@ fn test_data_type_coverage_all_variants() {
     assert_eq!(Value::Empty(DataType::UInt16).data_type(), DataType::UInt16);
     assert_eq!(Value::Empty(DataType::UInt32).data_type(), DataType::UInt32);
     assert_eq!(Value::Empty(DataType::UInt64).data_type(), DataType::UInt64);
-    assert_eq!(Value::Empty(DataType::UInt128).data_type(), DataType::UInt128);
-    assert_eq!(Value::Empty(DataType::Float32).data_type(), DataType::Float32);
-    assert_eq!(Value::Empty(DataType::Float64).data_type(), DataType::Float64);
+    assert_eq!(
+        Value::Empty(DataType::UInt128).data_type(),
+        DataType::UInt128
+    );
+    assert_eq!(
+        Value::Empty(DataType::Float32).data_type(),
+        DataType::Float32
+    );
+    assert_eq!(
+        Value::Empty(DataType::Float64).data_type(),
+        DataType::Float64
+    );
     assert_eq!(Value::Empty(DataType::String).data_type(), DataType::String);
     assert_eq!(Value::Empty(DataType::Date).data_type(), DataType::Date);
     assert_eq!(Value::Empty(DataType::Time).data_type(), DataType::Time);
-    assert_eq!(Value::Empty(DataType::DateTime).data_type(), DataType::DateTime);
-    assert_eq!(Value::Empty(DataType::Instant).data_type(), DataType::Instant);
-    assert_eq!(Value::Empty(DataType::BigInteger).data_type(), DataType::BigInteger);
-    assert_eq!(Value::Empty(DataType::BigDecimal).data_type(), DataType::BigDecimal);
+    assert_eq!(
+        Value::Empty(DataType::DateTime).data_type(),
+        DataType::DateTime
+    );
+    assert_eq!(
+        Value::Empty(DataType::Instant).data_type(),
+        DataType::Instant
+    );
+    assert_eq!(
+        Value::Empty(DataType::BigInteger).data_type(),
+        DataType::BigInteger
+    );
+    assert_eq!(
+        Value::Empty(DataType::BigDecimal).data_type(),
+        DataType::BigDecimal
+    );
 
     // All concrete value types
     assert_eq!(Value::Bool(true).data_type(), DataType::Bool);
@@ -244,7 +268,10 @@ fn test_data_type_coverage_all_variants() {
     assert_eq!(Value::UInt128(1).data_type(), DataType::UInt128);
     assert_eq!(Value::Float32(1.0).data_type(), DataType::Float32);
     assert_eq!(Value::Float64(1.0).data_type(), DataType::Float64);
-    assert_eq!(Value::String("test".to_string()).data_type(), DataType::String);
+    assert_eq!(
+        Value::String("test".to_string()).data_type(),
+        DataType::String
+    );
     assert_eq!(
         Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).data_type(),
         DataType::Date
@@ -264,7 +291,10 @@ fn test_data_type_coverage_all_variants() {
         DataType::DateTime
     );
     assert_eq!(Value::Instant(Utc::now()).data_type(), DataType::Instant);
-    assert_eq!(Value::BigInteger(BigInt::from(123)).data_type(), DataType::BigInteger);
+    assert_eq!(
+        Value::BigInteger(BigInt::from(123)).data_type(),
+        DataType::BigInteger
+    );
     assert_eq!(
         Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).data_type(),
         DataType::BigDecimal
@@ -294,8 +324,12 @@ fn test_is_empty_coverage_all_types() {
     assert!(!Value::Float32(1.0).is_empty());
     assert!(!Value::Float64(1.0).is_empty());
     assert!(!Value::String("test".to_string()).is_empty());
-    assert!(!Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_empty());
-    assert!(!Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_empty());
+    assert!(
+        !Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_empty()
+    );
+    assert!(
+        !Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_empty()
+    );
     assert!(
         !Value::DateTime(
             NaiveDate::from_ymd_opt(2024, 1, 1)
@@ -307,7 +341,9 @@ fn test_is_empty_coverage_all_types() {
     );
     assert!(!Value::Instant(Utc::now()).is_empty());
     assert!(!Value::BigInteger(BigInt::from(123)).is_empty());
-    assert!(!Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_empty());
+    assert!(
+        !Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_empty()
+    );
 
     // Test all Empty types return true
     assert!(Value::Empty(DataType::Bool).is_empty());

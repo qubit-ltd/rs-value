@@ -1,12 +1,10 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # MultiValues v0.3.0 新增类型单元测试
 //!
 //! 覆盖 v0.3.0 新增的以下类型在 MultiValues 中的支持：
@@ -15,7 +13,6 @@
 //! - `url::Url`
 //! - `HashMap<String, String>`
 //! - `serde_json::Value` (Json escape hatch)
-//!
 
 use qubit_datatype::DataType;
 use qubit_value::{
@@ -28,7 +25,10 @@ use std::time::Duration;
 use url::Url;
 
 fn make_map(pairs: &[(&str, &str)]) -> HashMap<String, String> {
-    pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    pairs
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect()
 }
 
 // ============================================================================
@@ -92,7 +92,10 @@ fn test_multi_values_intsize_add_multiple() {
 #[test]
 fn test_multi_values_intsize_type_mismatch() {
     let mv = MultiValues::IntSize(vec![1isize]);
-    assert!(matches!(mv.get_uintsizes(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        mv.get_uintsizes(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
@@ -217,7 +220,10 @@ fn test_multi_values_uintsize_from_value() {
 
 #[test]
 fn test_multi_values_duration_creation() {
-    let mv = MultiValues::Duration(vec![Duration::from_secs(1), Duration::from_secs(2)]);
+    let mv = MultiValues::Duration(vec![
+        Duration::from_secs(1),
+        Duration::from_secs(2),
+    ]);
     assert_eq!(mv.data_type(), DataType::Duration);
     assert_eq!(mv.count(), 2);
 }
@@ -255,7 +261,11 @@ fn test_multi_values_duration_set_all() {
 
 #[test]
 fn test_multi_values_duration_serde_roundtrip() {
-    let original = MultiValues::Duration(vec![Duration::ZERO, Duration::from_nanos(1), Duration::from_secs(3600)]);
+    let original = MultiValues::Duration(vec![
+        Duration::ZERO,
+        Duration::from_nanos(1),
+        Duration::from_secs(3600),
+    ]);
     let json = serde_json::to_string(&original).unwrap();
     let restored: MultiValues = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
@@ -271,7 +281,10 @@ fn test_multi_values_duration_merge() {
 
 #[test]
 fn test_multi_values_duration_clear() {
-    let mut mv = MultiValues::Duration(vec![Duration::from_secs(10), Duration::from_secs(20)]);
+    let mut mv = MultiValues::Duration(vec![
+        Duration::from_secs(10),
+        Duration::from_secs(20),
+    ]);
     mv.clear();
     assert!(mv.is_empty());
     assert_eq!(mv.data_type(), DataType::Duration);
@@ -288,7 +301,8 @@ fn test_multi_values_duration_from_value() {
 
 #[test]
 fn test_multi_values_duration_generic() {
-    let mv = MultiValues::new(vec![Duration::from_secs(1), Duration::from_secs(2)]);
+    let mv =
+        MultiValues::new(vec![Duration::from_secs(1), Duration::from_secs(2)]);
     assert_eq!(mv.data_type(), DataType::Duration);
     let got: Vec<Duration> = mv.get().unwrap();
     assert_eq!(got.len(), 2);
@@ -322,7 +336,10 @@ fn test_multi_values_url_get_all() {
 #[test]
 fn test_multi_values_url_get_first() {
     let u = Url::parse("https://first.example.com").unwrap();
-    let mv = MultiValues::Url(vec![u.clone(), Url::parse("https://second.example.com").unwrap()]);
+    let mv = MultiValues::Url(vec![
+        u.clone(),
+        Url::parse("https://second.example.com").unwrap(),
+    ]);
     assert_eq!(mv.get_first_url().unwrap(), u);
 }
 
@@ -462,7 +479,10 @@ fn test_multi_values_stringmap_serde_roundtrip() {
 
 #[test]
 fn test_multi_values_stringmap_clear() {
-    let mut mv = MultiValues::StringMap(vec![make_map(&[("a", "1")]), make_map(&[("b", "2")])]);
+    let mut mv = MultiValues::StringMap(vec![
+        make_map(&[("a", "1")]),
+        make_map(&[("b", "2")]),
+    ]);
     mv.clear();
     assert!(mv.is_empty());
     assert_eq!(mv.data_type(), DataType::StringMap);
@@ -502,7 +522,10 @@ fn test_multi_values_stringmap_generic() {
 
 #[test]
 fn test_multi_values_json_creation() {
-    let mv = MultiValues::Json(vec![serde_json::json!({"a": 1}), serde_json::json!([1, 2, 3])]);
+    let mv = MultiValues::Json(vec![
+        serde_json::json!({"a": 1}),
+        serde_json::json!([1, 2, 3]),
+    ]);
     assert_eq!(mv.data_type(), DataType::Json);
     assert_eq!(mv.count(), 2);
 }
@@ -533,8 +556,11 @@ fn test_multi_values_json_add_single() {
 #[test]
 fn test_multi_values_json_set_all() {
     let mut mv = MultiValues::Empty(DataType::Json);
-    mv.set_jsons(vec![serde_json::json!("hello"), serde_json::json!({"key": "val"})])
-        .unwrap();
+    mv.set_jsons(vec![
+        serde_json::json!("hello"),
+        serde_json::json!({"key": "val"}),
+    ])
+    .unwrap();
     assert_eq!(mv.count(), 2);
 }
 
@@ -552,7 +578,10 @@ fn test_multi_values_json_serde_roundtrip() {
 
 #[test]
 fn test_multi_values_json_clear() {
-    let mut mv = MultiValues::Json(vec![serde_json::json!({"a": 1}), serde_json::json!(2)]);
+    let mut mv = MultiValues::Json(vec![
+        serde_json::json!({"a": 1}),
+        serde_json::json!(2),
+    ]);
     mv.clear();
     assert!(mv.is_empty());
     assert_eq!(mv.data_type(), DataType::Json);
@@ -602,18 +631,27 @@ fn test_multi_values_type_mismatch_across_new_types() {
         mv_intsize.get_durations(),
         Err(ValueError::TypeMismatch { .. })
     ));
-    assert!(matches!(mv_intsize.get_urls(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        mv_intsize.get_urls(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
     assert!(matches!(
         mv_intsize.get_string_maps(),
         Err(ValueError::TypeMismatch { .. })
     ));
-    assert!(matches!(mv_intsize.get_jsons(), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        mv_intsize.get_jsons(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 #[test]
 fn test_multi_values_add_type_mismatch() {
     let mut mv = MultiValues::IntSize(vec![1isize]);
-    assert!(matches!(mv.add_uintsize(1usize), Err(ValueError::TypeMismatch { .. })));
+    assert!(matches!(
+        mv.add_uintsize(1usize),
+        Err(ValueError::TypeMismatch { .. })
+    ));
 }
 
 // ============================================================================
@@ -637,7 +675,8 @@ fn test_multi_values_uintsize_generic_set() {
 #[test]
 fn test_multi_values_duration_generic_add_vec() {
     let mut mv = MultiValues::Duration(vec![Duration::from_secs(1)]);
-    mv.add(vec![Duration::from_secs(2), Duration::from_secs(3)]).unwrap();
+    mv.add(vec![Duration::from_secs(2), Duration::from_secs(3)])
+        .unwrap();
     assert_eq!(mv.count(), 3);
 }
 

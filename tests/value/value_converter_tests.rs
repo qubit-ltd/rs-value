@@ -1,12 +1,10 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 
 use qubit_value::{
     Value,
@@ -19,7 +17,10 @@ fn test_value_converter_converts_and_reports_invalid_input() {
     assert_eq!(value.to::<i32>().unwrap(), 42);
 
     let invalid = Value::String("not-a-number".to_string());
-    assert!(matches!(invalid.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        invalid.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 }
 
 #[test]

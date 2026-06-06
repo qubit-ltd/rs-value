@@ -1,15 +1,14 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Value Processing Framework
 //!
-//! Provides type-safe value storage and access functionality, supporting single values, multiple values, and named values.
+//! Provides type-safe value storage and access functionality, supporting single
+//! values, multiple values, and named values.
 //!
 //! # Module Description
 //!
@@ -21,10 +20,14 @@
 //! # Core Features
 //!
 //! - **Type Safety**: Compile-time type checking to avoid runtime type errors
-//! - **Zero-Cost Abstraction**: Implemented using enums with no additional runtime overhead
-//! - **Multi-Value Support**: Unified interface for single and multiple value access
-//! - **Naming Support**: Provides naming functionality for values for easy identification and lookup
-//! - **Type Conversion**: Provides two sets of APIs for type checking and type conversion
+//! - **Zero-Cost Abstraction**: Implemented using enums with no additional
+//!   runtime overhead
+//! - **Multi-Value Support**: Unified interface for single and multiple value
+//!   access
+//! - **Naming Support**: Provides naming functionality for values for easy
+//!   identification and lookup
+//! - **Type Conversion**: Provides two sets of APIs for type checking and type
+//!   conversion
 //!
 //! # Usage Examples
 //!
@@ -66,7 +69,6 @@
 //! assert_eq!(config.name(), "port");
 //! assert_eq!(config.get_int32().unwrap(), 8080);
 //! ```
-//!
 
 // Sub-modules
 mod into_value_default;

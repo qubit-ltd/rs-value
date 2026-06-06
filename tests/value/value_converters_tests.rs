@@ -1,16 +1,13 @@
-/*****************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Value Converters Unit Tests
 //!
 //! Tests for `to::<T>()` conversion behavior.
-//!
 
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
@@ -52,13 +49,19 @@ fn test_value_bool_conversion_accepts_config_bool_strings() {
     let truthy_values = ["1", "true", "TRUE", "True", "  true  "];
     for raw in truthy_values {
         let value = Value::String(raw.to_string());
-        assert!(value.to::<bool>().unwrap(), "expected '{raw}' to convert to true");
+        assert!(
+            value.to::<bool>().unwrap(),
+            "expected '{raw}' to convert to true"
+        );
     }
 
     let falsy_values = ["0", "false", "FALSE", "False", "  false  "];
     for raw in falsy_values {
         let value = Value::String(raw.to_string());
-        assert!(!value.to::<bool>().unwrap(), "expected '{raw}' to convert to false");
+        assert!(
+            !value.to::<bool>().unwrap(),
+            "expected '{raw}' to convert to false"
+        );
     }
 }
 
@@ -164,7 +167,10 @@ fn test_value_as_bool_all_branches() {
 
     // Test unsupported type conversions
     let value = Value::Char('a');
-    assert!(matches!(value.to::<bool>(), Err(ValueError::ConversionFailed { .. })));
+    assert!(matches!(
+        value.to::<bool>(),
+        Err(ValueError::ConversionFailed { .. })
+    ));
 }
 #[test]
 fn test_value_as_int32_all_branches() {
@@ -199,7 +205,10 @@ fn test_value_as_int32_all_branches() {
     assert!(value.to::<i32>().is_err());
 
     // Test string to i32 conversion
-    assert_eq!(Value::String("12345".to_string()).to::<i32>().unwrap(), 12345);
+    assert_eq!(
+        Value::String("12345".to_string()).to::<i32>().unwrap(),
+        12345
+    );
 
     // Test string to i32 conversion failure
     let value = Value::String("invalid".to_string());
@@ -231,7 +240,10 @@ fn test_value_as_int32_all_branches() {
 
     // Test unsupported time types
     let value = Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
-    assert!(matches!(value.to::<i32>(), Err(ValueError::ConversionFailed { .. })));
+    assert!(matches!(
+        value.to::<i32>(),
+        Err(ValueError::ConversionFailed { .. })
+    ));
 }
 #[test]
 fn test_value_as_int64_all_branches() {
@@ -261,7 +273,10 @@ fn test_value_as_int64_all_branches() {
     assert!(value.to::<i64>().is_err());
 
     // Test string to i64 conversion
-    assert_eq!(Value::String("123456789".to_string()).to::<i64>().unwrap(), 123456789);
+    assert_eq!(
+        Value::String("123456789".to_string()).to::<i64>().unwrap(),
+        123456789
+    );
 
     // Test Empty value
     let value = Value::Empty(DataType::Int64);
@@ -314,7 +329,10 @@ fn test_value_as_float64_all_branches() {
 
     // Test unsupported time types
     let value = Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
-    assert!(matches!(value.to::<f64>(), Err(ValueError::ConversionFailed { .. })));
+    assert!(matches!(
+        value.to::<f64>(),
+        Err(ValueError::ConversionFailed { .. })
+    ));
 }
 #[test]
 fn test_value_as_string_all_types() {
@@ -327,18 +345,37 @@ fn test_value_as_string_all_types() {
     assert_eq!(Value::Int16(1000).to::<String>().unwrap(), "1000");
     assert_eq!(Value::Int32(100000).to::<String>().unwrap(), "100000");
     assert_eq!(Value::Int64(1000000).to::<String>().unwrap(), "1000000");
-    assert_eq!(Value::Int128(123456789).to::<String>().unwrap(), "123456789");
+    assert_eq!(
+        Value::Int128(123456789).to::<String>().unwrap(),
+        "123456789"
+    );
 
     assert_eq!(Value::UInt8(42).to::<String>().unwrap(), "42");
     assert_eq!(Value::UInt16(1000).to::<String>().unwrap(), "1000");
     assert_eq!(Value::UInt32(100000).to::<String>().unwrap(), "100000");
     assert_eq!(Value::UInt64(1000000).to::<String>().unwrap(), "1000000");
-    assert_eq!(Value::UInt128(123456789).to::<String>().unwrap(), "123456789");
+    assert_eq!(
+        Value::UInt128(123456789).to::<String>().unwrap(),
+        "123456789"
+    );
 
-    assert!(Value::Float32(3.5).to::<String>().unwrap().starts_with("3.5"));
-    assert!(Value::Float64(2.5).to::<String>().unwrap().starts_with("2.5"));
+    assert!(
+        Value::Float32(3.5)
+            .to::<String>()
+            .unwrap()
+            .starts_with("3.5")
+    );
+    assert!(
+        Value::Float64(2.5)
+            .to::<String>()
+            .unwrap()
+            .starts_with("2.5")
+    );
 
-    assert_eq!(Value::String("hello".to_string()).to::<String>().unwrap(), "hello");
+    assert_eq!(
+        Value::String("hello".to_string()).to::<String>().unwrap(),
+        "hello"
+    );
 
     // Test Empty value
     let value = Value::Empty(DataType::String);
@@ -416,20 +453,24 @@ fn test_big_type_conversions_for_coverage() {
     // BigInt -> as_int64
     let v = Value::BigInteger(BigInt::from(123456i64));
     assert_eq!(v.to::<i64>().unwrap(), 123456i64);
-    let v_overflow = Value::BigInteger(BigInt::from_str("123456789012345678901234567890").unwrap());
+    let v_overflow = Value::BigInteger(
+        BigInt::from_str("123456789012345678901234567890").unwrap(),
+    );
     assert!(v_overflow.to::<i64>().is_err());
 
     // BigInt -> as_float64
     let v = Value::BigInteger(BigInt::from(12345));
     assert!((v.to::<f64>().unwrap() - 12345.0).abs() < f64::EPSILON);
     let large_big_int_str = "1".repeat(400);
-    let v_overflow = Value::BigInteger(BigInt::from_str(&large_big_int_str).unwrap());
+    let v_overflow =
+        Value::BigInteger(BigInt::from_str(&large_big_int_str).unwrap());
     assert!(v_overflow.to::<f64>().is_err());
 
     // BigDecimal -> as_float64
     let v = Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
     assert!((v.to::<f64>().unwrap() - 123.456).abs() < f64::EPSILON);
-    let v_overflow = Value::BigDecimal(BigDecimal::from_str("1.0e400").unwrap());
+    let v_overflow =
+        Value::BigDecimal(BigDecimal::from_str("1.0e400").unwrap());
     assert!(v_overflow.to::<f64>().is_err());
 }
 #[test]
@@ -447,13 +488,19 @@ fn test_as_bool_string_conversion_error() {
 
     // Test empty string to boolean conversion
     let value = Value::String("".to_string());
-    assert!(matches!(value.to::<bool>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<bool>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Test various invalid boolean strings
     let invalid_bools = vec!["yes", "no", "t", "f", "y", "n", "on", "off"];
     for invalid in invalid_bools {
         let value = Value::String(invalid.to_string());
-        assert!(matches!(value.to::<bool>(), Err(ValueError::ConversionError(_))));
+        assert!(matches!(
+            value.to::<bool>(),
+            Err(ValueError::ConversionError(_))
+        ));
     }
 }
 #[test]
@@ -500,7 +547,8 @@ fn test_as_int32_conversion_errors() {
     }
 
     // Test BigInteger out of range ConversionError
-    let value = Value::BigInteger(BigInt::from_str("999999999999999999999").unwrap());
+    let value =
+        Value::BigInteger(BigInt::from_str("999999999999999999999").unwrap());
     match value.to::<i32>() {
         Err(ValueError::ConversionError(msg)) => {
             assert!(msg.contains("i32"));
@@ -543,7 +591,9 @@ fn test_as_int64_conversion_errors() {
     }
 
     // Test BigInteger out of range ConversionError
-    let value = Value::BigInteger(BigInt::from_str("999999999999999999999999999999").unwrap());
+    let value = Value::BigInteger(
+        BigInt::from_str("999999999999999999999999999999").unwrap(),
+    );
     match value.to::<i64>() {
         Err(ValueError::ConversionError(msg)) => {
             assert!(msg.contains("i64"));
@@ -653,7 +703,9 @@ fn test_as_bool_direct_bool_type() {
 #[test]
 fn test_as_bool_string_parse_error() {
     // Test all cases where String type parsing bool fails
-    let invalid_strings = vec!["yes", "no", "t", "f", "y", "n", "on", "off", "", "  ", "null", "None"];
+    let invalid_strings = vec![
+        "yes", "no", "t", "f", "y", "n", "on", "off", "", "  ", "null", "None",
+    ];
 
     for invalid_str in invalid_strings {
         let value = Value::String(invalid_str.to_string());
@@ -761,11 +813,17 @@ fn test_as_int32_int64_overflow_cases() {
 
     // Positive overflow
     let value_max = Value::Int64(i64::MAX);
-    assert!(matches!(value_max.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value_max.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Negative overflow
     let value_min = Value::Int64(i64::MIN);
-    assert!(matches!(value_min.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value_min.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Just exceeding i32 max value
     let value_over_max = Value::Int64(i32::MAX as i64 + 1);
@@ -791,11 +849,17 @@ fn test_as_int32_int128_overflow_cases() {
 
     // Positive overflow
     let value_max = Value::Int128(i128::MAX);
-    assert!(matches!(value_max.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value_max.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Negative overflow
     let value_min = Value::Int128(i128::MIN);
-    assert!(matches!(value_min.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value_min.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Just exceeding i32 max value
     let value_over_max = Value::Int128(i32::MAX as i128 + 1);
@@ -814,7 +878,10 @@ fn test_as_int32_uint32_overflow_cases() {
 
     // u32::MAX exceeds i32 range
     let value_max = Value::UInt32(u32::MAX);
-    assert!(matches!(value_max.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value_max.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Just exceeding i32::MAX
     let value_over_max = Value::UInt32(i32::MAX as u32 + 1);
@@ -837,27 +904,45 @@ fn test_as_int32_string_parse_error() {
 
     // Not a number at all
     let value = Value::String("not_a_number".to_string());
-    assert!(matches!(value.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Empty string
     let value = Value::String("".to_string());
-    assert!(matches!(value.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Floating point string
     let value = Value::String("123.45".to_string());
-    assert!(matches!(value.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Leading or trailing spaces
     let value = Value::String("  123  ".to_string());
-    assert!(matches!(value.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Contains non-numeric characters
     let value = Value::String("123abc".to_string());
-    assert!(matches!(value.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Number string out of range
     let value = Value::String("9999999999999999999".to_string());
-    assert!(matches!(value.to::<i32>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i32>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Valid number string should succeed
     let value = Value::String("12345".to_string());
@@ -887,11 +972,17 @@ fn test_as_int64_int128_overflow_cases() {
 
     // Positive overflow
     let value_max = Value::Int128(i128::MAX);
-    assert!(matches!(value_max.to::<i64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value_max.to::<i64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Negative overflow
     let value_min = Value::Int128(i128::MIN);
-    assert!(matches!(value_min.to::<i64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value_min.to::<i64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Just exceeding i64 max value
     let value_over_max = Value::Int128(i64::MAX as i128 + 1);
@@ -917,7 +1008,10 @@ fn test_as_int64_uint64_overflow_cases() {
 
     // u64::MAX exceeds i64 range
     let value_max = Value::UInt64(u64::MAX);
-    assert!(matches!(value_max.to::<i64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value_max.to::<i64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Just exceeding i64::MAX
     let value_over_max = Value::UInt64(i64::MAX as u64 + 1);
@@ -940,19 +1034,31 @@ fn test_as_int64_string_parse_error() {
 
     // Not a number at all
     let value = Value::String("invalid_number".to_string());
-    assert!(matches!(value.to::<i64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Empty string
     let value = Value::String("".to_string());
-    assert!(matches!(value.to::<i64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Floating point string
     let value = Value::String("456.789".to_string());
-    assert!(matches!(value.to::<i64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Number string out of range
     let value = Value::String("99999999999999999999999999999".to_string());
-    assert!(matches!(value.to::<i64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<i64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Valid number string should succeed
     let value = Value::String("123456789".to_string());
@@ -989,19 +1095,31 @@ fn test_as_float64_string_parse_error() {
 
     // Not a number at all
     let value = Value::String("not_a_float".to_string());
-    assert!(matches!(value.to::<f64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<f64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Empty string
     let value = Value::String("".to_string());
-    assert!(matches!(value.to::<f64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<f64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Contains non-numeric characters
     let value = Value::String("12.34abc".to_string());
-    assert!(matches!(value.to::<f64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<f64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Multiple decimal points
     let value = Value::String("12.34.56".to_string());
-    assert!(matches!(value.to::<f64>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        value.to::<f64>(),
+        Err(ValueError::ConversionError(_))
+    ));
 
     // Valid floating point string should succeed
     let value = Value::String("3.5".to_string());
@@ -1049,7 +1167,8 @@ fn test_as_float64_bigdecimal_conversion_error() {
     assert!(value.to::<f64>().is_err());
 
     // Test high precision decimals
-    let value = Value::BigDecimal(BigDecimal::from_str("0.123456789012345").unwrap());
+    let value =
+        Value::BigDecimal(BigDecimal::from_str("0.123456789012345").unwrap());
     assert!((value.to::<f64>().unwrap() - 0.123456789012345).abs() < 1e-15);
 }
 #[test]
@@ -1132,15 +1251,30 @@ fn test_as_float64_all_integer_types() {
     assert_eq!(Value::Int64(i64::MAX).to::<f64>().unwrap(), i64::MAX as f64);
     assert_eq!(Value::Int64(i64::MIN).to::<f64>().unwrap(), i64::MIN as f64);
 
-    assert_eq!(Value::Int128(i128::MAX).to::<f64>().unwrap(), i128::MAX as f64);
-    assert_eq!(Value::Int128(i128::MIN).to::<f64>().unwrap(), i128::MIN as f64);
+    assert_eq!(
+        Value::Int128(i128::MAX).to::<f64>().unwrap(),
+        i128::MAX as f64
+    );
+    assert_eq!(
+        Value::Int128(i128::MIN).to::<f64>().unwrap(),
+        i128::MIN as f64
+    );
 
     // Unsigned integers
     assert_eq!(Value::UInt8(255).to::<f64>().unwrap(), 255.0);
     assert_eq!(Value::UInt16(65535).to::<f64>().unwrap(), 65535.0);
-    assert_eq!(Value::UInt32(u32::MAX).to::<f64>().unwrap(), u32::MAX as f64);
-    assert_eq!(Value::UInt64(u64::MAX).to::<f64>().unwrap(), u64::MAX as f64);
-    assert_eq!(Value::UInt128(u128::MAX).to::<f64>().unwrap(), u128::MAX as f64);
+    assert_eq!(
+        Value::UInt32(u32::MAX).to::<f64>().unwrap(),
+        u32::MAX as f64
+    );
+    assert_eq!(
+        Value::UInt64(u64::MAX).to::<f64>().unwrap(),
+        u64::MAX as f64
+    );
+    assert_eq!(
+        Value::UInt128(u128::MAX).to::<f64>().unwrap(),
+        u128::MAX as f64
+    );
 }
 #[test]
 fn test_as_string_direct_string_type() {
@@ -1169,12 +1303,24 @@ fn test_conversion_with_edge_values() {
     assert_eq!(Value::Int64(i64::MIN).to::<f64>().unwrap(), i64::MIN as f64);
 
     // UInt32 boundary values
-    assert_eq!(Value::UInt32(u32::MAX).to::<i64>().unwrap(), u32::MAX as i64);
-    assert_eq!(Value::UInt32(u32::MAX).to::<f64>().unwrap(), u32::MAX as f64);
+    assert_eq!(
+        Value::UInt32(u32::MAX).to::<i64>().unwrap(),
+        u32::MAX as i64
+    );
+    assert_eq!(
+        Value::UInt32(u32::MAX).to::<f64>().unwrap(),
+        u32::MAX as f64
+    );
 
     // Float32 boundary values
-    assert_eq!(Value::Float32(f32::MAX).to::<f64>().unwrap(), f32::MAX as f64);
-    assert_eq!(Value::Float32(f32::MIN).to::<f64>().unwrap(), f32::MIN as f64);
+    assert_eq!(
+        Value::Float32(f32::MAX).to::<f64>().unwrap(),
+        f32::MAX as f64
+    );
+    assert_eq!(
+        Value::Float32(f32::MIN).to::<f64>().unwrap(),
+        f32::MIN as f64
+    );
 }
 #[test]
 fn test_as_int32_bigdecimal_out_of_range() {
@@ -1216,7 +1362,9 @@ fn test_as_int32_non_numeric_type_conversion_failed() {
     assert!(value.to::<i32>().is_err());
 
     use chrono::DateTime;
-    let datetime = DateTime::from_timestamp(1_000_000_000, 0).unwrap().naive_utc();
+    let datetime = DateTime::from_timestamp(1_000_000_000, 0)
+        .unwrap()
+        .naive_utc();
     let value = Value::DateTime(datetime);
     assert!(value.to::<i32>().is_err());
 }
@@ -1272,7 +1420,9 @@ fn test_as_float64_non_numeric_type_conversion_failed() {
     };
 
     // DateTime type cannot convert to f64
-    let datetime = DateTime::from_timestamp(1_000_000_000, 0).unwrap().naive_utc();
+    let datetime = DateTime::from_timestamp(1_000_000_000, 0)
+        .unwrap()
+        .naive_utc();
     let value = Value::DateTime(datetime);
 
     let result = value.to::<f64>();
@@ -1468,7 +1618,8 @@ fn test_as_int64_bigdecimal_conversion_failed() {
     use std::str::FromStr;
 
     // Create a BigDecimal out of i64 range
-    let huge_decimal = BigDecimal::from_str("999999999999999999999.123").unwrap();
+    let huge_decimal =
+        BigDecimal::from_str("999999999999999999999.123").unwrap();
     let value = Value::BigDecimal(huge_decimal);
 
     let result = value.to::<i64>();
@@ -1481,7 +1632,8 @@ fn test_as_int64_bigdecimal_conversion_failed() {
     }
 
     // Test very small negative BigDecimal
-    let tiny_decimal = BigDecimal::from_str("-999999999999999999999.123").unwrap();
+    let tiny_decimal =
+        BigDecimal::from_str("-999999999999999999999.123").unwrap();
     let value = Value::BigDecimal(tiny_decimal);
     let result = value.to::<i64>();
     assert!(result.is_err());
@@ -1489,7 +1641,9 @@ fn test_as_int64_bigdecimal_conversion_failed() {
         Err(ValueError::ConversionError(msg)) => {
             assert!(msg.contains("i64"));
         }
-        _ => panic!("Expected ConversionError for negative BigDecimal conversion"),
+        _ => panic!(
+            "Expected ConversionError for negative BigDecimal conversion"
+        ),
     }
 }
 #[test]
@@ -1537,7 +1691,8 @@ fn test_as_float64_biginteger_conversion_edge_cases() {
     assert!(result.is_err());
 
     // Negative very large BigInteger should also fail
-    let neg_huge_bigint = BigInt::from_str(&format!("-{}", "9".repeat(400))).unwrap();
+    let neg_huge_bigint =
+        BigInt::from_str(&format!("-{}", "9".repeat(400))).unwrap();
     let value = Value::BigInteger(neg_huge_bigint);
     let result = value.to::<f64>();
     assert!(result.is_err());
@@ -1552,7 +1707,8 @@ fn test_as_float64_bigdecimal_conversion_edge_cases() {
     use std::str::FromStr;
 
     // BigDecimal within normal range should convert successfully
-    let normal_value = Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
+    let normal_value =
+        Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
     assert!((normal_value.to::<f64>().unwrap() - 123.456).abs() < 1e-10);
 
     // Very large BigDecimal should fail
@@ -1596,7 +1752,10 @@ fn test_as_float64_bool_type_all_branches() {
     assert_eq!(result.unwrap(), 0.0);
 
     // Verify both branches are tested
-    assert_ne!(value_true.to::<f64>().unwrap(), value_false.to::<f64>().unwrap());
+    assert_ne!(
+        value_true.to::<f64>().unwrap(),
+        value_false.to::<f64>().unwrap()
+    );
 }
 #[test]
 fn test_as_float64_string_parse_all_error_cases() {
@@ -1700,7 +1859,10 @@ fn test_to_f32_extended_sources() {
     assert_eq!(Value::Int32(42).to::<f32>().unwrap(), 42.0f32);
     assert_eq!(Value::UInt64(42).to::<f32>().unwrap(), 42.0f32);
     assert_eq!(Value::Float64(3.5).to::<f32>().unwrap(), 3.5f32);
-    assert_eq!(Value::String("2.5".to_string()).to::<f32>().unwrap(), 2.5f32);
+    assert_eq!(
+        Value::String("2.5".to_string()).to::<f32>().unwrap(),
+        2.5f32
+    );
 }
 #[test]
 fn test_to_f32_range_failures() {
@@ -1713,7 +1875,11 @@ fn test_big_number_to_f32_and_f64_failures() {
     assert!(Value::BigInteger(huge_big_int).to::<f64>().is_err());
 
     let huge_big_decimal = BigDecimal::from_str("1.0e10000").unwrap();
-    assert!(Value::BigDecimal(huge_big_decimal.clone()).to::<f32>().is_err());
+    assert!(
+        Value::BigDecimal(huge_big_decimal.clone())
+            .to::<f32>()
+            .is_err()
+    );
     assert!(Value::BigDecimal(huge_big_decimal).to::<f64>().is_err());
 }
 
@@ -1748,8 +1914,16 @@ fn test_narrow_signed_integer_converters_accept_numeric_sources() {
 
     assert_eq!(Value::UInt16(127).to::<i8>().unwrap(), 127);
     assert_eq!(Value::Float64(-12.9).to::<i8>().unwrap(), -12);
-    assert_eq!(Value::BigDecimal(BigDecimal::from(32_000)).to::<i16>().unwrap(), 32_000);
-    assert_eq!(Value::String("-123".to_string()).to::<isize>().unwrap(), -123);
+    assert_eq!(
+        Value::BigDecimal(BigDecimal::from(32_000))
+            .to::<i16>()
+            .unwrap(),
+        32_000
+    );
+    assert_eq!(
+        Value::String("-123".to_string()).to::<isize>().unwrap(),
+        -123
+    );
 }
 
 #[test]
@@ -1812,7 +1986,11 @@ fn test_usize_converter_accepts_integer_sources() {
 fn test_usize_converter_rejects_invalid_values() {
     assert!(Value::Int8(-1).to::<usize>().is_err());
     assert!(Value::IntSize(-1).to::<usize>().is_err());
-    assert!(Value::UInt128(usize::MAX as u128 + 1).to::<usize>().is_err());
+    assert!(
+        Value::UInt128(usize::MAX as u128 + 1)
+            .to::<usize>()
+            .is_err()
+    );
     assert!(Value::String("invalid".to_string()).to::<usize>().is_err());
     assert!(matches!(
         Value::Empty(DataType::UIntSize).to::<usize>(),

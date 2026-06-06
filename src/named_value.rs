@@ -1,20 +1,17 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Named Single Value
 //!
 //! Provides a named container for single values, allowing readable identifiers
 //! to be added to individual values in complex configurations or structures.
 //!
-//! Suitable for scenarios such as log annotation, configuration item encapsulation,
-//! and preserving strongly typed values in key-value pairs.
-//!
+//! Suitable for scenarios such as log annotation, configuration item
+//! encapsulation, and preserving strongly typed values in key-value pairs.
 
 use serde::{
     Deserialize,
@@ -29,13 +26,15 @@ use super::value::Value;
 
 /// Named single value
 ///
-/// Associates a human-readable name with a single [`Value`], facilitating identification,
-/// retrieval, and display in configurations, parameter passing, and complex data structures.
+/// Associates a human-readable name with a single [`Value`], facilitating
+/// identification, retrieval, and display in configurations, parameter passing,
+/// and complex data structures.
 ///
 /// # Features
 ///
 /// - Provides stable name identification for values
-/// - Automatically dereferences to the inner [`Value`] via `Deref`, allowing direct access to [`Value`] methods
+/// - Automatically dereferences to the inner [`Value`] via `Deref`, allowing
+///   direct access to [`Value`] methods
 /// - Supports `serde` serialization and deserialization
 ///
 /// # Use Cases
@@ -146,7 +145,8 @@ impl Deref for NamedValue {
 
     /// Dereference to the inner [`Value`]
     ///
-    /// Allows direct invocation of methods on [`Value`], for example: `named.to::<i32>()`.
+    /// Allows direct invocation of methods on [`Value`], for example:
+    /// `named.to::<i32>()`.
     ///
     /// # Returns
     ///
@@ -170,7 +170,8 @@ impl Deref for NamedValue {
 impl DerefMut for NamedValue {
     /// Mutable dereference to the inner [`Value`]
     ///
-    /// Allows in-place modification of the inner value (provided [`Value`] itself offers corresponding mutable methods).
+    /// Allows in-place modification of the inner value (provided [`Value`]
+    /// itself offers corresponding mutable methods).
     ///
     /// # Returns
     ///

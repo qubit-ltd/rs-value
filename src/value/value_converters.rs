@@ -1,12 +1,10 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 
 //! Internal implementations for value conversion support.
 //!
@@ -59,7 +57,8 @@ fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
     }
 }
 
-/// Converts a single `Value` into `T` using shared conversion helpers and options.
+/// Converts a single `Value` into `T` using shared conversion helpers and
+/// options.
 ///
 /// # Parameters
 ///
@@ -74,7 +73,10 @@ fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
 ///
 /// Returns a `ValueError` mapped from the shared conversion error when the
 /// source value is missing, unsupported, or invalid for `T`.
-pub(super) fn convert_with_data_converter_with<T>(value: &Value, options: &DataConversionOptions) -> ValueResult<T>
+pub(super) fn convert_with_data_converter_with<T>(
+    value: &Value,
+    options: &DataConversionOptions,
+) -> ValueResult<T>
 where
     for<'a> DataConverter<'a>: DataConvertTo<T>,
 {

@@ -1,16 +1,13 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Single Value Container
 //!
 //! Provides type-safe storage and access functionality for single values.
-//!
 
 use bigdecimal::BigDecimal;
 use chrono::{
@@ -71,8 +68,6 @@ use crate::{
 /// let text = Value::String("hello".to_string());
 /// assert_eq!(text.get_string().unwrap(), "hello");
 /// ```
-///
-///
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Value {
     /// Empty value (has type but no value)
@@ -140,15 +135,14 @@ pub enum Value {
 /// Unified getter generation macro
 ///
 /// Supports two modes:
-/// 1. `copy:` - For types implementing the Copy trait, directly returns the value
+/// 1. `copy:` - For types implementing the Copy trait, directly returns the
+///    value
 /// 2. `ref:` - For non-Copy types, returns a reference
 ///
 /// # Documentation Comment Support
 ///
 /// The macro automatically extracts preceding documentation comments, so
 /// you can add `///` comments before macro invocations.
-///
-///
 impl Value {
     /// Generic constructor method
     ///
@@ -308,8 +302,8 @@ impl Value {
     ///   - `Value::Bool`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
     ///     `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
-    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
     ///   - `Value::String`, parsed as `1`, `0`, or ASCII case-insensitive
     ///     `true` / `false`
     /// - `char`
@@ -335,8 +329,8 @@ impl Value {
     ///   - `Value::Bool`
     ///   - `Value::Char`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int64`, `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
-    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
     ///   - `Value::Float32`, `Value::Float64`
     ///   - `Value::String`, parsed as `i32`
     ///   - `Value::BigInteger`, `Value::BigDecimal`
@@ -345,8 +339,8 @@ impl Value {
     ///   - `Value::Bool`
     ///   - `Value::Char`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
-    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
     ///   - `Value::Float32`, `Value::Float64`
     ///   - `Value::String`, parsed as `i64`
     ///   - `Value::BigInteger`, `Value::BigDecimal`
@@ -364,36 +358,35 @@ impl Value {
     ///   - `Value::Char`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
     ///     `Value::Int128`
-    ///   - `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
+    ///   - `Value::UInt16`, `Value::UInt32`, `Value::UInt64`, `Value::UInt128`
     ///   - `Value::String`, parsed as `u8`
     /// - `u16`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
-    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
     ///   - `Value::Bool`
     ///   - `Value::Char`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
     ///     `Value::Int128`
     ///   - `Value::String`, parsed as `u16`
     /// - `u32`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
-    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
     ///   - `Value::Bool`
     ///   - `Value::Char`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
     ///     `Value::Int128`
     ///   - `Value::String`, parsed as `u32`
     /// - `u64`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
-    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
     ///   - `Value::Bool`
     ///   - `Value::Char`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
     ///     `Value::Int128`
     ///   - `Value::String`, parsed as `u64`
     /// - `u128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
-    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
     ///   - `Value::Bool`
     ///   - `Value::Char`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
@@ -405,8 +398,8 @@ impl Value {
     ///   - `Value::Char`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
     ///     `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
-    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
     ///   - `Value::String`, parsed as `f32`
     ///   - `Value::BigInteger`, `Value::BigDecimal`
     /// - `f64`
@@ -415,8 +408,8 @@ impl Value {
     ///   - `Value::Char`
     ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
     ///     `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`,
-    ///     `Value::UInt64`, `Value::UInt128`
+    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
+    ///     `Value::UInt128`
     ///   - `Value::Float32`
     ///   - `Value::String`, parsed as `f64`
     ///   - `Value::BigInteger`, `Value::BigDecimal`
@@ -427,9 +420,9 @@ impl Value {
     ///   - `Value::Date`, `Value::Time`, `Value::DateTime`, `Value::Instant`
     ///   - `Value::BigInteger`, `Value::BigDecimal`
     ///   - `Value::IntSize`, `Value::UIntSize`
-    ///   - `Value::Duration`, formatted with the configured duration unit.
-    ///     The default conversion options use milliseconds and append the
-    ///     unit suffix, for example `1500ms`.
+    ///   - `Value::Duration`, formatted with the configured duration unit. The
+    ///     default conversion options use milliseconds and append the unit
+    ///     suffix, for example `1500ms`.
     ///   - `Value::Url`
     ///   - `Value::StringMap`, serialized as JSON text
     ///   - `Value::Json`, serialized as JSON text
@@ -463,9 +456,9 @@ impl Value {
     ///   - `Value::Duration`
     ///   - integer variants and `Value::BigInteger`, interpreted in the
     ///     configured duration unit
-    ///   - `Value::String`, parsed as duration text. Explicit suffixes
-    ///     `ns`, `us`, `ms`, `s`, `m`, `h`, and `d` are supported; text
-    ///     without a suffix uses the configured duration unit.
+    ///   - `Value::String`, parsed as duration text. Explicit suffixes `ns`,
+    ///     `us`, `ms`, `s`, `m`, `h`, and `d` are supported; text without a
+    ///     suffix uses the configured duration unit.
     /// - `Url`
     ///   - `Value::Url`
     ///   - `Value::String`, parsed as URL text
@@ -524,9 +517,10 @@ impl Value {
 
     /// Converts this value to `T` using the provided conversion options.
     ///
-    /// This method uses the shared [`qubit_datatype`] conversion layer directly,
-    /// so options such as string trimming, blank string handling, and boolean
-    /// aliases are applied consistently with other value containers.
+    /// This method uses the shared [`qubit_datatype`] conversion layer
+    /// directly, so options such as string trimming, blank string handling,
+    /// and boolean aliases are applied consistently with other value
+    /// containers.
     ///
     /// # Type Parameters
     ///
@@ -542,8 +536,8 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns a [`crate::ValueError`] when the value is missing, unsupported, or
-    /// invalid for `T` under the provided options.
+    /// Returns a [`crate::ValueError`] when the value is missing, unsupported,
+    /// or invalid for `T` under the provided options.
     #[inline]
     pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
@@ -557,7 +551,11 @@ impl Value {
     ///
     /// Conversion failures from non-empty values are preserved.
     #[inline]
-    pub fn to_or_with<T>(&self, default: impl IntoValueDefault<T>, options: &DataConversionOptions) -> ValueResult<T>
+    pub fn to_or_with<T>(
+        &self,
+        default: impl IntoValueDefault<T>,
+        options: &DataConversionOptions,
+    ) -> ValueResult<T>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {

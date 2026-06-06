@@ -1,12 +1,10 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 
 //! Core generic accessors and state methods for `MultiValues`.
 
@@ -145,7 +143,10 @@ impl MultiValues {
     /// Returns the supplied default only when the stored list is empty. Type
     /// mismatches are still returned as errors.
     #[inline]
-    pub fn get_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
+    pub fn get_or<T>(
+        &self,
+        default: impl IntoValueDefault<Vec<T>>,
+    ) -> ValueResult<Vec<T>>
     where
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
@@ -212,7 +213,10 @@ impl MultiValues {
     /// Returns the supplied default only when no first value exists. Type
     /// mismatches are still returned as errors.
     #[inline]
-    pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
+    pub fn get_first_or<T>(
+        &self,
+        default: impl IntoValueDefault<T>,
+    ) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
@@ -230,8 +234,8 @@ impl MultiValues {
     /// does not validate runtime compatibility with the previous variant.
     ///
     /// Supports any input that can be converted into [`MultiValues`], including
-    /// single values, vectors, slices, arrays, and borrowed vectors for supported
-    /// element types.
+    /// single values, vectors, slices, arrays, and borrowed vectors for
+    /// supported element types.
     ///
     /// Existing values are replaced, and the stored type becomes the converted
     /// input type.
@@ -287,15 +291,16 @@ impl MultiValues {
 
     /// Generic add method
     ///
-    /// Appends converted input values to the existing list with strict type checking.
+    /// Appends converted input values to the existing list with strict type
+    /// checking.
     ///
     /// Supports any input that can be converted into [`MultiValues`], including
-    /// single values, vectors, slices, arrays, and borrowed vectors for supported
-    /// element types.
+    /// single values, vectors, slices, arrays, and borrowed vectors for
+    /// supported element types.
     ///
-    /// The converted input must have the same data type as the current container.
-    /// An empty container keeps its declared type until non-empty values of the
-    /// same type are appended.
+    /// The converted input must have the same data type as the current
+    /// container. An empty container keeps its declared type until
+    /// non-empty values of the same type are appended.
     ///
     /// # Type Parameters
     ///

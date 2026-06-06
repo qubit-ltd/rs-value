@@ -1,12 +1,10 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -104,8 +102,6 @@ macro_rules! impl_get_value {
 ///
 /// The macro automatically extracts preceding documentation comments, so
 /// you can add `///` comments before macro invocations.
-///
-///
 macro_rules! impl_set_value {
     // Copy type: directly set the value
     ($(#[$attr:meta])* copy: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
@@ -782,7 +778,9 @@ impl Value {
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         match self {
             Value::BigInteger(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::BigInteger => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::BigInteger => {
+                Err(ValueError::NoValue)
+            }
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigInteger,
                 actual: *dt,
@@ -804,7 +802,9 @@ impl Value {
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         match self {
             Value::BigDecimal(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::BigDecimal => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::BigDecimal => {
+                Err(ValueError::NoValue)
+            }
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigDecimal,
                 actual: *dt,
@@ -826,7 +826,9 @@ impl Value {
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match self {
             Value::Url(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::Url => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::Url => {
+                Err(ValueError::NoValue)
+            }
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Url,
                 actual: *dt,
@@ -848,7 +850,9 @@ impl Value {
     pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
         match self {
             Value::StringMap(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::StringMap => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::StringMap => {
+                Err(ValueError::NoValue)
+            }
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::StringMap,
                 actual: *dt,
@@ -870,7 +874,9 @@ impl Value {
     pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
         match self {
             Value::Json(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::Json => Err(ValueError::NoValue),
+            Value::Empty(dt) if *dt == DataType::Json => {
+                Err(ValueError::NoValue)
+            }
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
                 actual: *dt,
@@ -942,7 +948,9 @@ impl Value {
     /// serialization fails.
     pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
         let json = serde_json::to_value(value).map_err(|error| {
-            map_data_conversion_error(DataConversionError::JsonSerializationError(error.to_string()))
+            map_data_conversion_error(
+                DataConversionError::JsonSerializationError(error.to_string()),
+            )
         })?;
         Ok(Value::Json(json))
     }
@@ -967,10 +975,18 @@ impl Value {
     /// fails.
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match self {
-            Value::Json(v) => serde_json::from_value(v.clone()).map_err(|error| {
-                map_data_conversion_error(DataConversionError::JsonDeserializationError(error.to_string()))
-            }),
-            Value::Empty(dt) if *dt == DataType::Json => Err(ValueError::NoValue),
+            Value::Json(v) => {
+                serde_json::from_value(v.clone()).map_err(|error| {
+                    map_data_conversion_error(
+                        DataConversionError::JsonDeserializationError(
+                            error.to_string(),
+                        ),
+                    )
+                })
+            }
+            Value::Empty(dt) if *dt == DataType::Json => {
+                Err(ValueError::NoValue)
+            }
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
                 actual: *dt,

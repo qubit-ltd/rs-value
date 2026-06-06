@@ -1,16 +1,13 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 //! # Named Single Value Unit Tests
 //!
 //! Tests various functionalities of the named single value container。
-//!
 
 use chrono::DateTime as UtcDateTime;
 use chrono::{
@@ -154,8 +151,14 @@ fn test_named_value_get_string() {
 
 #[test]
 fn test_named_value_get_date() {
-    let nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()));
-    assert_eq!(nv.get_date().unwrap(), NaiveDate::from_ymd_opt(2020, 5, 17).unwrap());
+    let nv = NamedValue::new(
+        "d",
+        Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()),
+    );
+    assert_eq!(
+        nv.get_date().unwrap(),
+        NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()
+    );
 }
 
 #[test]
@@ -195,7 +198,8 @@ fn test_named_value_get_instant() {
     assert_eq!(nv.get_instant().unwrap(), inst);
 }
 
-// ------------------- Generic set()/get<T>() coverage for each type -------------------
+// ------------------- Generic set()/get<T>() coverage for each type
+// -------------------
 
 #[test]
 fn test_named_value_set_get_bool() {
@@ -319,7 +323,10 @@ fn test_named_value_set_get_string() {
 
 #[test]
 fn test_named_value_set_get_date() {
-    let mut nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()));
+    let mut nv = NamedValue::new(
+        "d",
+        Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()),
+    );
     let date = NaiveDate::from_ymd_opt(2020, 5, 17).unwrap();
     nv.set(date).unwrap();
     let got: NaiveDate = nv.get().unwrap();
@@ -328,7 +335,10 @@ fn test_named_value_set_get_date() {
 
 #[test]
 fn test_named_value_set_get_time() {
-    let mut nv = NamedValue::new("t", Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()));
+    let mut nv = NamedValue::new(
+        "t",
+        Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
+    );
     let time = NaiveTime::from_hms_milli_opt(13, 14, 15, 123).unwrap();
     nv.set(time).unwrap();
     let got: NaiveTime = nv.get().unwrap();

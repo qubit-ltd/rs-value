@@ -1,14 +1,13 @@
-/*******************************************************************************
- *
- *    Copyright (c) 2025 - 2026 Haixing Hu.
- *
- *    SPDX-License-Identifier: Apache-2.0
- *
- *    Licensed under the Apache License, Version 2.0.
- *
- ******************************************************************************/
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 
-//! `TryFrom<&MultiValues>` implementations for strict first-value and list reads.
+//! `TryFrom<&MultiValues>` implementations for strict first-value and list
+//! reads.
 
 use qubit_datatype::DataType;
 
@@ -27,8 +26,12 @@ macro_rules! impl_multi_value_first_try_from_ref {
             #[inline]
             fn try_from(values: &MultiValues) -> ValueResult<$type> {
                 match values {
-                    MultiValues::$variant(v) => v.first().cloned().ok_or(ValueError::NoValue),
-                    MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                    MultiValues::$variant(v) => {
+                        v.first().cloned().ok_or(ValueError::NoValue)
+                    }
+                    MultiValues::Empty(dt) if *dt == $data_type => {
+                        Err(ValueError::NoValue)
+                    }
                     _ => Err(ValueError::TypeMismatch {
                         expected: $data_type,
                         actual: values.data_type(),
@@ -48,7 +51,9 @@ macro_rules! impl_multi_values_try_from_ref {
             fn try_from(values: &MultiValues) -> ValueResult<Vec<$type>> {
                 match values {
                     MultiValues::$variant(v) => Ok(v.clone()),
-                    MultiValues::Empty(dt) if *dt == $data_type => Ok(Vec::new()),
+                    MultiValues::Empty(dt) if *dt == $data_type => {
+                        Ok(Vec::new())
+                    }
                     _ => Err(ValueError::TypeMismatch {
                         expected: $data_type,
                         actual: values.data_type(),
@@ -76,13 +81,33 @@ impl_multi_value_first_try_from_ref!(f64, Float64, DataType::Float64);
 impl_multi_value_first_try_from_ref!(String, String, DataType::String);
 impl_multi_value_first_try_from_ref!(chrono::NaiveDate, Date, DataType::Date);
 impl_multi_value_first_try_from_ref!(chrono::NaiveTime, Time, DataType::Time);
-impl_multi_value_first_try_from_ref!(chrono::NaiveDateTime, DateTime, DataType::DateTime);
-impl_multi_value_first_try_from_ref!(chrono::DateTime<chrono::Utc>, Instant, DataType::Instant);
-impl_multi_value_first_try_from_ref!(num_bigint::BigInt, BigInteger, DataType::BigInteger);
-impl_multi_value_first_try_from_ref!(bigdecimal::BigDecimal, BigDecimal, DataType::BigDecimal);
+impl_multi_value_first_try_from_ref!(
+    chrono::NaiveDateTime,
+    DateTime,
+    DataType::DateTime
+);
+impl_multi_value_first_try_from_ref!(
+    chrono::DateTime<chrono::Utc>,
+    Instant,
+    DataType::Instant
+);
+impl_multi_value_first_try_from_ref!(
+    num_bigint::BigInt,
+    BigInteger,
+    DataType::BigInteger
+);
+impl_multi_value_first_try_from_ref!(
+    bigdecimal::BigDecimal,
+    BigDecimal,
+    DataType::BigDecimal
+);
 impl_multi_value_first_try_from_ref!(isize, IntSize, DataType::IntSize);
 impl_multi_value_first_try_from_ref!(usize, UIntSize, DataType::UIntSize);
-impl_multi_value_first_try_from_ref!(std::time::Duration, Duration, DataType::Duration);
+impl_multi_value_first_try_from_ref!(
+    std::time::Duration,
+    Duration,
+    DataType::Duration
+);
 impl_multi_value_first_try_from_ref!(url::Url, Url, DataType::Url);
 impl_multi_value_first_try_from_ref!(
     std::collections::HashMap<String, String>,
@@ -108,13 +133,33 @@ impl_multi_values_try_from_ref!(f64, Float64, DataType::Float64);
 impl_multi_values_try_from_ref!(String, String, DataType::String);
 impl_multi_values_try_from_ref!(chrono::NaiveDate, Date, DataType::Date);
 impl_multi_values_try_from_ref!(chrono::NaiveTime, Time, DataType::Time);
-impl_multi_values_try_from_ref!(chrono::NaiveDateTime, DateTime, DataType::DateTime);
-impl_multi_values_try_from_ref!(chrono::DateTime<chrono::Utc>, Instant, DataType::Instant);
-impl_multi_values_try_from_ref!(num_bigint::BigInt, BigInteger, DataType::BigInteger);
-impl_multi_values_try_from_ref!(bigdecimal::BigDecimal, BigDecimal, DataType::BigDecimal);
+impl_multi_values_try_from_ref!(
+    chrono::NaiveDateTime,
+    DateTime,
+    DataType::DateTime
+);
+impl_multi_values_try_from_ref!(
+    chrono::DateTime<chrono::Utc>,
+    Instant,
+    DataType::Instant
+);
+impl_multi_values_try_from_ref!(
+    num_bigint::BigInt,
+    BigInteger,
+    DataType::BigInteger
+);
+impl_multi_values_try_from_ref!(
+    bigdecimal::BigDecimal,
+    BigDecimal,
+    DataType::BigDecimal
+);
 impl_multi_values_try_from_ref!(isize, IntSize, DataType::IntSize);
 impl_multi_values_try_from_ref!(usize, UIntSize, DataType::UIntSize);
-impl_multi_values_try_from_ref!(std::time::Duration, Duration, DataType::Duration);
+impl_multi_values_try_from_ref!(
+    std::time::Duration,
+    Duration,
+    DataType::Duration
+);
 impl_multi_values_try_from_ref!(url::Url, Url, DataType::Url);
 impl_multi_values_try_from_ref!(
     std::collections::HashMap<String, String>,
