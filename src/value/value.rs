@@ -9,14 +9,25 @@
 //!
 //! Provides type-safe storage and access functionality for single values.
 
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{DataConversionError, DataConversionOptions, DataConvertTo, DataConverter};
+use qubit_datatype::{
+    DataConversionError,
+    DataConversionOptions,
+    DataConvertTo,
+    DataConverter,
+};
 
 use crate::value_error::ValueResult;
-use crate::{IntoValueDefault, ValueError};
+use crate::{
+    IntoValueDefault,
+    ValueError,
+};
 
 /// Single value container
 ///
@@ -58,7 +69,7 @@ macro_rules! define_value_enum {
                 $variant:ident,
                 $type:ty,
                 $data_type:expr,
-                $ownership:ident,
+                $materialization:ident,
                 $json_class:ident,
                 $value_doc:literal,
                 $multi_doc:literal
@@ -68,7 +79,7 @@ macro_rules! define_value_enum {
         #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
         pub enum Value {
             /// Unset value with a declared data type.
-            Empty(DataType),
+            Unset(DataType),
             $(
                 $(#[$cfg])*
                 $(#[$value_attr])*
@@ -82,9 +93,9 @@ macro_rules! define_value_enum {
 for_each_value_type!(define_value_enum);
 
 macro_rules! value_data_type_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            Value::Empty(data_type) => *data_type,
+            Value::Unset(data_type) => *data_type,
             $($(#[$cfg])* Value::$variant(_) => $data_type,)+
         }
     };
@@ -123,7 +134,6 @@ impl Value {
     /// - `String`, `&str`
     /// - `NaiveDate`, `NaiveTime`, `NaiveDateTime`, `DateTime<Utc>`
     /// - `BigInt`, `BigDecimal`
-    /// - `isize`, `usize`
     /// - `Duration`
     /// - `Url`
     /// - `HashMap<String, String>`
@@ -183,7 +193,6 @@ impl Value {
     /// - `String`
     /// - `NaiveDate`, `NaiveTime`, `NaiveDateTime`, `DateTime<Utc>`
     /// - `BigInt`, `BigDecimal`
-    /// - `isize`, `usize`
     /// - `Duration`
     /// - `Url`
     /// - `HashMap<String, String>`
@@ -251,196 +260,22 @@ impl Value {
         }
     }
 
-    /// Generic conversion method
+    /// Converts the stored value to another supported data type.
     ///
-    /// Converts the current value to the target type according to the shared
-    /// value conversion rules.
+    /// This method delegates to the authoritative conversion contract in
+    /// [`qubit-datatype`](https://docs.rs/qubit-datatype/latest/qubit_datatype/).
+    /// The enabled rich-type features determine which source and target
+    /// families are available. An unset value is reported as a structured
+    /// missing-value conversion error.
     ///
-    /// # Supported Target Types And Source Variants
+    /// Unlike [`Self::get`], this method permits conversions supported by
+    /// [`qubit_datatype::DataConverter`] and applies
+    /// [`qubit_datatype::DataConversionOptions`].
     ///
-    /// `Value::to<T>()` currently supports the following target types:
+    /// # Errors
     ///
-    /// - `bool`
-    ///   - `Value::Bool`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
-    ///     `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
-    ///   - `Value::String`, parsed as `1`, `0`, or ASCII case-insensitive
-    ///     `true` / `false`
-    /// - `char`
-    ///   - `Value::Char`
-    /// - `i8`
-    ///   - `Value::Int8`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - all integer variants
-    ///   - `Value::Float32`, `Value::Float64`
-    ///   - `Value::String`, parsed as `i8`
-    ///   - `Value::BigInteger`, `Value::BigDecimal`
-    /// - `i16`
-    ///   - `Value::Int16`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - all integer variants
-    ///   - `Value::Float32`, `Value::Float64`
-    ///   - `Value::String`, parsed as `i16`
-    ///   - `Value::BigInteger`, `Value::BigDecimal`
-    /// - `i32`
-    ///   - `Value::Int32`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int64`, `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
-    ///   - `Value::Float32`, `Value::Float64`
-    ///   - `Value::String`, parsed as `i32`
-    ///   - `Value::BigInteger`, `Value::BigDecimal`
-    /// - `i64`
-    ///   - `Value::Int64`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
-    ///   - `Value::Float32`, `Value::Float64`
-    ///   - `Value::String`, parsed as `i64`
-    ///   - `Value::BigInteger`, `Value::BigDecimal`
-    /// - `i128`
-    ///   - `Value::Int128`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - all integer variants
-    ///   - `Value::Float32`, `Value::Float64`
-    ///   - `Value::String`, parsed as `i128`
-    ///   - `Value::BigInteger`, `Value::BigDecimal`
-    /// - `u8`
-    ///   - `Value::UInt8`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
-    ///     `Value::Int128`
-    ///   - `Value::UInt16`, `Value::UInt32`, `Value::UInt64`, `Value::UInt128`
-    ///   - `Value::String`, parsed as `u8`
-    /// - `u16`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
-    ///     `Value::Int128`
-    ///   - `Value::String`, parsed as `u16`
-    /// - `u32`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
-    ///     `Value::Int128`
-    ///   - `Value::String`, parsed as `u32`
-    /// - `u64`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
-    ///     `Value::Int128`
-    ///   - `Value::String`, parsed as `u64`
-    /// - `u128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
-    ///     `Value::Int128`
-    ///   - `Value::String`, parsed as `u128`
-    /// - `f32`
-    ///   - `Value::Float32`, `Value::Float64`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
-    ///     `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
-    ///   - `Value::String`, parsed as `f32`
-    ///   - `Value::BigInteger`, `Value::BigDecimal`
-    /// - `f64`
-    ///   - `Value::Float64`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - `Value::Int8`, `Value::Int16`, `Value::Int32`, `Value::Int64`,
-    ///     `Value::Int128`
-    ///   - `Value::UInt8`, `Value::UInt16`, `Value::UInt32`, `Value::UInt64`,
-    ///     `Value::UInt128`
-    ///   - `Value::Float32`
-    ///   - `Value::String`, parsed as `f64`
-    ///   - `Value::BigInteger`, `Value::BigDecimal`
-    /// - `String`
-    ///   - `Value::String`
-    ///   - `Value::Bool`, `Value::Char`
-    ///   - all integer and floating-point variants
-    ///   - `Value::Date`, `Value::Time`, `Value::DateTime`, `Value::Instant`
-    ///   - `Value::BigInteger`, `Value::BigDecimal`
-    ///   - `Value::IntSize`, `Value::UIntSize`
-    ///   - `Value::Duration`, formatted with the configured duration unit. The
-    ///     default conversion options use milliseconds and append the unit
-    ///     suffix, for example `1500ms`.
-    ///   - `Value::Url`
-    ///   - `Value::StringMap`, serialized as JSON text
-    ///   - `Value::Json`, serialized as JSON text
-    /// - `NaiveDate`
-    ///   - `Value::Date`
-    /// - `NaiveTime`
-    ///   - `Value::Time`
-    /// - `NaiveDateTime`
-    ///   - `Value::DateTime`
-    /// - `DateTime<Utc>`
-    ///   - `Value::Instant`
-    /// - `BigInt`
-    ///   - `Value::BigInteger`
-    /// - `BigDecimal`
-    ///   - `Value::BigDecimal`
-    /// - `isize`
-    ///   - `Value::IntSize`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - all integer variants
-    ///   - `Value::Float32`, `Value::Float64`
-    ///   - `Value::String`, parsed as `isize`
-    ///   - `Value::BigInteger`, `Value::BigDecimal`
-    /// - `usize`
-    ///   - `Value::UIntSize`
-    ///   - `Value::Bool`
-    ///   - `Value::Char`
-    ///   - all integer variants
-    ///   - `Value::String`, parsed as `usize`
-    /// - `Duration`
-    ///   - `Value::Duration`
-    ///   - integer variants and `Value::BigInteger`, interpreted in the
-    ///     configured duration unit
-    ///   - `Value::String`, parsed as duration text. Explicit suffixes `ns`,
-    ///     `us`, `ms`, `s`, `m`, `h`, and `d` are supported; text without a
-    ///     suffix uses the configured duration unit.
-    /// - `Url`
-    ///   - `Value::Url`
-    ///   - `Value::String`, parsed as URL text
-    /// - `HashMap<String, String>`
-    ///   - `Value::StringMap`
-    /// - `serde_json::Value`
-    ///   - `Value::Json`
-    ///   - `Value::String`, parsed as JSON text
-    ///   - `Value::StringMap`, converted to a JSON object
-    ///
-    /// Any target type not listed above is not supported by `Value::to<T>()`.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `T` - The target type to convert to
-    ///
-    /// # Returns
-    ///
-    /// Returns the converted value on success, or an error if conversion is not
-    /// supported or fails.
+    /// Returns a mapped conversion error when the value is unset, the
+    /// conversion is unsupported, or the source is invalid for `T`.
     ///
     /// # Example
     ///
@@ -448,12 +283,8 @@ impl Value {
     /// use qubit_value::Value;
     ///
     /// let value = Value::Int32(42);
-    ///
-    /// let num: i64 = value.to().unwrap();
-    /// assert_eq!(num, 42);
-    ///
-    /// let text: String = value.to().unwrap();
-    /// assert_eq!(text, "42");
+    /// assert_eq!(value.to::<i64>().unwrap(), 42);
+    /// assert_eq!(value.to::<String>().unwrap(), "42");
     /// ```
     #[inline]
     #[cfg(feature = "converter")]
@@ -474,9 +305,9 @@ impl Value {
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
         match self.to() {
-            Err(ValueError::DataConversion(DataConversionError::Missing { .. })) => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::DataConversion(DataConversionError::Missing {
+                ..
+            })) => Ok(default.into_value_default()),
             result => result,
         }
     }
@@ -528,9 +359,9 @@ impl Value {
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(DataConversionError::Missing { .. })) => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::DataConversion(DataConversionError::Missing {
+                ..
+            })) => Ok(default.into_value_default()),
             result => result,
         }
     }
@@ -554,7 +385,6 @@ impl Value {
     /// - `String`, `&str`
     /// - `NaiveDate`, `NaiveTime`, `NaiveDateTime`, `DateTime<Utc>`
     /// - `BigInt`, `BigDecimal`
-    /// - `isize`, `usize`
     /// - `Duration`
     /// - `Url`
     /// - `HashMap<String, String>`
@@ -579,7 +409,7 @@ impl Value {
     /// use qubit_datatype::DataType;
     /// use qubit_value::Value;
     ///
-    /// let mut value = Value::Empty(DataType::Int32);
+    /// let mut value = Value::Unset(DataType::Int32);
     ///
     /// // Through type inference
     /// value.set(42i32);
@@ -590,7 +420,7 @@ impl Value {
     /// assert_eq!(value.get_int32().unwrap(), 100);
     ///
     /// // String type
-    /// let mut text = Value::Empty(DataType::String);
+    /// let mut text = Value::Unset(DataType::String);
     /// text.set("hello".to_string());
     /// assert_eq!(text.get_string().unwrap(), "hello");
     /// ```
@@ -617,7 +447,7 @@ impl Value {
     /// let value = Value::Int32(42);
     /// assert_eq!(value.data_type(), DataType::Int32);
     ///
-    /// let empty = Value::Empty(DataType::String);
+    /// let empty = Value::Unset(DataType::String);
     /// assert_eq!(empty.data_type(), DataType::String);
     /// ```
     #[inline]
@@ -629,7 +459,7 @@ impl Value {
     ///
     /// # Returns
     ///
-    /// Returns `true` only for [`Value::Empty`]. An empty string, map, or JSON
+    /// Returns `true` only for [`Value::Unset`]. An empty string, map, or JSON
     /// container is still a concrete value and returns `false`.
     ///
     /// # Example
@@ -641,12 +471,12 @@ impl Value {
     /// let value = Value::Int32(42);
     /// assert!(!value.is_unset());
     ///
-    /// let empty = Value::Empty(DataType::String);
+    /// let empty = Value::Unset(DataType::String);
     /// assert!(empty.is_unset());
     /// ```
     #[inline]
     pub fn is_unset(&self) -> bool {
-        matches!(self, Value::Empty(_))
+        matches!(self, Value::Unset(_))
     }
 
     /// Tests whether a concrete value belongs to the numeric type family.
@@ -660,7 +490,7 @@ impl Value {
     /// Removes the concrete value while preserving its declared data type.
     #[inline]
     pub fn unset(&mut self) {
-        *self = Value::Empty(self.data_type());
+        *self = Value::Unset(self.data_type());
     }
 
     /// Clear the value while preserving the type
@@ -706,7 +536,7 @@ impl Value {
     #[inline]
     pub fn set_type(&mut self, data_type: DataType) {
         if self.data_type() != data_type {
-            *self = Value::Empty(data_type);
+            *self = Value::Unset(data_type);
         }
     }
 }
@@ -714,6 +544,6 @@ impl Value {
 impl Default for Value {
     #[inline]
     fn default() -> Self {
-        Value::Empty(DataType::String)
+        Value::Unset(DataType::String)
     }
 }

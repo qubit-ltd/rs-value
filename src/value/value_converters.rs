@@ -10,15 +10,22 @@
 //!
 //! This module focuses on conversion helpers backed by `qubit_datatype`.
 
-use qubit_datatype::{DataConversionOptions, DataConvertTo, DataConverter};
+use qubit_datatype::{
+    DataConversionOptions,
+    DataConvertTo,
+    DataConverter,
+};
 
 use super::value::Value;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 macro_rules! value_data_converter_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            Value::Empty(data_type) => DataConverter::Empty(*data_type),
+            Value::Unset(data_type) => DataConverter::Empty(*data_type),
             $($(#[$cfg])* Value::$variant(value) => DataConverter::from(value),)+
         }
     };

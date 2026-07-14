@@ -11,8 +11,14 @@
 //! collections, facilitating human-readable identification of groups of values
 //! in configurations, serialization, logging, and other scenarios.
 
-use serde::{Deserialize, Serialize};
-use std::ops::{Deref, DerefMut};
+use serde::{
+    Deserialize,
+    Serialize,
+};
+use std::ops::{
+    Deref,
+    DerefMut,
+};
 
 use super::multi_values::MultiValues;
 use super::named_value::NamedValue;
@@ -147,10 +153,20 @@ impl NamedMultiValues {
     ///
     /// The returned value keeps the same name and uses the first element from
     /// the inner [`MultiValues`]. If there is no element, the returned value is
-    /// `Value::Empty` with the same data type.
+    /// `Value::Unset` with the same data type.
     #[inline]
     pub fn to_named_value(&self) -> NamedValue {
         NamedValue::new(self.name.as_str(), self.value.to_value())
+    }
+
+    /// Consumes this container and converts its first item to a named value.
+    ///
+    /// The owned name and first stored item are moved into the result. An empty
+    /// or unset collection produces [`crate::Value::Unset`] with the same data
+    /// type.
+    #[inline]
+    pub fn into_named_value(self) -> NamedValue {
+        NamedValue::new(self.name, self.value.into_value())
     }
 
     // Values can be directly assigned or mutable methods called on the inner

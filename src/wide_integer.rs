@@ -10,8 +10,16 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
-use serde::de::{self, Visitor};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::de::{
+    self,
+    Visitor,
+};
+use serde::{
+    Deserialize,
+    Deserializer,
+    Serialize,
+    Serializer,
+};
 
 /// Serializes a displayable integer as a decimal string without allocating.
 struct DisplayInteger<'a, T>(&'a T);
@@ -78,16 +86,32 @@ where
 macro_rules! define_wide_integer_serde {
     ($scalar_module:ident, $vector_module:ident, $type:ty) => {
         pub(crate) mod $scalar_module {
-            use super::*;
+            use std::marker::PhantomData;
 
-            pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
+            use serde::{
+                Deserializer,
+                Serialize,
+                Serializer,
+            };
+
+            use super::{
+                DisplayInteger,
+                IntegerVisitor,
+            };
+
+            pub(crate) fn serialize<S>(
+                value: &$type,
+                serializer: S,
+            ) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
                 DisplayInteger(value).serialize(serializer)
             }
 
-            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
+            pub(crate) fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -96,21 +120,36 @@ macro_rules! define_wide_integer_serde {
         }
 
         pub(crate) mod $vector_module {
-            use super::*;
+            use serde::{
+                Deserialize,
+                Deserializer,
+                Serializer,
+            };
 
-            pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
+            use super::{
+                DisplayInteger,
+                ParsedInteger,
+            };
+
+            pub(crate) fn serialize<S>(
+                values: &[$type],
+                serializer: S,
+            ) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
                 serializer.collect_seq(values.iter().map(DisplayInteger))
             }
 
-            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<$type>, D::Error>
+            pub(crate) fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> Result<Vec<$type>, D::Error>
             where
                 D: Deserializer<'de>,
             {
-                Vec::<ParsedInteger<$type>>::deserialize(deserializer)
-                    .map(|values| values.into_iter().map(|value| value.0).collect())
+                Vec::<ParsedInteger<$type>>::deserialize(deserializer).map(
+                    |values| values.into_iter().map(|value| value.0).collect(),
+                )
             }
         }
     };

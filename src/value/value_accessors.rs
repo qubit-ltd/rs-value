@@ -12,22 +12,35 @@ use std::time::Duration;
 #[cfg(feature = "big-number")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "chrono")]
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 #[cfg(feature = "big-number")]
 use num_bigint::BigInt;
-#[cfg(feature = "converter")]
+#[cfg(all(feature = "converter", feature = "json"))]
 use serde::Serialize;
-#[cfg(feature = "converter")]
+#[cfg(all(feature = "converter", feature = "json"))]
 use serde::de::DeserializeOwned;
 #[cfg(feature = "url")]
 use url::Url;
 
 use qubit_datatype::DataType;
-#[cfg(feature = "converter")]
-use qubit_datatype::{DataConversionError, DataFormat, InvalidValueReason};
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::{
+    DataConversionError,
+    DataFormat,
+    InvalidValueReason,
+};
 
 use super::value::Value;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 macro_rules! impl_get_value {
     // Copy type: directly dereference and return
@@ -43,8 +56,8 @@ macro_rules! impl_get_value {
         pub fn $method(&self) -> ValueResult<$type> {
             match self {
                 Value::$variant(v) => Ok(*v),
-                Value::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
-                Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                Value::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                Value::Unset(dt) => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: *dt,
                 }),
@@ -73,8 +86,8 @@ macro_rules! impl_get_value {
                     let conv_fn: fn(&_) -> $ret_type = $conversion;
                     Ok(conv_fn(v))
                 },
-                Value::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
-                Value::Empty(dt) => Err(ValueError::TypeMismatch {
+                Value::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                Value::Unset(dt) => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: *dt,
                 }),
@@ -346,24 +359,6 @@ impl Value {
     }
 
     impl_get_value! {
-        /// Get isize value
-        ///
-        /// # Returns
-        ///
-        /// If types match, returns the isize value; see `# Errors`.
-        copy: get_intsize, IntSize, isize, DataType::IntSize
-    }
-
-    impl_get_value! {
-        /// Get usize value
-        ///
-        /// # Returns
-        ///
-        /// If types match, returns the usize value; see `# Errors`.
-        copy: get_uintsize, UIntSize, usize, DataType::UIntSize
-    }
-
-    impl_get_value! {
         /// Get Duration value
         ///
         /// # Returns
@@ -424,8 +419,10 @@ impl Value {
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         match self {
             Value::BigInteger(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::BigInteger => Err(ValueError::NoValue),
-            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+            Value::Unset(dt) if *dt == DataType::BigInteger => {
+                Err(ValueError::NoValue)
+            }
+            Value::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigInteger,
                 actual: *dt,
             }),
@@ -447,8 +444,10 @@ impl Value {
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         match self {
             Value::BigDecimal(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::BigDecimal => Err(ValueError::NoValue),
-            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+            Value::Unset(dt) if *dt == DataType::BigDecimal => {
+                Err(ValueError::NoValue)
+            }
+            Value::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigDecimal,
                 actual: *dt,
             }),
@@ -470,8 +469,10 @@ impl Value {
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match self {
             Value::Url(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::Url => Err(ValueError::NoValue),
-            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+            Value::Unset(dt) if *dt == DataType::Url => {
+                Err(ValueError::NoValue)
+            }
+            Value::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Url,
                 actual: *dt,
             }),
@@ -492,8 +493,10 @@ impl Value {
     pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
         match self {
             Value::StringMap(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::StringMap => Err(ValueError::NoValue),
-            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+            Value::Unset(dt) if *dt == DataType::StringMap => {
+                Err(ValueError::NoValue)
+            }
+            Value::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::StringMap,
                 actual: *dt,
             }),
@@ -515,8 +518,10 @@ impl Value {
     pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
         match self {
             Value::Json(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::Json => Err(ValueError::NoValue),
-            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+            Value::Unset(dt) if *dt == DataType::Json => {
+                Err(ValueError::NoValue)
+            }
+            Value::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
                 actual: *dt,
             }),
@@ -556,11 +561,13 @@ impl Value {
     ///
     /// Returns `Ok(Value::Json(...))` on success, or an error if
     /// serialization fails.
-    #[cfg(feature = "converter")]
+    #[cfg(all(feature = "converter", feature = "json"))]
     pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
         let json = crate::strict_json::to_value(value).map_err(|error| {
             let reason = match error {
-                crate::strict_json::StrictJsonError::NonFinite => InvalidValueReason::NonFinite,
+                crate::strict_json::StrictJsonError::NonFinite => {
+                    InvalidValueReason::NonFinite
+                }
                 crate::strict_json::StrictJsonError::Serialization => {
                     InvalidValueReason::Serialization {
                         format: DataFormat::Json,
@@ -593,20 +600,24 @@ impl Value {
     /// Returns [`ValueError::NoValue`] when this value is `Empty(Json)`,
     /// [`ValueError::TypeMismatch`] when this value has a non-JSON data type,
     /// or [`ValueError::DataConversion`] when JSON deserialization fails.
-    #[cfg(feature = "converter")]
+    #[cfg(all(feature = "converter", feature = "json"))]
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match self {
-            Value::Json(v) => serde_json::from_value(v.clone()).map_err(|_| {
-                ValueError::from(DataConversionError::InvalidValue {
-                    from: DataType::Json,
-                    to: DataType::Json,
-                    reason: InvalidValueReason::Deserialization {
-                        format: DataFormat::Json,
-                    },
+            Value::Json(v) => {
+                serde::Deserialize::deserialize(v).map_err(|_| {
+                    ValueError::from(DataConversionError::InvalidValue {
+                        from: DataType::Json,
+                        to: DataType::Json,
+                        reason: InvalidValueReason::Deserialization {
+                            format: DataFormat::Json,
+                        },
+                    })
                 })
-            }),
-            Value::Empty(dt) if *dt == DataType::Json => Err(ValueError::NoValue),
-            Value::Empty(dt) => Err(ValueError::TypeMismatch {
+            }
+            Value::Unset(dt) if *dt == DataType::Json => {
+                Err(ValueError::NoValue)
+            }
+            Value::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
                 actual: *dt,
             }),

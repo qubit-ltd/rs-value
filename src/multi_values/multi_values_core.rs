@@ -10,40 +10,46 @@
 
 use qubit_datatype::DataType;
 
-use crate::value_error::{ValueError, ValueResult};
-use crate::{IntoValueDefault, Value};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
+use crate::{
+    IntoValueDefault,
+    Value,
+};
 
 use super::multi_values::MultiValues;
 
 macro_rules! multi_values_data_type_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            MultiValues::Empty(dt) => *dt,
+            MultiValues::Unset(dt) => *dt,
             $($(#[$cfg])* MultiValues::$variant(_) => $data_type,)+
         }
     };
 }
 
 macro_rules! multi_values_count_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            MultiValues::Empty(_) => 0,
+            MultiValues::Unset(_) => 0,
             $($(#[$cfg])* MultiValues::$variant(values) => values.len(),)+
         }
     };
 }
 
 macro_rules! multi_values_clear_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            MultiValues::Empty(_) => {}
+            MultiValues::Unset(_) => {}
             $($(#[$cfg])* MultiValues::$variant(values) => values.clear(),)+
         }
     };
 }
 
 macro_rules! multi_values_append_match {
-    ($left:expr, $right:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($left:expr, $right:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match ($left, $right) {
             $(
                 $(#[$cfg])*
@@ -51,30 +57,46 @@ macro_rules! multi_values_append_match {
                     values.append(&mut other_values);
                 }
             )+
-            (slot @ MultiValues::Empty(_), other_values) => *slot = other_values,
+            (slot @ MultiValues::Unset(_), other_values) => *slot = other_values,
             _ => unreachable!(),
         }
     };
 }
 
 macro_rules! multi_values_to_value_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            MultiValues::Empty(data_type) => Value::Empty(*data_type),
+            MultiValues::Unset(data_type) => Value::Unset(*data_type),
             $(
                 $(#[$cfg])*
                 MultiValues::$variant(values) => values
                     .first()
-                    .cloned()
+                    .map(|value| materialize_stored!($materialization, value))
                     .map(Value::$variant)
-                    .unwrap_or(Value::Empty($data_type)),
+                    .unwrap_or(Value::Unset($data_type)),
+            )+
+        }
+    };
+}
+
+macro_rules! multi_values_into_value_match {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+        match $value {
+            MultiValues::Unset(data_type) => Value::Unset(data_type),
+            $(
+                $(#[$cfg])*
+                MultiValues::$variant(values) => values
+                    .into_iter()
+                    .next()
+                    .map(Value::$variant)
+                    .unwrap_or(Value::Unset($data_type)),
             )+
         }
     };
 }
 
 macro_rules! multi_values_merge_match {
-    ($left:expr, $right:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($left:expr, $right:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match ($left, $right) {
             $(
                 $(#[$cfg])*
@@ -82,16 +104,16 @@ macro_rules! multi_values_merge_match {
                     values.extend_from_slice(other_values)
                 }
             )+
-            (slot @ MultiValues::Empty(_), other_values) => *slot = other_values.clone(),
+            (slot @ MultiValues::Unset(_), other_values) => *slot = other_values.clone(),
             _ => unreachable!(),
         }
     };
 }
 
 macro_rules! value_into_multi_values_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            Value::Empty(data_type) => MultiValues::Empty(data_type),
+            Value::Unset(data_type) => MultiValues::Unset(data_type),
             $($(#[$cfg])* Value::$variant(value) => MultiValues::$variant(vec![value]),)+
         }
     };
@@ -182,7 +204,10 @@ impl MultiValues {
     /// Returns the supplied default only when this container is unset. A
     /// concrete empty vector remains an empty result.
     #[inline]
-    pub fn get_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
+    pub fn get_or<T>(
+        &self,
+        default: impl IntoValueDefault<Vec<T>>,
+    ) -> ValueResult<Vec<T>>
     where
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
@@ -248,7 +273,10 @@ impl MultiValues {
     /// concrete empty vector returns [`ValueError::NoValue`]; type mismatches
     /// are also preserved.
     #[inline]
-    pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
+    pub fn get_first_or<T>(
+        &self,
+        default: impl IntoValueDefault<T>,
+    ) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
@@ -292,23 +320,23 @@ impl MultiValues {
     /// use qubit_value::MultiValues;
     ///
     /// // 1) Vec<T>
-    /// let mut mv = MultiValues::Empty(DataType::Int32);
+    /// let mut mv = MultiValues::Unset(DataType::Int32);
     /// mv.set(vec![42, 100, 200]);
     /// assert_eq!(mv.get_int32s().unwrap(), &[42, 100, 200]);
     ///
     /// // 2) &[T]
-    /// let mut mv = MultiValues::Empty(DataType::Int32);
+    /// let mut mv = MultiValues::Unset(DataType::Int32);
     /// let slice = &[7, 8, 9][..];
     /// mv.set(slice);
     /// assert_eq!(mv.get_int32s().unwrap(), &[7, 8, 9]);
     ///
     /// // 3) Single T
-    /// let mut mv = MultiValues::Empty(DataType::Int32);
+    /// let mut mv = MultiValues::Unset(DataType::Int32);
     /// mv.set(42);
     /// assert_eq!(mv.get_int32s().unwrap(), &[42]);
     ///
     /// // String example
-    /// let mut mv = MultiValues::Empty(DataType::String);
+    /// let mut mv = MultiValues::Unset(DataType::String);
     /// mv.set(vec!["hello".to_string(), "world".to_string()]);
     /// assert_eq!(mv.get_strings().unwrap(), &["hello", "world"]);
     /// ```
@@ -418,7 +446,7 @@ impl MultiValues {
     /// let values = MultiValues::Int32(vec![1, 2, 3]);
     /// assert_eq!(values.count(), 3);
     ///
-    /// let empty = MultiValues::Empty(DataType::String);
+    /// let empty = MultiValues::Unset(DataType::String);
     /// assert_eq!(empty.count(), 0);
     /// ```
     #[inline]
@@ -430,7 +458,7 @@ impl MultiValues {
     ///
     /// # Returns
     ///
-    /// Returns `true` only for [`MultiValues::Empty`]. A concrete empty vector
+    /// Returns `true` only for [`MultiValues::Unset`]. A concrete empty vector
     /// returns `false`.
     ///
     /// # Example
@@ -442,12 +470,12 @@ impl MultiValues {
     /// let values = MultiValues::Int32(vec![]);
     /// assert!(!values.is_unset());
     ///
-    /// let empty = MultiValues::Empty(DataType::String);
+    /// let empty = MultiValues::Unset(DataType::String);
     /// assert!(empty.is_unset());
     /// ```
     #[inline]
     pub fn is_unset(&self) -> bool {
-        matches!(self, MultiValues::Empty(_))
+        matches!(self, MultiValues::Unset(_))
     }
 
     /// Tests whether a concrete collection belongs to the numeric type family.
@@ -462,7 +490,7 @@ impl MultiValues {
     /// Removes the concrete vector while preserving its declared data type.
     #[inline]
     pub fn unset(&mut self) {
-        *self = MultiValues::Empty(self.data_type());
+        *self = MultiValues::Unset(self.data_type());
     }
 
     /// Clear all values while preserving the type
@@ -506,16 +534,24 @@ impl MultiValues {
     #[inline]
     pub fn set_type(&mut self, data_type: DataType) {
         if self.data_type() != data_type {
-            *self = MultiValues::Empty(data_type);
+            *self = MultiValues::Unset(data_type);
         }
     }
 
     /// Converts the first element to a single [`Value`].
     ///
-    /// Returns `Value::Empty` with the same declared type when no element is
+    /// Returns `Value::Unset` with the same declared type when no element is
     /// stored.
     pub fn to_value(&self) -> Value {
         for_each_value_type!(multi_values_to_value_match, self)
+    }
+
+    /// Consumes this collection and returns its first item as a [`Value`].
+    ///
+    /// Empty and unset collections become [`Value::Unset`] with the same data
+    /// type. Owned element storage is moved instead of cloned.
+    pub fn into_value(self) -> Value {
+        for_each_value_type!(multi_values_into_value_match, self)
     }
 
     /// Appends all values from another container with the same data type.
@@ -542,7 +578,7 @@ impl MultiValues {
 impl Default for MultiValues {
     #[inline]
     fn default() -> Self {
-        MultiValues::Empty(DataType::String)
+        MultiValues::Unset(DataType::String)
     }
 }
 

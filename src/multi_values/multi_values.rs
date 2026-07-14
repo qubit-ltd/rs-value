@@ -9,7 +9,10 @@
 //!
 //! Provides type-safe storage and access functionality for multiple values.
 
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 use qubit_datatype::DataType;
 
@@ -54,7 +57,7 @@ macro_rules! define_multi_values_enum {
                 $variant:ident,
                 $type:ty,
                 $data_type:expr,
-                $ownership:ident,
+                $materialization:ident,
                 $json_class:ident,
                 $value_doc:literal,
                 $multi_doc:literal
@@ -64,7 +67,7 @@ macro_rules! define_multi_values_enum {
         #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
         pub enum MultiValues {
             /// Unset collection with a declared element data type.
-            Empty(DataType),
+            Unset(DataType),
             $(
                 $(#[$cfg])*
                 $(#[$multi_attr])*
@@ -105,7 +108,7 @@ macro_rules! impl_get_multi_values {
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v),
-                MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                MultiValues::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -128,7 +131,7 @@ macro_rules! impl_get_multi_values {
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v.as_slice()),
-                MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                MultiValues::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -162,7 +165,7 @@ macro_rules! impl_get_first_value {
             match self {
                 MultiValues::$variant(v) if !v.is_empty() => Ok(v[0]),
                 MultiValues::$variant(_) => Err(ValueError::NoValue),
-                MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                MultiValues::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -188,7 +191,7 @@ macro_rules! impl_get_first_value {
                     Ok(conv_fn(&v[0]))
                 },
                 MultiValues::$variant(_) => Err(ValueError::NoValue),
-                MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                MultiValues::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),

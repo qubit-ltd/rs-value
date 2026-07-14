@@ -6,7 +6,10 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 
 #[test]
 fn test_value_converter_converts_and_reports_invalid_input() {
@@ -24,7 +27,7 @@ fn test_value_converter_converts_and_reports_invalid_input() {
 
 #[test]
 fn test_value_converter_uses_default_only_for_empty_values() {
-    let empty = Value::Empty(qubit_datatype::DataType::String);
+    let empty = Value::Unset(qubit_datatype::DataType::String);
     assert_eq!(empty.to_or::<String>("fallback").unwrap(), "fallback");
 
     let value = Value::String("actual".to_string());

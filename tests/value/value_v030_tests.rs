@@ -8,153 +8,27 @@
 //! # Value v0.3.0 新增类型单元测试
 //!
 //! 覆盖 v0.3.0 新增的以下类型：
-//! - `isize` / `usize`
 //! - `std::time::Duration`
 //! - `url::Url`
 //! - `HashMap<String, String>`
 //! - `serde_json::Value` (Json escape hatch)
 
-use qubit_datatype::{DataConversionOptions, DataType, NumericConversionPolicy};
-use qubit_value::{Value, ValueError};
-use serde::{Deserialize, Serialize};
+use qubit_datatype::{
+    DataConversionOptions,
+    DataType,
+    NumericConversionPolicy,
+};
+use qubit_value::{
+    Value,
+    ValueError,
+};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
-
-// ============================================================================
-// isize 测试
-// ============================================================================
-
-#[test]
-fn test_value_intsize_creation() {
-    let v = Value::IntSize(42isize);
-    assert_eq!(v.data_type(), DataType::IntSize);
-    assert!(!v.is_unset());
-}
-
-#[test]
-fn test_value_intsize_get() {
-    let v = Value::IntSize(100isize);
-    assert_eq!(v.get_intsize().unwrap(), 100isize);
-}
-
-#[test]
-fn test_value_intsize_negative() {
-    let v = Value::IntSize(-999isize);
-    assert_eq!(v.get_intsize().unwrap(), -999isize);
-}
-
-#[test]
-fn test_value_intsize_set() {
-    let mut v = Value::Empty(DataType::IntSize);
-    v.set(42isize);
-    assert_eq!(v.get_intsize().unwrap(), 42isize);
-}
-
-#[test]
-fn test_value_intsize_type_mismatch() {
-    let v = Value::IntSize(1isize);
-    assert!(matches!(
-        v.get_uintsize(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
-}
-
-#[test]
-fn test_value_intsize_empty_error() {
-    let v = Value::Empty(DataType::IntSize);
-    assert!(matches!(v.get_intsize(), Err(ValueError::NoValue)));
-}
-
-#[test]
-fn test_value_intsize_generic_new() {
-    let v = Value::new(42isize);
-    assert_eq!(v.data_type(), DataType::IntSize);
-    assert_eq!(v.get::<isize>().unwrap(), 42isize);
-}
-
-#[test]
-fn test_value_intsize_generic_set() {
-    let mut v = Value::IntSize(0isize);
-    v.set(99isize);
-    assert_eq!(v.get_intsize().unwrap(), 99isize);
-}
-
-#[test]
-fn test_value_intsize_as_string() {
-    let v = Value::IntSize(-42isize);
-    assert_eq!(v.to::<String>().unwrap(), "-42");
-}
-
-#[test]
-fn test_value_intsize_clear() {
-    let mut v = Value::IntSize(10isize);
-    v.clear();
-    assert!(v.is_unset());
-    assert_eq!(v.data_type(), DataType::IntSize);
-}
-
-#[test]
-fn test_value_intsize_serde_roundtrip() {
-    let original = Value::IntSize(isize::MAX);
-    let json = serde_json::to_string(&original).unwrap();
-    let restored: Value = serde_json::from_str(&json).unwrap();
-    assert_eq!(original, restored);
-}
-
-// ============================================================================
-// usize 测试
-// ============================================================================
-
-#[test]
-fn test_value_uintsize_creation() {
-    let v = Value::UIntSize(42usize);
-    assert_eq!(v.data_type(), DataType::UIntSize);
-    assert!(!v.is_unset());
-}
-
-#[test]
-fn test_value_uintsize_get() {
-    let v = Value::UIntSize(999usize);
-    assert_eq!(v.get_uintsize().unwrap(), 999usize);
-}
-
-#[test]
-fn test_value_uintsize_set() {
-    let mut v = Value::Empty(DataType::UIntSize);
-    v.set(512usize);
-    assert_eq!(v.get_uintsize().unwrap(), 512usize);
-}
-
-#[test]
-fn test_value_uintsize_type_mismatch() {
-    let v = Value::UIntSize(1usize);
-    assert!(matches!(
-        v.get_intsize(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
-}
-
-#[test]
-fn test_value_uintsize_generic_new() {
-    let v = Value::new(8080usize);
-    assert_eq!(v.data_type(), DataType::UIntSize);
-    assert_eq!(v.get::<usize>().unwrap(), 8080usize);
-}
-
-#[test]
-fn test_value_uintsize_as_string() {
-    let v = Value::UIntSize(1024usize);
-    assert_eq!(v.to::<String>().unwrap(), "1024");
-}
-
-#[test]
-fn test_value_uintsize_serde_roundtrip() {
-    let original = Value::UIntSize(usize::MAX);
-    let json = serde_json::to_string(&original).unwrap();
-    let restored: Value = serde_json::from_str(&json).unwrap();
-    assert_eq!(original, restored);
-}
 
 // ============================================================================
 // Duration 测试
@@ -177,7 +51,7 @@ fn test_value_duration_get() {
 
 #[test]
 fn test_value_duration_set() {
-    let mut v = Value::Empty(DataType::Duration);
+    let mut v = Value::Unset(DataType::Duration);
     let d = Duration::from_secs(60);
     v.set(d);
     assert_eq!(v.get_duration().unwrap(), d);
@@ -187,14 +61,14 @@ fn test_value_duration_set() {
 fn test_value_duration_type_mismatch() {
     let v = Value::Duration(Duration::from_secs(1));
     assert!(matches!(
-        v.get_intsize(),
+        v.get_int32(),
         Err(ValueError::TypeMismatch { .. })
     ));
 }
 
 #[test]
 fn test_value_duration_empty_error() {
-    let v = Value::Empty(DataType::Duration);
+    let v = Value::Unset(DataType::Duration);
     assert!(matches!(v.get_duration(), Err(ValueError::NoValue)));
 }
 
@@ -293,7 +167,7 @@ fn test_value_url_get() {
 
 #[test]
 fn test_value_url_set() {
-    let mut v = Value::Empty(DataType::Url);
+    let mut v = Value::Unset(DataType::Url);
     let url = Url::parse("http://localhost:8080").unwrap();
     v.set(url.clone());
     assert_eq!(v.get_url().unwrap(), url);
@@ -311,7 +185,7 @@ fn test_value_url_type_mismatch() {
 
 #[test]
 fn test_value_url_empty_error() {
-    let v = Value::Empty(DataType::Url);
+    let v = Value::Unset(DataType::Url);
     assert!(matches!(v.get_url(), Err(ValueError::NoValue)));
 }
 
@@ -374,7 +248,9 @@ fn test_value_url_clear() {
 
 #[test]
 fn test_value_url_serde_roundtrip() {
-    let original = Value::Url(Url::parse("https://example.com/path?key=value#anchor").unwrap());
+    let original = Value::Url(
+        Url::parse("https://example.com/path?key=value#anchor").unwrap(),
+    );
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
@@ -408,7 +284,7 @@ fn test_value_stringmap_get() {
 
 #[test]
 fn test_value_stringmap_set() {
-    let mut v = Value::Empty(DataType::StringMap);
+    let mut v = Value::Unset(DataType::StringMap);
     let m = make_map(&[("a", "1"), ("b", "2")]);
     v.set(m.clone());
     assert_eq!(v.get_string_map().unwrap(), m);
@@ -432,7 +308,7 @@ fn test_value_stringmap_type_mismatch() {
 
 #[test]
 fn test_value_stringmap_empty_error() {
-    let v = Value::Empty(DataType::StringMap);
+    let v = Value::Unset(DataType::StringMap);
     assert!(matches!(v.get_string_map(), Err(ValueError::NoValue)));
 }
 
@@ -503,7 +379,7 @@ fn test_value_json_get() {
 
 #[test]
 fn test_value_json_set() {
-    let mut v = Value::Empty(DataType::Json);
+    let mut v = Value::Unset(DataType::Json);
     let j = serde_json::json!(true);
     v.set(j.clone());
     assert_eq!(v.get_json().unwrap(), j);
@@ -520,7 +396,7 @@ fn test_value_json_type_mismatch() {
 
 #[test]
 fn test_value_json_empty_error() {
-    let v = Value::Empty(DataType::Json);
+    let v = Value::Unset(DataType::Json);
     assert!(matches!(v.get_json(), Err(ValueError::NoValue)));
 }
 
@@ -619,8 +495,8 @@ fn test_value_to_json() {
 #[test]
 fn test_value_to_string() {
     let v = Value::Duration(Duration::from_nanos(7));
-    let options =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let options = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     let got: String = v.to_with(&options).unwrap();
     assert_eq!(got, "0ms");
 }
@@ -635,7 +511,8 @@ fn test_value_json_clear() {
 
 #[test]
 fn test_value_json_serde_roundtrip() {
-    let original = Value::Json(serde_json::json!({"nested": {"arr": [1, 2, 3]}}));
+    let original =
+        Value::Json(serde_json::json!({"nested": {"arr": [1, 2, 3]}}));
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
@@ -719,14 +596,14 @@ fn test_value_deserialize_json_on_non_json_returns_type_mismatch() {
 
 #[test]
 fn test_value_deserialize_json_on_empty_json_returns_no_value() {
-    let v = Value::Empty(DataType::Json);
+    let v = Value::Unset(DataType::Json);
     let result = v.deserialize_json::<Config>();
     assert!(matches!(result, Err(ValueError::NoValue)));
 }
 
 #[test]
 fn test_value_deserialize_json_on_empty_non_json_returns_type_mismatch() {
-    let v = Value::Empty(DataType::Int32);
+    let v = Value::Unset(DataType::Int32);
     let result = v.deserialize_json::<Config>();
     assert!(matches!(
         result,
@@ -784,17 +661,6 @@ fn test_value_custom_enum_unit_variant_via_json() {
 // ============================================================================
 
 #[test]
-fn test_datatype_intsize_display() {
-    assert_eq!(DataType::IntSize.as_str(), "intsize");
-    assert_eq!(DataType::IntSize.to_string(), "intsize");
-}
-
-#[test]
-fn test_datatype_uintsize_display() {
-    assert_eq!(DataType::UIntSize.as_str(), "uintsize");
-}
-
-#[test]
 fn test_datatype_duration_display() {
     assert_eq!(DataType::Duration.as_str(), "duration");
 }
@@ -817,8 +683,6 @@ fn test_datatype_json_display() {
 #[test]
 fn test_datatype_serde_roundtrip() {
     for dt in [
-        DataType::IntSize,
-        DataType::UIntSize,
         DataType::Duration,
         DataType::Url,
         DataType::StringMap,

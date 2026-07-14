@@ -17,4 +17,5 @@ mod named_value_tests;
 mod public_api_boundary_tests;
 mod tagged_serde_tests;
 mod value;
+mod value_container_tests;
 mod value_error_tests;

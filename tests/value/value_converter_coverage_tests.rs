@@ -20,7 +20,10 @@
 //! - `f32` 的全部转换分支
 
 use qubit_datatype::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
@@ -55,7 +58,7 @@ fn test_parse_duration_string_overflow_seconds() {
 
 #[test]
 fn test_value_converter_duration_empty() {
-    let v = Value::Empty(DataType::Duration);
+    let v = Value::Unset(DataType::Duration);
     let result = v.to::<Duration>();
     assert!(result.is_err());
 }
@@ -73,7 +76,7 @@ fn test_value_converter_duration_from_integer_uses_default_milliseconds() {
 
 #[test]
 fn test_value_converter_url_empty() {
-    let v = Value::Empty(DataType::Url);
+    let v = Value::Unset(DataType::Url);
     let result = v.to::<Url>();
     assert!(result.is_err());
 }
@@ -91,7 +94,7 @@ fn test_value_converter_url_wrong_type() {
 
 #[test]
 fn test_value_converter_json_empty() {
-    let v = Value::Empty(DataType::Json);
+    let v = Value::Unset(DataType::Json);
     let result = v.to::<serde_json::Value>();
     assert!(result.is_err());
 }
@@ -237,7 +240,7 @@ fn test_to_u8_from_string_invalid() {
 
 #[test]
 fn test_to_u8_empty() {
-    assert!(Value::Empty(DataType::UInt8).to::<u8>().is_err());
+    assert!(Value::Unset(DataType::UInt8).to::<u8>().is_err());
 }
 
 #[test]
@@ -371,7 +374,7 @@ fn test_to_u16_from_string_invalid() {
 
 #[test]
 fn test_to_u16_empty() {
-    assert!(Value::Empty(DataType::UInt16).to::<u16>().is_err());
+    assert!(Value::Unset(DataType::UInt16).to::<u16>().is_err());
 }
 
 #[test]
@@ -505,7 +508,7 @@ fn test_to_u32_from_string_invalid() {
 
 #[test]
 fn test_to_u32_empty() {
-    assert!(Value::Empty(DataType::UInt32).to::<u32>().is_err());
+    assert!(Value::Unset(DataType::UInt32).to::<u32>().is_err());
 }
 
 #[test]
@@ -635,7 +638,7 @@ fn test_to_u64_from_string_invalid() {
 
 #[test]
 fn test_to_u64_empty() {
-    assert!(Value::Empty(DataType::UInt64).to::<u64>().is_err());
+    assert!(Value::Unset(DataType::UInt64).to::<u64>().is_err());
 }
 
 #[test]
@@ -765,7 +768,7 @@ fn test_to_u128_from_string_invalid() {
 
 #[test]
 fn test_to_u128_empty() {
-    assert!(Value::Empty(DataType::UInt128).to::<u128>().is_err());
+    assert!(Value::Unset(DataType::UInt128).to::<u128>().is_err());
 }
 
 #[test]
@@ -883,7 +886,7 @@ fn test_to_f32_from_string_invalid() {
 
 #[test]
 fn test_to_f32_empty() {
-    assert!(Value::Empty(DataType::Float32).to::<f32>().is_err());
+    assert!(Value::Unset(DataType::Float32).to::<f32>().is_err());
 }
 
 #[test]
@@ -925,10 +928,12 @@ fn test_to_f32_from_biginteger_out_of_range() {
     let err = Value::BigInteger(huge).to::<f32>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
-            reason: qubit_datatype::InvalidValueReason::OutOfRange,
-            ..
-        })
+        ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue {
+                reason: qubit_datatype::InvalidValueReason::OutOfRange,
+                ..
+            }
+        )
     ));
 }
 
@@ -939,10 +944,12 @@ fn test_to_f32_from_bigdecimal_out_of_range() {
     let err = Value::BigDecimal(huge).to::<f32>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
-            reason: qubit_datatype::InvalidValueReason::OutOfRange,
-            ..
-        })
+        ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue {
+                reason: qubit_datatype::InvalidValueReason::OutOfRange,
+                ..
+            }
+        )
     ));
 }
 
@@ -958,10 +965,13 @@ fn test_to_f32_wrong_type() {
 #[test]
 fn test_to_f64_from_biginteger_normal() {
     use num_bigint::BigInt;
-    use qubit_datatype::{DataConversionOptions, NumericConversionPolicy};
+    use qubit_datatype::{
+        DataConversionOptions,
+        NumericConversionPolicy,
+    };
     let big = BigInt::from(i64::MAX);
-    let options =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let options = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     let result = Value::BigInteger(big).to_with::<f64>(&options).unwrap();
     assert!((result - i64::MAX as f64).abs() < 1.0);
 }
@@ -997,10 +1007,12 @@ fn test_to_f64_from_biginteger_out_of_range() {
     let err = Value::BigInteger(huge).to::<f64>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
-            reason: qubit_datatype::InvalidValueReason::OutOfRange,
-            ..
-        })
+        ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue {
+                reason: qubit_datatype::InvalidValueReason::OutOfRange,
+                ..
+            }
+        )
     ));
 }
 
@@ -1011,10 +1023,12 @@ fn test_to_f64_from_bigdecimal_out_of_range() {
     let err = Value::BigDecimal(huge).to::<f64>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
-            reason: qubit_datatype::InvalidValueReason::OutOfRange,
-            ..
-        })
+        ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue {
+                reason: qubit_datatype::InvalidValueReason::OutOfRange,
+                ..
+            }
+        )
     ));
 }
 
@@ -1094,7 +1108,7 @@ fn test_to_stringmap_from_stringmap() {
 
 #[test]
 fn test_to_stringmap_empty() {
-    let v = Value::Empty(DataType::StringMap);
+    let v = Value::Unset(DataType::StringMap);
     assert!(v.to::<HashMap<String, String>>().is_err());
 }
 

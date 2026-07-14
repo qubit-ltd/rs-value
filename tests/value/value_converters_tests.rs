@@ -13,10 +13,19 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use num_bigint::BigInt;
 use qubit_datatype::{
-    BlankStringPolicy, BooleanConversionOptions, DataConversionError, DataConversionOptions,
-    DataType, InvalidValueReason, NumericConversionPolicy, StringConversionOptions,
+    BlankStringPolicy,
+    BooleanConversionOptions,
+    DataConversionError,
+    DataConversionOptions,
+    DataType,
+    InvalidValueReason,
+    NumericConversionPolicy,
+    StringConversionOptions,
 };
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::str::FromStr;
 
 #[test]
@@ -44,8 +53,8 @@ fn test_value_to_with_applies_exactness_equally_to_typed_and_text_sources() {
         ));
     }
 
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     assert_eq!(Value::Float64(1.5).to_with::<i32>(&lossy), Ok(1));
     assert_eq!(
         Value::String("1.5".to_string()).to_with::<i32>(&lossy),
@@ -140,7 +149,11 @@ fn test_value_to_with_applies_common_conversion_options() {
 }
 #[test]
 fn test_value_datetime_to_string() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test Date to string conversion
     let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
@@ -204,7 +217,7 @@ fn test_value_as_bool_all_branches() {
     assert!(value.to::<bool>().is_err());
 
     // Test Empty value
-    let value = Value::Empty(DataType::Bool);
+    let value = Value::Unset(DataType::Bool);
     assert!(matches!(
         value.to::<bool>(),
         Err(ValueError::DataConversion(
@@ -264,7 +277,7 @@ fn test_value_as_int32_all_branches() {
     assert!(value.to::<i32>().is_err());
 
     // Test Empty value
-    let value = Value::Empty(DataType::Int32);
+    let value = Value::Unset(DataType::Int32);
     assert!(matches!(
         value.to::<i32>(),
         Err(ValueError::DataConversion(
@@ -283,8 +296,8 @@ fn test_value_as_int32_all_branches() {
     assert_eq!(value.to::<i32>().unwrap(), 65);
 
     // Test Float32/Float64 to i32 conversion
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     let value = Value::Float32(42.7);
     assert_eq!(value.to_with::<i32>(&lossy).unwrap(), 42);
     let value = Value::Float64(99.9);
@@ -337,7 +350,7 @@ fn test_value_as_int64_all_branches() {
     );
 
     // Test Empty value
-    let value = Value::Empty(DataType::Int64);
+    let value = Value::Unset(DataType::Int64);
     assert!(matches!(
         value.to::<i64>(),
         Err(ValueError::DataConversion(
@@ -371,7 +384,7 @@ fn test_value_as_float64_all_branches() {
     assert!(value.to::<f64>().is_err());
 
     // Test Empty value
-    let value = Value::Empty(DataType::Float64);
+    let value = Value::Unset(DataType::Float64);
     assert!(matches!(
         value.to::<f64>(),
         Err(ValueError::DataConversion(
@@ -448,7 +461,7 @@ fn test_value_as_string_all_types() {
     );
 
     // Test Empty value
-    let value = Value::Empty(DataType::String);
+    let value = Value::Unset(DataType::String);
     assert!(matches!(
         value.to::<String>(),
         Err(ValueError::DataConversion(
@@ -514,8 +527,8 @@ fn test_value_as_float64_conversions() {
 }
 #[test]
 fn test_big_type_conversions_for_coverage() {
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     use bigdecimal::BigDecimal;
     use num_bigint::BigInt;
     use std::f64;
@@ -530,20 +543,24 @@ fn test_big_type_conversions_for_coverage() {
     // BigInt -> as_int64
     let v = Value::BigInteger(BigInt::from(123456i64));
     assert_eq!(v.to::<i64>().unwrap(), 123456i64);
-    let v_overflow = Value::BigInteger(BigInt::from_str("123456789012345678901234567890").unwrap());
+    let v_overflow = Value::BigInteger(
+        BigInt::from_str("123456789012345678901234567890").unwrap(),
+    );
     assert!(v_overflow.to::<i64>().is_err());
 
     // BigInt -> as_float64
     let v = Value::BigInteger(BigInt::from(12345));
     assert!((v.to::<f64>().unwrap() - 12345.0).abs() < f64::EPSILON);
     let large_big_int_str = "1".repeat(400);
-    let v_overflow = Value::BigInteger(BigInt::from_str(&large_big_int_str).unwrap());
+    let v_overflow =
+        Value::BigInteger(BigInt::from_str(&large_big_int_str).unwrap());
     assert!(v_overflow.to::<f64>().is_err());
 
     // BigDecimal -> as_float64
     let v = Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
     assert!((v.to_with::<f64>(&lossy).unwrap() - 123.456).abs() < f64::EPSILON);
-    let v_overflow = Value::BigDecimal(BigDecimal::from_str("1.0e400").unwrap());
+    let v_overflow =
+        Value::BigDecimal(BigDecimal::from_str("1.0e400").unwrap());
     assert!(v_overflow.to::<f64>().is_err());
 }
 #[test]
@@ -551,7 +568,9 @@ fn test_as_bool_string_conversion_error() {
     // Test string to boolean conversion failure returns ConversionError
     let value = Value::String("not_a_bool".to_string());
     match value.to::<bool>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError"),
@@ -583,7 +602,9 @@ fn test_as_int32_conversion_errors() {
     // Test i64 out of range ConversionError
     let value = Value::Int64(i64::MAX);
     match value.to::<i32>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for i64 overflow"),
@@ -592,7 +613,9 @@ fn test_as_int32_conversion_errors() {
     // Test i128 out of range ConversionError
     let value = Value::Int128(i128::MAX);
     match value.to::<i32>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for i128 overflow"),
@@ -601,7 +624,9 @@ fn test_as_int32_conversion_errors() {
     // Test u32 out of range ConversionError
     let value = Value::UInt32(u32::MAX);
     match value.to::<i32>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for u32 overflow"),
@@ -610,16 +635,21 @@ fn test_as_int32_conversion_errors() {
     // Test string conversion failure ConversionError
     let value = Value::String("not_a_number".to_string());
     match value.to::<i32>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for string parse failure"),
     }
 
     // Test BigInteger out of range ConversionError
-    let value = Value::BigInteger(BigInt::from_str("999999999999999999999").unwrap());
+    let value =
+        Value::BigInteger(BigInt::from_str("999999999999999999999").unwrap());
     match value.to::<i32>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for BigInteger overflow"),
@@ -630,7 +660,9 @@ fn test_as_int64_conversion_errors() {
     // Test i128 out of range ConversionError
     let value = Value::Int128(i128::MAX);
     match value.to::<i64>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for i128 overflow"),
@@ -639,7 +671,9 @@ fn test_as_int64_conversion_errors() {
     // Test u64 out of range ConversionError
     let value = Value::UInt64(u64::MAX);
     match value.to::<i64>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for u64 overflow"),
@@ -648,16 +682,22 @@ fn test_as_int64_conversion_errors() {
     // Test string conversion failure ConversionError
     let value = Value::String("invalid_number".to_string());
     match value.to::<i64>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for string parse failure"),
     }
 
     // Test BigInteger out of range ConversionError
-    let value = Value::BigInteger(BigInt::from_str("999999999999999999999999999999").unwrap());
+    let value = Value::BigInteger(
+        BigInt::from_str("999999999999999999999999999999").unwrap(),
+    );
     match value.to::<i64>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for BigInteger overflow"),
@@ -668,7 +708,9 @@ fn test_as_float64_conversion_errors() {
     // Test string conversion failure ConversionError
     let value = Value::String("not_a_float".to_string());
     match value.to::<f64>() {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for string parse failure"),
@@ -682,9 +724,9 @@ fn test_as_int32_negative_i64_conversion() {
     // Test negative i64 out of i32 range
     let value = Value::Int64(i64::MIN);
     match value.to::<i32>() {
-        Err(ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
-            ..
-        })) => {
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue { .. },
+        )) => {
             // Expected error
         }
         _ => panic!("Expected ConversionError for negative i64 overflow"),
@@ -695,9 +737,9 @@ fn test_as_int32_negative_i128_conversion() {
     // Test negative i128 out of i32 range
     let value = Value::Int128(i128::MIN);
     match value.to::<i32>() {
-        Err(ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
-            ..
-        })) => {
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue { .. },
+        )) => {
             // Expected error
         }
         _ => panic!("Expected ConversionError for negative i128 overflow"),
@@ -708,9 +750,9 @@ fn test_as_int64_negative_i128_conversion() {
     // Test negative i128 out of i64 range
     let value = Value::Int128(i128::MIN);
     match value.to::<i64>() {
-        Err(ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
-            ..
-        })) => {
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue { .. },
+        )) => {
             // Expected error
         }
         _ => panic!("Expected ConversionError for negative i128 overflow"),
@@ -738,8 +780,8 @@ fn test_as_int64_small_uint128_conversion_failed() {
 }
 #[test]
 fn test_as_float64_int128_conversion_failed() {
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     // Test Int128 to f64 conversion
     let value = Value::Int128(100);
     assert_eq!(value.to::<f64>().unwrap(), 100.0);
@@ -750,8 +792,8 @@ fn test_as_float64_int128_conversion_failed() {
 }
 #[test]
 fn test_as_float64_uint128_conversion_failed() {
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     // Test UInt128 to f64 conversion
     let value = Value::UInt128(100);
     assert_eq!(value.to::<f64>().unwrap(), 100.0);
@@ -795,7 +837,11 @@ fn test_as_bool_string_parse_error() {
 #[test]
 fn test_as_bool_all_unsupported_types() {
     // Test all types that do not support conversion to bool
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Char type
     assert!(matches!(
@@ -1291,8 +1337,8 @@ fn test_as_float64_biginteger_conversion_error() {
 }
 #[test]
 fn test_as_float64_bigdecimal_conversion_error() {
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     use std::str::FromStr;
 
     // BigDecimal within normal range should convert successfully
@@ -1310,8 +1356,12 @@ fn test_as_float64_bigdecimal_conversion_error() {
     assert!(value.to::<f64>().is_err());
 
     // Test high precision decimals
-    let value = Value::BigDecimal(BigDecimal::from_str("0.123456789012345").unwrap());
-    assert!((value.to_with::<f64>(&lossy).unwrap() - 0.123456789012345).abs() < 1e-15);
+    let value =
+        Value::BigDecimal(BigDecimal::from_str("0.123456789012345").unwrap());
+    assert!(
+        (value.to_with::<f64>(&lossy).unwrap() - 0.123456789012345).abs()
+            < 1e-15
+    );
 }
 #[test]
 fn test_as_int32_all_unsigned_types() {
@@ -1378,8 +1428,8 @@ fn test_as_int64_all_unsigned_types() {
 }
 #[test]
 fn test_as_float64_all_integer_types() {
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     // Ensure all integer types to float64 conversion are tested
 
     // Signed integers
@@ -1440,8 +1490,8 @@ fn test_as_string_direct_string_type() {
 }
 #[test]
 fn test_conversion_with_edge_values() {
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     // Test boundary value conversions
 
     // Int32 boundary values
@@ -1506,7 +1556,10 @@ fn test_as_int32_non_numeric_type_conversion_failed() {
 
     // Verify error type
     match result {
-        Err(ValueError::DataConversion(DataConversionError::Unsupported { from, to })) => {
+        Err(ValueError::DataConversion(DataConversionError::Unsupported {
+            from,
+            to,
+        })) => {
             assert_eq!(from, DataType::Date);
             assert_eq!(to, DataType::Int32);
         }
@@ -1538,7 +1591,10 @@ fn test_as_int64_non_numeric_type_conversion_failed() {
     assert!(result.is_err());
 
     match result {
-        Err(ValueError::DataConversion(DataConversionError::Unsupported { from, to })) => {
+        Err(ValueError::DataConversion(DataConversionError::Unsupported {
+            from,
+            to,
+        })) => {
             assert_eq!(from, DataType::Time);
             assert_eq!(to, DataType::Int64);
         }
@@ -1560,8 +1616,8 @@ fn test_as_int64_big_types_edge_cases() {
     // BigInteger out of i64 range
     let huge_bigint = BigInt::from_str("99999999999999999999").unwrap();
     let value = Value::BigInteger(huge_bigint);
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     let result = value.to_with::<i64>(&lossy);
     assert!(result.is_err());
 
@@ -1574,7 +1630,10 @@ fn test_as_int64_big_types_edge_cases() {
 }
 #[test]
 fn test_as_float64_non_numeric_type_conversion_failed() {
-    use chrono::{DateTime, Utc};
+    use chrono::{
+        DateTime,
+        Utc,
+    };
 
     // DateTime type cannot convert to f64
     let datetime = DateTime::from_timestamp(1_000_000_000, 0)
@@ -1586,7 +1645,10 @@ fn test_as_float64_non_numeric_type_conversion_failed() {
     assert!(result.is_err());
 
     match result {
-        Err(ValueError::DataConversion(DataConversionError::Unsupported { from, to })) => {
+        Err(ValueError::DataConversion(DataConversionError::Unsupported {
+            from,
+            to,
+        })) => {
             assert_eq!(from, DataType::DateTime);
             assert_eq!(to, DataType::Float64);
         }
@@ -1621,7 +1683,10 @@ fn test_float32_as_bool_conversion() {
 
     // Verify error type
     match f32_zero.to::<bool>() {
-        Err(ValueError::DataConversion(DataConversionError::Unsupported { from, to })) => {
+        Err(ValueError::DataConversion(DataConversionError::Unsupported {
+            from,
+            to,
+        })) => {
             assert_eq!(from, DataType::Float32);
             assert_eq!(to, DataType::Bool);
         }
@@ -1639,8 +1704,8 @@ fn test_char_numeric_conversions() {
 }
 #[test]
 fn test_float_to_int64_conversions() {
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     let f32_val = Value::Float32(42.7);
     assert_eq!(f32_val.to_with::<i64>(&lossy).unwrap(), 42);
 
@@ -1677,7 +1742,9 @@ fn test_uint128_to_int64_overflow() {
     assert!(result.is_err());
 
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError"),
@@ -1700,7 +1767,9 @@ fn test_as_int64_int128_overflow() {
     let result = value_max.to::<i64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for i128 overflow"),
@@ -1711,7 +1780,9 @@ fn test_as_int64_int128_overflow() {
     let result = value_min.to::<i64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for i128 underflow"),
@@ -1724,7 +1795,9 @@ fn test_as_int64_uint64_overflow() {
     let result = value.to::<i64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for u64 overflow"),
@@ -1735,7 +1808,9 @@ fn test_as_int64_uint64_overflow() {
     let result = value.to::<i64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for u64 just over i64::MAX"),
@@ -1748,7 +1823,9 @@ fn test_as_int64_uint128_overflow() {
     let result = value.to::<i64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for u128 overflow"),
@@ -1759,7 +1836,9 @@ fn test_as_int64_uint128_overflow() {
     let result = large_value.to::<i64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for large u128"),
@@ -1770,28 +1849,36 @@ fn test_as_int64_bigdecimal_conversion_failed() {
     use std::str::FromStr;
 
     // Create a BigDecimal out of i64 range
-    let huge_decimal = BigDecimal::from_str("999999999999999999999.123").unwrap();
+    let huge_decimal =
+        BigDecimal::from_str("999999999999999999999.123").unwrap();
     let value = Value::BigDecimal(huge_decimal);
 
     let result = value.to::<i64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for BigDecimal conversion"),
     }
 
     // Test very small negative BigDecimal
-    let tiny_decimal = BigDecimal::from_str("-999999999999999999999.123").unwrap();
+    let tiny_decimal =
+        BigDecimal::from_str("-999999999999999999999.123").unwrap();
     let value = Value::BigDecimal(tiny_decimal);
     let result = value.to::<i64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
-        _ => panic!("Expected ConversionError for negative BigDecimal conversion"),
+        _ => panic!(
+            "Expected ConversionError for negative BigDecimal conversion"
+        ),
     }
 }
 #[test]
@@ -1801,7 +1888,9 @@ fn test_as_float64_string_parse_failed() {
     let result = value.to::<f64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError for string parse failure"),
@@ -1837,7 +1926,8 @@ fn test_as_float64_biginteger_conversion_edge_cases() {
     assert!(result.is_err());
 
     // Negative very large BigInteger should also fail
-    let neg_huge_bigint = BigInt::from_str(&format!("-{}", "9".repeat(400))).unwrap();
+    let neg_huge_bigint =
+        BigInt::from_str(&format!("-{}", "9".repeat(400))).unwrap();
     let value = Value::BigInteger(neg_huge_bigint);
     let result = value.to::<f64>();
     assert!(result.is_err());
@@ -1852,10 +1942,13 @@ fn test_as_float64_bigdecimal_conversion_edge_cases() {
     use std::str::FromStr;
 
     // BigDecimal within normal range should convert successfully
-    let normal_value = Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
-    assert!((normal_value.to_with::<f64>(&lossy).unwrap() - 123.456).abs() < 1e-10);
+    let normal_value =
+        Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
+    assert!(
+        (normal_value.to_with::<f64>(&lossy).unwrap() - 123.456).abs() < 1e-10
+    );
 
     // Very large BigDecimal should fail
     let huge_decimal = BigDecimal::from_str("1e400").unwrap();
@@ -1910,7 +2003,9 @@ fn test_as_float64_string_parse_all_error_cases() {
     let result = value.to::<f64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(error @ DataConversionError::InvalidValue { .. })) => {
+        Err(ValueError::DataConversion(
+            error @ DataConversionError::InvalidValue { .. },
+        )) => {
             assert!(matches!(error, DataConversionError::InvalidValue { .. }));
         }
         _ => panic!("Expected ConversionError"),
@@ -1921,9 +2016,9 @@ fn test_as_float64_string_parse_all_error_cases() {
     let result = value.to::<f64>();
     assert!(result.is_err());
     match result {
-        Err(ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
-            ..
-        })) => {
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue { .. },
+        )) => {
             // Expected
         }
         _ => panic!("Expected ConversionError for empty string"),
@@ -1970,8 +2065,8 @@ fn test_as_float64_string_parse_all_error_cases() {
 
     // Comparison: Valid floating point string should succeed
     let valid_value = Value::String("123.45".to_string());
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     assert!(valid_value.to_with::<f64>(&lossy).is_ok());
     assert_eq!(valid_value.to_with::<f64>(&lossy).unwrap(), 123.45);
 }
@@ -2033,8 +2128,8 @@ fn test_big_number_to_f32_and_f64_failures() {
 
 #[test]
 fn test_narrow_signed_integer_converters_accept_numeric_sources() {
-    let lossy =
-        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let lossy = DataConversionOptions::default()
+        .with_numeric_policy(NumericConversionPolicy::Lossy);
     let cases = vec![
         (Value::Bool(true), 1i128),
         (Value::Bool(false), 0),
@@ -2044,13 +2139,11 @@ fn test_narrow_signed_integer_converters_accept_numeric_sources() {
         (Value::Int32(-32), -32),
         (Value::Int64(-64), -64),
         (Value::Int128(-128), -128),
-        (Value::IntSize(-256), -256),
         (Value::UInt8(8), 8),
         (Value::UInt16(16), 16),
         (Value::UInt32(32), 32),
         (Value::UInt64(64), 64),
         (Value::UInt128(128), 128),
-        (Value::UIntSize(512), 512),
         (Value::Float32(12.9), 12),
         (Value::Float64(-34.7), -34),
         (Value::String("-55".to_string()), -55),
@@ -2070,10 +2163,6 @@ fn test_narrow_signed_integer_converters_accept_numeric_sources() {
             .unwrap(),
         32_000
     );
-    assert_eq!(
-        Value::String("-123".to_string()).to::<isize>().unwrap(),
-        -123
-    );
 }
 
 #[test]
@@ -2081,7 +2170,6 @@ fn test_narrow_signed_integer_converters_reject_invalid_values() {
     assert!(Value::String("128".to_string()).to::<i8>().is_err());
     assert!(Value::Char('\u{80}').to::<i8>().is_err());
     assert!(Value::Int32(i16::MAX as i32 + 1).to::<i16>().is_err());
-    assert!(Value::Int128(isize::MAX as i128 + 1).to::<isize>().is_err());
     assert!(Value::UInt128(i128::MAX as u128 + 1).to::<i128>().is_err());
     assert!(Value::Float64(f64::INFINITY).to::<i128>().is_err());
     assert!(Value::Float64(f64::MAX).to::<i128>().is_err());
@@ -2103,54 +2191,9 @@ fn test_narrow_signed_integer_converters_reject_invalid_values() {
         ))
     ));
     assert!(matches!(
-        Value::Empty(DataType::Int128).to::<i128>(),
+        Value::Unset(DataType::Int128).to::<i128>(),
         Err(ValueError::DataConversion(
             DataConversionError::Missing { .. }
         ))
     ));
-}
-
-#[test]
-fn test_usize_converter_accepts_integer_sources() {
-    let cases = vec![
-        (Value::Bool(true), 1usize),
-        (Value::Bool(false), 0),
-        (Value::Char('A'), 65),
-        (Value::Int8(8), 8),
-        (Value::Int16(16), 16),
-        (Value::Int32(32), 32),
-        (Value::Int64(64), 64),
-        (Value::Int128(128), 128),
-        (Value::IntSize(256), 256),
-        (Value::UInt8(8), 8),
-        (Value::UInt16(16), 16),
-        (Value::UInt32(32), 32),
-        (Value::UInt64(64), 64),
-        (Value::UInt128(128), 128),
-        (Value::UIntSize(512), 512),
-        (Value::String("1024".to_string()), 1024),
-    ];
-
-    for (value, expected) in cases {
-        assert_eq!(value.to::<usize>().unwrap(), expected);
-    }
-}
-
-#[test]
-fn test_usize_converter_rejects_invalid_values() {
-    assert!(Value::Int8(-1).to::<usize>().is_err());
-    assert!(Value::IntSize(-1).to::<usize>().is_err());
-    assert!(
-        Value::UInt128(usize::MAX as u128 + 1)
-            .to::<usize>()
-            .is_err()
-    );
-    assert!(Value::String("invalid".to_string()).to::<usize>().is_err());
-    assert!(matches!(
-        Value::Empty(DataType::UIntSize).to::<usize>(),
-        Err(ValueError::DataConversion(
-            DataConversionError::Missing { .. }
-        ))
-    ));
-    assert_eq!(Value::Float64(1.0).to::<usize>(), Ok(1));
 }

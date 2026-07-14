@@ -12,7 +12,10 @@
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::str::FromStr;
 
 #[test]
@@ -54,14 +57,18 @@ fn test_value_generic_get() {
 
 #[test]
 fn test_value_defaulted_reads_use_default_only_for_empty() {
-    use qubit_datatype::{DataConversionOptions, StringConversionOptions};
+    use qubit_datatype::{
+        DataConversionOptions,
+        StringConversionOptions,
+    };
 
     let empty = Value::default();
     assert_eq!(empty.get_or::<String>("fallback").unwrap(), "fallback");
     assert_eq!(empty.to_or::<u16>(8080).unwrap(), 8080);
 
-    let options = DataConversionOptions::default()
-        .with_string_options(StringConversionOptions::default().with_trim(true));
+    let options = DataConversionOptions::default().with_string_options(
+        StringConversionOptions::default().with_trim(true),
+    );
     assert_eq!(
         empty.to_or_with::<String>(" fallback ", &options).unwrap(),
         " fallback "
@@ -79,7 +86,7 @@ fn test_value_defaulted_reads_use_default_only_for_empty() {
 
 #[test]
 fn test_value_get_or_rejects_empty_value_with_mismatched_type() {
-    let empty_int = Value::Empty(DataType::Int32);
+    let empty_int = Value::Unset(DataType::Int32);
 
     assert!(matches!(
         empty_int.get_or::<String>("fallback"),
@@ -93,6 +100,13 @@ fn test_value_get_or_rejects_empty_value_with_mismatched_type() {
         empty_int.get_string(),
         Err(ValueError::TypeMismatch {
             expected: DataType::String,
+            actual: DataType::Int32,
+        })
+    ));
+    assert!(matches!(
+        empty_int.get_bool(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Bool,
             actual: DataType::Int32,
         })
     ));
@@ -128,77 +142,77 @@ fn test_value_generic_get_all_types() {
 #[test]
 fn test_value_set_methods() {
     // Test set method for basic types
-    let mut value = Value::Empty(DataType::Int32);
+    let mut value = Value::Unset(DataType::Int32);
     value.set(42);
     assert_eq!(value.get_int32().unwrap(), 42);
 
-    let mut value = Value::Empty(DataType::Bool);
+    let mut value = Value::Unset(DataType::Bool);
     value.set(true);
     assert!(value.get_bool().unwrap());
 
-    let mut value = Value::Empty(DataType::String);
+    let mut value = Value::Unset(DataType::String);
     value.set("hello".to_string());
     assert_eq!(value.get_string().unwrap(), "hello");
 }
 #[test]
 fn test_value_generic_set() {
     // Test generic set method
-    let mut value = Value::Empty(DataType::Int32);
+    let mut value = Value::Unset(DataType::Int32);
     value.set(42i32);
     assert_eq!(value.get_int32().unwrap(), 42);
 
-    let mut value = Value::Empty(DataType::String);
+    let mut value = Value::Unset(DataType::String);
     value.set("hello".to_string());
     assert_eq!(value.get_string().unwrap(), "hello");
 
-    let mut value = Value::Empty(DataType::Bool);
+    let mut value = Value::Unset(DataType::Bool);
     value.set(true);
     assert!(value.get_bool().unwrap());
 }
 #[test]
 fn test_value_set_all_types() {
     // Test set method for all types
-    let mut value = Value::Empty(DataType::Bool);
+    let mut value = Value::Unset(DataType::Bool);
     value.set(true);
     assert!(value.get_bool().unwrap());
 
-    let mut value = Value::Empty(DataType::Char);
+    let mut value = Value::Unset(DataType::Char);
     value.set('A');
     assert_eq!(value.get_char().unwrap(), 'A');
 
-    let mut value = Value::Empty(DataType::Int8);
+    let mut value = Value::Unset(DataType::Int8);
     value.set(42i8);
     assert_eq!(value.get_int8().unwrap(), 42);
 
-    let mut value = Value::Empty(DataType::Int16);
+    let mut value = Value::Unset(DataType::Int16);
     value.set(1000i16);
     assert_eq!(value.get_int16().unwrap(), 1000);
 
-    let mut value = Value::Empty(DataType::Int32);
+    let mut value = Value::Unset(DataType::Int32);
     value.set(100000i32);
     assert_eq!(value.get_int32().unwrap(), 100000);
 
-    let mut value = Value::Empty(DataType::Int64);
+    let mut value = Value::Unset(DataType::Int64);
     value.set(1000000000i64);
     assert_eq!(value.get_int64().unwrap(), 1000000000);
 
-    let mut value = Value::Empty(DataType::UInt8);
+    let mut value = Value::Unset(DataType::UInt8);
     value.set(255u8);
     assert_eq!(value.get_uint8().unwrap(), 255);
 
-    let mut value = Value::Empty(DataType::UInt16);
+    let mut value = Value::Unset(DataType::UInt16);
     value.set(65535u16);
     assert_eq!(value.get_uint16().unwrap(), 65535);
 
-    let mut value = Value::Empty(DataType::UInt32);
+    let mut value = Value::Unset(DataType::UInt32);
     value.set(4294967295u32);
     assert_eq!(value.get_uint32().unwrap(), 4294967295);
 
-    let mut value = Value::Empty(DataType::Float32);
+    let mut value = Value::Unset(DataType::Float32);
     value.set(3.5f32);
     assert_eq!(value.get_float32().unwrap(), 3.5);
 
-    let mut value = Value::Empty(DataType::Float64);
+    let mut value = Value::Unset(DataType::Float64);
     value.set(3.5f64);
     assert_eq!(value.get_float64().unwrap(), 3.5);
 }
@@ -219,13 +233,13 @@ fn test_biginteger_value() {
     assert_eq!(string_repr, "12345678901234567890");
 
     // Test setting value
-    let mut value = Value::Empty(DataType::BigInteger);
+    let mut value = Value::Unset(DataType::BigInteger);
     let new_big_int = BigInt::from_str("98765432109876543210").unwrap();
     value.set(new_big_int.clone());
     assert_eq!(value.get_biginteger().unwrap(), new_big_int);
 
     // Test generic methods
-    let mut value = Value::Empty(DataType::BigInteger);
+    let mut value = Value::Unset(DataType::BigInteger);
     value.set(big_int.clone());
     let retrieved: BigInt = value.get().unwrap();
     assert_eq!(retrieved, big_int);
@@ -247,13 +261,13 @@ fn test_bigdecimal_value() {
     assert_eq!(string_repr, "123.456789");
 
     // Test setting value
-    let mut value = Value::Empty(DataType::BigDecimal);
+    let mut value = Value::Unset(DataType::BigDecimal);
     let new_big_decimal = BigDecimal::from_str("987.654321").unwrap();
     value.set(new_big_decimal.clone());
     assert_eq!(value.get_bigdecimal().unwrap(), new_big_decimal);
 
     // Test generic methods
-    let mut value = Value::Empty(DataType::BigDecimal);
+    let mut value = Value::Unset(DataType::BigDecimal);
     value.set(big_decimal.clone());
     let retrieved: BigDecimal = value.get().unwrap();
     assert_eq!(retrieved, big_decimal);
@@ -282,17 +296,17 @@ fn test_biginteger_bigdecimal_type_mismatch() {
 #[test]
 fn test_value_set_all_integer_types() {
     // Test Int128
-    let mut value = Value::Empty(DataType::Int128);
+    let mut value = Value::Unset(DataType::Int128);
     value.set(123456789012345678i128);
     assert_eq!(value.get_int128().unwrap(), 123456789012345678i128);
 
     // Test UInt64
-    let mut value = Value::Empty(DataType::UInt64);
+    let mut value = Value::Unset(DataType::UInt64);
     value.set(18446744073709551615u64);
     assert_eq!(value.get_uint64().unwrap(), 18446744073709551615u64);
 
     // Test UInt128
-    let mut value = Value::Empty(DataType::UInt128);
+    let mut value = Value::Unset(DataType::UInt128);
     value.set(340282366920938463463374607431768211455u128);
     assert_eq!(
         value.get_uint128().unwrap(),
@@ -303,83 +317,83 @@ fn test_value_set_all_integer_types() {
 fn test_value_getter_empty_value_errors() {
     // Test Empty value get errors for all types
     assert!(matches!(
-        Value::Empty(DataType::Bool).get_bool(),
+        Value::Unset(DataType::Bool).get_bool(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Char).get_char(),
+        Value::Unset(DataType::Char).get_char(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Int8).get_int8(),
+        Value::Unset(DataType::Int8).get_int8(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Int16).get_int16(),
+        Value::Unset(DataType::Int16).get_int16(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Int32).get_int32(),
+        Value::Unset(DataType::Int32).get_int32(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Int64).get_int64(),
+        Value::Unset(DataType::Int64).get_int64(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Int128).get_int128(),
+        Value::Unset(DataType::Int128).get_int128(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::UInt8).get_uint8(),
+        Value::Unset(DataType::UInt8).get_uint8(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::UInt16).get_uint16(),
+        Value::Unset(DataType::UInt16).get_uint16(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::UInt32).get_uint32(),
+        Value::Unset(DataType::UInt32).get_uint32(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::UInt64).get_uint64(),
+        Value::Unset(DataType::UInt64).get_uint64(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::UInt128).get_uint128(),
+        Value::Unset(DataType::UInt128).get_uint128(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Float32).get_float32(),
+        Value::Unset(DataType::Float32).get_float32(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Float64).get_float64(),
+        Value::Unset(DataType::Float64).get_float64(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Date).get_date(),
+        Value::Unset(DataType::Date).get_date(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Time).get_time(),
+        Value::Unset(DataType::Time).get_time(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::DateTime).get_datetime(),
+        Value::Unset(DataType::DateTime).get_datetime(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::Instant).get_instant(),
+        Value::Unset(DataType::Instant).get_instant(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::BigInteger).get_biginteger(),
+        Value::Unset(DataType::BigInteger).get_biginteger(),
         Err(ValueError::NoValue)
     ));
     assert!(matches!(
-        Value::Empty(DataType::BigDecimal).get_bigdecimal(),
+        Value::Unset(DataType::BigDecimal).get_bigdecimal(),
         Err(ValueError::NoValue)
     ));
 }
@@ -412,27 +426,27 @@ fn test_value_type_mismatch_errors() {
 #[test]
 fn test_value_setter_type_mismatch() {
     // Test all setters handling of Empty values
-    let mut value = Value::Empty(DataType::String);
+    let mut value = Value::Unset(DataType::String);
     value.set(true);
     assert!(value.get_bool().unwrap());
 
-    let mut value = Value::Empty(DataType::Bool);
+    let mut value = Value::Unset(DataType::Bool);
     value.set('X');
     assert_eq!(value.get_char().unwrap(), 'X');
 
-    let mut value = Value::Empty(DataType::Char);
+    let mut value = Value::Unset(DataType::Char);
     value.set(10_i8);
     assert_eq!(value.get_int8().unwrap(), 10);
 
-    let mut value = Value::Empty(DataType::Int8);
+    let mut value = Value::Unset(DataType::Int8);
     value.set(1_000_i16);
     assert_eq!(value.get_int16().unwrap(), 1000);
 
-    let mut value = Value::Empty(DataType::Int16);
+    let mut value = Value::Unset(DataType::Int16);
     value.set(3.5_f32);
     assert_eq!(value.get_float32().unwrap(), 3.5);
 
-    let mut value = Value::Empty(DataType::Float32);
+    let mut value = Value::Unset(DataType::Float32);
     value.set(2.5);
     assert_eq!(value.get_float64().unwrap(), 2.5);
 }
@@ -487,28 +501,28 @@ fn test_value_borrowing_getters_for_non_copy_types() {
 }
 #[test]
 fn test_value_borrowing_getters_error_branches() {
-    let empty_json = Value::Empty(DataType::Json);
+    let empty_json = Value::Unset(DataType::Json);
     assert!(matches!(
         empty_json.get_json_ref(),
         Err(ValueError::NoValue)
     ));
 
-    let empty_biginteger = Value::Empty(DataType::BigInteger);
+    let empty_biginteger = Value::Unset(DataType::BigInteger);
     assert!(matches!(
         empty_biginteger.get_biginteger_ref(),
         Err(ValueError::NoValue)
     ));
 
-    let empty_bigdecimal = Value::Empty(DataType::BigDecimal);
+    let empty_bigdecimal = Value::Unset(DataType::BigDecimal);
     assert!(matches!(
         empty_bigdecimal.get_bigdecimal_ref(),
         Err(ValueError::NoValue)
     ));
 
-    let empty_url = Value::Empty(DataType::Url);
+    let empty_url = Value::Unset(DataType::Url);
     assert!(matches!(empty_url.get_url_ref(), Err(ValueError::NoValue)));
 
-    let empty_string_map = Value::Empty(DataType::StringMap);
+    let empty_string_map = Value::Unset(DataType::StringMap);
     assert!(matches!(
         empty_string_map.get_string_map_ref(),
         Err(ValueError::NoValue)
@@ -556,7 +570,7 @@ fn test_value_borrowing_getters_error_branches() {
         Err(ValueError::TypeMismatch { .. })
     ));
 
-    let wrong_empty = Value::Empty(DataType::String);
+    let wrong_empty = Value::Unset(DataType::String);
     assert_ne!(wrong_empty.data_type(), DataType::BigInteger);
     assert_eq!(wrong_empty.data_type(), DataType::String);
     assert_eq!(

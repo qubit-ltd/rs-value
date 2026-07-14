@@ -10,89 +10,97 @@
 //! Covers the four generic entry points `set`/`add`/`get`/`get_first`,
 //! verifying all supported types and three parameter categories。
 
-use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveTime,
+    Utc,
+};
 use qubit_datatype::DataType;
-use qubit_value::{IntoValueDefault, MultiValues};
+use qubit_value::{
+    IntoValueDefault,
+    MultiValues,
+};
 
 // ------------------------------ set: Vec<T> ------------------------------
 
 #[test]
 fn test_generic_set_vec_all_types() {
     // bool
-    let mut mv = MultiValues::Empty(DataType::Bool);
+    let mut mv = MultiValues::Unset(DataType::Bool);
     mv.set(vec![true, false]);
     assert_eq!(mv.get_bools().unwrap(), &[true, false]);
 
     // char
-    let mut mv = MultiValues::Empty(DataType::Char);
+    let mut mv = MultiValues::Unset(DataType::Char);
     mv.set(vec!['a', 'b']);
     assert_eq!(mv.get_chars().unwrap(), &['a', 'b']);
 
     // integers
-    let mut mv = MultiValues::Empty(DataType::Int8);
+    let mut mv = MultiValues::Unset(DataType::Int8);
     mv.set(vec![1i8, 2]);
     assert_eq!(mv.get_int8s().unwrap(), &[1, 2]);
 
-    let mut mv = MultiValues::Empty(DataType::Int16);
+    let mut mv = MultiValues::Unset(DataType::Int16);
     mv.set(vec![1i16, 2]);
     assert_eq!(mv.get_int16s().unwrap(), &[1, 2]);
 
-    let mut mv = MultiValues::Empty(DataType::Int32);
+    let mut mv = MultiValues::Unset(DataType::Int32);
     mv.set(vec![1i32, 2]);
     assert_eq!(mv.get_int32s().unwrap(), &[1, 2]);
 
-    let mut mv = MultiValues::Empty(DataType::Int64);
+    let mut mv = MultiValues::Unset(DataType::Int64);
     mv.set(vec![1i64, 2]);
     assert_eq!(mv.get_int64s().unwrap(), &[1, 2]);
 
-    let mut mv = MultiValues::Empty(DataType::Int128);
+    let mut mv = MultiValues::Unset(DataType::Int128);
     mv.set(vec![1i128, 2]);
     assert_eq!(mv.get_int128s().unwrap(), &[1, 2]);
 
-    let mut mv = MultiValues::Empty(DataType::UInt8);
+    let mut mv = MultiValues::Unset(DataType::UInt8);
     mv.set(vec![1u8, 2, 3]);
     assert_eq!(mv.get::<u8>().unwrap(), vec![1u8, 2, 3]);
 
-    let mut mv = MultiValues::Empty(DataType::UInt16);
+    let mut mv = MultiValues::Unset(DataType::UInt16);
     mv.set(vec![1u16, 2]);
     assert_eq!(mv.get_uint16s().unwrap(), &[1, 2]);
 
-    let mut mv = MultiValues::Empty(DataType::UInt32);
+    let mut mv = MultiValues::Unset(DataType::UInt32);
     mv.set(vec![1u32, 2]);
     assert_eq!(mv.get_uint32s().unwrap(), &[1, 2]);
 
-    let mut mv = MultiValues::Empty(DataType::UInt64);
+    let mut mv = MultiValues::Unset(DataType::UInt64);
     mv.set(vec![1u64, 2]);
     assert_eq!(mv.get_uint64s().unwrap(), &[1, 2]);
 
-    let mut mv = MultiValues::Empty(DataType::UInt128);
+    let mut mv = MultiValues::Unset(DataType::UInt128);
     mv.set(vec![1u128, 2]);
     assert_eq!(mv.get_uint128s().unwrap(), &[1, 2]);
 
     // floats
-    let mut mv = MultiValues::Empty(DataType::Float32);
+    let mut mv = MultiValues::Unset(DataType::Float32);
     mv.set(vec![1.0f32, 2.0]);
     assert_eq!(mv.get_float32s().unwrap(), &[1.0, 2.0]);
 
-    let mut mv = MultiValues::Empty(DataType::Float64);
+    let mut mv = MultiValues::Unset(DataType::Float64);
     mv.set(vec![1.0f64, 2.0]);
     assert_eq!(mv.get_float64s().unwrap(), &[1.0, 2.0]);
 
     // string
-    let mut mv = MultiValues::Empty(DataType::String);
+    let mut mv = MultiValues::Unset(DataType::String);
     mv.set(vec!["a".to_string(), "b".to_string()]);
     assert_eq!(mv.get_strings().unwrap(), &["a", "b"]);
 
     // date/time
     let d1 = NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
     let d2 = NaiveDate::from_ymd_opt(2020, 1, 2).unwrap();
-    let mut mv = MultiValues::Empty(DataType::Date);
+    let mut mv = MultiValues::Unset(DataType::Date);
     mv.set(vec![d1, d2]);
     assert_eq!(mv.get_dates().unwrap().len(), 2);
 
     let t1 = NaiveTime::from_hms_opt(12, 0, 0).unwrap();
     let t2 = NaiveTime::from_hms_opt(13, 0, 0).unwrap();
-    let mut mv = MultiValues::Empty(DataType::Time);
+    let mut mv = MultiValues::Unset(DataType::Time);
     mv.set(vec![t1, t2]);
     assert_eq!(mv.get_times().unwrap().len(), 2);
 
@@ -104,13 +112,13 @@ fn test_generic_set_vec_all_types() {
         .unwrap()
         .and_hms_opt(0, 0, 0)
         .unwrap();
-    let mut mv = MultiValues::Empty(DataType::DateTime);
+    let mut mv = MultiValues::Unset(DataType::DateTime);
     mv.set(vec![ndt1, ndt2]);
     assert_eq!(mv.get_datetimes().unwrap().len(), 2);
 
     let i1 = DateTime::<Utc>::from_naive_utc_and_offset(ndt1, Utc);
     let i2 = DateTime::<Utc>::from_naive_utc_and_offset(ndt2, Utc);
-    let mut mv = MultiValues::Empty(DataType::Instant);
+    let mut mv = MultiValues::Unset(DataType::Instant);
     mv.set(vec![i1, i2]);
     assert_eq!(mv.get_instants().unwrap().len(), 2);
 }
@@ -120,17 +128,17 @@ fn test_generic_set_vec_all_types() {
 #[test]
 fn test_generic_set_slice_all_types() {
     // int32 as representative style with slice; other types follow same path
-    let mut mv = MultiValues::Empty(DataType::Int32);
+    let mut mv = MultiValues::Unset(DataType::Int32);
     let v = [10i32, 20, 30];
     mv.set(&v[..]);
     assert_eq!(mv.get_int32s().unwrap(), &[10, 20, 30]);
 
-    let mut mv = MultiValues::Empty(DataType::String);
+    let mut mv = MultiValues::Unset(DataType::String);
     let s = ["x".to_string(), "y".to_string()];
     mv.set(&s[..]);
     assert_eq!(mv.get_strings().unwrap(), &["x", "y"]);
 
-    let mut mv = MultiValues::Empty(DataType::UInt8);
+    let mut mv = MultiValues::Unset(DataType::UInt8);
     let b = vec![9u8, 8, 7, 6];
     mv.set(&b[..]);
     assert_eq!(mv.get::<u8>().unwrap(), b);
@@ -179,7 +187,7 @@ fn test_generic_new_convenient_inputs_for_coverage() {
 
 #[test]
 fn test_generic_set_convenient_inputs_for_coverage() {
-    let mut values = MultiValues::Empty(DataType::Int32);
+    let mut values = MultiValues::Unset(DataType::Int32);
     let vec_ref = vec![1i32, 2];
     values.set(&vec_ref);
     assert_eq!(values.get_int32s().unwrap(), &[1, 2]);
@@ -191,7 +199,7 @@ fn test_generic_set_convenient_inputs_for_coverage() {
     values.set(array_ref);
     assert_eq!(values.get_int32s().unwrap(), &[5, 6]);
 
-    let mut values = MultiValues::Empty(DataType::String);
+    let mut values = MultiValues::Unset(DataType::String);
     let owned_vec_ref = vec!["a".to_string(), "b".to_string()];
     values.set(&owned_vec_ref);
     assert_eq!(values.get_strings().unwrap(), &["a", "b"]);
@@ -299,7 +307,9 @@ fn test_into_value_default_inputs_for_coverage() {
 
     let array_ref = [7i32, 8];
     let array_ref_arg: &[i32; 2] = &array_ref;
-    let value = <&[i32; 2] as IntoValueDefault<Vec<i32>>>::into_value_default(array_ref_arg);
+    let value = <&[i32; 2] as IntoValueDefault<Vec<i32>>>::into_value_default(
+        array_ref_arg,
+    );
     assert_eq!(value, vec![7, 8]);
 
     let value: Vec<String> = into_default(vec!["a", "b"]);
@@ -319,7 +329,9 @@ fn test_into_value_default_inputs_for_coverage() {
     let str_array_ref = ["i", "j"];
     let str_array_ref_arg: &[&str; 2] = &str_array_ref;
     let value =
-        <&[&str; 2] as IntoValueDefault<Vec<String>>>::into_value_default(str_array_ref_arg);
+        <&[&str; 2] as IntoValueDefault<Vec<String>>>::into_value_default(
+            str_array_ref_arg,
+        );
     assert_eq!(value, vec!["i".to_string(), "j".to_string()]);
 }
 
@@ -327,15 +339,15 @@ fn test_into_value_default_inputs_for_coverage() {
 
 #[test]
 fn test_generic_set_single_all_types() {
-    let mut mv = MultiValues::Empty(DataType::Int64);
+    let mut mv = MultiValues::Unset(DataType::Int64);
     mv.set(123i64);
     assert_eq!(mv.get_int64s().unwrap(), &[123]);
 
-    let mut mv = MultiValues::Empty(DataType::String);
+    let mut mv = MultiValues::Unset(DataType::String);
     mv.set("ok".to_string());
     assert_eq!(mv.get_strings().unwrap(), &["ok"]);
 
-    let mut mv = MultiValues::Empty(DataType::UInt8);
+    let mut mv = MultiValues::Unset(DataType::UInt8);
     mv.set(42u8);
     assert_eq!(mv.get::<u8>().unwrap(), vec![42u8]);
 }
