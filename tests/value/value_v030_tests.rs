@@ -14,15 +14,9 @@
 //! - `HashMap<String, String>`
 //! - `serde_json::Value` (Json escape hatch)
 
-use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use qubit_datatype::{DataConversionOptions, DataType, NumericConversionPolicy};
+use qubit_value::{Value, ValueError};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
@@ -35,7 +29,7 @@ use url::Url;
 fn test_value_intsize_creation() {
     let v = Value::IntSize(42isize);
     assert_eq!(v.data_type(), DataType::IntSize);
-    assert!(!v.is_empty());
+    assert!(!v.is_unset());
 }
 
 #[test]
@@ -53,7 +47,7 @@ fn test_value_intsize_negative() {
 #[test]
 fn test_value_intsize_set() {
     let mut v = Value::Empty(DataType::IntSize);
-    v.set_intsize(42isize).unwrap();
+    v.set(42isize);
     assert_eq!(v.get_intsize().unwrap(), 42isize);
 }
 
@@ -82,7 +76,7 @@ fn test_value_intsize_generic_new() {
 #[test]
 fn test_value_intsize_generic_set() {
     let mut v = Value::IntSize(0isize);
-    v.set(99isize).unwrap();
+    v.set(99isize);
     assert_eq!(v.get_intsize().unwrap(), 99isize);
 }
 
@@ -96,7 +90,7 @@ fn test_value_intsize_as_string() {
 fn test_value_intsize_clear() {
     let mut v = Value::IntSize(10isize);
     v.clear();
-    assert!(v.is_empty());
+    assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::IntSize);
 }
 
@@ -116,7 +110,7 @@ fn test_value_intsize_serde_roundtrip() {
 fn test_value_uintsize_creation() {
     let v = Value::UIntSize(42usize);
     assert_eq!(v.data_type(), DataType::UIntSize);
-    assert!(!v.is_empty());
+    assert!(!v.is_unset());
 }
 
 #[test]
@@ -128,7 +122,7 @@ fn test_value_uintsize_get() {
 #[test]
 fn test_value_uintsize_set() {
     let mut v = Value::Empty(DataType::UIntSize);
-    v.set_uintsize(512usize).unwrap();
+    v.set(512usize);
     assert_eq!(v.get_uintsize().unwrap(), 512usize);
 }
 
@@ -171,7 +165,7 @@ fn test_value_duration_creation() {
     let d = Duration::from_secs(30);
     let v = Value::Duration(d);
     assert_eq!(v.data_type(), DataType::Duration);
-    assert!(!v.is_empty());
+    assert!(!v.is_unset());
 }
 
 #[test]
@@ -185,7 +179,7 @@ fn test_value_duration_get() {
 fn test_value_duration_set() {
     let mut v = Value::Empty(DataType::Duration);
     let d = Duration::from_secs(60);
-    v.set_duration(d).unwrap();
+    v.set(d);
     assert_eq!(v.get_duration().unwrap(), d);
 }
 
@@ -217,7 +211,7 @@ fn test_value_duration_generic_set() {
     let d1 = Duration::from_secs(1);
     let d2 = Duration::from_secs(2);
     let mut v = Value::Duration(d1);
-    v.set(d2).unwrap();
+    v.set(d2);
     assert_eq!(v.get_duration().unwrap(), d2);
 }
 
@@ -249,7 +243,9 @@ fn test_value_duration_as_duration_invalid_string() {
     let v = Value::String("1.5s".to_string());
     assert!(matches!(
         v.to::<Duration>(),
-        Err(ValueError::ConversionError(_))
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue { .. }
+        ))
     ));
 }
 
@@ -264,7 +260,7 @@ fn test_value_duration_zero() {
 fn test_value_duration_clear() {
     let mut v = Value::Duration(Duration::from_secs(10));
     v.clear();
-    assert!(v.is_empty());
+    assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::Duration);
 }
 
@@ -285,7 +281,7 @@ fn test_value_url_creation() {
     let url = Url::parse("https://example.com").unwrap();
     let v = Value::Url(url);
     assert_eq!(v.data_type(), DataType::Url);
-    assert!(!v.is_empty());
+    assert!(!v.is_unset());
 }
 
 #[test]
@@ -299,7 +295,7 @@ fn test_value_url_get() {
 fn test_value_url_set() {
     let mut v = Value::Empty(DataType::Url);
     let url = Url::parse("http://localhost:8080").unwrap();
-    v.set_url(url.clone()).unwrap();
+    v.set(url.clone());
     assert_eq!(v.get_url().unwrap(), url);
 }
 
@@ -332,7 +328,7 @@ fn test_value_url_generic_set() {
     let url1 = Url::parse("https://old.example.com").unwrap();
     let url2 = Url::parse("https://new.example.com").unwrap();
     let mut v = Value::Url(url1);
-    v.set(url2.clone()).unwrap();
+    v.set(url2.clone());
     assert_eq!(v.get_url().unwrap(), url2);
 }
 
@@ -360,22 +356,25 @@ fn test_value_url_as_url_from_string() {
 #[test]
 fn test_value_url_as_url_invalid_string() {
     let v = Value::String("not-a-url".to_string());
-    assert!(matches!(v.to::<Url>(), Err(ValueError::ConversionError(_))));
+    assert!(matches!(
+        v.to::<Url>(),
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue { .. }
+        ))
+    ));
 }
 
 #[test]
 fn test_value_url_clear() {
     let mut v = Value::Url(Url::parse("https://example.com").unwrap());
     v.clear();
-    assert!(v.is_empty());
+    assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::Url);
 }
 
 #[test]
 fn test_value_url_serde_roundtrip() {
-    let original = Value::Url(
-        Url::parse("https://example.com/path?key=value#anchor").unwrap(),
-    );
+    let original = Value::Url(Url::parse("https://example.com/path?key=value#anchor").unwrap());
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
@@ -397,7 +396,7 @@ fn test_value_stringmap_creation() {
     let m = make_map(&[("host", "localhost"), ("port", "8080")]);
     let v = Value::StringMap(m);
     assert_eq!(v.data_type(), DataType::StringMap);
-    assert!(!v.is_empty());
+    assert!(!v.is_unset());
 }
 
 #[test]
@@ -411,7 +410,7 @@ fn test_value_stringmap_get() {
 fn test_value_stringmap_set() {
     let mut v = Value::Empty(DataType::StringMap);
     let m = make_map(&[("a", "1"), ("b", "2")]);
-    v.set_string_map(m.clone()).unwrap();
+    v.set(m.clone());
     assert_eq!(v.get_string_map().unwrap(), m);
 }
 
@@ -451,7 +450,7 @@ fn test_value_stringmap_generic_set() {
     let m1 = make_map(&[("old", "val")]);
     let m2 = make_map(&[("new", "val2")]);
     let mut v = Value::StringMap(m1);
-    v.set(m2.clone()).unwrap();
+    v.set(m2.clone());
     assert_eq!(v.get_string_map().unwrap(), m2);
 }
 
@@ -468,7 +467,7 @@ fn test_value_stringmap_as_string_is_json() {
 fn test_value_stringmap_clear() {
     let mut v = Value::StringMap(make_map(&[("a", "b")]));
     v.clear();
-    assert!(v.is_empty());
+    assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::StringMap);
 }
 
@@ -492,7 +491,7 @@ fn test_value_json_creation() {
     let j = serde_json::json!({"key": "value", "num": 42});
     let v = Value::Json(j);
     assert_eq!(v.data_type(), DataType::Json);
-    assert!(!v.is_empty());
+    assert!(!v.is_unset());
 }
 
 #[test]
@@ -506,7 +505,7 @@ fn test_value_json_get() {
 fn test_value_json_set() {
     let mut v = Value::Empty(DataType::Json);
     let j = serde_json::json!(true);
-    v.set_json(j.clone()).unwrap();
+    v.set(j.clone());
     assert_eq!(v.get_json().unwrap(), j);
 }
 
@@ -539,7 +538,7 @@ fn test_value_json_generic_set() {
     let j1 = serde_json::json!(1);
     let j2 = serde_json::json!(2);
     let mut v = Value::Json(j1);
-    v.set(j2.clone()).unwrap();
+    v.set(j2.clone());
     assert_eq!(v.get_json().unwrap(), j2);
 }
 
@@ -587,7 +586,12 @@ fn test_value_json_as_json_invalid_string() {
     let v = Value::String("{invalid json}".to_string());
     assert!(matches!(
         v.to::<serde_json::Value>(),
-        Err(ValueError::JsonDeserializationError(_))
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue {
+                reason: qubit_datatype::InvalidValueReason::Deserialization { .. },
+                ..
+            }
+        ))
     ));
 }
 
@@ -615,7 +619,9 @@ fn test_value_to_json() {
 #[test]
 fn test_value_to_string() {
     let v = Value::Duration(Duration::from_nanos(7));
-    let got: String = v.to().unwrap();
+    let options =
+        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let got: String = v.to_with(&options).unwrap();
     assert_eq!(got, "0ms");
 }
 
@@ -623,14 +629,13 @@ fn test_value_to_string() {
 fn test_value_json_clear() {
     let mut v = Value::Json(serde_json::json!(42));
     v.clear();
-    assert!(v.is_empty());
+    assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::Json);
 }
 
 #[test]
 fn test_value_json_serde_roundtrip() {
-    let original =
-        Value::Json(serde_json::json!({"nested": {"arr": [1, 2, 3]}}));
+    let original = Value::Json(serde_json::json!({"nested": {"arr": [1, 2, 3]}}));
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
@@ -688,7 +693,15 @@ fn test_value_deserialize_json_roundtrip() {
 #[test]
 fn test_value_from_serializable_error() {
     let result = Value::from_serializable(&FailingSerialize);
-    assert!(matches!(result, Err(ValueError::JsonSerializationError(_))));
+    assert!(matches!(
+        result,
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue {
+                reason: qubit_datatype::InvalidValueReason::Serialization { .. },
+                ..
+            }
+        ))
+    ));
 }
 
 #[test]
@@ -734,7 +747,12 @@ fn test_value_deserialize_json_invalid_shape_returns_error() {
     let result = v.deserialize_json::<Config>();
     assert!(matches!(
         result,
-        Err(ValueError::JsonDeserializationError(_))
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue {
+                reason: qubit_datatype::InvalidValueReason::Deserialization { .. },
+                ..
+            }
+        ))
     ));
 }
 

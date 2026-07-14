@@ -10,26 +10,13 @@
 //! Tests various functionalities of the multi values container。
 
 use bigdecimal::BigDecimal;
-use chrono::{
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    TimeZone,
-    Utc,
-};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use num_bigint::BigInt;
 use qubit_datatype::{
-    CollectionConversionOptions,
-    DataConversionOptions,
-    DataType,
-    EmptyItemPolicy,
-    StringConversionOptions,
+    CollectionConversionOptions, DataConversionError, DataConversionOptions, DataType,
+    EmptyItemPolicy, StringConversionOptions,
 };
-use qubit_value::{
-    MultiValues,
-    Value,
-    ValueError,
-};
+use qubit_value::{MultiValues, Value, ValueError};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -39,68 +26,6 @@ use url::Url;
 // ============================================================================
 // Test macros - used for batch generation of repetitive test cases
 // ============================================================================
-
-/// Batch test type mismatch errors for add_xxx methods
-macro_rules! test_add_type_mismatch {
-    ($($method:ident, $value:expr, $desc:expr);* $(;)?) => {
-        $(
-            {
-                let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-                let result = mv.$method($value);
-                assert!(
-                    matches!(result, Err(ValueError::TypeMismatch { .. })),
-                    "Expected TypeMismatch for {}", $desc
-                );
-            }
-        )*
-    };
-}
-
-/// Batch test type conversion for Empty + add_xxx
-#[allow(unused_macros)]
-macro_rules! test_empty_add_conversion {
-    ($($data_type:expr, $method:ident, $value:expr, $get_method:ident, $expected:expr);* $(;)?) => {
-        $(
-            {
-                let mut mv = MultiValues::Empty($data_type);
-                mv.$method($value).unwrap();
-                assert_eq!(mv.data_type(), $data_type);
-                assert_eq!(mv.count(), 1);
-                assert_eq!(mv.$get_method().unwrap(), $expected);
-            }
-        )*
-    };
-}
-
-/// Batch test type conversion for Empty + add_xxxs (Vec)
-#[allow(unused_macros)]
-macro_rules! test_empty_add_vec_conversion {
-    ($($data_type:expr, $method:ident, $values:expr);* $(;)?) => {
-        $(
-            {
-                let mut mv = MultiValues::Empty($data_type);
-                mv.$method($values).unwrap();
-                assert_eq!(mv.data_type(), $data_type);
-                assert_eq!(mv.count(), $values.len());
-            }
-        )*
-    };
-}
-
-/// Batch test type conversion for Empty + add_xxxs_slice
-#[allow(unused_macros)]
-macro_rules! test_empty_add_slice_conversion {
-    ($($data_type:expr, $method:ident, $values:expr);* $(;)?) => {
-        $(
-            {
-                let mut mv = MultiValues::Empty($data_type);
-                mv.$method($values).unwrap();
-                assert_eq!(mv.data_type(), $data_type);
-                assert_eq!(mv.count(), $values.len());
-            }
-        )*
-    };
-}
 
 /// Batch test type mismatch errors for get_xxx methods
 macro_rules! test_get_type_mismatch {
@@ -128,62 +53,6 @@ macro_rules! test_get_first_type_mismatch {
     };
 }
 
-/// Batch test correct conversion from Empty to various types (all integer
-/// types)
-macro_rules! test_empty_to_all_int_types {
-    (
-        $( $data_type:expr, $add_method:ident, $add_vec_method:ident, $add_slice_method:ident,
-           $get_first_method:ident, $value:expr, $vec_values:expr );* $(;)?
-    ) => {
-        $(
-            // Test add single value
-            {
-                let mut mv = MultiValues::Empty($data_type);
-                mv.$add_method($value).unwrap();
-                assert_eq!(mv.data_type(), $data_type);
-                assert_eq!(mv.count(), 1);
-                assert_eq!(mv.$get_first_method().unwrap(), $value);
-            }
-
-            // Test add_xxxs (Vec)
-            {
-                let mut mv = MultiValues::Empty($data_type);
-                mv.$add_vec_method($vec_values.clone()).unwrap();
-                assert_eq!(mv.data_type(), $data_type);
-                assert_eq!(mv.count(), $vec_values.len());
-            }
-
-            // Test add_xxxs_slice
-            {
-                let mut mv = MultiValues::Empty($data_type);
-                mv.$add_slice_method(&$vec_values[..]).unwrap();
-                assert_eq!(mv.data_type(), $data_type);
-                assert_eq!(mv.count(), $vec_values.len());
-            }
-        )*
-    };
-}
-
-/// Batch test Empty type mismatch errors
-macro_rules! test_empty_type_mismatch_errors {
-    (
-        $base_type:expr, $base_empty:expr;
-        $($method:ident, $value:expr);* $(;)?
-    ) => {
-        $(
-            {
-                let mut mv = MultiValues::Empty($base_empty);
-                let result = mv.$method($value);
-                assert!(
-                    matches!(result, Err(ValueError::TypeMismatch { .. })),
-                    "Expected TypeMismatch for {} on Empty({:?})",
-                    stringify!($method), $base_empty
-                );
-            }
-        )*
-    };
-}
-
 /// Batch test get_first returns NoValue from Empty
 macro_rules! test_get_first_empty_no_value {
     ($($data_type:expr, $get_first_method:ident);* $(;)?) => {
@@ -197,100 +66,12 @@ macro_rules! test_get_first_empty_no_value {
     };
 }
 
-/// Batch test adding elements to existing MultiValues (non-Empty)
-macro_rules! test_add_to_existing {
-    (
-        $( $constructor:expr, $add_method:ident, $value:expr,
-           $add_vec_method:ident, $vec_values:expr,
-           $add_slice_method:ident, $expected_count:expr );* $(;)?
-    ) => {
-        $(
-            // Test add single value
-            {
-                let mut mv = $constructor;
-                let initial_count = mv.count();
-                mv.$add_method($value).unwrap();
-                assert_eq!(mv.count(), initial_count + 1);
-            }
-
-            // Test add_xxxs (Vec)
-            {
-                let mut mv = $constructor;
-                let initial_count = mv.count();
-                mv.$add_vec_method($vec_values.clone()).unwrap();
-                assert_eq!(mv.count(), initial_count + $vec_values.len());
-            }
-
-            // Test add_xxxs_slice
-            {
-                let mut mv = $constructor;
-                let initial_count = mv.count();
-                mv.$add_slice_method(&$vec_values[..]).unwrap();
-                assert_eq!(mv.count(), initial_count + $vec_values.len());
-            }
-        )*
-    };
-}
-
-/// Batch test set_single method (set single value, replace entire list)
-#[allow(unused_macros)]
-macro_rules! test_set_single_comprehensive {
-    (
-        $( $set_method:ident, $get_method:ident, $value:expr );* $(;)?
-    ) => {
-        $(
-            // Test setting single value on Empty
-            {
-                let mut mv = MultiValues::Empty(DataType::Int32);
-                mv.$set_method($value).unwrap();
-                assert_eq!(mv.count(), 1);
-                assert_eq!(mv.$get_method().unwrap(), &[$value]);
-            }
-
-            // Test setting single value on existing values (will replace entire list)
-            {
-                let mut mv = MultiValues::Int32(vec![1, 2, 3, 4, 5]);
-                mv.$set_method($value).unwrap();
-                assert_eq!(mv.count(), 1);
-                assert_eq!(mv.$get_method().unwrap(), &[$value]);
-            }
-        )*
-    };
-}
-
-/// Batch test set method (Vec/slice/single value)
-#[allow(unused_macros)]
-macro_rules! test_set_comprehensive {
-    (
-        $( $set_vec_method:ident, $set_slice_method:ident, $get_method:ident,
-           $single_value:expr, $vec_values:expr );* $(;)?
-    ) => {
-        $(
-            // Test set_xxxs (Vec)
-            {
-                let mut mv = MultiValues::Empty(DataType::Int32);
-                mv.$set_vec_method($vec_values.clone()).unwrap();
-                assert_eq!(mv.count(), $vec_values.len());
-                assert_eq!(mv.$get_method().unwrap(), &$vec_values[..]);
-            }
-
-            // Test set_xxxs_slice
-            {
-                let mut mv = MultiValues::Int32(vec![999, 888, 777]);
-                mv.$set_slice_method(&$vec_values[..]).unwrap();
-                assert_eq!(mv.count(), $vec_values.len());
-                assert_eq!(mv.$get_method().unwrap(), &$vec_values[..]);
-            }
-        )*
-    };
-}
-
 #[test]
 fn test_multi_value_creation() {
     let mv = MultiValues::Int32(vec![1, 2, 3]);
     assert_eq!(mv.data_type(), DataType::Int32);
     assert_eq!(mv.count(), 3);
-    assert!(!mv.is_empty());
+    assert_ne!(mv.count(), 0);
 }
 
 #[test]
@@ -298,14 +79,14 @@ fn test_multi_value_empty() {
     let mv = MultiValues::Empty(DataType::String);
     assert_eq!(mv.data_type(), DataType::String);
     assert_eq!(mv.count(), 0);
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
 }
 
 #[test]
 fn test_multi_value_clear() {
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Int32);
 }
 
@@ -328,8 +109,8 @@ fn test_multi_value_as_slice() {
 #[test]
 fn test_multi_value_add() {
     let mut mv = MultiValues::Int32(vec![1, 2]);
-    mv.add_int32(3).unwrap();
-    mv.add_int32(4).unwrap();
+    mv.add(3).unwrap();
+    mv.add(4).unwrap();
     assert_eq!(mv.count(), 4);
     assert_eq!(mv.get_int32s().unwrap(), &[1, 2, 3, 4]);
 }
@@ -337,7 +118,7 @@ fn test_multi_value_add() {
 #[test]
 fn test_multi_value_add_to_empty() {
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.add_int32(42).unwrap();
+    mv.add(42).unwrap();
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_int32().unwrap(), 42);
 }
@@ -345,10 +126,7 @@ fn test_multi_value_add_to_empty() {
 #[test]
 fn test_multi_value_type_mismatch() {
     let mut mv = MultiValues::Int32(vec![1, 2]);
-    assert!(matches!(
-        mv.add_bool(true),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(matches!(mv.add(true), Err(ValueError::TypeMismatch { .. })));
 }
 
 #[test]
@@ -399,8 +177,7 @@ fn test_multi_value_from_value() {
 
 #[test]
 fn test_multi_value_strings() {
-    let mv =
-        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mv = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     assert_eq!(mv.count(), 2);
     assert_eq!(mv.get_first_string().unwrap(), "hello");
     let all = mv.get_strings().unwrap();
@@ -413,7 +190,7 @@ fn test_multi_value_strings() {
 fn test_multi_value_default() {
     let mv: MultiValues = Default::default();
     assert_eq!(mv.data_type(), DataType::String);
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
 }
 
 #[test]
@@ -442,7 +219,7 @@ fn test_multi_value_convenient_array_and_vector_inputs() {
         vec!["alpha".to_string(), "beta".to_string()]
     );
 
-    values.set(["gamma", "delta"]).unwrap();
+    values.set(["gamma", "delta"]);
     assert_eq!(
         values.get::<String>().unwrap(),
         vec!["gamma".to_string(), "delta".to_string()]
@@ -466,37 +243,53 @@ fn test_multi_value_convenient_array_and_vector_inputs() {
 }
 
 #[test]
-fn test_multi_value_defaulted_reads_use_default_only_for_empty() {
+fn test_multi_value_defaulted_reads_use_default_only_for_unset() {
     use qubit_datatype::DataConversionOptions;
 
     let empty = MultiValues::String(Vec::new());
     assert_eq!(
-        empty.get_or::<String>(["fallback", "backup"]).unwrap(),
-        vec!["fallback".to_string(), "backup".to_string()]
+        empty.get_or::<String>(["fallback"]).unwrap(),
+        Vec::<String>::new()
+    );
+    assert!(matches!(
+        empty.get_first_or::<String>("fallback"),
+        Err(ValueError::NoValue)
+    ));
+    assert!(matches!(
+        empty.to_or::<String>("fallback"),
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::EmptyCollection { .. }
+        ))
+    ));
+    assert!(
+        empty
+            .to_or_with::<String>("fallback", DataConversionOptions::default_ref())
+            .is_err()
     );
     assert_eq!(
-        empty.get_first_or::<String>("fallback").unwrap(),
-        "fallback"
+        empty.to_list_or::<String>(["fallback"]).unwrap(),
+        Vec::<String>::new()
     );
-    assert_eq!(empty.to_or::<String>("fallback").unwrap(), "fallback");
     assert_eq!(
         empty
-            .to_or_with::<String>("fallback", &DataConversionOptions::default())
+            .to_list_or_with::<String>(["fallback"], DataConversionOptions::default_ref())
             .unwrap(),
+        Vec::<String>::new()
+    );
+
+    let unset = MultiValues::Empty(DataType::String);
+    assert_eq!(
+        unset.get_or::<String>(["fallback"]).unwrap(),
+        vec!["fallback"]
+    );
+    assert_eq!(
+        unset.get_first_or::<String>("fallback").unwrap(),
         "fallback"
     );
+    assert_eq!(unset.to_or::<String>("fallback").unwrap(), "fallback");
     assert_eq!(
-        empty.to_list_or::<String>(["fallback", "backup"]).unwrap(),
-        vec!["fallback".to_string(), "backup".to_string()]
-    );
-    assert_eq!(
-        empty
-            .to_list_or_with::<String>(
-                ["fallback", "backup"],
-                &DataConversionOptions::default()
-            )
-            .unwrap(),
-        vec!["fallback".to_string(), "backup".to_string()]
+        unset.to_list_or::<String>(["fallback"]).unwrap(),
+        vec!["fallback"]
     );
 
     let values = MultiValues::String(vec!["42".to_string()]);
@@ -551,8 +344,7 @@ fn test_multi_value_generic_to_converts_first_value() {
 }
 
 #[test]
-fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string()
-{
+fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string() {
     let date = NaiveDate::from_ymd_opt(2026, 1, 2).unwrap();
     let time = NaiveTime::from_hms_opt(3, 4, 5).unwrap();
     let datetime = date.and_time(time);
@@ -582,9 +374,7 @@ fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string()
             "123".to_string(),
         ),
         (
-            MultiValues::BigDecimal(vec![
-                BigDecimal::from_str("12.5").unwrap(),
-            ]),
+            MultiValues::BigDecimal(vec![BigDecimal::from_str("12.5").unwrap()]),
             "12.5".to_string(),
         ),
         (
@@ -593,7 +383,10 @@ fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string()
         ),
         (MultiValues::Date(vec![date]), date.to_string()),
         (MultiValues::Time(vec![time]), time.to_string()),
-        (MultiValues::DateTime(vec![datetime]), datetime.to_string()),
+        (
+            MultiValues::DateTime(vec![datetime]),
+            datetime.format("%Y-%m-%dT%H:%M:%S%.f").to_string(),
+        ),
         (MultiValues::Instant(vec![instant]), instant.to_rfc3339()),
         (MultiValues::Duration(vec![duration]), "250ms".to_string()),
         (MultiValues::Url(vec![url.clone()]), url.to_string()),
@@ -606,10 +399,8 @@ fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string()
 
     let mut map = HashMap::new();
     map.insert("key".to_string(), "value".to_string());
-    let map_text: String =
-        MultiValues::StringMap(vec![map.clone()]).to().unwrap();
-    let parsed_map: serde_json::Value =
-        serde_json::from_str(&map_text).unwrap();
+    let map_text: String = MultiValues::StringMap(vec![map.clone()]).to().unwrap();
+    let parsed_map: serde_json::Value = serde_json::from_str(&map_text).unwrap();
     assert_eq!(parsed_map["key"], serde_json::json!("value"));
 
     let json_value = serde_json::json!({"flag": true});
@@ -746,7 +537,7 @@ fn test_multi_value_generic_to_list_converts_all_variants_to_string() {
         (MultiValues::Time(vec![time]), vec![time.to_string()]),
         (
             MultiValues::DateTime(vec![datetime]),
-            vec![datetime.to_string()],
+            vec![datetime.format("%Y-%m-%dT%H:%M:%S%.f").to_string()],
         ),
         (
             MultiValues::Instant(vec![instant]),
@@ -766,67 +557,79 @@ fn test_multi_value_generic_to_list_converts_all_variants_to_string() {
 
     let mut map = HashMap::new();
     map.insert("key".to_string(), "value".to_string());
-    let maps: Vec<String> =
-        MultiValues::StringMap(vec![map.clone()]).to_list().unwrap();
+    let maps: Vec<String> = MultiValues::StringMap(vec![map.clone()]).to_list().unwrap();
     assert_eq!(maps.len(), 1);
     let parsed_map: serde_json::Value = serde_json::from_str(&maps[0]).unwrap();
     assert_eq!(parsed_map["key"], serde_json::json!("value"));
 
     let json_value = serde_json::json!({"flag": true});
-    let jsons: Vec<String> =
-        MultiValues::Json(vec![json_value]).to_list().unwrap();
+    let jsons: Vec<String> = MultiValues::Json(vec![json_value]).to_list().unwrap();
     assert_eq!(jsons, vec![r#"{"flag":true}"#]);
 
-    let empty: Vec<String> =
-        MultiValues::Empty(DataType::String).to_list().unwrap();
-    assert!(empty.is_empty());
+    let empty = MultiValues::Empty(DataType::String).to_list::<String>();
+    assert!(matches!(
+        empty,
+        Err(ValueError::DataConversion(DataConversionError::Missing {
+            from: DataType::String,
+            to: DataType::String,
+        }))
+    ));
 }
 
 #[test]
 fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
     let empty = MultiValues::Empty(DataType::String);
-    assert!(matches!(empty.to::<bool>(), Err(ValueError::NoValue)));
+    assert!(matches!(
+        empty.to::<bool>(),
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::Missing { .. }
+        ))
+    ));
 
     let empty = MultiValues::String(Vec::new());
-    assert!(matches!(empty.to::<bool>(), Err(ValueError::NoValue)));
+    assert!(matches!(
+        empty.to::<bool>(),
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::EmptyCollection { .. }
+        ))
+    ));
 
     let invalid = MultiValues::String(vec!["yes".to_string()]);
     assert!(matches!(
         invalid.to_list::<bool>(),
-        Err(ValueError::ConversionError(_))
+        Err(ValueError::DataListConversion(_))
     ));
 
-    let unsupported =
-        MultiValues::Date(vec![NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()]);
+    let unsupported = MultiValues::Date(vec![NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()]);
     assert!(matches!(
         unsupported.to::<bool>(),
-        Err(ValueError::ConversionFailed {
-            from: DataType::Date,
-            to: DataType::Bool
-        })
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::Unsupported {
+                from: DataType::Date,
+                to: DataType::Bool
+            }
+        ))
     ));
 
     let invalid_json = MultiValues::String(vec!["{".to_string()]);
     assert!(matches!(
         invalid_json.to::<JsonValue>(),
-        Err(ValueError::JsonDeserializationError(_))
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue {
+                reason: qubit_datatype::InvalidValueReason::Deserialization { .. },
+                ..
+            }
+        ))
     ));
 }
 
 #[test]
 fn test_multi_value_generic_to_list_reports_failing_index() {
-    let invalid = MultiValues::String(vec![
-        "1".to_string(),
-        "bad".to_string(),
-        "0".to_string(),
-    ]);
+    let invalid = MultiValues::String(vec!["1".to_string(), "bad".to_string(), "0".to_string()]);
 
     match invalid.to_list::<bool>() {
-        Err(ValueError::ConversionError(message)) => {
-            assert!(
-                message.contains("index 1"),
-                "error should include failing index: {message}"
-            );
+        Err(ValueError::DataListConversion(error)) => {
+            assert_eq!(error.source_index, 1);
         }
         other => panic!("expected indexed conversion error, got {other:?}"),
     }
@@ -856,8 +659,7 @@ fn test_multi_value_generic_get_first() {
     assert_eq!(first, 42);
 
     // Test strings type
-    let mv =
-        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mv = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     let first: String = mv.get_first().unwrap();
     assert_eq!(first, "hello");
 
@@ -885,16 +687,15 @@ fn test_multi_value_generic_get_first() {
 fn test_multi_value_set_methods() {
     // Test set method for basic types
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.set_int32s(vec![42, 100, 200]).unwrap();
+    mv.set(vec![42, 100, 200]);
     assert_eq!(mv.get_int32s().unwrap(), &[42, 100, 200]);
 
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.set_bools(vec![true, false, true]).unwrap();
+    mv.set(vec![true, false, true]);
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
     let mut mv = MultiValues::Empty(DataType::String);
-    mv.set_strings(vec!["hello".to_string(), "world".to_string()])
-        .unwrap();
+    mv.set(vec!["hello".to_string(), "world".to_string()]);
     assert_eq!(mv.get_strings().unwrap(), &["hello", "world"]);
 }
 
@@ -902,20 +703,19 @@ fn test_multi_value_set_methods() {
 fn test_multi_value_generic_set() {
     // Test generic set method
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.set(vec![42, 100, 200]).unwrap();
+    mv.set(vec![42, 100, 200]);
     assert_eq!(mv.get_int32s().unwrap(), &[42, 100, 200]);
 
     let mut mv = MultiValues::Empty(DataType::String);
-    mv.set(vec!["hello".to_string(), "world".to_string()])
-        .unwrap();
+    mv.set(vec!["hello".to_string(), "world".to_string()]);
     assert_eq!(mv.get_strings().unwrap(), &["hello", "world"]);
 
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.set(vec![true, false, true]).unwrap();
+    mv.set(vec![true, false, true]);
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.set(vec![1u8, 2, 3]).unwrap();
+    mv.set(vec![1u8, 2, 3]);
     assert_eq!(mv.get::<u8>().unwrap(), vec![1u8, 2, 3]);
 }
 
@@ -924,14 +724,14 @@ fn test_multi_value_generic_set_slice() {
     // Test generic set with slice parameter
     let mut mv = MultiValues::Empty(DataType::Int32);
     let data = [42, 100, 200];
-    mv.set(&data[..]).unwrap();
+    mv.set(&data[..]);
     assert_eq!(mv.get_int32s().unwrap(), &[42, 100, 200]);
 
     let mut mv = MultiValues::Empty(DataType::String);
     let s1 = "hello".to_string();
     let s2 = "world".to_string();
     let arr = [s1.clone(), s2.clone()];
-    mv.set(&arr[..]).unwrap();
+    mv.set(&arr[..]);
     assert_eq!(mv.get_strings().unwrap(), &[s1, s2]);
 }
 
@@ -940,19 +740,19 @@ fn test_multi_value_slice_methods() {
     // Test set_[xxx]s_slice and add_[xxx]s_slice
     let mut mv = MultiValues::Empty(DataType::Bool);
     let bools = [true, false, true];
-    mv.set_bools_slice(&bools[..]).unwrap();
+    mv.set(&bools[..]);
     assert_eq!(mv.get_bools().unwrap(), &bools);
 
     let mut mv = MultiValues::Int32(vec![1]);
     let more = [2, 3];
-    mv.add_int32s_slice(&more[..]).unwrap();
+    mv.add(&more[..]).unwrap();
     assert_eq!(mv.get_int32s().unwrap(), &[1, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::String);
     let a = "a".to_string();
     let b = "b".to_string();
     let arr = [a.clone(), b.clone()];
-    mv.set_strings_slice(&arr[..]).unwrap();
+    mv.set(&arr[..]);
     assert_eq!(mv.get_strings().unwrap(), &[a, b]);
 }
 
@@ -960,56 +760,53 @@ fn test_multi_value_slice_methods() {
 fn test_multi_value_set_all_types() {
     // Test set method for all types
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.set_bools(vec![true, false, true]).unwrap();
+    mv.set(vec![true, false, true]);
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
     let mut mv = MultiValues::Empty(DataType::Char);
-    mv.set_chars(vec!['A', 'B', 'C']).unwrap();
+    mv.set(vec!['A', 'B', 'C']);
     assert_eq!(mv.get_chars().unwrap(), &['A', 'B', 'C']);
 
     let mut mv = MultiValues::Empty(DataType::Int8);
-    mv.set_int8s(vec![1i8, 2, 3]).unwrap();
+    mv.set(vec![1i8, 2, 3]);
     assert_eq!(mv.get_int8s().unwrap(), &[1, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::Int16);
-    mv.set_int16s(vec![1000i16, 2000, 3000]).unwrap();
+    mv.set(vec![1000i16, 2000, 3000]);
     assert_eq!(mv.get_int16s().unwrap(), &[1000, 2000, 3000]);
 
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.set_int32s(vec![100000i32, 200000, 300000]).unwrap();
+    mv.set(vec![100000i32, 200000, 300000]);
     assert_eq!(mv.get_int32s().unwrap(), &[100000, 200000, 300000]);
 
     let mut mv = MultiValues::Empty(DataType::Int64);
-    mv.set_int64s(vec![1000000000i64, 2000000000, 3000000000])
-        .unwrap();
+    mv.set(vec![1000000000i64, 2000000000, 3000000000]);
     assert_eq!(
         mv.get_int64s().unwrap(),
         &[1000000000, 2000000000, 3000000000]
     );
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.set_uint8s(vec![255u8, 128, 64]).unwrap();
+    mv.set(vec![255u8, 128, 64]);
     assert_eq!(mv.get_uint8s().unwrap(), &[255, 128, 64]);
 
     let mut mv = MultiValues::Empty(DataType::UInt16);
-    mv.set_uint16s(vec![65535u16, 32768, 16384]).unwrap();
+    mv.set(vec![65535u16, 32768, 16384]);
     assert_eq!(mv.get_uint16s().unwrap(), &[65535, 32768, 16384]);
 
     let mut mv = MultiValues::Empty(DataType::UInt32);
-    mv.set_uint32s(vec![4294967295u32, 2147483648, 1073741824])
-        .unwrap();
+    mv.set(vec![4294967295u32, 2147483648, 1073741824]);
     assert_eq!(
         mv.get_uint32s().unwrap(),
         &[4294967295, 2147483648, 1073741824]
     );
 
     let mut mv = MultiValues::Empty(DataType::Float32);
-    mv.set_float32s(vec![
+    mv.set(vec![
         std::f32::consts::PI,
         std::f32::consts::E,
         std::f32::consts::SQRT_2,
-    ])
-    .unwrap();
+    ]);
     assert_eq!(
         mv.get_float32s().unwrap(),
         &[
@@ -1020,12 +817,11 @@ fn test_multi_value_set_all_types() {
     );
 
     let mut mv = MultiValues::Empty(DataType::Float64);
-    mv.set_float64s(vec![
+    mv.set(vec![
         std::f64::consts::PI,
         std::f64::consts::E,
         std::f64::consts::SQRT_2,
-    ])
-    .unwrap();
+    ]);
     assert_eq!(
         mv.get_float64s().unwrap(),
         &[
@@ -1040,15 +836,15 @@ fn test_multi_value_set_all_types() {
 fn test_multi_value_single_set_methods() {
     // Test single value set method for basic types
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.set_int32(42).unwrap();
+    mv.set(42);
     assert_eq!(mv.get_int32s().unwrap(), &[42]);
 
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.set_bool(true).unwrap();
+    mv.set(true);
     assert_eq!(mv.get_bools().unwrap(), &[true]);
 
     let mut mv = MultiValues::Empty(DataType::String);
-    mv.set_string("hello".to_string()).unwrap();
+    mv.set("hello".to_string());
     assert_eq!(mv.get_strings().unwrap(), &["hello"]);
 }
 
@@ -1056,19 +852,19 @@ fn test_multi_value_single_set_methods() {
 fn test_multi_value_generic_single_set() {
     // Test generic single value set method
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.set(42).unwrap();
+    mv.set(42);
     assert_eq!(mv.get_int32s().unwrap(), &[42]);
 
     let mut mv = MultiValues::Empty(DataType::String);
-    mv.set("hello".to_string()).unwrap();
+    mv.set("hello".to_string());
     assert_eq!(mv.get_strings().unwrap(), &["hello"]);
 
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.set(true).unwrap();
+    mv.set(true);
     assert_eq!(mv.get_bools().unwrap(), &[true]);
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.set(42u8).unwrap();
+    mv.set(42u8);
     assert_eq!(mv.get::<u8>().unwrap(), vec![42u8]);
 }
 
@@ -1076,47 +872,47 @@ fn test_multi_value_generic_single_set() {
 fn test_multi_value_single_set_all_types() {
     // Test single value set method for all types
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.set_bool(true).unwrap();
+    mv.set(true);
     assert_eq!(mv.get_bools().unwrap(), &[true]);
 
     let mut mv = MultiValues::Empty(DataType::Char);
-    mv.set_char('A').unwrap();
+    mv.set('A');
     assert_eq!(mv.get_chars().unwrap(), &['A']);
 
     let mut mv = MultiValues::Empty(DataType::Int8);
-    mv.set_int8(1i8).unwrap();
+    mv.set(1i8);
     assert_eq!(mv.get_int8s().unwrap(), &[1]);
 
     let mut mv = MultiValues::Empty(DataType::Int16);
-    mv.set_int16(1000i16).unwrap();
+    mv.set(1000i16);
     assert_eq!(mv.get_int16s().unwrap(), &[1000]);
 
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.set_int32(100000i32).unwrap();
+    mv.set(100000i32);
     assert_eq!(mv.get_int32s().unwrap(), &[100000]);
 
     let mut mv = MultiValues::Empty(DataType::Int64);
-    mv.set_int64(1000000000i64).unwrap();
+    mv.set(1000000000i64);
     assert_eq!(mv.get_int64s().unwrap(), &[1000000000]);
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.set_uint8(255u8).unwrap();
+    mv.set(255u8);
     assert_eq!(mv.get_uint8s().unwrap(), &[255]);
 
     let mut mv = MultiValues::Empty(DataType::UInt16);
-    mv.set_uint16(65535u16).unwrap();
+    mv.set(65535u16);
     assert_eq!(mv.get_uint16s().unwrap(), &[65535]);
 
     let mut mv = MultiValues::Empty(DataType::UInt32);
-    mv.set_uint32(4294967295u32).unwrap();
+    mv.set(4294967295u32);
     assert_eq!(mv.get_uint32s().unwrap(), &[4294967295]);
 
     let mut mv = MultiValues::Empty(DataType::Float32);
-    mv.set_float32(std::f32::consts::PI).unwrap();
+    mv.set(std::f32::consts::PI);
     assert_eq!(mv.get_float32s().unwrap(), &[std::f32::consts::PI]);
 
     let mut mv = MultiValues::Empty(DataType::Float64);
-    mv.set_float64(std::f64::consts::PI).unwrap();
+    mv.set(std::f64::consts::PI);
     assert_eq!(mv.get_float64s().unwrap(), &[std::f64::consts::PI]);
 }
 
@@ -1177,7 +973,7 @@ fn test_multi_value_generic_add_all_types() {
     assert_eq!(mv.get_int64s().unwrap(), &[1000000000, 2000000000]);
 
     let mut mv = MultiValues::UInt8(vec![255u8]);
-    mv.add_uint8(128u8).unwrap();
+    mv.add(128u8).unwrap();
     assert_eq!(mv.get_uint8s().unwrap(), &[255, 128]);
 
     let mut mv = MultiValues::UInt16(vec![65535u16]);
@@ -1207,15 +1003,15 @@ fn test_multi_value_generic_add_all_types() {
 fn test_multi_value_multi_add_methods() {
     // Test multiple values add method for basic types
     let mut mv = MultiValues::Int32(vec![42]);
-    mv.add_int32s(vec![100, 200]).unwrap();
+    mv.add(vec![100, 200]).unwrap();
     assert_eq!(mv.get_int32s().unwrap(), &[42, 100, 200]);
 
     let mut mv = MultiValues::Bool(vec![true]);
-    mv.add_bools(vec![false, true]).unwrap();
+    mv.add(vec![false, true]).unwrap();
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
     let mut mv = MultiValues::String(vec!["hello".to_string()]);
-    mv.add_strings(vec!["world".to_string(), "rust".to_string()])
+    mv.add(vec!["world".to_string(), "rust".to_string()])
         .unwrap();
     assert_eq!(mv.get_strings().unwrap(), &["hello", "world", "rust"]);
 }
@@ -1255,49 +1051,49 @@ fn test_multi_value_generic_multi_add() {
 fn test_multi_value_multi_add_all_types() {
     // Test multiple values add method for all types
     let mut mv = MultiValues::Bool(vec![true]);
-    mv.add_bools(vec![false, true]).unwrap();
+    mv.add(vec![false, true]).unwrap();
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
     let mut mv = MultiValues::Char(vec!['A']);
-    mv.add_chars(vec!['B', 'C']).unwrap();
+    mv.add(vec!['B', 'C']).unwrap();
     assert_eq!(mv.get_chars().unwrap(), &['A', 'B', 'C']);
 
     let mut mv = MultiValues::Int8(vec![1i8]);
-    mv.add_int8s(vec![2i8, 3i8]).unwrap();
+    mv.add(vec![2i8, 3i8]).unwrap();
     assert_eq!(mv.get_int8s().unwrap(), &[1, 2, 3]);
 
     let mut mv = MultiValues::Int16(vec![1000i16]);
-    mv.add_int16s(vec![2000i16, 3000i16]).unwrap();
+    mv.add(vec![2000i16, 3000i16]).unwrap();
     assert_eq!(mv.get_int16s().unwrap(), &[1000, 2000, 3000]);
 
     let mut mv = MultiValues::Int32(vec![100000i32]);
-    mv.add_int32s(vec![200000i32, 300000i32]).unwrap();
+    mv.add(vec![200000i32, 300000i32]).unwrap();
     assert_eq!(mv.get_int32s().unwrap(), &[100000, 200000, 300000]);
 
     let mut mv = MultiValues::Int64(vec![1000000000i64]);
-    mv.add_int64s(vec![2000000000i64, 3000000000i64]).unwrap();
+    mv.add(vec![2000000000i64, 3000000000i64]).unwrap();
     assert_eq!(
         mv.get_int64s().unwrap(),
         &[1000000000, 2000000000, 3000000000]
     );
 
     let mut mv = MultiValues::UInt8(vec![255u8]);
-    mv.add_uint8s(vec![128u8, 64u8]).unwrap();
+    mv.add(vec![128u8, 64u8]).unwrap();
     assert_eq!(mv.get_uint8s().unwrap(), &[255, 128, 64]);
 
     let mut mv = MultiValues::UInt16(vec![65535u16]);
-    mv.add_uint16s(vec![32768u16, 16384u16]).unwrap();
+    mv.add(vec![32768u16, 16384u16]).unwrap();
     assert_eq!(mv.get_uint16s().unwrap(), &[65535, 32768, 16384]);
 
     let mut mv = MultiValues::UInt32(vec![4294967295u32]);
-    mv.add_uint32s(vec![2147483648u32, 1073741824u32]).unwrap();
+    mv.add(vec![2147483648u32, 1073741824u32]).unwrap();
     assert_eq!(
         mv.get_uint32s().unwrap(),
         &[4294967295, 2147483648, 1073741824]
     );
 
     let mut mv = MultiValues::Float32(vec![std::f32::consts::PI]);
-    mv.add_float32s(vec![std::f32::consts::E, std::f32::consts::SQRT_2])
+    mv.add(vec![std::f32::consts::E, std::f32::consts::SQRT_2])
         .unwrap();
     assert_eq!(
         mv.get_float32s().unwrap(),
@@ -1309,7 +1105,7 @@ fn test_multi_value_multi_add_all_types() {
     );
 
     let mut mv = MultiValues::Float64(vec![std::f64::consts::PI]);
-    mv.add_float64s(vec![std::f64::consts::E, std::f64::consts::SQRT_2])
+    mv.add(vec![std::f64::consts::E, std::f64::consts::SQRT_2])
         .unwrap();
     assert_eq!(
         mv.get_float64s().unwrap(),
@@ -1324,11 +1120,8 @@ fn test_multi_value_multi_add_all_types() {
 #[test]
 fn test_biginteger_multivalue() {
     // Test MultiValues BigInteger
-    let mut multi = MultiValues::BigInteger(vec![
-        BigInt::from(1),
-        BigInt::from(2),
-        BigInt::from(3),
-    ]);
+    let mut multi =
+        MultiValues::BigInteger(vec![BigInt::from(1), BigInt::from(2), BigInt::from(3)]);
 
     assert_eq!(multi.count(), 3);
     assert_eq!(multi.data_type(), DataType::BigInteger);
@@ -1345,18 +1138,16 @@ fn test_biginteger_multivalue() {
     assert_eq!(first, BigInt::from(1));
 
     // Add single value
-    multi.add_biginteger(BigInt::from(4)).unwrap();
+    multi.add(BigInt::from(4)).unwrap();
     assert_eq!(multi.count(), 4);
 
     // Add multiple values
-    multi
-        .add_bigintegers(vec![BigInt::from(5), BigInt::from(6)])
-        .unwrap();
+    multi.add(vec![BigInt::from(5), BigInt::from(6)]).unwrap();
     assert_eq!(multi.count(), 6);
 
     // Add values via slice
     let new_values = vec![BigInt::from(7), BigInt::from(8)];
-    multi.add_bigintegers_slice(&new_values).unwrap();
+    multi.add(&new_values).unwrap();
     assert_eq!(multi.count(), 8);
 
     // Test setting values
@@ -1364,13 +1155,13 @@ fn test_biginteger_multivalue() {
         BigInt::from_str("123456789").unwrap(),
         BigInt::from_str("987654321").unwrap(),
     ];
-    multi.set_bigintegers(new_values.clone()).unwrap();
+    multi.set(new_values.clone());
     assert_eq!(multi.count(), 2);
     assert_eq!(multi.get_bigintegers().unwrap(), &new_values);
 
     // Test setting values via slice
     let slice_values = vec![BigInt::from_str("111111111").unwrap()];
-    multi.set_bigintegers_slice(&slice_values).unwrap();
+    multi.set(&slice_values);
     assert_eq!(multi.count(), 1);
     assert_eq!(
         multi.get_first_biginteger().unwrap(),
@@ -1378,9 +1169,7 @@ fn test_biginteger_multivalue() {
     );
 
     // Test setting single value
-    multi
-        .set_biginteger(BigInt::from_str("999999999").unwrap())
-        .unwrap();
+    multi.set(BigInt::from_str("999999999").unwrap());
     assert_eq!(multi.count(), 1);
     assert_eq!(
         multi.get_first_biginteger().unwrap(),
@@ -1412,14 +1201,12 @@ fn test_bigdecimal_multivalue() {
     assert_eq!(first, BigDecimal::from_str("1.1").unwrap());
 
     // Add single value
-    multi
-        .add_bigdecimal(BigDecimal::from_str("4.4").unwrap())
-        .unwrap();
+    multi.add(BigDecimal::from_str("4.4").unwrap()).unwrap();
     assert_eq!(multi.count(), 4);
 
     // Add multiple values
     multi
-        .add_bigdecimals(vec![
+        .add(vec![
             BigDecimal::from_str("5.5").unwrap(),
             BigDecimal::from_str("6.6").unwrap(),
         ])
@@ -1431,7 +1218,7 @@ fn test_bigdecimal_multivalue() {
         BigDecimal::from_str("7.7").unwrap(),
         BigDecimal::from_str("8.8").unwrap(),
     ];
-    multi.add_bigdecimals_slice(&new_values).unwrap();
+    multi.add(&new_values).unwrap();
     assert_eq!(multi.count(), 8);
 
     // Test setting values
@@ -1439,13 +1226,13 @@ fn test_bigdecimal_multivalue() {
         BigDecimal::from_str("123.456").unwrap(),
         BigDecimal::from_str("789.012").unwrap(),
     ];
-    multi.set_bigdecimals(new_values.clone()).unwrap();
+    multi.set(new_values.clone());
     assert_eq!(multi.count(), 2);
     assert_eq!(multi.get_bigdecimals().unwrap(), &new_values);
 
     // Test setting values via slice
     let slice_values = vec![BigDecimal::from_str("111.111").unwrap()];
-    multi.set_bigdecimals_slice(&slice_values).unwrap();
+    multi.set(&slice_values);
     assert_eq!(multi.count(), 1);
     assert_eq!(
         multi.get_first_bigdecimal().unwrap(),
@@ -1453,9 +1240,7 @@ fn test_bigdecimal_multivalue() {
     );
 
     // Test setting single value
-    multi
-        .set_bigdecimal(BigDecimal::from_str("999.999").unwrap())
-        .unwrap();
+    multi.set(BigDecimal::from_str("999.999").unwrap());
     assert_eq!(multi.count(), 1);
     assert_eq!(
         multi.get_first_bigdecimal().unwrap(),
@@ -1486,8 +1271,7 @@ fn test_value_to_multivalue_conversion_bigint_bigdecimal() {
 #[test]
 fn test_biginteger_bigdecimal_merge() {
     // Test BigInteger merge
-    let mut mv1 =
-        MultiValues::BigInteger(vec![BigInt::from(1), BigInt::from(2)]);
+    let mut mv1 = MultiValues::BigInteger(vec![BigInt::from(1), BigInt::from(2)]);
     let mv2 = MultiValues::BigInteger(vec![BigInt::from(3), BigInt::from(4)]);
 
     mv1.merge(&mv2).unwrap();
@@ -1527,11 +1311,7 @@ fn test_biginteger_bigdecimal_merge() {
 
 #[test]
 fn test_multi_value_all_datetime_types() {
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-        Utc,
-    };
+    use chrono::{NaiveDate, NaiveTime, Utc};
 
     // Test Date multiple values
     let dates = vec![
@@ -1539,7 +1319,7 @@ fn test_multi_value_all_datetime_types() {
         NaiveDate::from_ymd_opt(2024, 2, 20).unwrap(),
     ];
     let mut mv = MultiValues::Empty(DataType::Date);
-    mv.set_dates(dates.clone()).unwrap();
+    mv.set(dates.clone());
     assert_eq!(mv.get_dates().unwrap(), dates.as_slice());
     assert_eq!(mv.get_first_date().unwrap(), dates[0]);
 
@@ -1549,7 +1329,7 @@ fn test_multi_value_all_datetime_types() {
         NaiveTime::from_hms_opt(14, 45, 30).unwrap(),
     ];
     let mut mv = MultiValues::Empty(DataType::Time);
-    mv.set_times(times.clone()).unwrap();
+    mv.set(times.clone());
     assert_eq!(mv.get_times().unwrap(), times.as_slice());
     assert_eq!(mv.get_first_time().unwrap(), times[0]);
 
@@ -1565,14 +1345,14 @@ fn test_multi_value_all_datetime_types() {
             .unwrap(),
     ];
     let mut mv = MultiValues::Empty(DataType::DateTime);
-    mv.set_datetimes(datetimes.clone()).unwrap();
+    mv.set(datetimes.clone());
     assert_eq!(mv.get_datetimes().unwrap(), datetimes.as_slice());
     assert_eq!(mv.get_first_datetime().unwrap(), datetimes[0]);
 
     // Test Instant multiple values
     let instant = Utc::now();
     let mut mv = MultiValues::Empty(DataType::Instant);
-    mv.set_instant(instant).unwrap();
+    mv.set(instant);
     assert_eq!(mv.get_first_instant().unwrap(), instant);
 }
 
@@ -1581,7 +1361,7 @@ fn test_multi_value_set_type() {
     // Test setting different type clears data
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     mv.set_type(DataType::String);
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::String);
 
     // Test setting same type does not clear data
@@ -1597,98 +1377,97 @@ fn test_multi_value_clear_all_types() {
     // Empty type
     let mut mv = MultiValues::Empty(DataType::Int32);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Int32);
 
     // Bool type
     let mut mv = MultiValues::Bool(vec![true, false]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Bool);
 
     // Char type
     let mut mv = MultiValues::Char(vec!['a', 'b']);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Char);
 
     // Int8 type
     let mut mv = MultiValues::Int8(vec![1i8, 2i8, 3i8]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Int8);
 
     // Int16 type
     let mut mv = MultiValues::Int16(vec![1i16, 2i16, 3i16]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Int16);
 
     // Int32 type
     let mut mv = MultiValues::Int32(vec![1i32, 2i32, 3i32]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Int32);
 
     // Int64 type
     let mut mv = MultiValues::Int64(vec![1i64, 2i64, 3i64]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Int64);
 
     // Int128 type
     let mut mv = MultiValues::Int128(vec![1i128, 2i128, 3i128]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Int128);
 
     // UInt8 type
     let mut mv = MultiValues::UInt8(vec![1u8, 2u8, 3u8]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::UInt8);
 
     // UInt16 type
     let mut mv = MultiValues::UInt16(vec![1u16, 2u16, 3u16]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::UInt16);
 
     // UInt32 type
     let mut mv = MultiValues::UInt32(vec![1u32, 2u32, 3u32]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::UInt32);
 
     // UInt64 type
     let mut mv = MultiValues::UInt64(vec![1u64, 2u64, 3u64]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::UInt64);
 
     // UInt128 type
     let mut mv = MultiValues::UInt128(vec![1u128, 2u128, 3u128]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::UInt128);
 
     // Float32 type
     let mut mv = MultiValues::Float32(vec![1.0f32, 2.0f32]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Float32);
 
     // Float64 type
     let mut mv = MultiValues::Float64(vec![1.0f64, 2.0f64]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Float64);
 
     // String type
-    let mut mv =
-        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mut mv = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::String);
 
     // Date type
@@ -1697,7 +1476,7 @@ fn test_multi_value_clear_all_types() {
     let date2 = NaiveDate::from_ymd_opt(2023, 1, 2).unwrap();
     let mut mv = MultiValues::Date(vec![date1, date2]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Date);
 
     // Time type
@@ -1706,7 +1485,7 @@ fn test_multi_value_clear_all_types() {
     let time2 = NaiveTime::from_hms_opt(11, 0, 0).unwrap();
     let mut mv = MultiValues::Time(vec![time1, time2]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Time);
 
     // DateTime type
@@ -1720,14 +1499,11 @@ fn test_multi_value_clear_all_types() {
         .unwrap();
     let mut mv = MultiValues::DateTime(vec![dt1, dt2]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::DateTime);
 
     // Instant type
-    use chrono::{
-        DateTime,
-        Utc,
-    };
+    use chrono::{DateTime, Utc};
     let instant1 = DateTime::parse_from_rfc3339("2023-01-01T10:00:00Z")
         .unwrap()
         .with_timezone(&Utc);
@@ -1736,7 +1512,7 @@ fn test_multi_value_clear_all_types() {
         .with_timezone(&Utc);
     let mut mv = MultiValues::Instant(vec![instant1, instant2]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::Instant);
 
     // BigInteger type
@@ -1744,7 +1520,7 @@ fn test_multi_value_clear_all_types() {
     let big2 = BigInt::from_str("987654321098765432109876543210").unwrap();
     let mut mv = MultiValues::BigInteger(vec![big1, big2]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::BigInteger);
 
     // BigDecimal type
@@ -1752,7 +1528,7 @@ fn test_multi_value_clear_all_types() {
     let dec2 = BigDecimal::from_str("987.654321098765432109876543210").unwrap();
     let mut mv = MultiValues::BigDecimal(vec![dec1, dec2]);
     mv.clear();
-    assert!(mv.is_empty());
+    assert_eq!(mv.count(), 0);
     assert_eq!(mv.data_type(), DataType::BigDecimal);
 }
 
@@ -1817,12 +1593,7 @@ fn test_multi_value_merge_all_integer_types() {
 
 #[test]
 fn test_multi_value_merge_all_other_types() {
-    use chrono::{
-        DateTime,
-        NaiveDate,
-        NaiveTime,
-        Utc,
-    };
+    use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 
     // Bool type
     let mut mv1 = MultiValues::Bool(vec![true, false]);
@@ -1839,8 +1610,7 @@ fn test_multi_value_merge_all_other_types() {
     assert_eq!(mv1.get_chars().unwrap(), &['a', 'b', 'c', 'd']);
 
     // String type
-    let mut mv1 =
-        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mut mv1 = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     let mv2 = MultiValues::String(vec!["foo".to_string(), "bar".to_string()]);
     mv1.merge(&mv2).unwrap();
     assert_eq!(mv1.count(), 4);
@@ -1974,47 +1744,47 @@ fn test_multi_value_get_first_empty_all_types() {
 fn test_multi_value_add_slice_all_types() {
     // Test adding via slice for all types
     let mut mv = MultiValues::Empty(DataType::Int8);
-    mv.add_int8s_slice(&[1i8, 2, 3]).unwrap();
+    mv.add(&[1i8, 2, 3][..]).unwrap();
     assert_eq!(mv.get_int8s().unwrap(), &[1i8, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::Int16);
-    mv.add_int16s_slice(&[1i16, 2, 3]).unwrap();
+    mv.add(&[1i16, 2, 3][..]).unwrap();
     assert_eq!(mv.get_int16s().unwrap(), &[1i16, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::Int64);
-    mv.add_int64s_slice(&[1i64, 2, 3]).unwrap();
+    mv.add(&[1i64, 2, 3][..]).unwrap();
     assert_eq!(mv.get_int64s().unwrap(), &[1i64, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::Int128);
-    mv.add_int128s_slice(&[1i128, 2, 3]).unwrap();
+    mv.add(&[1i128, 2, 3][..]).unwrap();
     assert_eq!(mv.get_int128s().unwrap(), &[1i128, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.add_uint8s_slice(&[1u8, 2, 3]).unwrap();
+    mv.add(&[1u8, 2, 3][..]).unwrap();
     assert_eq!(mv.get_uint8s().unwrap(), &[1u8, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::UInt16);
-    mv.add_uint16s_slice(&[1u16, 2, 3]).unwrap();
+    mv.add(&[1u16, 2, 3][..]).unwrap();
     assert_eq!(mv.get_uint16s().unwrap(), &[1u16, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::UInt32);
-    mv.add_uint32s_slice(&[1u32, 2, 3]).unwrap();
+    mv.add(&[1u32, 2, 3][..]).unwrap();
     assert_eq!(mv.get_uint32s().unwrap(), &[1u32, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::UInt64);
-    mv.add_uint64s_slice(&[1u64, 2, 3]).unwrap();
+    mv.add(&[1u64, 2, 3][..]).unwrap();
     assert_eq!(mv.get_uint64s().unwrap(), &[1u64, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::UInt128);
-    mv.add_uint128s_slice(&[1u128, 2, 3]).unwrap();
+    mv.add(&[1u128, 2, 3][..]).unwrap();
     assert_eq!(mv.get_uint128s().unwrap(), &[1u128, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::Float32);
-    mv.add_float32s_slice(&[1.0f32, 2.0, 3.0]).unwrap();
+    mv.add(&[1.0f32, 2.0, 3.0][..]).unwrap();
     assert_eq!(mv.get_float32s().unwrap(), &[1.0f32, 2.0, 3.0]);
 
     let mut mv = MultiValues::Empty(DataType::Float64);
-    mv.add_float64s_slice(&[1.0f64, 2.0, 3.0]).unwrap();
+    mv.add(&[1.0f64, 2.0, 3.0][..]).unwrap();
     assert_eq!(mv.get_float64s().unwrap(), &[1.0f64, 2.0, 3.0]);
 }
 
@@ -2022,15 +1792,15 @@ fn test_multi_value_add_slice_all_types() {
 fn test_multi_value_set_single_all_types() {
     // Test single value setting for all types
     let mut mv = MultiValues::Empty(DataType::Char);
-    mv.set_char('A').unwrap();
+    mv.set('A');
     assert_eq!(mv.get_chars().unwrap(), &['A']);
 
     let mut mv = MultiValues::Empty(DataType::Float32);
-    mv.set_float32(3.5).unwrap();
+    mv.set(3.5_f32);
     assert_eq!(mv.get_float32s().unwrap(), &[3.5]);
 
     let mut mv = MultiValues::Empty(DataType::Float64);
-    mv.set_float64(2.5).unwrap();
+    mv.set(2.5);
     assert_eq!(mv.get_float64s().unwrap(), &[2.5]);
 }
 
@@ -2079,12 +1849,7 @@ fn test_multi_value_data_type_all_variants() {
 
 #[test]
 fn test_multi_value_from_value_all_types() {
-    use chrono::{
-        DateTime,
-        NaiveDate,
-        NaiveTime,
-        Utc,
-    };
+    use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 
     // Test conversion from Value to MultiValues
 
@@ -2248,8 +2013,7 @@ fn test_multi_value_from_value_all_types() {
     assert_eq!(mv.get_first_biginteger().unwrap(), big_int);
 
     // BigDecimal type
-    let big_dec =
-        BigDecimal::from_str("123.456789012345678901234567890").unwrap();
+    let big_dec = BigDecimal::from_str("123.456789012345678901234567890").unwrap();
     let v = Value::BigDecimal(big_dec.clone());
     let mv: MultiValues = v.into();
     assert_eq!(mv.data_type(), DataType::BigDecimal);
@@ -2260,126 +2024,6 @@ fn test_multi_value_from_value_all_types() {
 // ========================================================================
 // TypeMismatch error branch tests (batch generated using macros)
 // ========================================================================
-
-#[test]
-fn test_multi_value_add_all_types_mismatch_with_macro() {
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-        Utc,
-    };
-
-    // Batch test type mismatch for all add_xxx methods using macros
-    test_add_type_mismatch! {
-        add_bool, true, "bool";
-        add_char, 'a', "char";
-        add_int8, 10i8, "int8";
-        add_int16, 100i16, "int16";
-        add_int64, 1000i64, "int64";
-        add_int128, 99999i128, "int128";
-        add_uint8, 10u8, "uint8";
-        add_uint16, 100u16, "uint16";
-        add_uint32, 42u32, "uint32";
-        add_uint64, 1000u64, "uint64";
-        add_uint128, 99999u128, "uint128";
-        add_float32, 3.5f32, "float32";
-        add_float64, 2.71f64, "float64";
-        add_string, "test".to_string(), "string";
-        add_date, NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(), "date";
-        add_time, NaiveTime::from_hms_opt(10, 30, 0).unwrap(), "time";
-        add_datetime, NaiveDate::from_ymd_opt(2024, 1, 1).unwrap().and_hms_opt(10, 30, 0).unwrap(), "datetime";
-        add_instant, Utc::now(), "instant";
-        add_biginteger, BigInt::from(12345), "biginteger";
-        add_bigdecimal, BigDecimal::from_str("123.456").unwrap(), "bigdecimal";
-    }
-}
-
-#[test]
-fn test_multi_value_add_vec_all_types_mismatch_with_macro() {
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-        Utc,
-    };
-
-    // Test add_xxxs (Vec) method type mismatch (excluding Int32 type, as the
-    // test MultiValues is Int32)
-    test_add_type_mismatch! {
-        add_bools, vec![true, false], "bools";
-        add_int8s, vec![1i8, 2], "int8s";
-        add_int16s, vec![10i16, 20], "int16s";
-        add_int64s, vec![1000i64, 2000], "int64s";
-        add_int128s, vec![10000i128, 20000], "int128s";
-        add_uint8s, vec![1u8, 2], "uint8s";
-        add_uint16s, vec![10u16, 20], "uint16s";
-        add_uint32s, vec![100u32, 200], "uint32s";
-        add_uint64s, vec![1000u64, 2000], "uint64s";
-        add_uint128s, vec![10000u128, 20000], "uint128s";
-        add_float32s, vec![1.0f32, 2.0], "float32s";
-        add_float64s, vec![1.0f64, 2.0], "float64s";
-        add_strings, vec!["a".to_string(), "b".to_string()], "strings";
-        add_dates, vec![NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()], "dates";
-        add_times, vec![NaiveTime::from_hms_opt(10, 30, 0).unwrap()], "times";
-        add_datetimes, vec![NaiveDate::from_ymd_opt(2024, 1, 1).unwrap().and_hms_opt(10, 30, 0).unwrap()], "datetimes";
-        add_instants, vec![Utc::now()], "instants";
-        add_bigintegers, vec![BigInt::from(12345)], "bigintegers";
-        add_bigdecimals, vec![BigDecimal::from_str("123.456").unwrap()], "bigdecimals";
-    }
-}
-
-#[test]
-fn test_multi_value_add_slice_all_types_mismatch_with_macro() {
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-        Utc,
-    };
-
-    // Test add_xxxs_slice method type mismatch
-    let bool_slice = &[true, false];
-    let int8_slice = &[1i8, 2];
-    let int16_slice = &[10i16, 20];
-    let _int32_slice = &[42i32, 100];
-    let int64_slice = &[1000i64, 2000];
-    let int128_slice = &[10000i128, 20000];
-    let uint8_slice = &[1u8, 2];
-    let uint16_slice = &[10u16, 20];
-    let uint32_slice = &[100u32, 200];
-    let uint64_slice = &[1000u64, 2000];
-    let uint128_slice = &[10000u128, 20000];
-    let float32_slice = &[1.0f32, 2.0];
-    let float64_slice = &[1.0f64, 2.0];
-    let date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
-    let time = NaiveTime::from_hms_opt(10, 30, 0).unwrap();
-    let datetime = NaiveDate::from_ymd_opt(2024, 1, 1)
-        .unwrap()
-        .and_hms_opt(10, 30, 0)
-        .unwrap();
-    let instant = Utc::now();
-    let big_int = BigInt::from(12345);
-    let big_dec = BigDecimal::from_str("123.456").unwrap();
-
-    test_add_type_mismatch! {
-        add_bools_slice, bool_slice, "bools_slice";
-        add_int8s_slice, int8_slice, "int8s_slice";
-        add_int16s_slice, int16_slice, "int16s_slice";
-        add_int64s_slice, int64_slice, "int64s_slice";
-        add_int128s_slice, int128_slice, "int128s_slice";
-        add_uint8s_slice, uint8_slice, "uint8s_slice";
-        add_uint16s_slice, uint16_slice, "uint16s_slice";
-        add_uint32s_slice, uint32_slice, "uint32s_slice";
-        add_uint64s_slice, uint64_slice, "uint64s_slice";
-        add_uint128s_slice, uint128_slice, "uint128s_slice";
-        add_float32s_slice, float32_slice, "float32s_slice";
-        add_float64s_slice, float64_slice, "float64s_slice";
-        add_dates_slice, &[date], "dates_slice";
-        add_times_slice, &[time], "times_slice";
-        add_datetimes_slice, &[datetime], "datetimes_slice";
-        add_instants_slice, &[instant], "instants_slice";
-        add_bigintegers_slice, &[big_int], "bigintegers_slice";
-        add_bigdecimals_slice, &[big_dec], "bigdecimals_slice";
-    }
-}
 
 #[test]
 fn test_multi_value_get_all_types_mismatch_with_macro() {
@@ -2440,64 +2084,6 @@ fn test_multi_value_get_first_all_types_mismatch_with_macro() {
 // ========================================================================
 
 #[test]
-fn test_empty_to_all_integer_types_comprehensive() {
-    // Batch test Empty conversion for all integer types using macros
-    test_empty_to_all_int_types! {
-        DataType::Int8, add_int8, add_int8s, add_int8s_slice, get_first_int8, 42i8, vec![1i8, 2, 3];
-        DataType::Int16, add_int16, add_int16s, add_int16s_slice, get_first_int16, 100i16, vec![10i16, 20, 30];
-        DataType::Int32, add_int32, add_int32s, add_int32s_slice, get_first_int32, 200i32, vec![100i32, 200, 300];
-        DataType::Int64, add_int64, add_int64s, add_int64s_slice, get_first_int64, 1000i64, vec![500i64, 1000, 1500];
-        DataType::Int128, add_int128, add_int128s, add_int128s_slice, get_first_int128, 9999i128, vec![1000i128, 2000, 3000];
-        DataType::UInt8, add_uint8, add_uint8s, add_uint8s_slice, get_first_uint8, 255u8, vec![1u8, 2, 3];
-        DataType::UInt16, add_uint16, add_uint16s, add_uint16s_slice, get_first_uint16, 65535u16, vec![100u16, 200, 300];
-        DataType::UInt32, add_uint32, add_uint32s, add_uint32s_slice, get_first_uint32, 99999u32, vec![1000u32, 2000, 3000];
-        DataType::UInt64, add_uint64, add_uint64s, add_uint64s_slice, get_first_uint64, 999999u64, vec![10000u64, 20000, 30000];
-        DataType::UInt128, add_uint128, add_uint128s, add_uint128s_slice, get_first_uint128, 888888u128, vec![100000u128, 200000, 300000];
-        DataType::Float32, add_float32, add_float32s, add_float32s_slice, get_first_float32, 3.5f32, vec![1.1f32, 2.2, 3.3];
-        DataType::Float64, add_float64, add_float64s, add_float64s_slice, get_first_float64, 2.5f64, vec![1.11f64, 2.22, 3.33];
-    }
-}
-
-#[test]
-fn test_empty_type_mismatch_comprehensive() {
-    // Test adding other types to Empty(Int32) should error
-    test_empty_type_mismatch_errors! {
-        DataType::Int32, DataType::Int32;
-        add_bool, true;
-        add_char, 'x';
-        add_int8, 10i8;
-        add_int16, 100i16;
-        add_int64, 1000i64;
-        add_int128, 10000i128;
-        add_uint8, 10u8;
-        add_uint16, 100u16;
-        add_uint32, 1000u32;
-        add_uint64, 10000u64;
-        add_uint128, 100000u128;
-        add_float32, 3.5f32;
-        add_float64, 2.5f64;
-        add_string, "test".to_string();
-    }
-
-    // Test adding numeric types to Empty(String) should error
-    test_empty_type_mismatch_errors! {
-        DataType::String, DataType::String;
-        add_bool, true;
-        add_int32, 42i32;
-        add_int64, 1000i64;
-        add_float64, 3.5f64;
-    }
-
-    // Test adding other types to Empty(Bool) should error
-    test_empty_type_mismatch_errors! {
-        DataType::Bool, DataType::Bool;
-        add_int32, 42i32;
-        add_string, "test".to_string();
-        add_float64, 3.5f64;
-    }
-}
-
-#[test]
 fn test_get_first_from_empty_all_types() {
     // Batch test getting first from Empty returns NoValue
     test_get_first_empty_no_value! {
@@ -2526,25 +2112,24 @@ fn test_get_first_from_empty_all_types() {
 }
 
 #[test]
-fn test_get_from_empty_returns_empty_vec() {
-    // For Empty with matching declared type, getting list returns empty Vec.
+fn test_get_from_unset_returns_no_value() {
     let mv = MultiValues::Empty(DataType::Int32);
-    assert_eq!(mv.get_int32s().unwrap(), &[] as &[i32]);
+    assert!(matches!(mv.get_int32s(), Err(ValueError::NoValue)));
 
     let mv = MultiValues::Empty(DataType::String);
-    assert_eq!(mv.get_strings().unwrap(), &[] as &[String]);
+    assert!(matches!(mv.get_strings(), Err(ValueError::NoValue)));
 
     let mv = MultiValues::Empty(DataType::Bool);
-    assert_eq!(mv.get_bools().unwrap(), &[] as &[bool]);
+    assert!(matches!(mv.get_bools(), Err(ValueError::NoValue)));
 
     let mv = MultiValues::Empty(DataType::Float64);
-    assert_eq!(mv.get_float64s().unwrap(), &[] as &[f64]);
+    assert!(matches!(mv.get_float64s(), Err(ValueError::NoValue)));
 
     let mv = MultiValues::Empty(DataType::Int8);
-    assert_eq!(mv.get_int8s().unwrap(), &[] as &[i8]);
+    assert!(matches!(mv.get_int8s(), Err(ValueError::NoValue)));
 
     let mv = MultiValues::Empty(DataType::UInt64);
-    assert_eq!(mv.get_uint64s().unwrap(), &[] as &[u64]);
+    assert!(matches!(mv.get_uint64s(), Err(ValueError::NoValue)));
 }
 
 #[test]
@@ -2567,114 +2152,77 @@ fn test_get_from_empty_mismatched_type_returns_error() {
 }
 
 #[test]
-fn test_add_to_existing_multivalue_comprehensive() {
-    // Batch test adding elements to existing MultiValues using macros
-    test_add_to_existing! {
-        MultiValues::Int8(vec![1i8]), add_int8, 10i8,
-            add_int8s, vec![20i8, 30i8], add_int8s_slice, 2;
-        MultiValues::Int16(vec![100i16]), add_int16, 200i16,
-            add_int16s, vec![300i16, 400i16], add_int16s_slice, 2;
-        MultiValues::Int32(vec![1000]), add_int32, 2000,
-            add_int32s, vec![3000, 4000], add_int32s_slice, 2;
-        MultiValues::Int64(vec![10000i64]), add_int64, 20000i64,
-            add_int64s, vec![30000i64, 40000i64], add_int64s_slice, 2;
-        MultiValues::Int128(vec![100000i128]), add_int128, 200000i128,
-            add_int128s, vec![300000i128, 400000i128], add_int128s_slice, 2;
-        MultiValues::UInt8(vec![1u8]), add_uint8, 10u8,
-            add_uint8s, vec![20u8, 30u8], add_uint8s_slice, 2;
-        MultiValues::UInt16(vec![100u16]), add_uint16, 200u16,
-            add_uint16s, vec![300u16, 400u16], add_uint16s_slice, 2;
-        MultiValues::UInt32(vec![1000u32]), add_uint32, 2000u32,
-            add_uint32s, vec![3000u32, 4000u32], add_uint32s_slice, 2;
-        MultiValues::UInt64(vec![10000u64]), add_uint64, 20000u64,
-            add_uint64s, vec![30000u64, 40000u64], add_uint64s_slice, 2;
-        MultiValues::UInt128(vec![100000u128]), add_uint128, 200000u128,
-            add_uint128s, vec![300000u128, 400000u128], add_uint128s_slice, 2;
-        MultiValues::Float32(vec![1.1f32]), add_float32, 2.2f32,
-            add_float32s, vec![3.3f32, 4.4f32], add_float32s_slice, 2;
-        MultiValues::Float64(vec![1.11f64]), add_float64, 2.22f64,
-            add_float64s, vec![3.33f64, 4.44f64], add_float64s_slice, 2;
-        MultiValues::String(vec!["hello".to_string()]), add_string, "world".to_string(),
-            add_strings, vec!["foo".to_string(), "bar".to_string()], add_strings_slice, 2;
-        MultiValues::Bool(vec![true]), add_bool, false,
-            add_bools, vec![true, false], add_bools_slice, 2;
-        MultiValues::Char(vec!['a']), add_char, 'b',
-            add_chars, vec!['c', 'd'], add_chars_slice, 2;
-    }
-}
-
-#[test]
 fn test_set_single_all_types() {
     // Test set_bool
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.set_bool(true).unwrap();
+    mv.set(true);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_bools().unwrap(), &[true]);
 
     // Test setting on existing data (will replace)
     let mut mv = MultiValues::Bool(vec![true, false, true]);
-    mv.set_bool(false).unwrap();
+    mv.set(false);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_bools().unwrap(), &[false]);
 
     // Test all integer types
     let mut mv = MultiValues::Empty(DataType::Int8);
-    mv.set_int8(42i8).unwrap();
+    mv.set(42i8);
     assert_eq!(mv.get_int8s().unwrap(), &[42i8]);
 
     let mut mv = MultiValues::Empty(DataType::Int16);
-    mv.set_int16(100i16).unwrap();
+    mv.set(100i16);
     assert_eq!(mv.get_int16s().unwrap(), &[100i16]);
 
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.set_int32(1000).unwrap();
+    mv.set(1000);
     assert_eq!(mv.get_int32s().unwrap(), &[1000]);
 
     let mut mv = MultiValues::Empty(DataType::Int64);
-    mv.set_int64(10000i64).unwrap();
+    mv.set(10000i64);
     assert_eq!(mv.get_int64s().unwrap(), &[10000i64]);
 
     let mut mv = MultiValues::Empty(DataType::Int128);
-    mv.set_int128(100000i128).unwrap();
+    mv.set(100000i128);
     assert_eq!(mv.get_int128s().unwrap(), &[100000i128]);
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.set_uint8(255u8).unwrap();
+    mv.set(255u8);
     assert_eq!(mv.get_uint8s().unwrap(), &[255u8]);
 
     let mut mv = MultiValues::Empty(DataType::UInt16);
-    mv.set_uint16(65535u16).unwrap();
+    mv.set(65535u16);
     assert_eq!(mv.get_uint16s().unwrap(), &[65535u16]);
 
     let mut mv = MultiValues::Empty(DataType::UInt32);
-    mv.set_uint32(99999u32).unwrap();
+    mv.set(99999u32);
     assert_eq!(mv.get_uint32s().unwrap(), &[99999u32]);
 
     let mut mv = MultiValues::Empty(DataType::UInt64);
-    mv.set_uint64(999999u64).unwrap();
+    mv.set(999999u64);
     assert_eq!(mv.get_uint64s().unwrap(), &[999999u64]);
 
     let mut mv = MultiValues::Empty(DataType::UInt128);
-    mv.set_uint128(9999999u128).unwrap();
+    mv.set(9999999u128);
     assert_eq!(mv.get_uint128s().unwrap(), &[9999999u128]);
 
     // Test floating point types
     let mut mv = MultiValues::Empty(DataType::Float32);
-    mv.set_float32(3.5f32).unwrap();
+    mv.set(3.5f32);
     assert_eq!(mv.get_float32s().unwrap(), &[3.5f32]);
 
     let mut mv = MultiValues::Empty(DataType::Float64);
-    mv.set_float64(2.5f64).unwrap();
+    mv.set(2.5f64);
     assert_eq!(mv.get_float64s().unwrap(), &[2.5f64]);
 
     // Test strings type
     let mut mv = MultiValues::Empty(DataType::String);
-    mv.set_string("hello".to_string()).unwrap();
+    mv.set("hello".to_string());
     assert_eq!(mv.get_strings().unwrap(), &["hello"]);
 
     // Test character types
     let mut mv = MultiValues::Empty(DataType::Char);
-    mv.set_char('x').unwrap();
+    mv.set('x');
     assert_eq!(mv.get_chars().unwrap(), &['x']);
 }
 
@@ -2682,93 +2230,92 @@ fn test_set_single_all_types() {
 fn test_set_vec_and_slice_all_types() {
     // Test set_bools (Vec)
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.set_bools(vec![true, false, true]).unwrap();
+    mv.set(vec![true, false, true]);
     assert_eq!(mv.count(), 3);
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
     // Test set_bools_slice
     let mut mv = MultiValues::Bool(vec![false]);
     let values = [true, true, false];
-    mv.set_bools_slice(&values[..]).unwrap();
+    mv.set(&values[..]);
     assert_eq!(mv.count(), 3);
     assert_eq!(mv.get_bools().unwrap(), &[true, true, false]);
 
     // Test integer types Vec
     let mut mv = MultiValues::Empty(DataType::Int8);
-    mv.set_int8s(vec![1i8, 2, 3]).unwrap();
+    mv.set(vec![1i8, 2, 3]);
     assert_eq!(mv.get_int8s().unwrap(), &[1i8, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.set_int32s(vec![100, 200, 300]).unwrap();
+    mv.set(vec![100, 200, 300]);
     assert_eq!(mv.get_int32s().unwrap(), &[100, 200, 300]);
 
     let mut mv = MultiValues::Empty(DataType::Int64);
-    mv.set_int64s(vec![1000i64, 2000, 3000]).unwrap();
+    mv.set(vec![1000i64, 2000, 3000]);
     assert_eq!(mv.get_int64s().unwrap(), &[1000i64, 2000, 3000]);
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.set_uint8s(vec![10u8, 20, 30]).unwrap();
+    mv.set(vec![10u8, 20, 30]);
     assert_eq!(mv.get_uint8s().unwrap(), &[10u8, 20, 30]);
 
     let mut mv = MultiValues::Empty(DataType::UInt64);
-    mv.set_uint64s(vec![10000u64, 20000, 30000]).unwrap();
+    mv.set(vec![10000u64, 20000, 30000]);
     assert_eq!(mv.get_uint64s().unwrap(), &[10000u64, 20000, 30000]);
 
     // Test integer types slice
     let mut mv = MultiValues::Int16(vec![999i16]);
     let values = [10i16, 20, 30];
-    mv.set_int16s_slice(&values[..]).unwrap();
+    mv.set(&values[..]);
     assert_eq!(mv.get_int16s().unwrap(), &[10i16, 20, 30]);
 
     let mut mv = MultiValues::Int128(vec![888i128]);
     let values = [100i128, 200, 300];
-    mv.set_int128s_slice(&values[..]).unwrap();
+    mv.set(&values[..]);
     assert_eq!(mv.get_int128s().unwrap(), &[100i128, 200, 300]);
 
     let mut mv = MultiValues::UInt16(vec![777u16]);
     let values = [10u16, 20, 30];
-    mv.set_uint16s_slice(&values[..]).unwrap();
+    mv.set(&values[..]);
     assert_eq!(mv.get_uint16s().unwrap(), &[10u16, 20, 30]);
 
     let mut mv = MultiValues::UInt32(vec![666u32]);
     let values = [100u32, 200, 300];
-    mv.set_uint32s_slice(&values[..]).unwrap();
+    mv.set(&values[..]);
     assert_eq!(mv.get_uint32s().unwrap(), &[100u32, 200, 300]);
 
     let mut mv = MultiValues::UInt128(vec![555u128]);
     let values = [1000u128, 2000, 3000];
-    mv.set_uint128s_slice(&values[..]).unwrap();
+    mv.set(&values[..]);
     assert_eq!(mv.get_uint128s().unwrap(), &[1000u128, 2000, 3000]);
 
     // Test floating point types
     let mut mv = MultiValues::Empty(DataType::Float32);
-    mv.set_float32s(vec![1.1f32, 2.2, 3.3]).unwrap();
+    mv.set(vec![1.1f32, 2.2, 3.3]);
     assert_eq!(mv.get_float32s().unwrap(), &[1.1f32, 2.2, 3.3]);
 
     let mut mv = MultiValues::Float64(vec![9.9f64]);
     let values = [1.11f64, 2.22, 3.33];
-    mv.set_float64s_slice(&values[..]).unwrap();
+    mv.set(&values[..]);
     assert_eq!(mv.get_float64s().unwrap(), &[1.11f64, 2.22, 3.33]);
 
     // Test strings type
     let mut mv = MultiValues::Empty(DataType::String);
-    mv.set_strings(vec!["hello".to_string(), "world".to_string()])
-        .unwrap();
+    mv.set(vec!["hello".to_string(), "world".to_string()]);
     assert_eq!(mv.get_strings().unwrap(), &["hello", "world"]);
 
     let mut mv = MultiValues::String(vec!["old".to_string()]);
     let values = ["foo".to_string(), "bar".to_string()];
-    mv.set_strings_slice(&values[..]).unwrap();
+    mv.set(&values[..]);
     assert_eq!(mv.get_strings().unwrap(), &["foo", "bar"]);
 
     // Test character types
     let mut mv = MultiValues::Empty(DataType::Char);
-    mv.set_chars(vec!['a', 'b', 'c']).unwrap();
+    mv.set(vec!['a', 'b', 'c']);
     assert_eq!(mv.get_chars().unwrap(), &['a', 'b', 'c']);
 
     let mut mv = MultiValues::Char(vec!['z']);
     let values = ['x', 'y'];
-    mv.set_chars_slice(&values[..]).unwrap();
+    mv.set(&values[..]);
     assert_eq!(mv.get_chars().unwrap(), &['x', 'y']);
 }
 
@@ -2778,44 +2325,44 @@ fn test_generic_set_method_comprehensive() {
 
     // 1. Vec<T> form
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.set(vec![1, 2, 3]).unwrap();
+    mv.set(vec![1, 2, 3]);
     assert_eq!(mv.count(), 3);
     assert_eq!(mv.get_int32s().unwrap(), &[1, 2, 3]);
 
     // 2. &[T] form
     let mut mv = MultiValues::Empty(DataType::Bool);
     let slice = &[true, false, true][..];
-    mv.set(slice).unwrap();
+    mv.set(slice);
     assert_eq!(mv.count(), 3);
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
     // 3. single T form
     let mut mv = MultiValues::Empty(DataType::String);
-    mv.set("hello".to_string()).unwrap();
+    mv.set("hello".to_string());
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_strings().unwrap(), &["hello"]);
 
     // Test more types
     let mut mv = MultiValues::Empty(DataType::Float64);
-    mv.set(vec![1.1, 2.2, 3.3]).unwrap();
+    mv.set(vec![1.1, 2.2, 3.3]);
     assert_eq!(mv.get_float64s().unwrap(), &[1.1, 2.2, 3.3]);
 
     let mut mv = MultiValues::Empty(DataType::Char);
-    mv.set('x').unwrap();
+    mv.set('x');
     assert_eq!(mv.get_chars().unwrap(), &['x']);
 
     // Test integer types
     let mut mv = MultiValues::Empty(DataType::Int8);
-    mv.set(vec![1i8, 2, 3]).unwrap();
+    mv.set(vec![1i8, 2, 3]);
     assert_eq!(mv.get_int8s().unwrap(), &[1i8, 2, 3]);
 
     let mut mv = MultiValues::Empty(DataType::Int64);
     let slice = &[100i64, 200, 300][..];
-    mv.set(slice).unwrap();
+    mv.set(slice);
     assert_eq!(mv.get_int64s().unwrap(), &[100i64, 200, 300]);
 
     let mut mv = MultiValues::Empty(DataType::UInt32);
-    mv.set(42u32).unwrap();
+    mv.set(42u32);
     assert_eq!(mv.get_uint32s().unwrap(), &[42u32]);
 }
 
@@ -2870,89 +2417,89 @@ fn test_generic_add_method_comprehensive() {
 fn test_multi_value_add_type_mismatch_errors() {
     // Test add_bool type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_bool(true);
+    let result = mv.add(true);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_char type mismatch
     let mut mv = MultiValues::String(vec!["test".to_string()]);
-    let result = mv.add_char('a');
+    let result = mv.add('a');
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_int8 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_int8(10);
+    let result = mv.add(10_i8);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_int16 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_int16(100);
+    let result = mv.add(100_i16);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_int32 type mismatch
     let mut mv = MultiValues::Int64(vec![1, 2, 3]);
-    let result = mv.add_int32(42);
+    let result = mv.add(42_i32);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_int64 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_int64(1000);
+    let result = mv.add(1_000_i64);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_int128 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_int128(99999);
+    let result = mv.add(99_999_i128);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_uint8 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_uint8(10);
+    let result = mv.add(10_u8);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_uint16 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_uint16(100);
+    let result = mv.add(100_u16);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_uint32 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_uint32(42);
+    let result = mv.add(42_u32);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_uint64 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_uint64(1000);
+    let result = mv.add(1_000_u64);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_uint128 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_uint128(99999);
+    let result = mv.add(99_999_u128);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_float32 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_float32(3.5);
+    let result = mv.add(3.5_f32);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_float64 type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_float64(2.71);
+    let result = mv.add(2.71);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_string type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_string("test".to_string());
+    let result = mv.add("test".to_string());
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_date type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let date = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
-    let result = mv.add_date(date);
+    let result = mv.add(date);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_time type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let time = chrono::NaiveTime::from_hms_opt(10, 30, 0).unwrap();
-    let result = mv.add_time(time);
+    let result = mv.add(time);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_datetime type mismatch
@@ -2961,25 +2508,25 @@ fn test_multi_value_add_type_mismatch_errors() {
         .unwrap()
         .and_hms_opt(10, 30, 0)
         .unwrap();
-    let result = mv.add_datetime(datetime);
+    let result = mv.add(datetime);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_instant type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let instant = chrono::Utc::now();
-    let result = mv.add_instant(instant);
+    let result = mv.add(instant);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_biginteger type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let big_int = BigInt::from(12345);
-    let result = mv.add_biginteger(big_int);
+    let result = mv.add(big_int);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_bigdecimal type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let big_dec = BigDecimal::from_str("123.456").unwrap();
-    let result = mv.add_bigdecimal(big_dec);
+    let result = mv.add(big_dec);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 }
 
@@ -2987,34 +2534,34 @@ fn test_multi_value_add_type_mismatch_errors() {
 fn test_multi_value_add_multi_type_mismatch_errors() {
     // Test add_bools type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_bools(vec![true, false]);
+    let result = mv.add(vec![true, false]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_int32s type mismatch
     let mut mv = MultiValues::Int64(vec![1, 2, 3]);
-    let result = mv.add_int32s(vec![42, 100]);
+    let result = mv.add(vec![42, 100]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_int64s type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_int64s(vec![1000, 2000]);
+    let result = mv.add(vec![1_000_i64, 2_000]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_strings type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    let result = mv.add_strings(vec!["a".to_string(), "b".to_string()]);
+    let result = mv.add(vec!["a".to_string(), "b".to_string()]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_dates type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let date = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
-    let result = mv.add_dates(vec![date]);
+    let result = mv.add(vec![date]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_times type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let time = chrono::NaiveTime::from_hms_opt(10, 30, 0).unwrap();
-    let result = mv.add_times(vec![time]);
+    let result = mv.add(vec![time]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_datetimes type mismatch
@@ -3023,25 +2570,25 @@ fn test_multi_value_add_multi_type_mismatch_errors() {
         .unwrap()
         .and_hms_opt(10, 30, 0)
         .unwrap();
-    let result = mv.add_datetimes(vec![datetime]);
+    let result = mv.add(vec![datetime]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_instants type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let instant = chrono::Utc::now();
-    let result = mv.add_instants(vec![instant]);
+    let result = mv.add(vec![instant]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_bigintegers type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let big_int = BigInt::from(12345);
-    let result = mv.add_bigintegers(vec![big_int]);
+    let result = mv.add(vec![big_int]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_bigdecimals type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let big_dec = BigDecimal::from_str("123.456").unwrap();
-    let result = mv.add_bigdecimals(vec![big_dec]);
+    let result = mv.add(vec![big_dec]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 }
 
@@ -3050,33 +2597,33 @@ fn test_multi_value_add_slice_type_mismatch_errors() {
     // Test add_bools_slice type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let values = &[true, false];
-    let result = mv.add_bools_slice(values);
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_int32s_slice type mismatch
     let mut mv = MultiValues::Int64(vec![1, 2, 3]);
     let values = &[42, 100];
-    let result = mv.add_int32s_slice(values);
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_float32s_slice type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let values = &[1.0f32, 2.0f32];
-    let result = mv.add_float32s_slice(values);
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_dates_slice type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let date = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
     let values = &[date];
-    let result = mv.add_dates_slice(values);
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_times_slice type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let time = chrono::NaiveTime::from_hms_opt(10, 30, 0).unwrap();
     let values = &[time];
-    let result = mv.add_times_slice(values);
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_datetimes_slice type mismatch
@@ -3086,28 +2633,28 @@ fn test_multi_value_add_slice_type_mismatch_errors() {
         .and_hms_opt(10, 30, 0)
         .unwrap();
     let values = &[datetime];
-    let result = mv.add_datetimes_slice(values);
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_instants_slice type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let instant = chrono::Utc::now();
     let values = &[instant];
-    let result = mv.add_instants_slice(values);
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_bigintegers_slice type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let big_int = BigInt::from(12345);
     let values = &[big_int];
-    let result = mv.add_bigintegers_slice(values);
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Test add_bigdecimals_slice type mismatch
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
     let big_dec = BigDecimal::from_str("123.456").unwrap();
     let values = &[big_dec];
-    let result = mv.add_bigdecimals_slice(values);
+    let result = mv.add(values);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 }
 
@@ -3119,35 +2666,35 @@ fn test_multi_value_add_slice_type_mismatch_errors() {
 fn test_multi_value_empty_add_single_conversion() {
     // Empty(Bool) + add_bool -> Bool(vec![value])
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.add_bool(true).unwrap();
+    mv.add(true).unwrap();
     assert_eq!(mv.data_type(), DataType::Bool);
     assert_eq!(mv.count(), 1);
     assert!(mv.get_first_bool().unwrap());
 
     // Empty(Int32) + add_int32 -> Int32(vec![value])
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.add_int32(42).unwrap();
+    mv.add(42_i32).unwrap();
     assert_eq!(mv.data_type(), DataType::Int32);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_int32().unwrap(), 42);
 
     // Empty(String) + add_string -> String(vec![value])
     let mut mv = MultiValues::Empty(DataType::String);
-    mv.add_string("hello".to_string()).unwrap();
+    mv.add("hello".to_string()).unwrap();
     assert_eq!(mv.data_type(), DataType::String);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_string().unwrap(), "hello");
 
     // Empty(Char) + add_char -> Char(vec![value])
     let mut mv = MultiValues::Empty(DataType::Char);
-    mv.add_char('x').unwrap();
+    mv.add('x').unwrap();
     assert_eq!(mv.data_type(), DataType::Char);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_char().unwrap(), 'x');
 
     // Empty(Float64) + add_float64 -> Float64(vec![value])
     let mut mv = MultiValues::Empty(DataType::Float64);
-    mv.add_float64(3.5).unwrap();
+    mv.add(3.5).unwrap();
     assert_eq!(mv.data_type(), DataType::Float64);
     assert_eq!(mv.count(), 1);
     assert!((mv.get_first_float64().unwrap() - 3.5).abs() < 1e-10);
@@ -3155,7 +2702,7 @@ fn test_multi_value_empty_add_single_conversion() {
     // Empty(Date) + add_date -> Date(vec![value])
     let mut mv = MultiValues::Empty(DataType::Date);
     let date = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
-    mv.add_date(date).unwrap();
+    mv.add(date).unwrap();
     assert_eq!(mv.data_type(), DataType::Date);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_date().unwrap(), date);
@@ -3163,7 +2710,7 @@ fn test_multi_value_empty_add_single_conversion() {
     // Empty(Time) + add_time -> Time(vec![value])
     let mut mv = MultiValues::Empty(DataType::Time);
     let time = chrono::NaiveTime::from_hms_opt(10, 30, 0).unwrap();
-    mv.add_time(time).unwrap();
+    mv.add(time).unwrap();
     assert_eq!(mv.data_type(), DataType::Time);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_time().unwrap(), time);
@@ -3174,7 +2721,7 @@ fn test_multi_value_empty_add_single_conversion() {
         .unwrap()
         .and_hms_opt(10, 30, 0)
         .unwrap();
-    mv.add_datetime(datetime).unwrap();
+    mv.add(datetime).unwrap();
     assert_eq!(mv.data_type(), DataType::DateTime);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_datetime().unwrap(), datetime);
@@ -3182,14 +2729,14 @@ fn test_multi_value_empty_add_single_conversion() {
     // Empty(Instant) + add_instant -> Instant(vec![value])
     let mut mv = MultiValues::Empty(DataType::Instant);
     let instant = chrono::Utc::now();
-    mv.add_instant(instant).unwrap();
+    mv.add(instant).unwrap();
     assert_eq!(mv.data_type(), DataType::Instant);
     assert_eq!(mv.count(), 1);
 
     // Empty(BigInteger) + add_biginteger -> BigInteger(vec![value])
     let mut mv = MultiValues::Empty(DataType::BigInteger);
     let big_int = BigInt::from(12345);
-    mv.add_biginteger(big_int.clone()).unwrap();
+    mv.add(big_int.clone()).unwrap();
     assert_eq!(mv.data_type(), DataType::BigInteger);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_biginteger().unwrap(), big_int);
@@ -3197,7 +2744,7 @@ fn test_multi_value_empty_add_single_conversion() {
     // Empty(BigDecimal) + add_bigdecimal -> BigDecimal(vec![value])
     let mut mv = MultiValues::Empty(DataType::BigDecimal);
     let big_dec = BigDecimal::from_str("123.456").unwrap();
-    mv.add_bigdecimal(big_dec.clone()).unwrap();
+    mv.add(big_dec.clone()).unwrap();
     assert_eq!(mv.data_type(), DataType::BigDecimal);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_bigdecimal().unwrap(), big_dec);
@@ -3205,70 +2752,70 @@ fn test_multi_value_empty_add_single_conversion() {
     // Test Empty conversion for all integer types
     // Empty(Int8) + add_int8 -> Int8(vec![value])
     let mut mv = MultiValues::Empty(DataType::Int8);
-    mv.add_int8(42).unwrap();
+    mv.add(42_i8).unwrap();
     assert_eq!(mv.data_type(), DataType::Int8);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_int8().unwrap(), 42);
 
     // Empty(Int16) + add_int16 -> Int16(vec![value])
     let mut mv = MultiValues::Empty(DataType::Int16);
-    mv.add_int16(1000).unwrap();
+    mv.add(1_000_i16).unwrap();
     assert_eq!(mv.data_type(), DataType::Int16);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_int16().unwrap(), 1000);
 
     // Empty(Int64) + add_int64 -> Int64(vec![value])
     let mut mv = MultiValues::Empty(DataType::Int64);
-    mv.add_int64(999999).unwrap();
+    mv.add(999_999_i64).unwrap();
     assert_eq!(mv.data_type(), DataType::Int64);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_int64().unwrap(), 999999);
 
     // Empty(Int128) + add_int128 -> Int128(vec![value])
     let mut mv = MultiValues::Empty(DataType::Int128);
-    mv.add_int128(123456789).unwrap();
+    mv.add(123_456_789_i128).unwrap();
     assert_eq!(mv.data_type(), DataType::Int128);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_int128().unwrap(), 123456789);
 
     // Empty(UInt8) + add_uint8 -> UInt8(vec![value])
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.add_uint8(255).unwrap();
+    mv.add(255_u8).unwrap();
     assert_eq!(mv.data_type(), DataType::UInt8);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_uint8().unwrap(), 255);
 
     // Empty(UInt16) + add_uint16 -> UInt16(vec![value])
     let mut mv = MultiValues::Empty(DataType::UInt16);
-    mv.add_uint16(65535).unwrap();
+    mv.add(65_535_u16).unwrap();
     assert_eq!(mv.data_type(), DataType::UInt16);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_uint16().unwrap(), 65535);
 
     // Empty(UInt32) + add_uint32 -> UInt32(vec![value])
     let mut mv = MultiValues::Empty(DataType::UInt32);
-    mv.add_uint32(4294967295).unwrap();
+    mv.add(4_294_967_295_u32).unwrap();
     assert_eq!(mv.data_type(), DataType::UInt32);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_uint32().unwrap(), 4294967295);
 
     // Empty(UInt64) + add_uint64 -> UInt64(vec![value])
     let mut mv = MultiValues::Empty(DataType::UInt64);
-    mv.add_uint64(9999999999).unwrap();
+    mv.add(9_999_999_999_u64).unwrap();
     assert_eq!(mv.data_type(), DataType::UInt64);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_uint64().unwrap(), 9999999999);
 
     // Empty(UInt128) + add_uint128 -> UInt128(vec![value])
     let mut mv = MultiValues::Empty(DataType::UInt128);
-    mv.add_uint128(123456789012345).unwrap();
+    mv.add(123_456_789_012_345_u128).unwrap();
     assert_eq!(mv.data_type(), DataType::UInt128);
     assert_eq!(mv.count(), 1);
     assert_eq!(mv.get_first_uint128().unwrap(), 123456789012345);
 
     // Empty(Float32) + add_float32 -> Float32(vec![value])
     let mut mv = MultiValues::Empty(DataType::Float32);
-    mv.add_float32(2.5).unwrap();
+    mv.add(2.5_f32).unwrap();
     assert_eq!(mv.data_type(), DataType::Float32);
     assert_eq!(mv.count(), 1);
     assert!((mv.get_first_float32().unwrap() - 2.5).abs() < 1e-3);
@@ -3278,128 +2825,127 @@ fn test_multi_value_empty_add_single_conversion() {
 fn test_multi_value_empty_add_multi_conversion() {
     // Empty(Bool) + add_bools -> Bool(vec![values])
     let mut mv = MultiValues::Empty(DataType::Bool);
-    mv.add_bools(vec![true, false, true]).unwrap();
+    mv.add(vec![true, false, true]).unwrap();
     assert_eq!(mv.data_type(), DataType::Bool);
     assert_eq!(mv.count(), 3);
     assert_eq!(mv.get_bools().unwrap(), &[true, false, true]);
 
     // Empty(Int32) + add_int32s -> Int32(vec![values])
     let mut mv = MultiValues::Empty(DataType::Int32);
-    mv.add_int32s(vec![1, 2, 3]).unwrap();
+    mv.add(vec![1_i32, 2, 3]).unwrap();
     assert_eq!(mv.data_type(), DataType::Int32);
     assert_eq!(mv.count(), 3);
     assert_eq!(mv.get_int32s().unwrap(), &[1, 2, 3]);
 
     // Empty(String) + add_strings -> String(vec![values])
     let mut mv = MultiValues::Empty(DataType::String);
-    mv.add_strings(vec!["a".to_string(), "b".to_string()])
-        .unwrap();
+    mv.add(vec!["a".to_string(), "b".to_string()]).unwrap();
     assert_eq!(mv.data_type(), DataType::String);
     assert_eq!(mv.count(), 2);
     assert_eq!(mv.get_strings().unwrap(), &["a", "b"]);
 
     // Test Empty + add_xxxs for all integer types
     let mut mv = MultiValues::Empty(DataType::Int8);
-    mv.add_int8s(vec![1, 2, 3]).unwrap();
+    mv.add(vec![1_i8, 2, 3]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::Int16);
-    mv.add_int16s(vec![10, 20, 30]).unwrap();
+    mv.add(vec![10_i16, 20, 30]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::Int64);
-    mv.add_int64s(vec![100, 200, 300]).unwrap();
+    mv.add(vec![100_i64, 200, 300]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::Int128);
-    mv.add_int128s(vec![1000, 2000, 3000]).unwrap();
+    mv.add(vec![1_000_i128, 2_000, 3_000]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.add_uint8s(vec![1, 2, 3]).unwrap();
+    mv.add(vec![1_u8, 2, 3]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt16);
-    mv.add_uint16s(vec![10, 20, 30]).unwrap();
+    mv.add(vec![10_u16, 20, 30]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt32);
-    mv.add_uint32s(vec![100, 200, 300]).unwrap();
+    mv.add(vec![100_u32, 200, 300]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt64);
-    mv.add_uint64s(vec![1000, 2000, 3000]).unwrap();
+    mv.add(vec![1_000_u64, 2_000, 3_000]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt128);
-    mv.add_uint128s(vec![10000, 20000, 30000]).unwrap();
+    mv.add(vec![10_000_u128, 20_000, 30_000]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::Float32);
-    mv.add_float32s(vec![1.1, 2.2, 3.3]).unwrap();
+    mv.add(vec![1.1_f32, 2.2, 3.3]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::Float64);
-    mv.add_float64s(vec![1.11, 2.22, 3.33]).unwrap();
+    mv.add(vec![1.11, 2.22, 3.33]).unwrap();
     assert_eq!(mv.count(), 3);
 }
 
 #[test]
 fn test_multi_value_empty_add_slice_conversion() {
-    // Empty(Int32) + add_int32s_slice -> Int32(vec![values])
+    // Adding an integer slice initializes an unset integer collection.
     let mut mv = MultiValues::Empty(DataType::Int32);
     let values = &[10, 20, 30];
-    mv.add_int32s_slice(values).unwrap();
+    mv.add(values).unwrap();
     assert_eq!(mv.data_type(), DataType::Int32);
     assert_eq!(mv.count(), 3);
     assert_eq!(mv.get_int32s().unwrap(), &[10, 20, 30]);
 
-    // Empty(Float32) + add_float32s_slice -> Float32(vec![values])
+    // Adding a float slice initializes an unset float collection.
     let mut mv = MultiValues::Empty(DataType::Float32);
     let values = &[1.0f32, 2.0f32, 3.0f32];
-    mv.add_float32s_slice(values).unwrap();
+    mv.add(values).unwrap();
     assert_eq!(mv.data_type(), DataType::Float32);
     assert_eq!(mv.count(), 3);
 
-    // Test Empty + add_xxxs for all integer types_slice
+    // Test slice inputs for the remaining numeric types.
     let mut mv = MultiValues::Empty(DataType::Int8);
-    mv.add_int8s_slice(&[1, 2, 3]).unwrap();
+    mv.add(&[1_i8, 2, 3][..]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::Int16);
-    mv.add_int16s_slice(&[10, 20, 30]).unwrap();
+    mv.add(&[10_i16, 20, 30][..]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::Int64);
-    mv.add_int64s_slice(&[100, 200, 300]).unwrap();
+    mv.add(&[100_i64, 200, 300][..]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::Int128);
-    mv.add_int128s_slice(&[1000, 2000, 3000]).unwrap();
+    mv.add(&[1_000_i128, 2_000, 3_000][..]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt8);
-    mv.add_uint8s_slice(&[1, 2, 3]).unwrap();
+    mv.add(&[1_u8, 2, 3][..]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt16);
-    mv.add_uint16s_slice(&[10, 20, 30]).unwrap();
+    mv.add(&[10_u16, 20, 30][..]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt32);
-    mv.add_uint32s_slice(&[100, 200, 300]).unwrap();
+    mv.add(&[100_u32, 200, 300][..]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt64);
-    mv.add_uint64s_slice(&[1000, 2000, 3000]).unwrap();
+    mv.add(&[1_000_u64, 2_000, 3_000][..]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::UInt128);
-    mv.add_uint128s_slice(&[10000, 20000, 30000]).unwrap();
+    mv.add(&[10_000_u128, 20_000, 30_000][..]).unwrap();
     assert_eq!(mv.count(), 3);
 
     let mut mv = MultiValues::Empty(DataType::Float64);
-    mv.add_float64s_slice(&[1.11, 2.22, 3.33]).unwrap();
+    mv.add(&[1.11, 2.22, 3.33][..]).unwrap();
     assert_eq!(mv.count(), 3);
 }
 
@@ -3407,17 +2953,17 @@ fn test_multi_value_empty_add_slice_conversion() {
 fn test_multi_value_empty_type_mismatch() {
     // Empty(Int32) + add_bool should error
     let mut mv = MultiValues::Empty(DataType::Int32);
-    let result = mv.add_bool(true);
+    let result = mv.add(true);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Empty(String) + add_int32 should error
     let mut mv = MultiValues::Empty(DataType::String);
-    let result = mv.add_int32(42);
+    let result = mv.add(42);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 
     // Empty(Bool) + add_strings should error
     let mut mv = MultiValues::Empty(DataType::Bool);
-    let result = mv.add_strings(vec!["test".to_string()]);
+    let result = mv.add(vec!["test".to_string()]);
     assert!(matches!(result, Err(ValueError::TypeMismatch { .. })));
 }
 
@@ -3557,19 +3103,18 @@ fn test_multi_value_merge_empty_branch() {
 }
 
 #[test]
-fn test_multi_values_getter_empty_branch() {
-    // For Empty with matching declared type, generic getter returns empty Vec.
+fn test_multi_values_getter_unset_branch() {
     let mv = MultiValues::Empty(DataType::Int32);
-    let result: Vec<i32> = mv.get().unwrap();
-    assert_eq!(result.len(), 0);
+    let result: Result<Vec<i32>, _> = mv.get();
+    assert!(matches!(result, Err(ValueError::NoValue)));
 
     let mv = MultiValues::Empty(DataType::String);
-    let result: Vec<String> = mv.get().unwrap();
-    assert_eq!(result.len(), 0);
+    let result: Result<Vec<String>, _> = mv.get();
+    assert!(matches!(result, Err(ValueError::NoValue)));
 
     let mv = MultiValues::Empty(DataType::Bool);
-    let result: Vec<bool> = mv.get().unwrap();
-    assert_eq!(result.len(), 0);
+    let result: Result<Vec<bool>, _> = mv.get();
+    assert!(matches!(result, Err(ValueError::NoValue)));
 }
 
 #[test]
@@ -3591,8 +3136,7 @@ fn test_multi_values_core_get_first_non_empty_branch() {
     let result: i32 = mv.get_first().unwrap();
     assert_eq!(result, 42);
 
-    let mv =
-        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mv = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     let result: String = mv.get_first().unwrap();
     assert_eq!(result, "hello");
 
@@ -3713,14 +3257,14 @@ fn test_multi_values_set_with_str_slice() {
     // Test setting borrowed string slices.
     let mut mv = MultiValues::Empty(DataType::String);
     let str_slice: &[&str] = &["hello", "world", "test"];
-    mv.set(str_slice).unwrap();
+    mv.set(str_slice);
     assert_eq!(mv.count(), 3);
     assert_eq!(mv.get_strings().unwrap(), &["hello", "world", "test"]);
 
     // Replace existing values
     let mut mv = MultiValues::String(vec!["old".to_string()]);
     let str_slice: &[&str] = &["new1", "new2"];
-    mv.set(str_slice).unwrap();
+    mv.set(str_slice);
     assert_eq!(mv.count(), 2);
     assert_eq!(mv.get_strings().unwrap(), &["new1", "new2"]);
 }
@@ -3731,15 +3275,14 @@ fn test_multi_values_set_with_str_vec() {
     // Especially the line into_iter().map(|s| s.to_string()).collect()
     let mut mv = MultiValues::Empty(DataType::String);
     let str_vec: Vec<&str> = vec!["alpha", "beta", "gamma"];
-    mv.set(str_vec).unwrap();
+    mv.set(str_vec);
     assert_eq!(mv.count(), 3);
     assert_eq!(mv.get_strings().unwrap(), &["alpha", "beta", "gamma"]);
 
     // Test conversion of multiple elements
-    let mut mv =
-        MultiValues::String(vec!["old1".to_string(), "old2".to_string()]);
+    let mut mv = MultiValues::String(vec!["old1".to_string(), "old2".to_string()]);
     let str_vec: Vec<&str> = vec!["foo", "bar", "baz", "qux"];
-    mv.set(str_vec).unwrap();
+    mv.set(str_vec);
     assert_eq!(mv.count(), 4);
     assert_eq!(mv.get_strings().unwrap(), &["foo", "bar", "baz", "qux"]);
 }
@@ -3787,7 +3330,7 @@ fn test_multi_values_set_str_ref() {
     let mut mv = MultiValues::Empty(DataType::String);
 
     // Set single value using &str
-    mv.set("hello").unwrap();
+    mv.set("hello");
     assert_eq!(mv.get_first_string().unwrap(), "hello");
     assert_eq!(mv.count(), 1);
 }
@@ -3799,7 +3342,7 @@ fn test_multi_values_set_vec_str_ref() {
 
     // Set multiple values using Vec<&str>
     let str_vec = vec!["apple", "banana", "cherry"];
-    mv.set(str_vec).unwrap();
+    mv.set(str_vec);
 
     let strings = mv.get_strings().unwrap();
     assert_eq!(strings.len(), 3);
@@ -3815,7 +3358,7 @@ fn test_multi_values_set_str_slice_ref() {
 
     // Set multiple values using &[&str]
     let str_slice: &[&str] = &["one", "two", "three"];
-    mv.set(str_slice).unwrap();
+    mv.set(str_slice);
 
     let strings = mv.get_strings().unwrap();
     assert_eq!(strings.len(), 3);
@@ -3853,14 +3396,14 @@ fn test_multi_values_merge_when_self_is_empty() {
     let mut mv1 = MultiValues::Empty(DataType::Int32);
     let mv2 = MultiValues::Empty(DataType::Int32);
     mv1.merge(&mv2).unwrap();
-    assert!(mv1.is_empty());
+    assert_eq!(mv1.count(), 0);
 
     // Empty merge another Empty
     let mut mv3 = MultiValues::Empty(DataType::Bool);
     let mv4 = MultiValues::Empty(DataType::Bool);
     mv3.merge(&mv4).unwrap();
     assert_eq!(mv3.data_type(), DataType::Bool);
-    assert!(mv3.is_empty());
+    assert_eq!(mv3.count(), 0);
 }
 
 #[test]
@@ -3886,10 +3429,7 @@ fn test_multi_values_to_value_extended_types() {
     let uint_size = MultiValues::UIntSize(vec![12usize, 34]);
     assert_eq!(uint_size.to_value(), Value::UIntSize(12));
 
-    let duration = MultiValues::Duration(vec![
-        Duration::from_secs(30),
-        Duration::from_secs(45),
-    ]);
+    let duration = MultiValues::Duration(vec![Duration::from_secs(30), Duration::from_secs(45)]);
     assert_eq!(
         duration.to_value(),
         Value::Duration(Duration::from_secs(30))
@@ -3907,9 +3447,7 @@ fn test_multi_values_to_value_extended_types() {
     let string_maps = MultiValues::StringMap(vec![map.clone(), map2]);
     assert_eq!(string_maps.to_value(), Value::StringMap(map));
 
-    let json_value = JsonValue::Object(
-        serde_json::json!({"a": 1}).as_object().unwrap().clone(),
-    );
+    let json_value = JsonValue::Object(serde_json::json!({"a": 1}).as_object().unwrap().clone());
     let another_json = JsonValue::Bool(true);
     let jsons = MultiValues::Json(vec![json_value.clone(), another_json]);
     assert_eq!(jsons.to_value(), Value::Json(json_value));
@@ -3996,15 +3534,13 @@ fn test_multi_values_to_value_all_variants() {
 
     let big_int = BigInt::from_str("123456789012345678901234567890").unwrap();
     assert_eq!(
-        MultiValues::BigInteger(vec![big_int.clone(), BigInt::from(42)])
-            .to_value(),
+        MultiValues::BigInteger(vec![big_int.clone(), BigInt::from(42)]).to_value(),
         Value::BigInteger(big_int)
     );
 
     let big_decimal = BigDecimal::from_str("12.25").unwrap();
     assert_eq!(
-        MultiValues::BigDecimal(vec![big_decimal.clone(), BigDecimal::from(3)])
-            .to_value(),
+        MultiValues::BigDecimal(vec![big_decimal.clone(), BigDecimal::from(3)]).to_value(),
         Value::BigDecimal(big_decimal)
     );
 
@@ -4127,11 +3663,11 @@ fn test_multi_values_to_value_empty_for_all_variants() {
 #[test]
 fn test_multi_values_set_retypes_existing_values() {
     let mut mv = MultiValues::Int32(vec![1, 2, 3]);
-    mv.set(vec!["a".to_string(), "b".to_string()]).unwrap();
+    mv.set(vec!["a".to_string(), "b".to_string()]);
     assert_eq!(mv.data_type(), DataType::String);
     assert_eq!(mv.get_strings().unwrap(), &["a", "b"]);
 
-    mv.set(true).unwrap();
+    mv.set(true);
     assert_eq!(mv.data_type(), DataType::Bool);
     assert_eq!(mv.get_bools().unwrap(), &[true]);
 }

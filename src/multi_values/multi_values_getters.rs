@@ -11,23 +11,18 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+#[cfg(feature = "big-number")]
 use bigdecimal::BigDecimal;
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+#[cfg(feature = "chrono")]
+use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+#[cfg(feature = "big-number")]
 use num_bigint::BigInt;
+#[cfg(feature = "url")]
 use url::Url;
 
 use qubit_datatype::DataType;
 
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
+use crate::value_error::{ValueError, ValueResult};
 
 use super::multi_values::MultiValues;
 
@@ -187,6 +182,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match and a value exists, returns the first date value; see `# Errors`.
+        #[cfg(feature = "chrono")]
         copy: get_first_date, Date, NaiveDate, DataType::Date
     }
 
@@ -196,6 +192,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match and a value exists, returns the first time value; see `# Errors`.
+        #[cfg(feature = "chrono")]
         copy: get_first_time, Time, NaiveTime, DataType::Time
     }
 
@@ -205,6 +202,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match and a value exists, returns the first datetime value; see `# Errors`.
+        #[cfg(feature = "chrono")]
         copy: get_first_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -215,6 +213,7 @@ impl MultiValues {
         ///
         /// If types match and a value exists, returns the first UTC instant
         /// value; see `# Errors`.
+        #[cfg(feature = "chrono")]
         copy: get_first_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -225,6 +224,7 @@ impl MultiValues {
         ///
         /// If types match and a value exists, returns the first big integer
         /// value; see `# Errors`.
+        #[cfg(feature = "big-number")]
         ref: get_first_biginteger, BigInteger, BigInt, DataType::BigInteger, |v: &BigInt| v.clone()
     }
 
@@ -235,6 +235,7 @@ impl MultiValues {
         ///
         /// If types match and a value exists, returns the first big decimal
         /// value; see `# Errors`.
+        #[cfg(feature = "big-number")]
         ref: get_first_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
     }
 
@@ -255,6 +256,7 @@ impl MultiValues {
 
     impl_get_first_value! {
         /// Get the first Url value
+        #[cfg(feature = "url")]
         ref: get_first_url, Url, Url, DataType::Url, |v: &Url| v.clone()
     }
 
@@ -265,6 +267,7 @@ impl MultiValues {
 
     impl_get_first_value! {
         /// Get the first Json value
+        #[cfg(feature = "json")]
         ref: get_first_json, Json, serde_json::Value, DataType::Json, |v: &serde_json::Value| v.clone()
     }
 
@@ -423,6 +426,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match, returns a reference to the date value array; see `# Errors`.
+        #[cfg(feature = "chrono")]
         slice: get_dates, Date, NaiveDate, DataType::Date
     }
 
@@ -432,6 +436,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match, returns a reference to the time value array; see `# Errors`.
+        #[cfg(feature = "chrono")]
         slice: get_times, Time, NaiveTime, DataType::Time
     }
 
@@ -441,6 +446,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match, returns a reference to the datetime value array; see `# Errors`.
+        #[cfg(feature = "chrono")]
         slice: get_datetimes, DateTime, NaiveDateTime, DataType::DateTime
     }
 
@@ -450,6 +456,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match, returns a reference to the UTC instant value array; see `# Errors`.
+        #[cfg(feature = "chrono")]
         slice: get_instants, Instant, DateTime<Utc>, DataType::Instant
     }
 
@@ -459,6 +466,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match, returns a reference to the big integer array; see `# Errors`.
+        #[cfg(feature = "big-number")]
         vec: get_bigintegers, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -468,6 +476,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match, returns a reference to the big decimal array; see `# Errors`.
+        #[cfg(feature = "big-number")]
         vec: get_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
@@ -488,6 +497,7 @@ impl MultiValues {
 
     impl_get_multi_values! {
         /// Get reference to all Url values
+        #[cfg(feature = "url")]
         vec: get_urls, Url, Url, DataType::Url
     }
 
@@ -498,6 +508,7 @@ impl MultiValues {
 
     impl_get_multi_values! {
         /// Get reference to all Json values
+        #[cfg(feature = "json")]
         vec: get_jsons, Json, serde_json::Value, DataType::Json
     }
 }

@@ -8,20 +8,6 @@
 
 //! `From<T>` implementations for supported `MultiValues` input forms.
 
-use std::collections::HashMap;
-use std::time::Duration;
-
-use bigdecimal::BigDecimal;
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
-use num_bigint::BigInt;
-use url::Url;
-
 use super::multi_values::MultiValues;
 
 /// Collects borrowed string values into owned strings.
@@ -37,88 +23,77 @@ where
     result
 }
 
-macro_rules! impl_multi_values_from {
-    ($type:ty, $variant:ident) => {
-        impl From<$type> for MultiValues {
-            #[inline]
-            fn from(value: $type) -> Self {
-                MultiValues::$variant(vec![value])
+macro_rules! impl_multi_values_from_table {
+    (
+        ;
+        $(
+            (
+                [$($cfg:meta),*],
+                [$($value_attr:meta),*],
+                [$($multi_attr:meta),*],
+                $variant:ident,
+                $type:ty,
+                $data_type:expr,
+                $ownership:ident,
+                $json_class:ident,
+                $value_doc:literal,
+                $multi_doc:literal
+            )
+        ),+ $(,)?
+    ) => {
+        $(
+            $(#[$cfg])*
+            impl From<$type> for MultiValues {
+                #[inline]
+                fn from(value: $type) -> Self {
+                    MultiValues::$variant(vec![value])
+                }
             }
-        }
 
-        impl From<Vec<$type>> for MultiValues {
-            #[inline]
-            fn from(values: Vec<$type>) -> Self {
-                MultiValues::$variant(values)
+            $(#[$cfg])*
+            impl From<Vec<$type>> for MultiValues {
+                #[inline]
+                fn from(values: Vec<$type>) -> Self {
+                    MultiValues::$variant(values)
+                }
             }
-        }
 
-        impl From<&[$type]> for MultiValues
-        where
-            $type: Clone,
-        {
-            #[inline]
-            fn from(values: &[$type]) -> Self {
-                MultiValues::$variant(values.to_vec())
+            $(#[$cfg])*
+            impl From<&[$type]> for MultiValues {
+                #[inline]
+                fn from(values: &[$type]) -> Self {
+                    MultiValues::$variant(values.to_vec())
+                }
             }
-        }
 
-        impl From<&Vec<$type>> for MultiValues
-        where
-            $type: Clone,
-        {
-            #[inline]
-            fn from(values: &Vec<$type>) -> Self {
-                MultiValues::$variant(values.clone())
+            $(#[$cfg])*
+            impl From<&Vec<$type>> for MultiValues {
+                #[inline]
+                fn from(values: &Vec<$type>) -> Self {
+                    MultiValues::$variant(values.clone())
+                }
             }
-        }
 
-        impl<const N: usize> From<[$type; N]> for MultiValues {
-            #[inline]
-            fn from(values: [$type; N]) -> Self {
-                MultiValues::$variant(Vec::from(values))
+            $(#[$cfg])*
+            impl<const N: usize> From<[$type; N]> for MultiValues {
+                #[inline]
+                fn from(values: [$type; N]) -> Self {
+                    MultiValues::$variant(Vec::from(values))
+                }
             }
-        }
 
-        impl<const N: usize> From<&[$type; N]> for MultiValues
-        where
-            $type: Clone,
-        {
-            #[inline]
-            fn from(values: &[$type; N]) -> Self {
-                MultiValues::$variant(values.to_vec())
+            $(#[$cfg])*
+            impl<const N: usize> From<&[$type; N]> for MultiValues {
+                #[inline]
+                fn from(values: &[$type; N]) -> Self {
+                    MultiValues::$variant(values.to_vec())
+                }
             }
-        }
+        )+
     };
 }
 
-impl_multi_values_from!(bool, Bool);
-impl_multi_values_from!(char, Char);
-impl_multi_values_from!(i8, Int8);
-impl_multi_values_from!(i16, Int16);
-impl_multi_values_from!(i32, Int32);
-impl_multi_values_from!(i64, Int64);
-impl_multi_values_from!(i128, Int128);
-impl_multi_values_from!(u8, UInt8);
-impl_multi_values_from!(u16, UInt16);
-impl_multi_values_from!(u32, UInt32);
-impl_multi_values_from!(u64, UInt64);
-impl_multi_values_from!(u128, UInt128);
-impl_multi_values_from!(isize, IntSize);
-impl_multi_values_from!(usize, UIntSize);
-impl_multi_values_from!(f32, Float32);
-impl_multi_values_from!(f64, Float64);
-impl_multi_values_from!(String, String);
-impl_multi_values_from!(NaiveDate, Date);
-impl_multi_values_from!(NaiveTime, Time);
-impl_multi_values_from!(NaiveDateTime, DateTime);
-impl_multi_values_from!(DateTime<Utc>, Instant);
-impl_multi_values_from!(BigInt, BigInteger);
-impl_multi_values_from!(BigDecimal, BigDecimal);
-impl_multi_values_from!(Duration, Duration);
-impl_multi_values_from!(Url, Url);
-impl_multi_values_from!(HashMap<String, String>, StringMap);
-impl_multi_values_from!(serde_json::Value, Json);
+for_each_value_type!(impl_multi_values_from_table);
 
 impl From<&str> for MultiValues {
     #[inline]

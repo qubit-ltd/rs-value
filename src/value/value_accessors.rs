@@ -9,30 +9,25 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+#[cfg(feature = "big-number")]
 use bigdecimal::BigDecimal;
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+#[cfg(feature = "chrono")]
+use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+#[cfg(feature = "big-number")]
 use num_bigint::BigInt;
+#[cfg(feature = "converter")]
 use serde::Serialize;
+#[cfg(feature = "converter")]
 use serde::de::DeserializeOwned;
+#[cfg(feature = "url")]
 use url::Url;
 
-use qubit_datatype::{
-    DataConversionError,
-    DataType,
-};
+use qubit_datatype::DataType;
+#[cfg(feature = "converter")]
+use qubit_datatype::{DataConversionError, DataFormat, InvalidValueReason};
 
 use super::value::Value;
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-    map_data_conversion_error,
-};
+use crate::value_error::{ValueError, ValueResult};
 
 macro_rules! impl_get_value {
     // Copy type: directly dereference and return
@@ -41,7 +36,7 @@ macro_rules! impl_get_value {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::NoValue`] when the value is empty with"]
+        #[doc = "Returns [`ValueError::NoValue`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
         #[inline]
@@ -68,7 +63,7 @@ macro_rules! impl_get_value {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::NoValue`] when the value is empty with"]
+        #[doc = "Returns [`ValueError::NoValue`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
         #[inline]
@@ -88,38 +83,6 @@ macro_rules! impl_get_value {
                     actual: self.data_type(),
                 }),
             }
-        }
-    };
-}
-
-/// Unified setter generation macro
-///
-/// Supports two modes:
-/// 1. `copy:` - For types implementing the Copy trait, directly sets the value
-/// 2. `owned:` - For non-Copy types, requires owning the value
-///
-/// # Documentation Comment Support
-///
-/// The macro automatically extracts preceding documentation comments, so
-/// you can add `///` comments before macro invocations.
-macro_rules! impl_set_value {
-    // Copy type: directly set the value
-    ($(#[$attr:meta])* copy: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
-        $(#[$attr])*
-        #[inline]
-        pub fn $method(&mut self, value: $type) -> ValueResult<()> {
-            *self = Value::$variant(value);
-            Ok(())
-        }
-    };
-
-    // Owned type: set the owned value
-    ($(#[$attr:meta])* owned: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
-        $(#[$attr])*
-        #[inline]
-        pub fn $method(&mut self, value: $type) -> ValueResult<()> {
-            *self = Value::$variant(value);
-            Ok(())
         }
     };
 }
@@ -291,6 +254,7 @@ impl Value {
         ref: get_string, String, &str, DataType::String, |s: &String| s.as_str()
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_value! {
         /// Get date value
         ///
@@ -300,6 +264,7 @@ impl Value {
         copy: get_date, Date, NaiveDate, DataType::Date
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_value! {
         /// Get time value
         ///
@@ -309,6 +274,7 @@ impl Value {
         copy: get_time, Time, NaiveTime, DataType::Time
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_value! {
         /// Get datetime value
         ///
@@ -318,6 +284,7 @@ impl Value {
         copy: get_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_value! {
         /// Get UTC instant value
         ///
@@ -327,6 +294,7 @@ impl Value {
         copy: get_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
+    #[cfg(feature = "big-number")]
     impl_get_value! {
         /// Get big integer value.
         ///
@@ -350,6 +318,7 @@ impl Value {
         ref: get_biginteger, BigInteger, BigInt, DataType::BigInteger, |v: &BigInt| v.clone()
     }
 
+    #[cfg(feature = "big-number")]
     impl_get_value! {
         /// Get big decimal value.
         ///
@@ -374,332 +343,6 @@ impl Value {
         /// assert_eq!(value.get_bigdecimal().unwrap(), bd);
         /// ```
         ref: get_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
-    }
-
-    // ========================================================================
-    // Type-setting setters (strict type matching)
-    // ========================================================================
-
-    impl_set_value! {
-        /// Set boolean value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The boolean value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        ///
-        /// # Example
-        ///
-        /// ```rust
-        /// use qubit_datatype::DataType;
-        /// use qubit_value::Value;
-        ///
-        /// let mut value = Value::Empty(DataType::Bool);
-        /// value.set_bool(true).unwrap();
-        /// assert_eq!(value.get_bool().unwrap(), true);
-        /// ```
-        copy: set_bool, Bool, bool, DataType::Bool
-    }
-
-    impl_set_value! {
-        /// Set character value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The character value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_char, Char, char, DataType::Char
-    }
-
-    impl_set_value! {
-        /// Set int8 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The int8 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_int8, Int8, i8, DataType::Int8
-    }
-
-    impl_set_value! {
-        /// Set int16 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The int16 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_int16, Int16, i16, DataType::Int16
-    }
-
-    impl_set_value! {
-        /// Set int32 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The int32 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_int32, Int32, i32, DataType::Int32
-    }
-
-    impl_set_value! {
-        /// Set int64 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The int64 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_int64, Int64, i64, DataType::Int64
-    }
-
-    impl_set_value! {
-        /// Set int128 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The int128 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_int128, Int128, i128, DataType::Int128
-    }
-
-    impl_set_value! {
-        /// Set uint8 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The uint8 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_uint8, UInt8, u8, DataType::UInt8
-    }
-
-    impl_set_value! {
-        /// Set uint16 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The uint16 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_uint16, UInt16, u16, DataType::UInt16
-    }
-
-    impl_set_value! {
-        /// Set uint32 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The uint32 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_uint32, UInt32, u32, DataType::UInt32
-    }
-
-    impl_set_value! {
-        /// Set uint64 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The uint64 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_uint64, UInt64, u64, DataType::UInt64
-    }
-
-    impl_set_value! {
-        /// Set uint128 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The uint128 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_uint128, UInt128, u128, DataType::UInt128
-    }
-
-    impl_set_value! {
-        /// Set float32 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The float32 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_float32, Float32, f32, DataType::Float32
-    }
-
-    impl_set_value! {
-        /// Set float64 value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The float64 value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_float64, Float64, f64, DataType::Float64
-    }
-
-    impl_set_value! {
-        /// Set string value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The string value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        ///
-        /// # Example
-        ///
-        /// ```rust
-        /// use qubit_datatype::DataType;
-        /// use qubit_value::Value;
-        ///
-        /// let mut value = Value::Empty(DataType::String);
-        /// value.set_string("hello".to_string()).unwrap();
-        /// assert_eq!(value.get_string().unwrap(), "hello");
-        /// ```
-        owned: set_string, String, String, DataType::String
-    }
-
-    impl_set_value! {
-        /// Set date value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The date value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_date, Date, NaiveDate, DataType::Date
-    }
-
-    impl_set_value! {
-        /// Set time value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The time value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_time, Time, NaiveTime, DataType::Time
-    }
-
-    impl_set_value! {
-        /// Set datetime value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The datetime value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_datetime, DateTime, NaiveDateTime, DataType::DateTime
-    }
-
-    impl_set_value! {
-        /// Set UTC instant value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The UTC instant value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        copy: set_instant, Instant, DateTime<Utc>, DataType::Instant
-    }
-
-    impl_set_value! {
-        /// Set big integer value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The big integer value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        ///
-        /// # Example
-        ///
-        /// ```rust
-        /// use num_bigint::BigInt;
-        /// use qubit_datatype::DataType;
-        /// use qubit_value::Value;
-        ///
-        /// let mut value = Value::Empty(DataType::BigInteger);
-        /// value.set_biginteger(BigInt::from(123456789)).unwrap();
-        /// assert_eq!(value.get_biginteger().unwrap(), BigInt::from(123456789));
-        /// ```
-        owned: set_biginteger, BigInteger, BigInt, DataType::BigInteger
-    }
-
-    impl_set_value! {
-        /// Set big decimal value
-        ///
-        /// # Parameters
-        ///
-        /// * `value` - The big decimal value to set
-        ///
-        /// # Returns
-        ///
-        /// Always returns `Ok(())` for this supported setter.
-        ///
-        /// # Example
-        ///
-        /// ```rust
-        /// use std::str::FromStr;
-        ///
-        /// use bigdecimal::BigDecimal;
-        /// use qubit_datatype::DataType;
-        /// use qubit_value::Value;
-        ///
-        /// let mut value = Value::Empty(DataType::BigDecimal);
-        /// let bd = BigDecimal::from_str("123.456").unwrap();
-        /// value.set_bigdecimal(bd.clone()).unwrap();
-        /// assert_eq!(value.get_bigdecimal().unwrap(), bd);
-        /// ```
-        owned: set_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
     impl_get_value! {
@@ -729,6 +372,7 @@ impl Value {
         copy: get_duration, Duration, Duration, DataType::Duration
     }
 
+    #[cfg(feature = "url")]
     impl_get_value! {
         /// Get URL value.
         ///
@@ -755,6 +399,7 @@ impl Value {
             |v: &HashMap<String, String>| v.clone()
     }
 
+    #[cfg(feature = "json")]
     impl_get_value! {
         /// Get JSON value.
         ///
@@ -772,15 +417,14 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// Returns [`ValueError::NoValue`] when the value is unset with
     /// `DataType::BigInteger`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
+    #[cfg(feature = "big-number")]
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         match self {
             Value::BigInteger(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::BigInteger => {
-                Err(ValueError::NoValue)
-            }
+            Value::Empty(dt) if *dt == DataType::BigInteger => Err(ValueError::NoValue),
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigInteger,
                 actual: *dt,
@@ -796,15 +440,14 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// Returns [`ValueError::NoValue`] when the value is unset with
     /// `DataType::BigDecimal`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
+    #[cfg(feature = "big-number")]
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         match self {
             Value::BigDecimal(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::BigDecimal => {
-                Err(ValueError::NoValue)
-            }
+            Value::Empty(dt) if *dt == DataType::BigDecimal => Err(ValueError::NoValue),
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigDecimal,
                 actual: *dt,
@@ -820,15 +463,14 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// Returns [`ValueError::NoValue`] when the value is unset with
     /// `DataType::Url`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
+    #[cfg(feature = "url")]
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match self {
             Value::Url(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::Url => {
-                Err(ValueError::NoValue)
-            }
+            Value::Empty(dt) if *dt == DataType::Url => Err(ValueError::NoValue),
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Url,
                 actual: *dt,
@@ -844,15 +486,13 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// Returns [`ValueError::NoValue`] when the value is unset with
     /// `DataType::StringMap`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
     pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
         match self {
             Value::StringMap(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::StringMap => {
-                Err(ValueError::NoValue)
-            }
+            Value::Empty(dt) if *dt == DataType::StringMap => Err(ValueError::NoValue),
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::StringMap,
                 actual: *dt,
@@ -868,15 +508,14 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is empty with
+    /// Returns [`ValueError::NoValue`] when the value is unset with
     /// `DataType::Json`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
+    #[cfg(feature = "json")]
     pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
         match self {
             Value::Json(v) => Ok(v),
-            Value::Empty(dt) if *dt == DataType::Json => {
-                Err(ValueError::NoValue)
-            }
+            Value::Empty(dt) if *dt == DataType::Json => Err(ValueError::NoValue),
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
                 actual: *dt,
@@ -886,36 +525,6 @@ impl Value {
                 actual: self.data_type(),
             }),
         }
-    }
-
-    impl_set_value! {
-        /// Set isize value
-        copy: set_intsize, IntSize, isize, DataType::IntSize
-    }
-
-    impl_set_value! {
-        /// Set usize value
-        copy: set_uintsize, UIntSize, usize, DataType::UIntSize
-    }
-
-    impl_set_value! {
-        /// Set Duration value
-        copy: set_duration, Duration, Duration, DataType::Duration
-    }
-
-    impl_set_value! {
-        /// Set Url value
-        owned: set_url, Url, Url, DataType::Url
-    }
-
-    impl_set_value! {
-        /// Set StringMap value
-        owned: set_string_map, StringMap, HashMap<String, String>, DataType::StringMap
-    }
-
-    impl_set_value! {
-        /// Set Json value
-        owned: set_json, Json, serde_json::Value, DataType::Json
     }
 
     /// Create a `Value` from a `serde_json::Value`.
@@ -928,6 +537,7 @@ impl Value {
     ///
     /// Returns a `Value::Json` wrapping the given JSON value.
     #[inline]
+    #[cfg(feature = "json")]
     pub fn from_json_value(json: serde_json::Value) -> Self {
         Value::Json(json)
     }
@@ -946,11 +556,22 @@ impl Value {
     ///
     /// Returns `Ok(Value::Json(...))` on success, or an error if
     /// serialization fails.
+    #[cfg(feature = "converter")]
     pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
-        let json = serde_json::to_value(value).map_err(|error| {
-            map_data_conversion_error(
-                DataConversionError::JsonSerializationError(error.to_string()),
-            )
+        let json = crate::strict_json::to_value(value).map_err(|error| {
+            let reason = match error {
+                crate::strict_json::StrictJsonError::NonFinite => InvalidValueReason::NonFinite,
+                crate::strict_json::StrictJsonError::Serialization => {
+                    InvalidValueReason::Serialization {
+                        format: DataFormat::Json,
+                    }
+                }
+            };
+            ValueError::from(DataConversionError::InvalidValue {
+                from: DataType::Json,
+                to: DataType::Json,
+                reason,
+            })
         })?;
         Ok(Value::Json(json))
     }
@@ -971,22 +592,20 @@ impl Value {
     ///
     /// Returns [`ValueError::NoValue`] when this value is `Empty(Json)`,
     /// [`ValueError::TypeMismatch`] when this value has a non-JSON data type,
-    /// or [`ValueError::JsonDeserializationError`] when JSON deserialization
-    /// fails.
+    /// or [`ValueError::DataConversion`] when JSON deserialization fails.
+    #[cfg(feature = "converter")]
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match self {
-            Value::Json(v) => {
-                serde_json::from_value(v.clone()).map_err(|error| {
-                    map_data_conversion_error(
-                        DataConversionError::JsonDeserializationError(
-                            error.to_string(),
-                        ),
-                    )
+            Value::Json(v) => serde_json::from_value(v.clone()).map_err(|_| {
+                ValueError::from(DataConversionError::InvalidValue {
+                    from: DataType::Json,
+                    to: DataType::Json,
+                    reason: InvalidValueReason::Deserialization {
+                        format: DataFormat::Json,
+                    },
                 })
-            }
-            Value::Empty(dt) if *dt == DataType::Json => {
-                Err(ValueError::NoValue)
-            }
+            }),
+            Value::Empty(dt) if *dt == DataType::Json => Err(ValueError::NoValue),
             Value::Empty(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
                 actual: *dt,

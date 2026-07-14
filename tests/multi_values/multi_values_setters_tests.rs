@@ -9,13 +9,11 @@
 use qubit_value::MultiValues;
 
 #[test]
-fn test_multi_values_named_setters_replace_all_values() {
+fn test_multi_values_generic_setter_replaces_all_values() {
     let mut values = MultiValues::String(vec!["old".to_string()]);
-    values
-        .set_strings(vec!["new".to_string(), "next".to_string()])
-        .unwrap();
+    let (): () = values.set(vec!["new".to_string(), "next".to_string()]);
     assert_eq!(values.get_strings().unwrap(), &["new", "next"]);
 
-    values.set_string("single".to_string()).unwrap();
+    values.set("single".to_string());
     assert_eq!(values.get_strings().unwrap(), &["single"]);
 }

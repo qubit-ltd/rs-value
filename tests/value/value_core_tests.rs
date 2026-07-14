@@ -12,48 +12,45 @@
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_value::{Value, ValueError};
 use std::str::FromStr;
 
 #[test]
 fn test_value_creation() {
     let v = Value::Int32(42);
     assert_eq!(v.data_type(), DataType::Int32);
-    assert!(!v.is_empty());
+    assert!(!v.is_unset());
     assert_eq!(v.get_int32().unwrap(), 42);
 }
 #[test]
 fn test_value_empty() {
     let v = Value::Empty(DataType::String);
     assert_eq!(v.data_type(), DataType::String);
-    assert!(v.is_empty());
+    assert!(v.is_unset());
     assert!(matches!(v.get_string(), Err(ValueError::NoValue)));
 }
 #[test]
 fn test_value_clear() {
     let mut v = Value::Int32(42);
     v.clear();
-    assert!(v.is_empty());
+    assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::Int32);
 }
 #[test]
 fn test_value_set_type() {
     let mut v = Value::Int32(42);
     v.set_type(DataType::String);
-    assert!(v.is_empty());
+    assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::String);
 }
 #[test]
 fn test_value_set_retypes_existing_value() {
     let mut v = Value::Int32(42);
-    v.set("hello".to_string()).unwrap();
+    v.set("hello".to_string());
     assert_eq!(v.data_type(), DataType::String);
     assert_eq!(v.get_string().unwrap(), "hello");
 
-    v.set(true).unwrap();
+    v.set(true);
     assert_eq!(v.data_type(), DataType::Bool);
     assert!(v.get_bool().unwrap());
 }
@@ -74,11 +71,32 @@ fn test_value_numeric_types() {
     let v3 = Value::Float32(3.5);
     assert!((v3.get_float32().unwrap() - 3.5).abs() < 0.001);
 }
+
+#[test]
+fn test_value_is_numeric_is_state_aware() {
+    assert!(Value::Int32(42).is_numeric());
+    assert!(Value::Float64(0.0).is_numeric());
+    assert!(Value::BigInteger(BigInt::from(1)).is_numeric());
+    assert!(!Value::Empty(DataType::Int32).is_numeric());
+    assert!(!Value::String("42".to_string()).is_numeric());
+    assert!(!Value::Bool(true).is_numeric());
+}
+
+#[test]
+fn test_value_tagged_serde_rejects_non_finite_floats() {
+    let finite = Value::Float64(1.25);
+    let json = serde_json::to_string(&finite).unwrap();
+    assert_eq!(serde_json::from_str::<Value>(&json).unwrap(), finite);
+
+    assert!(serde_json::to_value(Value::Float32(f32::NAN)).is_err());
+    assert!(serde_json::to_value(Value::Float64(f64::INFINITY)).is_err());
+    assert!(serde_json::to_value(Value::Float64(f64::NEG_INFINITY)).is_err());
+}
 #[test]
 fn test_value_default() {
     let v: Value = Default::default();
     assert_eq!(v.data_type(), DataType::String);
-    assert!(v.is_empty());
+    assert!(v.is_unset());
 }
 #[test]
 fn test_value_new() {
@@ -128,7 +146,7 @@ fn test_value_new_various_types() {
 fn test_value_ref_types() {
     // Test generic methods for &str type
     let mut value = Value::Empty(DataType::String);
-    value.set("hello").unwrap();
+    value.set("hello");
     assert_eq!(value.get_string().unwrap(), "hello");
 
     // Test creating Value from &str
@@ -137,23 +155,19 @@ fn test_value_ref_types() {
 }
 #[test]
 fn test_value_datetime_types() {
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-        Utc,
-    };
+    use chrono::{NaiveDate, NaiveTime, Utc};
 
     // Test Date
     let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
     let mut value = Value::Empty(DataType::Date);
-    value.set_date(date).unwrap();
+    value.set(date);
     assert_eq!(value.get_date().unwrap(), date);
     assert_eq!(value.data_type(), DataType::Date);
 
     // Test Time
     let time = NaiveTime::from_hms_opt(14, 30, 45).unwrap();
     let mut value = Value::Empty(DataType::Time);
-    value.set_time(time).unwrap();
+    value.set(time);
     assert_eq!(value.get_time().unwrap(), time);
     assert_eq!(value.data_type(), DataType::Time);
 
@@ -163,14 +177,14 @@ fn test_value_datetime_types() {
         .and_hms_opt(14, 30, 45)
         .unwrap();
     let mut value = Value::Empty(DataType::DateTime);
-    value.set_datetime(datetime).unwrap();
+    value.set(datetime);
     assert_eq!(value.get_datetime().unwrap(), datetime);
     assert_eq!(value.data_type(), DataType::DateTime);
 
     // Test Instant
     let instant = Utc::now();
     let mut value = Value::Empty(DataType::Instant);
-    value.set_instant(instant).unwrap();
+    value.set(instant);
     assert_eq!(value.get_instant().unwrap(), instant);
     assert_eq!(value.data_type(), DataType::Instant);
 }
@@ -184,12 +198,12 @@ fn test_value_set_type_same_type() {
 #[test]
 fn test_set_on_non_empty_for_coverage() {
     let mut v = Value::Int32(42);
-    assert!(!v.is_empty());
+    assert!(!v.is_unset());
 
     // Overwrite with a different type
-    v.set_string("hello".to_string()).unwrap();
+    v.set("hello".to_string());
     assert_eq!(v.data_type(), DataType::String);
-    assert!(!v.is_empty());
+    assert!(!v.is_unset());
     assert_eq!(v.get_string().unwrap(), "hello");
     assert!(matches!(
         v.get_int32(),
@@ -197,17 +211,13 @@ fn test_set_on_non_empty_for_coverage() {
     ));
 
     // Overwrite with the same type
-    v.set_string("world".to_string()).unwrap();
+    v.set("world".to_string());
     assert_eq!(v.get_string().unwrap(), "world");
 }
 #[test]
 fn test_data_type_coverage_all_variants() {
     // Test data_type() method coverage for all data type variants
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-        Utc,
-    };
+    use chrono::{NaiveDate, NaiveTime, Utc};
 
     // Empty type (all possible DataType)
     assert_eq!(Value::Empty(DataType::Bool).data_type(), DataType::Bool);
@@ -301,35 +311,26 @@ fn test_data_type_coverage_all_variants() {
     );
 }
 #[test]
-fn test_is_empty_coverage_all_types() {
-    // Test is_empty() returns false for all non-Empty types
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-        Utc,
-    };
+fn test_is_unset_distinguishes_empty_inner_values() {
+    use chrono::{NaiveDate, NaiveTime, Utc};
 
-    assert!(!Value::Bool(true).is_empty());
-    assert!(!Value::Char('A').is_empty());
-    assert!(!Value::Int8(1).is_empty());
-    assert!(!Value::Int16(1).is_empty());
-    assert!(!Value::Int32(1).is_empty());
-    assert!(!Value::Int64(1).is_empty());
-    assert!(!Value::Int128(1).is_empty());
-    assert!(!Value::UInt8(1).is_empty());
-    assert!(!Value::UInt16(1).is_empty());
-    assert!(!Value::UInt32(1).is_empty());
-    assert!(!Value::UInt64(1).is_empty());
-    assert!(!Value::UInt128(1).is_empty());
-    assert!(!Value::Float32(1.0).is_empty());
-    assert!(!Value::Float64(1.0).is_empty());
-    assert!(!Value::String("test".to_string()).is_empty());
-    assert!(
-        !Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_empty()
-    );
-    assert!(
-        !Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_empty()
-    );
+    assert!(!Value::Bool(true).is_unset());
+    assert!(!Value::Char('A').is_unset());
+    assert!(!Value::Int8(1).is_unset());
+    assert!(!Value::Int16(1).is_unset());
+    assert!(!Value::Int32(1).is_unset());
+    assert!(!Value::Int64(1).is_unset());
+    assert!(!Value::Int128(1).is_unset());
+    assert!(!Value::UInt8(1).is_unset());
+    assert!(!Value::UInt16(1).is_unset());
+    assert!(!Value::UInt32(1).is_unset());
+    assert!(!Value::UInt64(1).is_unset());
+    assert!(!Value::UInt128(1).is_unset());
+    assert!(!Value::Float32(1.0).is_unset());
+    assert!(!Value::Float64(1.0).is_unset());
+    assert!(!Value::String(String::new()).is_unset());
+    assert!(!Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_unset());
+    assert!(!Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_unset());
     assert!(
         !Value::DateTime(
             NaiveDate::from_ymd_opt(2024, 1, 1)
@@ -337,34 +338,18 @@ fn test_is_empty_coverage_all_types() {
                 .and_hms_opt(12, 0, 0)
                 .unwrap()
         )
-        .is_empty()
+        .is_unset()
     );
-    assert!(!Value::Instant(Utc::now()).is_empty());
-    assert!(!Value::BigInteger(BigInt::from(123)).is_empty());
-    assert!(
-        !Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_empty()
-    );
+    assert!(!Value::Instant(Utc::now()).is_unset());
+    assert!(!Value::BigInteger(BigInt::from(123)).is_unset());
+    assert!(!Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_unset());
 
-    // Test all Empty types return true
-    assert!(Value::Empty(DataType::Bool).is_empty());
-    assert!(Value::Empty(DataType::Char).is_empty());
-    assert!(Value::Empty(DataType::Int8).is_empty());
-    assert!(Value::Empty(DataType::Int16).is_empty());
-    assert!(Value::Empty(DataType::Int32).is_empty());
-    assert!(Value::Empty(DataType::Int64).is_empty());
-    assert!(Value::Empty(DataType::Int128).is_empty());
-    assert!(Value::Empty(DataType::UInt8).is_empty());
-    assert!(Value::Empty(DataType::UInt16).is_empty());
-    assert!(Value::Empty(DataType::UInt32).is_empty());
-    assert!(Value::Empty(DataType::UInt64).is_empty());
-    assert!(Value::Empty(DataType::UInt128).is_empty());
-    assert!(Value::Empty(DataType::Float32).is_empty());
-    assert!(Value::Empty(DataType::Float64).is_empty());
-    assert!(Value::Empty(DataType::String).is_empty());
-    assert!(Value::Empty(DataType::Date).is_empty());
-    assert!(Value::Empty(DataType::Time).is_empty());
-    assert!(Value::Empty(DataType::DateTime).is_empty());
-    assert!(Value::Empty(DataType::Instant).is_empty());
-    assert!(Value::Empty(DataType::BigInteger).is_empty());
-    assert!(Value::Empty(DataType::BigDecimal).is_empty());
+    for data_type in DataType::ALL {
+        assert!(Value::Empty(data_type).is_unset());
+    }
+
+    let mut value = Value::String(String::new());
+    value.unset();
+    assert!(value.is_unset());
+    assert_eq!(value.data_type(), DataType::String);
 }

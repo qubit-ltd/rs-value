@@ -12,11 +12,11 @@ use qubit_value::Value;
 #[test]
 fn test_value_setter_replaces_value_and_runtime_type() {
     let mut value = Value::Int32(10);
-    value.set("ten").unwrap();
+    let (): () = value.set("ten");
 
     assert_eq!(value.data_type(), DataType::String);
     assert_eq!(value.get_string().unwrap(), "ten");
 
-    value.set_string("eleven".to_string()).unwrap();
+    value.set("eleven".to_string());
     assert_eq!(value.get::<String>().unwrap(), "eleven");
 }
