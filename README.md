@@ -7,10 +7,10 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
 
-A type-safe value container framework built on `qubit_datatype::DataType`,
-providing unified abstractions for single values, multi-values, and named values
-with generic construction/access/mutation, type conversion, and complete `serde`
-serialization support.
+A type-safe value container framework built on `qubit_datatype::DataType`.
+It provides single-value, homogeneous multi-value, and named wrappers with
+strict access, generic mutation, option-controlled conversion, and tagged
+Serde representations.
 
 ## Overview
 
@@ -33,23 +33,23 @@ and conversion while maintaining Rust's safety guarantees.
   supported data types
 - **Type Safety**: Enum variants carry static types; failures are expressed
   through `Result<T, ValueError>`
-- **Zero-Cost Abstractions**: Basic types are stored directly; extensive use of
-  reference returns to avoid unnecessary copies
+- **Borrowed Access**: Typed getters return references where the stored type is
+  not `Copy`
 - **Named Values**: `NamedValue`/`NamedMultiValues` provide name binding for
   configuration/identification scenarios
-- **Serde Support**: All core types implement `Serialize`/`Deserialize`
+- **Two JSON Boundaries**: Tagged Serde preserves data types; natural JSON
+  projection produces ordinary `null`, scalar, object, and array values
 - **Ergonomic Defaults**: `get_or`, `to_or`, and list-default APIs accept
   scalar defaults, borrowed string literals, arrays, slices, vectors, and
   borrowed vectors
 - **Flexible Collection Inputs**: `MultiValues::new/set/add` accept direct
   arrays, slices, vectors, borrowed vectors, and borrowed string collections
-- **Big Number Support**: Full support for `BigInt` and `BigDecimal` for
-  high-precision calculations
+- **Big Number Support**: Optional `BigInt` and `BigDecimal` variants
 - **Extended Types**: Native support for `isize`/`usize`, `Duration`, `Url`,
   `HashMap<String, String>`, and `serde_json::Value`
 
 ### 📦 **Core Types**
-- **`Value`**: Single value container with `Empty(DataType)` and 28 variants
+- **`Value`**: Single value container with `Empty(DataType)` and 27 concrete variants
   covering primitives, strings, date-time, big numbers, platform integers,
   duration, URL, string maps, and JSON
 - **`MultiValues`**: Multi-value container corresponding to `Vec<T>` enum
@@ -66,8 +66,20 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = "0.7"
+qubit-value = { version = "0.8", features = ["all"] }
 ```
+
+The default feature set is empty. Enable only the required families, or use
+`all` as the convenience feature:
+
+| Feature | Enables |
+|---|---|
+| `chrono` | Date, time, date-time, and UTC instant variants |
+| `big-number` | `BigInt` and `BigDecimal` variants |
+| `url` | URL variants |
+| `json` | `serde_json::Value` variants |
+| `converter` | All rich variants, conversion APIs, and natural JSON APIs |
+| `all` | Everything currently supported (`converter`) |
 
 ## Usage Examples
 
@@ -75,7 +87,7 @@ qubit-value = "0.7"
 
 ```rust
 use qubit_value::{Value, ValueError};
-use qubit_datatype::DataType;
+use qubit_datatype::{DataConversionError, DataListConversionError, DataType};
 use num_bigint::BigInt;
 use bigdecimal::BigDecimal;
 use std::str::FromStr;
@@ -103,10 +115,10 @@ let num: BigInt = big_int.get()?;  // Type inference
 // Empty value and type management
 let mut any = Value::Int32(42);
 any.clear();
-assert!(any.is_empty());
+assert!(any.is_unset());
 assert_eq!(any.data_type(), DataType::Int32);
 any.set_type(DataType::String);
-any.set("hello")?;
+any.set("hello");
 assert_eq!(any.get_string()?, "hello");
 ```
 
@@ -196,9 +208,9 @@ ports.add(&[8086, 8087][..])?;
 ports.add([8088, 8089])?;
 
 // Generic set: replaces entire list
-ports.set(vec![9001, 9002])?;
-ports.set([9100, 9101])?;
-ports.set(&owned)?;
+ports.set(vec![9001, 9002]);
+ports.set([9100, 9101]);
+ports.set(&owned);
 assert_eq!(ports.get_int32s()?, &[7000, 7001]);
 
 // Merge (types must match)
@@ -215,8 +227,9 @@ assert_eq!(first_val, 1);
 
 ### Defaulted Reads and Conversions
 
-Defaulted APIs use the fallback only when the value is empty or the list has no
-items. Type mismatches and failed conversions still return errors.
+Defaulted APIs use the fallback only when the container is unset. A concrete
+empty `MultiValues` vector remains an empty result; it does not trigger the
+fallback. Type mismatches and failed conversions still return errors.
 
 ```rust
 use qubit_datatype::DataType;
@@ -266,7 +279,7 @@ let vec_values = MultiValues::new(vec_source.clone());
 let borrowed_vec_values = MultiValues::new(&vec_source);
 
 let mut values = MultiValues::Empty(DataType::Int32);
-values.set([10, 11, 12])?;
+values.set([10, 11, 12]);
 values.add(slice_source.as_slice())?;
 values.add(&vec_source)?;
 
@@ -287,7 +300,7 @@ let timeout: i32 = nv.get()?;
 assert_eq!(timeout, 30);
 
 nv.set_name("read_timeout");
-nv.set(45i32)?;
+nv.set(45i32);
 assert_eq!(nv.get_int32()?, 45);
 
 // Named multi-value
@@ -333,12 +346,14 @@ Supported `T` for `new`: `bool`, `char`, `i8`, `i16`, `i32`, `i64`, `i128`,
 exactly `T`. For cross-type conversion use `to<T>()` instead.
 
 #### Mutation
-- **Single Value**: `Value::set<T>(&mut self, t) -> ValueResult<()>`
+- **Single Value**: `Value::set<T: Into<Value>>(&mut self, value) -> ()`
 - **Multi-Value**:
-  - `MultiValues::set<T, S>(&mut self, values: S) -> ValueResult<()>` where
-    `S` can be `T`, `Vec<T>`, `&Vec<T>`, `&[T]`, `[T; N]`, or `&[T; N]`
-  - `MultiValues::add<T, S>(&mut self, values: S)` supports `T`, `Vec<T>`,
-    `&Vec<T>`, `&[T]`, `[T; N]`, or `&[T; N]`
+  - `MultiValues::set<S: Into<MultiValues>>(&mut self, values) -> ()`
+    replaces the entire collection and may change its type
+  - `MultiValues::add<S: Into<MultiValues>>(&mut self, values) -> ValueResult<()>`
+    appends only when the element type matches
+  - Both accept scalar, `Vec<T>`, `&Vec<T>`, `&[T]`, `[T; N]`, and
+    `&[T; N]` forms supported by `Into<MultiValues>`
   - String collections also accept `Vec<&str>`, `&Vec<&str>`, `&[&str]`,
     `[&str; N]`, and `&[&str; N]`
 
@@ -347,7 +362,7 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
   the shared conversion rules. Supports cross-type conversion with range
   checking where applicable.
 - **`Value::to_or<T>(&self, default) -> ValueResult<T>`** — converts to `T`,
-  or returns the default when the value is empty.
+  or returns the default when the value is unset.
 - **`Value::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   same fallback behavior while using explicit conversion options.
 - **`MultiValues::to<T>(&self) -> ValueResult<T>`** — converts the first stored
@@ -361,7 +376,8 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 - **`MultiValues::to_list_with<T>(&self, options) -> ValueResult<Vec<T>>`** —
   converts all stored values with explicit conversion options.
 - **`MultiValues::to_list_or<T>(&self, default) -> ValueResult<Vec<T>>`** —
-  converts all stored values, or returns the default when the result is empty.
+  converts all stored values, or returns the default when the container is
+  unset. A concrete empty vector stays empty.
 - **`MultiValues::to_list_or_with<T>(&self, default, options) -> ValueResult<Vec<T>>`** —
   same list fallback behavior while using explicit conversion options.
 
@@ -397,42 +413,52 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 | `HashMap<String, String>` | `StringMap` |
 | `serde_json::Value` | `Json`; `String` (parsed as JSON); `StringMap` |
 
-### Named API
+### Typed and Named API
 
 #### Single Value
 - **Getters**: `get_xxx()` methods — `get_bool()`, `get_int32()`,
   `get_string()`, `get_duration()`, `get_url()`, `get_string_map()`,
   `get_json()`, etc.
-- **Setters**: `set_xxx()` methods — `set_bool()`, `set_int32()`,
-  `set_string()`, `set_duration()`, `set_url()`, `set_string_map()`,
-  `set_json()`, etc.
+- **Mutation**: use the generic `set()` method. Typed setters were removed
+  because they added no behavior beyond the generic API.
 
 #### Multi-Value
 - **Getters**: `get_xxxs()` — `get_int32s()`, `get_strings()`,
   `get_durations()`, `get_urls()`, `get_string_maps()`, `get_jsons()`, etc.
-- **Setters**: `set_xxxs()` — `set_int32s()`, `set_strings()`, etc.
-- **Adders**: `add_xxx()` — `add_int32()`, `add_string()`, `add_duration()`,
-  `add_url()`, etc.
-- **Slice Operations**: `*_slice` variants — `set_int32s_slice()`,
-  `add_strings_slice()`, etc.
+- **Mutation**: use generic `set()` and `add()` for scalar, owned collection,
+  array, slice, and borrowed-vector inputs.
 
-### JSON Utilities (on `Value`)
+### JSON Utilities
 - `Value::from_json_value(serde_json::Value) -> Value`
 - `Value::from_serializable<T: Serialize>(value: &T) -> ValueResult<Value>`
 - `Value::deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T>`
+- `Value::to_json_value(&self) -> ValueResult<serde_json::Value>`
+- `MultiValues::to_json_value(&self) -> ValueResult<serde_json::Value>`
+
+Tagged Serde and natural JSON are separate contracts. Tagged Serde preserves
+the variant name, while natural JSON maps unset to `null`, a concrete empty
+collection to `[]`, one collection item to a scalar/object, and multiple items
+to an array. Natural JSON represents 128-bit and big numbers as strings.
+Non-finite floats may be stored in memory, but both JSON-facing contracts reject
+`NaN`, positive infinity, and negative infinity because JSON defines no such
+number literals.
 
 ### Utility Methods
 
 #### Single Value
 - `data_type()` — get the data type
-- `is_empty()` — check if empty
-- `clear()` — clear the value (preserves type)
+- `is_unset()` — check whether no concrete value is stored
+- `is_numeric()` — classify a concrete numeric value
+- `unset()` / `clear()` — remove the value while preserving its declared type
 - `set_type()` — change the type
 
 #### Multi-Value
 - `count()` — get element count
-- `is_empty()` — check if empty
-- `clear()` — clear all values (preserves type)
+- `is_unset()` — distinguish unset from a concrete empty vector
+- `is_numeric()` — classify a concrete numeric collection
+- `unset()` — remove the concrete vector while preserving its declared type
+- `clear()` — clear a concrete vector while preserving its concrete state;
+  unset remains unset
 - `set_type()` — change the type
 - `merge()` — merge with another multi-value (types must match)
 - `to_value()` — convert to single value (takes first element)
@@ -446,21 +472,24 @@ use qubit_datatype::DataType;
 // Main error variants
 ValueError::NoValue                          // Empty value accessed
 ValueError::TypeMismatch { expected, actual }// get<T>() type mismatch
-ValueError::ConversionFailed { from, to }    // to<T>() unsupported direction
-ValueError::ConversionError(String)          // to<T>() range/parse failure
-ValueError::IndexOutOfBounds { index, len }  // multi-value index error
-ValueError::JsonSerializationError(String)   // JSON serialization failure
-ValueError::JsonDeserializationError(String) // JSON deserialization failure
+ValueError::DataConversion(DataConversionError) // structured to<T>() failure
+ValueError::DataListConversion(DataListConversionError) // indexed list failure
 ```
 
 All operations that may fail return `ValueResult<T> = Result<T, ValueError>`.
+Conversion errors preserve the shared structured source error; list errors also
+preserve the original `source_index`. `to()` uses exact numeric conversion by
+default. Use `to_with()` and `NumericConversionPolicy::Lossy` when truncation or
+rounding is intentional. Text is not trimmed unless enabled in
+`StringConversionOptions`.
 
 ## Supported Data Types
 
 ### Basic Scalar Types
 - **Signed integers**: `i8`, `i16`, `i32`, `i64`, `i128`
 - **Unsigned integers**: `u8`, `u16`, `u32`, `u64`, `u128`
-- **Platform integers**: `isize`, `usize`
+- **Platform integers**: `isize`, `usize` (`IntSize`/`UIntSize`); their value
+  range is architecture-dependent, so they are not a portable persistence type
 - **Floats**: `f32`, `f64`
 - **Other**: `bool`, `char`
 
@@ -483,13 +512,14 @@ All operations that may fail return `ValueResult<T> = Result<T, ValueError>`.
 - **`HashMap<String, String>`**: String map; string representation is JSON
 - **`serde_json::Value`**: JSON escape hatch for complex/custom types
 
-## Serialization Support
+## Serialization Contracts
 
-All types implement `Serialize`/`Deserialize`:
+Enabled types implement `Serialize`/`Deserialize`:
 - `Value`, `MultiValues`, `NamedValue`, `NamedMultiValues`
 
-Full type information is preserved during serialization and validated during
-deserialization.
+Tagged serialization preserves the variant. `Int128` and `UInt128` tagged
+payloads use decimal strings so they remain valid and lossless through JSON and
+Serde's buffered enum representations. Float payloads must be finite.
 
 ## Performance Notes
 
@@ -505,7 +535,7 @@ deserialization.
 
 ```toml
 [dependencies]
-qubit-datatype = "0.2"
+qubit-datatype = { version = "0.5", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
