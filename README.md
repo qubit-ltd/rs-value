@@ -45,19 +45,20 @@ and conversion while maintaining Rust's safety guarantees.
 - **Flexible Collection Inputs**: `MultiValues::new/set/add` accept direct
   arrays, slices, vectors, borrowed vectors, and borrowed string collections
 - **Big Number Support**: Optional `BigInt` and `BigDecimal` variants
-- **Extended Types**: Native support for `isize`/`usize`, `Duration`, `Url`,
+- **Extended Types**: Native support for `Duration`, `Url`,
   `HashMap<String, String>`, and `serde_json::Value`
 
 ### 📦 **Core Types**
-- **`Value`**: Single value container with `Empty(DataType)` and 27 concrete variants
-  covering primitives, strings, date-time, big numbers, platform integers,
-  duration, URL, string maps, and JSON
+- **`Value`**: Single value container with `Unset(DataType)` and 25 concrete
+  platform-independent variants
 - **`MultiValues`**: Multi-value container corresponding to `Vec<T>` enum
-  variants, with `Empty(DataType)`
+  variants, with `Unset(DataType)`
+- **`ValueContainer`**: Explicit `Scalar(Value)` or
+  `Collection(MultiValues)` shape without length-based inference
 - **`NamedValue`**: Name-bound `Value` providing `Deref/DerefMut` access to
   inner value
-- **`NamedMultiValues`**: Name-bound `MultiValues` with `Deref/DerefMut` and
-  `to_named_value()` conversion
+- **`NamedMultiValues`**: Name-bound `MultiValues` with borrowed
+  `to_named_value()` and consuming `into_named_value()` conversions
 - **`ValueError` & `ValueResult<T>`**: Standard error type and result alias
 
 ## Installation
@@ -78,8 +79,11 @@ The default feature set is empty. Enable only the required families, or use
 | `big-number` | `BigInt` and `BigDecimal` variants |
 | `url` | URL variants |
 | `json` | `serde_json::Value` variants |
-| `converter` | All rich variants, conversion APIs, and natural JSON APIs |
-| `all` | Everything currently supported (`converter`) |
+| `converter` | Core conversion APIs without enabling rich type families |
+| `all` | `converter`, `chrono`, `big-number`, `url`, and `json` |
+
+Natural JSON projection requires both `converter` and `json`. For example,
+use `features = ["converter", "json"]` without enabling other rich families.
 
 ## Usage Examples
 
@@ -236,7 +240,7 @@ use qubit_datatype::DataType;
 use qubit_value::{MultiValues, Value};
 
 // Strict reads with defaults
-let value = Value::Empty(DataType::String);
+let value = Value::Unset(DataType::String);
 let host: String = value.get_or("localhost")?;
 assert_eq!(host, "localhost");
 
@@ -245,17 +249,17 @@ let port: u16 = value.to_or(9000u16)?;
 assert_eq!(port, 8080);
 
 // Multi-value strict reads with collection defaults
-let values = MultiValues::Empty(DataType::String);
+let values = MultiValues::Unset(DataType::String);
 let paths: Vec<String> = values.get_or(["cache", "tmp"])?;
 assert_eq!(paths, vec!["cache".to_string(), "tmp".to_string()]);
 
 // First-value conversion with a scalar default
-let values = MultiValues::Empty(DataType::UInt16);
+let values = MultiValues::Unset(DataType::UInt16);
 let port: u16 = values.to_or(8080u16)?;
 assert_eq!(port, 8080);
 
 // List conversion with array or slice defaults
-let values = MultiValues::Empty(DataType::String);
+let values = MultiValues::Unset(DataType::String);
 let tags: Vec<String> = values.to_list_or(["blue", "green"])?;
 assert_eq!(tags, vec!["blue".to_string(), "green".to_string()]);
 ```
@@ -278,13 +282,13 @@ let vec_source = vec![7i32, 8, 9];
 let vec_values = MultiValues::new(vec_source.clone());
 let borrowed_vec_values = MultiValues::new(&vec_source);
 
-let mut values = MultiValues::Empty(DataType::Int32);
+let mut values = MultiValues::Unset(DataType::Int32);
 values.set([10, 11, 12]);
 values.add(slice_source.as_slice())?;
 values.add(&vec_source)?;
 
 let strings = MultiValues::new(["api", "worker"]);
-let fallback: Vec<String> = MultiValues::Empty(DataType::String)
+let fallback: Vec<String> = MultiValues::Unset(DataType::String)
     .get_or(["cache", "tmp"])?;
 ```
 
@@ -331,7 +335,7 @@ assert_eq!(val, 8080);
 Supported `T` for `new`: `bool`, `char`, `i8`, `i16`, `i32`, `i64`, `i128`,
 `u8`, `u16`, `u32`, `u64`, `u128`, `f32`, `f64`, `String`, `&str`,
 `NaiveDate`, `NaiveTime`, `NaiveDateTime`, `DateTime<Utc>`, `BigInt`,
-`BigDecimal`, `isize`, `usize`, `Duration`, `Url`,
+`BigDecimal`, `Duration`, `Url`,
 `HashMap<String, String>`, `serde_json::Value`.
 
 #### Retrieval
@@ -381,37 +385,11 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 - **`MultiValues::to_list_or_with<T>(&self, default, options) -> ValueResult<Vec<T>>`** —
   same list fallback behavior while using explicit conversion options.
 
-**Supported target types and their accepted source variants:**
-
-| Target `T` | Accepted source variants |
-|---|---|
-| `bool` | `Bool`; integer variants (0=false, non-zero=true); `String` values `1`, `0`, `true`, `false` (`true`/`false` are case-insensitive) |
-| `i8` | `Int8`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
-| `i16` | `Int16`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
-| `i32` | `Int32`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
-| `i64` | `Int64`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
-| `i128` | `Int128`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
-| `isize` | `IntSize`; `Bool`; `Char`; all integer variants; `Float32/64`; `String`; `BigInteger/BigDecimal` |
-| `u8` | `UInt8`; `Bool`; `Char`; all integer variants (range checked); `String` |
-| `u16` | `UInt8/16/32/64/128`; `Bool`; `Char`; signed integer variants (range checked); `String` |
-| `u32` | `UInt8/16/32/64/128`; `Bool`; `Char`; signed integer variants (range checked); `String` |
-| `u64` | `UInt8/16/32/64/128`; `Bool`; `Char`; signed integer variants (range checked); `String` |
-| `u128` | `UInt8/16/32/64/128`; `Bool`; `Char`; signed integer variants (range checked); `String` |
-| `usize` | `UIntSize`; `Bool`; `Char`; all integer variants (range checked); `String` |
-| `f32` | `Float32/64`; `Bool`; `Char`; all integer variants; `String`; `BigInteger/BigDecimal` |
-| `f64` | `Float64`; `Bool`; `Char`; all numeric variants; `String`; `BigInteger/BigDecimal` |
-| `char` | `Char` |
-| `String` | all variants (integers/floats/bool/char/date-time/`Duration`/`Url`/`StringMap`/`Json`) |
-| `NaiveDate` | `Date` |
-| `NaiveTime` | `Time` |
-| `NaiveDateTime` | `DateTime` |
-| `DateTime<Utc>` | `Instant` |
-| `BigInt` | `BigInteger` |
-| `BigDecimal` | `BigDecimal` |
-| `Duration` | `Duration`; integer variants and `BigInteger` using the configured duration unit; `String` with optional `ns`/`us`/`ms`/`s`/`m`/`h`/`d` suffix, or the configured duration unit when no suffix is present |
-| `Url` | `Url`; `String` |
-| `HashMap<String, String>` | `StringMap` |
-| `serde_json::Value` | `Json`; `String` (parsed as JSON); `StringMap` |
+The complete source/target matrix, range rules, parsing behavior, and option
+semantics are defined by the authoritative
+[`qubit-datatype` conversion contract](https://docs.rs/qubit-datatype/latest/qubit_datatype/).
+This crate only adds container semantics: strict `get`, first-item collection
+conversion, unset error mapping, and indexed list errors.
 
 ### Typed and Named API
 
@@ -434,11 +412,12 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 - `Value::deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T>`
 - `Value::to_json_value(&self) -> ValueResult<serde_json::Value>`
 - `MultiValues::to_json_value(&self) -> ValueResult<serde_json::Value>`
+- `ValueContainer::to_json_value(&self) -> ValueResult<serde_json::Value>`
 
 Tagged Serde and natural JSON are separate contracts. Tagged Serde preserves
-the variant name, while natural JSON maps unset to `null`, a concrete empty
-collection to `[]`, one collection item to a scalar/object, and multiple items
-to an array. Natural JSON represents 128-bit and big numbers as strings.
+the variant name, while natural JSON maps unset to `null`; every concrete
+collection remains an array, including one-item collections. Natural JSON
+represents 128-bit and big numbers as strings.
 Non-finite floats may be stored in memory, but both JSON-facing contracts reject
 `NaN`, positive infinity, and negative infinity because JSON defines no such
 number literals.
@@ -470,7 +449,7 @@ use qubit_value::{ValueError, ValueResult};
 use qubit_datatype::DataType;
 
 // Main error variants
-ValueError::NoValue                          // Empty value accessed
+ValueError::NoValue                          // Unset value accessed
 ValueError::TypeMismatch { expected, actual }// get<T>() type mismatch
 ValueError::DataConversion(DataConversionError) // structured to<T>() failure
 ValueError::DataListConversion(DataListConversionError) // indexed list failure
@@ -488,8 +467,6 @@ rounding is intentional. Text is not trimmed unless enabled in
 ### Basic Scalar Types
 - **Signed integers**: `i8`, `i16`, `i32`, `i64`, `i128`
 - **Unsigned integers**: `u8`, `u16`, `u32`, `u64`, `u128`
-- **Platform integers**: `isize`, `usize` (`IntSize`/`UIntSize`); their value
-  range is architecture-dependent, so they are not a portable persistence type
 - **Floats**: `f32`, `f64`
 - **Other**: `bool`, `char`
 
@@ -503,7 +480,6 @@ rounding is intentional. Text is not trimmed unless enabled in
 - `BigInt`, `BigDecimal` (via `num-bigint` and `bigdecimal`)
 
 ### Extended Types
-- **`isize` / `usize`**: Platform-dependent integers
 - **`Duration`**: `std::time::Duration`; string conversion uses the
   configured duration unit, defaulting to milliseconds such as `1500ms`.
   Parsing accepts `ns`, `us`, `ms`, `s`, `m`, `h`, and `d` suffixes; strings
@@ -515,11 +491,12 @@ rounding is intentional. Text is not trimmed unless enabled in
 ## Serialization Contracts
 
 Enabled types implement `Serialize`/`Deserialize`:
-- `Value`, `MultiValues`, `NamedValue`, `NamedMultiValues`
+- `Value`, `MultiValues`, `ValueContainer`, `NamedValue`, `NamedMultiValues`
 
-Tagged serialization preserves the variant. `Int128` and `UInt128` tagged
-payloads use decimal strings so they remain valid and lossless through JSON and
-Serde's buffered enum representations. Float payloads must be finite.
+Tagged serialization preserves the variant and explicit container shape.
+`Int128`, `UInt128`, `BigInteger`, and `BigDecimal` payloads use decimal
+strings. `Duration` uses `{ "secs": u64, "nanos": u32 }` and rejects nanos
+outside one second. Float payloads must be finite.
 
 ## Performance Notes
 
@@ -535,7 +512,7 @@ Serde's buffered enum representations. Float payloads must be finite.
 
 ```toml
 [dependencies]
-qubit-datatype = { version = "0.5", default-features = false }
+qubit-datatype = { version = "0.6", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
