@@ -11,19 +11,26 @@
 //! This module keeps generic conversion logic (`to` and `to_list`).
 
 use qubit_datatype::{
-    DataConversionError, DataConversionOptions, DataConvertTo, DataConverter, DataConverters,
-    DataTypeOf, ScalarStringDataConverters,
+    DataConversionError,
+    DataConversionOptions,
+    DataConvertTo,
+    DataConverter,
+    DataConverters,
+    DataTypeOf,
 };
 
 use crate::IntoValueDefault;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 use super::multi_values::MultiValues;
 
 macro_rules! multi_values_convert_first_match {
-    ($value:expr, $options:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $options:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            MultiValues::Empty(from) => Err(DataConversionError::Missing {
+            MultiValues::Unset(from) => Err(DataConversionError::Missing {
                 from: *from,
                 to: T::DATA_TYPE,
             }
@@ -39,9 +46,9 @@ macro_rules! multi_values_convert_first_match {
 }
 
 macro_rules! multi_values_convert_list_match {
-    ($value:expr, $options:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $options:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            MultiValues::Empty(from) => Err(DataConversionError::Missing {
+            MultiValues::Unset(from) => Err(DataConversionError::Missing {
                 from: *from,
                 to: T::DATA_TYPE,
             }
@@ -165,19 +172,17 @@ impl MultiValues {
         T: DataTypeOf,
     {
         match self.to() {
-            Err(ValueError::DataConversion(DataConversionError::Missing { .. })) => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::DataConversion(DataConversionError::Missing {
+                ..
+            })) => Ok(default.into_value_default()),
             result => result,
         }
     }
 
     /// Converts the first stored value to `T` using conversion options.
     ///
-    /// A `MultiValues::String` containing exactly one string is treated as a
-    /// scalar string source, so collection options can split it before taking
-    /// the first converted item. Multiple stored string values are treated as
-    /// an already-materialized list and are converted element by element.
+    /// Stored strings are collection items and are never split again by scalar
+    /// string collection options.
     ///
     /// # Type Parameters
     ///
@@ -202,13 +207,6 @@ impl MultiValues {
         for<'a> DataConverter<'a>: DataConvertTo<T>,
         T: DataTypeOf,
     {
-        if let MultiValues::String(values) = self
-            && values.len() == 1
-        {
-            return ScalarStringDataConverters::from(values[0].as_str())
-                .to_first_with(options)
-                .map_err(ValueError::from);
-        }
         for_each_value_type!(multi_values_convert_first_match, self, options)
     }
 
@@ -225,9 +223,9 @@ impl MultiValues {
         T: DataTypeOf,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(DataConversionError::Missing { .. })) => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::DataConversion(DataConversionError::Missing {
+                ..
+            })) => Ok(default.into_value_default()),
             result => result,
         }
     }
@@ -262,25 +260,26 @@ impl MultiValues {
     /// Converts all stored values to `T`, or returns `default` when the
     /// container is unset.
     #[inline]
-    pub fn to_list_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
+    pub fn to_list_or<T>(
+        &self,
+        default: impl IntoValueDefault<Vec<T>>,
+    ) -> ValueResult<Vec<T>>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
         T: DataTypeOf,
     {
         match self.to_list() {
-            Err(ValueError::DataConversion(DataConversionError::Missing { .. })) => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::DataConversion(DataConversionError::Missing {
+                ..
+            })) => Ok(default.into_value_default()),
             result => result,
         }
     }
 
     /// Converts all stored values to `T` using conversion options.
     ///
-    /// A `MultiValues::String` containing exactly one string is treated as a
-    /// scalar string source, so collection options can split it into items.
-    /// Multiple stored string values are treated as an already-materialized
-    /// list and are converted element by element.
+    /// Stored strings are collection items and are never split again by scalar
+    /// string collection options.
     ///
     /// # Type Parameters
     ///
@@ -298,18 +297,14 @@ impl MultiValues {
     ///
     /// Returns the first conversion error encountered while converting an
     /// element.
-    pub fn to_list_with<T>(&self, options: &DataConversionOptions) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(
+        &self,
+        options: &DataConversionOptions,
+    ) -> ValueResult<Vec<T>>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
         T: DataTypeOf,
     {
-        if let MultiValues::String(values) = self
-            && values.len() == 1
-        {
-            return ScalarStringDataConverters::from(values[0].as_str())
-                .to_vec_with(options)
-                .map_err(ValueError::from);
-        }
         for_each_value_type!(multi_values_convert_list_match, self, options)
     }
 
@@ -326,9 +321,9 @@ impl MultiValues {
         T: DataTypeOf,
     {
         match self.to_list_with(options) {
-            Err(ValueError::DataConversion(DataConversionError::Missing { .. })) => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::DataConversion(DataConversionError::Missing {
+                ..
+            })) => Ok(default.into_value_default()),
             result => result,
         }
     }

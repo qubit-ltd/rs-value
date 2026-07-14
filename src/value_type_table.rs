@@ -12,8 +12,13 @@
 ///
 /// Each row contains, in order: feature attributes, `Value` field attributes,
 /// `MultiValues` field attributes, enum variant, Rust storage type,
-/// [`qubit_datatype::DataType`], ownership class, natural JSON class, and the
+/// [`qubit_datatype::DataType`], materialization strategy, natural JSON class,
+/// and the
 /// public variant documentation for both containers.
+///
+/// The materialization strategy is consumed by generated owned accessors and
+/// scalar projection code. `copy` dereferences borrowed storage, while `clone`
+/// clones it.
 macro_rules! for_each_value_type {
     ($macro:ident $(, $arg:expr)*) => {
         $macro! {
@@ -92,8 +97,8 @@ macro_rules! for_each_value_type {
             ),
             (
                 [],
-                [serde(with = "crate::wide_integer::int128")],
-                [serde(with = "crate::wide_integer::int128_vec")],
+                [serde(with = "crate::wire::int128")],
+                [serde(with = "crate::wire::int128_vec")],
                 Int128,
                 i128,
                 ::qubit_datatype::DataType::Int128,
@@ -152,8 +157,8 @@ macro_rules! for_each_value_type {
             ),
             (
                 [],
-                [serde(with = "crate::wide_integer::uint128")],
-                [serde(with = "crate::wide_integer::uint128_vec")],
+                [serde(with = "crate::wire::uint128")],
+                [serde(with = "crate::wire::uint128_vec")],
                 UInt128,
                 u128,
                 ::qubit_datatype::DataType::UInt128,
@@ -164,32 +169,8 @@ macro_rules! for_each_value_type {
             ),
             (
                 [],
-                [],
-                [],
-                IntSize,
-                isize,
-                ::qubit_datatype::DataType::IntSize,
-                copy,
-                json_number,
-                "Platform-dependent signed integer",
-                "Platform-dependent signed integer list"
-            ),
-            (
-                [],
-                [],
-                [],
-                UIntSize,
-                usize,
-                ::qubit_datatype::DataType::UIntSize,
-                copy,
-                json_number,
-                "Platform-dependent unsigned integer",
-                "Platform-dependent unsigned integer list"
-            ),
-            (
-                [],
-                [serde(with = "crate::finite_float::float32")],
-                [serde(with = "crate::finite_float::float32_vec")],
+                [serde(with = "crate::wire::float32")],
+                [serde(with = "crate::wire::float32_vec")],
                 Float32,
                 f32,
                 ::qubit_datatype::DataType::Float32,
@@ -200,8 +181,8 @@ macro_rules! for_each_value_type {
             ),
             (
                 [],
-                [serde(with = "crate::finite_float::float64")],
-                [serde(with = "crate::finite_float::float64_vec")],
+                [serde(with = "crate::wire::float64")],
+                [serde(with = "crate::wire::float64_vec")],
                 Float64,
                 f64,
                 ::qubit_datatype::DataType::Float64,
@@ -212,24 +193,24 @@ macro_rules! for_each_value_type {
             ),
             (
                 [cfg(feature = "big-number")],
-                [],
-                [],
+                [serde(with = "crate::wire::big_integer")],
+                [serde(with = "crate::wire::big_integer_vec")],
                 BigInteger,
                 ::num_bigint::BigInt,
                 ::qubit_datatype::DataType::BigInteger,
-                owned,
+                clone,
                 json_string,
                 "Arbitrary-precision integer",
                 "Arbitrary-precision integer list"
             ),
             (
                 [cfg(feature = "big-number")],
-                [],
-                [],
+                [serde(with = "crate::wire::big_decimal")],
+                [serde(with = "crate::wire::big_decimal_vec")],
                 BigDecimal,
                 ::bigdecimal::BigDecimal,
                 ::qubit_datatype::DataType::BigDecimal,
-                owned,
+                clone,
                 json_string,
                 "Arbitrary-precision decimal",
                 "Arbitrary-precision decimal list"
@@ -241,7 +222,7 @@ macro_rules! for_each_value_type {
                 String,
                 String,
                 ::qubit_datatype::DataType::String,
-                owned,
+                clone,
                 json_string,
                 "String value",
                 "String value list"
@@ -296,8 +277,8 @@ macro_rules! for_each_value_type {
             ),
             (
                 [],
-                [],
-                [],
+                [serde(with = "crate::wire::duration")],
+                [serde(with = "crate::wire::duration_vec")],
                 Duration,
                 ::std::time::Duration,
                 ::qubit_datatype::DataType::Duration,
@@ -313,7 +294,7 @@ macro_rules! for_each_value_type {
                 Url,
                 ::url::Url,
                 ::qubit_datatype::DataType::Url,
-                owned,
+                clone,
                 json_string,
                 "URL",
                 "URL list"
@@ -325,7 +306,7 @@ macro_rules! for_each_value_type {
                 StringMap,
                 ::std::collections::HashMap<String, String>,
                 ::qubit_datatype::DataType::StringMap,
-                owned,
+                clone,
                 json_object,
                 "Map with string keys and values",
                 "String-map list"
@@ -337,11 +318,21 @@ macro_rules! for_each_value_type {
                 Json,
                 ::serde_json::Value,
                 ::qubit_datatype::DataType::Json,
-                owned,
+                clone,
                 json_identity,
                 "JSON value",
                 "JSON value list"
             ),
         }
+    };
+}
+
+/// Materializes an owned value from borrowed variant storage.
+macro_rules! materialize_stored {
+    (copy, $value:expr) => {
+        *$value
+    };
+    (clone, $value:expr) => {
+        $value.clone()
     };
 }

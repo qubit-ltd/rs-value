@@ -21,7 +21,7 @@ macro_rules! impl_value_from_table {
                 $variant:ident,
                 $type:ty,
                 $data_type:expr,
-                $ownership:ident,
+                $materialization:ident,
                 $json_class:ident,
                 $value_doc:literal,
                 $multi_doc:literal

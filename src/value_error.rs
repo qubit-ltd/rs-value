@@ -11,7 +11,10 @@
 
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{DataConversionError, DataListConversionError};
+use qubit_datatype::{
+    DataConversionError,
+    DataListConversionError,
+};
 use thiserror::Error;
 
 /// Value processing error type
@@ -23,8 +26,8 @@ use thiserror::Error;
 /// - Type mismatch error
 /// - No value error
 /// - Structured single-value conversion errors when `converter` is enabled
-/// - Structured list conversion errors, including the failing item index,
-///   when `converter` is enabled
+/// - Structured list conversion errors, including the failing item index, when
+///   `converter` is enabled
 ///
 /// # Example
 ///

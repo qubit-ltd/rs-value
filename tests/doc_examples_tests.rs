@@ -8,7 +8,12 @@
 //! Regression tests for public documentation examples.
 
 use qubit_datatype::DataType;
-use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
+use qubit_value::{
+    MultiValues,
+    NamedMultiValues,
+    NamedValue,
+    Value,
+};
 
 #[test]
 fn test_doc_example_single_value_operations() {
@@ -62,7 +67,8 @@ fn test_doc_example_named_value_operations() {
     nv.set(45i32);
     assert_eq!(nv.get_int32().unwrap(), 45);
 
-    let mut nmv = NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
+    let mut nmv =
+        NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
     nmv.add(8082).unwrap();
     let first_port: i32 = nmv.get_first().unwrap();
     assert_eq!(first_port, 8080);

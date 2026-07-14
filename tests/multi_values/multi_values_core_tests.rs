@@ -7,7 +7,10 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{MultiValues, ValueError};
+use qubit_value::{
+    MultiValues,
+    ValueError,
+};
 
 #[test]
 fn test_multi_values_core_tracks_count_and_type_changes() {
@@ -45,7 +48,7 @@ fn test_multi_values_core_unset_preserves_declared_type() {
 fn test_multi_values_is_numeric_is_state_aware() {
     assert!(MultiValues::Int32(vec![1]).is_numeric());
     assert!(MultiValues::Float64(Vec::new()).is_numeric());
-    assert!(!MultiValues::Empty(DataType::Int32).is_numeric());
+    assert!(!MultiValues::Unset(DataType::Int32).is_numeric());
     assert!(!MultiValues::String(Vec::new()).is_numeric());
     assert!(!MultiValues::Bool(vec![true]).is_numeric());
 }
@@ -79,14 +82,14 @@ fn test_multi_values_core_get_first_reads_first_or_default() {
     assert_eq!(values.get_first::<i32>().unwrap(), 8);
     assert_eq!(values.get_first_or::<i32>(99).unwrap(), 8);
 
-    let empty = MultiValues::Empty(DataType::Int32);
+    let empty = MultiValues::Unset(DataType::Int32);
     assert_eq!(empty.get_first_or::<i32>(99).unwrap(), 99);
     assert!(matches!(empty.get_first::<i32>(), Err(ValueError::NoValue)));
 }
 
 #[test]
 fn test_multi_values_core_set_replaces_with_vec_slice_and_single() {
-    let mut values = MultiValues::Empty(DataType::Int32);
+    let mut values = MultiValues::Unset(DataType::Int32);
     values.set(vec![1, 2]);
     assert_eq!(values.get_int32s().unwrap(), &[1, 2]);
 
@@ -99,7 +102,7 @@ fn test_multi_values_core_set_replaces_with_vec_slice_and_single() {
 
 #[test]
 fn test_multi_values_core_set_clones_slice_values() {
-    let mut values = MultiValues::Empty(DataType::Int64);
+    let mut values = MultiValues::Unset(DataType::Int64);
     let source = [10i64, 20, 30];
     values.set(&source[..]);
 
@@ -109,7 +112,7 @@ fn test_multi_values_core_set_clones_slice_values() {
 
 #[test]
 fn test_multi_values_core_set_sets_owned_vectors() {
-    let mut values = MultiValues::Empty(DataType::String);
+    let mut values = MultiValues::Unset(DataType::String);
     values.set(vec!["alpha".to_string(), "beta".to_string()]);
 
     assert_eq!(values.data_type(), DataType::String);
@@ -150,7 +153,7 @@ fn test_multi_values_core_add_appends_matching_single_value() {
 
 #[test]
 fn test_multi_values_core_add_initializes_empty_and_extends_existing() {
-    let mut values = MultiValues::Empty(DataType::Int32);
+    let mut values = MultiValues::Unset(DataType::Int32);
     values.add(vec![1, 2]).unwrap();
     values.add(vec![3, 4]).unwrap();
 
@@ -160,7 +163,7 @@ fn test_multi_values_core_add_initializes_empty_and_extends_existing() {
 #[test]
 fn test_multi_values_core_add_slice_appends_without_consuming_source() {
     let source = [1u16, 2, 3];
-    let mut values = MultiValues::Empty(DataType::UInt16);
+    let mut values = MultiValues::Unset(DataType::UInt16);
     values.add(&source[..]).unwrap();
     values.add(&source[1..]).unwrap();
 

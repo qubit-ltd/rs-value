@@ -6,24 +6,65 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use std::collections::HashMap;
+use std::collections::{
+    BTreeMap,
+    HashMap,
+};
+use std::fmt;
 use std::str::FromStr;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{NaiveDate, TimeZone, Utc};
+use chrono::{
+    NaiveDate,
+    TimeZone,
+    Utc,
+};
 use num_bigint::BigInt;
-use qubit_datatype::{DataConversionError, DataType, InvalidValueReason};
-use qubit_value::{MultiValues, Value, ValueError};
-use serde::Serialize;
-use serde::ser::SerializeMap;
+use qubit_datatype::{
+    DataConversionError,
+    DataType,
+    InvalidValueReason,
+};
+use qubit_value::{
+    MultiValues,
+    Value,
+    ValueError,
+};
+use serde::de::value::{
+    EnumAccessDeserializer,
+    Error as DeError,
+    SeqDeserializer,
+    StrDeserializer,
+};
+use serde::de::{
+    self,
+    DeserializeSeed,
+    EnumAccess,
+    IntoDeserializer,
+    VariantAccess,
+    Visitor,
+};
+use serde::ser::{
+    SerializeMap,
+    SerializeSeq,
+    SerializeStruct,
+    SerializeStructVariant,
+    SerializeTuple,
+    SerializeTupleStruct,
+    SerializeTupleVariant,
+};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use serde_json::json;
 use url::Url;
 
 #[test]
 fn test_value_natural_json_projection() {
     assert_eq!(
-        Value::Empty(DataType::Int32).to_json_value().unwrap(),
+        Value::Unset(DataType::Int32).to_json_value().unwrap(),
         serde_json::Value::Null
     );
     assert_eq!(Value::Bool(true).to_json_value().unwrap(), json!(true));
@@ -86,9 +127,9 @@ fn test_value_natural_json_projection() {
 }
 
 #[test]
-fn test_multi_values_natural_json_projection_uses_cardinality() {
+fn test_multi_values_natural_json_projection_preserves_collection_shape() {
     assert_eq!(
-        MultiValues::Empty(DataType::Int32).to_json_value().unwrap(),
+        MultiValues::Unset(DataType::Int32).to_json_value().unwrap(),
         serde_json::Value::Null
     );
     assert_eq!(
@@ -97,7 +138,7 @@ fn test_multi_values_natural_json_projection_uses_cardinality() {
     );
     assert_eq!(
         MultiValues::Int32(vec![42]).to_json_value().unwrap(),
-        json!(42)
+        json!([42])
     );
     assert_eq!(
         MultiValues::Int32(vec![1, 2, 3]).to_json_value().unwrap(),
@@ -110,7 +151,7 @@ fn test_multi_values_natural_json_projection_uses_cardinality() {
         )])])
         .to_json_value()
         .unwrap(),
-        json!({"key": "value"})
+        json!([{"key": "value"}])
     );
 }
 
@@ -161,6 +202,16 @@ impl Serialize for NonFiniteMapKey {
 #[test]
 fn test_from_serializable_rejects_nested_non_finite_floats() {
     assert!(matches!(
+        Value::from_serializable(&Value::Float64(f64::NAN)),
+        Err(ValueError::DataConversion(
+            DataConversionError::InvalidValue {
+                reason: InvalidValueReason::NonFinite,
+                ..
+            }
+        ))
+    ));
+
+    assert!(matches!(
         Value::from_serializable(&f64::NAN),
         Err(ValueError::DataConversion(
             DataConversionError::InvalidValue {
@@ -206,4 +257,517 @@ fn test_from_serializable_preserves_legitimate_null() {
         Value::from_serializable(&payload).unwrap(),
         Value::Json(json!({"values": [1.0, 2.0], "missing": null}))
     );
+}
+
+#[derive(Serialize)]
+struct PrimitivePayload {
+    boolean: bool,
+    int8: i8,
+    int16: i16,
+    int32: i32,
+    int64: i64,
+    int128: i128,
+    uint8: u8,
+    uint16: u16,
+    uint32: u32,
+    uint64: u64,
+    uint128: u128,
+    float32: f32,
+    float64: f64,
+    character: char,
+    string: String,
+    present: Option<u8>,
+}
+
+#[derive(Serialize)]
+struct UnitStruct;
+
+#[derive(Serialize)]
+struct NewtypeStruct(u8);
+
+#[derive(Serialize)]
+struct TupleStruct(u8, u16);
+
+#[derive(Serialize)]
+enum EnumPayload {
+    Unit,
+    Newtype(u8),
+    Tuple(u8, u16),
+    Struct { value: u8 },
+}
+
+struct BytePayload;
+
+impl Serialize for BytePayload {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(&[1, 2, 3])
+    }
+}
+
+struct DisplayPayload;
+
+impl fmt::Display for DisplayPayload {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("displayed")
+    }
+}
+
+impl Serialize for DisplayPayload {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(self)
+    }
+}
+
+struct ValueBeforeMapKey;
+
+impl Serialize for ValueBeforeMapKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_value(&1_u8)?;
+        map.end()
+    }
+}
+
+struct PendingMapKey;
+
+impl Serialize for PendingMapKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_key("pending")?;
+        map.end()
+    }
+}
+
+#[derive(Clone, Copy)]
+enum MapKeyKind {
+    Bool,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    Int128,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    UInt128,
+    Float32,
+    Float64,
+    NonFiniteFloat32,
+    NonFiniteFloat64,
+    Char,
+    String,
+    Bytes,
+    None,
+    Some,
+    Unit,
+    UnitStruct,
+    UnitVariant,
+    NewtypeStruct,
+    NewtypeVariant,
+    Sequence,
+    Tuple,
+    TupleStruct,
+    TupleVariant,
+    Map,
+    Struct,
+    StructVariant,
+    CollectString,
+}
+
+impl Serialize for MapKeyKind {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Self::Bool => serializer.serialize_bool(true),
+            Self::Int8 => serializer.serialize_i8(-8),
+            Self::Int16 => serializer.serialize_i16(-16),
+            Self::Int32 => serializer.serialize_i32(-32),
+            Self::Int64 => serializer.serialize_i64(-64),
+            Self::Int128 => serializer.serialize_i128(-128),
+            Self::UInt8 => serializer.serialize_u8(8),
+            Self::UInt16 => serializer.serialize_u16(16),
+            Self::UInt32 => serializer.serialize_u32(32),
+            Self::UInt64 => serializer.serialize_u64(64),
+            Self::UInt128 => serializer.serialize_u128(128),
+            Self::Float32 => serializer.serialize_f32(3.5),
+            Self::Float64 => serializer.serialize_f64(7.25),
+            Self::NonFiniteFloat32 => serializer.serialize_f32(f32::INFINITY),
+            Self::NonFiniteFloat64 => serializer.serialize_f64(f64::INFINITY),
+            Self::Char => serializer.serialize_char('k'),
+            Self::String => serializer.serialize_str("key"),
+            Self::Bytes => serializer.serialize_bytes(&[1, 2]),
+            Self::None => serializer.serialize_none(),
+            Self::Some => serializer.serialize_some(&1_u8),
+            Self::Unit => serializer.serialize_unit(),
+            Self::UnitStruct => serializer.serialize_unit_struct("Key"),
+            Self::UnitVariant => {
+                serializer.serialize_unit_variant("Key", 0, "Unit")
+            }
+            Self::NewtypeStruct => {
+                serializer.serialize_newtype_struct("Key", &1_u8)
+            }
+            Self::NewtypeVariant => {
+                serializer.serialize_newtype_variant("Key", 0, "Newtype", &1_u8)
+            }
+            Self::Sequence => serializer.serialize_seq(Some(0))?.end(),
+            Self::Tuple => serializer.serialize_tuple(0)?.end(),
+            Self::TupleStruct => {
+                serializer.serialize_tuple_struct("Key", 0)?.end()
+            }
+            Self::TupleVariant => serializer
+                .serialize_tuple_variant("Key", 0, "Tuple", 0)?
+                .end(),
+            Self::Map => serializer.serialize_map(Some(0))?.end(),
+            Self::Struct => serializer.serialize_struct("Key", 0)?.end(),
+            Self::StructVariant => serializer
+                .serialize_struct_variant("Key", 0, "Struct", 0)?
+                .end(),
+            Self::CollectString => serializer.collect_str(&DisplayPayload),
+        }
+    }
+}
+
+struct SingleKeyMap(MapKeyKind);
+
+impl Serialize for SingleKeyMap {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_entry(&self.0, &true)?;
+        map.end()
+    }
+}
+
+struct DeserializerSequence<T>(Vec<T>);
+
+impl<'de, T> IntoDeserializer<'de, DeError> for DeserializerSequence<T>
+where
+    T: IntoDeserializer<'de, DeError>,
+{
+    type Deserializer = SeqDeserializer<std::vec::IntoIter<T>, DeError>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        SeqDeserializer::new(self.0.into_iter())
+    }
+}
+
+struct TaggedPayload<V> {
+    variant: &'static str,
+    value: V,
+}
+
+impl<'de, V> EnumAccess<'de> for TaggedPayload<V>
+where
+    V: IntoDeserializer<'de, DeError>,
+{
+    type Error = DeError;
+    type Variant = TaggedVariant<V>;
+
+    fn variant_seed<S>(
+        self,
+        seed: S,
+    ) -> Result<(S::Value, Self::Variant), Self::Error>
+    where
+        S: DeserializeSeed<'de>,
+    {
+        let variant =
+            seed.deserialize(StrDeserializer::<DeError>::new(self.variant))?;
+        Ok((variant, TaggedVariant(self.value)))
+    }
+}
+
+struct TaggedVariant<V>(V);
+
+impl<'de, V> VariantAccess<'de> for TaggedVariant<V>
+where
+    V: IntoDeserializer<'de, DeError>,
+{
+    type Error = DeError;
+
+    fn unit_variant(self) -> Result<(), Self::Error> {
+        Err(de::Error::custom("expected a newtype payload"))
+    }
+
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
+    where
+        T: DeserializeSeed<'de>,
+    {
+        seed.deserialize(self.0.into_deserializer())
+    }
+
+    fn tuple_variant<T>(
+        self,
+        _len: usize,
+        _visitor: T,
+    ) -> Result<T::Value, Self::Error>
+    where
+        T: Visitor<'de>,
+    {
+        Err(de::Error::custom("expected a newtype payload"))
+    }
+
+    fn struct_variant<T>(
+        self,
+        _fields: &'static [&'static str],
+        _visitor: T,
+    ) -> Result<T::Value, Self::Error>
+    where
+        T: Visitor<'de>,
+    {
+        Err(de::Error::custom("expected a newtype payload"))
+    }
+}
+
+/// Builds a Serde enum deserializer for one externally tagged payload.
+fn tagged_payload<'de, V>(
+    variant: &'static str,
+    value: V,
+) -> EnumAccessDeserializer<TaggedPayload<V>>
+where
+    V: IntoDeserializer<'de, DeError>,
+{
+    EnumAccessDeserializer::new(TaggedPayload { variant, value })
+}
+
+/// Returns whether strict serialization classifies the input as a generic
+/// JSON serialization failure.
+fn is_serialization_error<T>(value: &T) -> bool
+where
+    T: Serialize,
+{
+    matches!(
+        Value::from_serializable(value),
+        Err(ValueError::DataConversion(
+            DataConversionError::InvalidValue {
+                reason: InvalidValueReason::Serialization { .. },
+                ..
+            }
+        ))
+    )
+}
+
+#[test]
+fn test_strict_json_serializer_covers_primitive_and_compound_shapes() {
+    let primitives = PrimitivePayload {
+        boolean: true,
+        int8: -8,
+        int16: -16,
+        int32: -32,
+        int64: -64,
+        int128: 128,
+        uint8: 8,
+        uint16: 16,
+        uint32: 32,
+        uint64: 64,
+        uint128: 128,
+        float32: 3.5,
+        float64: 7.25,
+        character: '界',
+        string: "text".to_string(),
+        present: Some(1),
+    };
+    assert!(matches!(
+        Value::from_serializable(&primitives),
+        Ok(Value::Json(serde_json::Value::Object(_)))
+    ));
+    assert_eq!(
+        Value::from_serializable(&BytePayload).unwrap(),
+        Value::Json(json!([1, 2, 3]))
+    );
+    assert_eq!(
+        Value::from_serializable(&()).unwrap(),
+        Value::Json(serde_json::Value::Null)
+    );
+    assert_eq!(
+        Value::from_serializable(&UnitStruct).unwrap(),
+        Value::Json(serde_json::Value::Null)
+    );
+    assert_eq!(
+        Value::from_serializable(&NewtypeStruct(1)).unwrap(),
+        Value::Json(json!(1))
+    );
+    assert_eq!(
+        Value::from_serializable(&EnumPayload::Unit).unwrap(),
+        Value::Json(json!("Unit"))
+    );
+    assert_eq!(
+        Value::from_serializable(&EnumPayload::Newtype(1)).unwrap(),
+        Value::Json(json!({"Newtype": 1}))
+    );
+    assert_eq!(
+        Value::from_serializable(&vec![1_u8, 2]).unwrap(),
+        Value::Json(json!([1, 2]))
+    );
+    assert_eq!(
+        Value::from_serializable(&(1_u8, 2_u16)).unwrap(),
+        Value::Json(json!([1, 2]))
+    );
+    assert_eq!(
+        Value::from_serializable(&TupleStruct(1, 2)).unwrap(),
+        Value::Json(json!([1, 2]))
+    );
+    assert_eq!(
+        Value::from_serializable(&EnumPayload::Tuple(1, 2)).unwrap(),
+        Value::Json(json!({"Tuple": [1, 2]}))
+    );
+    assert_eq!(
+        Value::from_serializable(&BTreeMap::from([("key", 1_u8)])).unwrap(),
+        Value::Json(json!({"key": 1}))
+    );
+    assert_eq!(
+        Value::from_serializable(&EnumPayload::Struct { value: 1 }).unwrap(),
+        Value::Json(json!({"Struct": {"value": 1}}))
+    );
+    assert_eq!(
+        Value::from_serializable(&DisplayPayload).unwrap(),
+        Value::Json(json!("displayed"))
+    );
+}
+
+#[test]
+fn test_strict_json_serializer_rejects_wide_numbers_and_invalid_map_state() {
+    assert_eq!(
+        Value::from_serializable(&-1_i128).unwrap(),
+        Value::Json(json!(-1))
+    );
+    assert!(is_serialization_error(&(u64::MAX as i128 + 1)));
+    assert!(is_serialization_error(&(u64::MAX as u128 + 1)));
+    assert!(is_serialization_error(&ValueBeforeMapKey));
+    assert!(is_serialization_error(&PendingMapKey));
+}
+
+#[test]
+fn test_strict_json_map_key_serializer_covers_supported_key_shapes() {
+    let supported = [
+        MapKeyKind::Bool,
+        MapKeyKind::Int8,
+        MapKeyKind::Int16,
+        MapKeyKind::Int32,
+        MapKeyKind::Int64,
+        MapKeyKind::Int128,
+        MapKeyKind::UInt8,
+        MapKeyKind::UInt16,
+        MapKeyKind::UInt32,
+        MapKeyKind::UInt64,
+        MapKeyKind::UInt128,
+        MapKeyKind::Float32,
+        MapKeyKind::Float64,
+        MapKeyKind::Char,
+        MapKeyKind::String,
+        MapKeyKind::UnitVariant,
+        MapKeyKind::NewtypeStruct,
+        MapKeyKind::CollectString,
+    ];
+
+    for key in supported {
+        assert!(matches!(
+            Value::from_serializable(&SingleKeyMap(key)),
+            Ok(Value::Json(serde_json::Value::Object(_)))
+        ));
+    }
+}
+
+#[test]
+fn test_strict_json_map_key_serializer_rejects_unsupported_key_shapes() {
+    let unsupported = [
+        MapKeyKind::Bytes,
+        MapKeyKind::None,
+        MapKeyKind::Some,
+        MapKeyKind::Unit,
+        MapKeyKind::UnitStruct,
+        MapKeyKind::NewtypeVariant,
+        MapKeyKind::Sequence,
+        MapKeyKind::Tuple,
+        MapKeyKind::TupleStruct,
+        MapKeyKind::TupleVariant,
+        MapKeyKind::Map,
+        MapKeyKind::Struct,
+        MapKeyKind::StructVariant,
+    ];
+
+    for key in unsupported {
+        assert!(is_serialization_error(&SingleKeyMap(key)));
+    }
+
+    for key in [MapKeyKind::NonFiniteFloat32, MapKeyKind::NonFiniteFloat64] {
+        assert!(matches!(
+            Value::from_serializable(&SingleKeyMap(key)),
+            Err(ValueError::DataConversion(
+                DataConversionError::InvalidValue {
+                    reason: InvalidValueReason::NonFinite,
+                    ..
+                }
+            ))
+        ));
+    }
+}
+
+#[test]
+fn test_tagged_deserialization_rejects_non_finite_scalar_and_collection_payloads()
+ {
+    let float32 = tagged_payload("Float32", f32::NAN);
+    let error = Value::deserialize(float32).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("non-finite floating-point value"),
+        "{error}"
+    );
+
+    let float64 = tagged_payload("Float64", f64::INFINITY);
+    assert!(
+        Value::deserialize(float64)
+            .unwrap_err()
+            .to_string()
+            .contains("non-finite floating-point value")
+    );
+
+    let float32s = tagged_payload(
+        "Float32",
+        DeserializerSequence(vec![1.0_f32, f32::NAN]),
+    );
+    assert!(
+        MultiValues::deserialize(float32s)
+            .unwrap_err()
+            .to_string()
+            .contains("non-finite floating-point value")
+    );
+
+    let float64s = tagged_payload(
+        "Float64",
+        DeserializerSequence(vec![1.0_f64, f64::NEG_INFINITY]),
+    );
+    assert!(
+        MultiValues::deserialize(float64s)
+            .unwrap_err()
+            .to_string()
+            .contains("non-finite floating-point value")
+    );
+}
+
+#[test]
+fn test_tagged_float_deserialization_propagates_malformed_payload_errors() {
+    let scalar = tagged_payload("Float32", "not-a-float");
+    assert!(Value::deserialize(scalar).is_err());
+
+    let collection =
+        tagged_payload("Float64", DeserializerSequence(vec!["not-a-float"]));
+    assert!(MultiValues::deserialize(collection).is_err());
 }

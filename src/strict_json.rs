@@ -8,41 +8,51 @@
 
 //! One-pass JSON value serializer with strict finite-float validation.
 
-use std::fmt::{self, Display};
+// qubit-style: allow type-file-name
+
+use std::fmt::Display;
 
 use serde::Serialize;
 use serde::ser::{
-    Impossible, SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant,
-    SerializeTuple, SerializeTupleStruct, SerializeTupleVariant, Serializer,
+    Impossible,
+    SerializeMap,
+    SerializeSeq,
+    SerializeStruct,
+    SerializeStructVariant,
+    SerializeTuple,
+    SerializeTupleStruct,
+    SerializeTupleVariant,
+    Serializer,
 };
-use serde_json::{Map, Number, Value};
+use serde_json::{
+    Map,
+    Number,
+    Value,
+};
+
+use crate::finite_float::NON_FINITE_FLOAT_MESSAGE;
 
 /// Stable error categories needed by the public conversion layer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub(crate) enum StrictJsonError {
     /// A non-finite float was encountered at any nesting level.
+    #[error("non-finite float")]
     NonFinite,
     /// The input could not be represented as a JSON value.
+    #[error("JSON serialization failed")]
     Serialization,
 }
 
-impl Display for StrictJsonError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NonFinite => formatter.write_str("non-finite float"),
-            Self::Serialization => formatter.write_str("JSON serialization failed"),
-        }
-    }
-}
-
-impl std::error::Error for StrictJsonError {}
-
 impl serde::ser::Error for StrictJsonError {
-    fn custom<T>(_message: T) -> Self
+    fn custom<T>(message: T) -> Self
     where
         T: Display,
     {
-        Self::Serialization
+        if message.to_string() == NON_FINITE_FLOAT_MESSAGE {
+            Self::NonFinite
+        } else {
+            Self::Serialization
+        }
     }
 }
 
@@ -195,7 +205,11 @@ impl Serializer for StrictJsonSerializer {
     }
 
     #[inline]
-    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<Value>
+    fn serialize_newtype_struct<T>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<Value>
     where
         T: ?Sized + Serialize,
     {
@@ -255,7 +269,11 @@ impl Serializer for StrictJsonSerializer {
         })
     }
 
-    fn serialize_struct(self, _name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(
+        self,
+        _name: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeStruct> {
         self.serialize_map(Some(len))
     }
 
@@ -529,7 +547,11 @@ impl Serializer for MapKeySerializer {
         Ok(variant.to_string())
     }
 
-    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<String>
+    fn serialize_newtype_struct<T>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<String>
     where
         T: ?Sized + Serialize,
     {
@@ -579,7 +601,11 @@ impl Serializer for MapKeySerializer {
         Err(StrictJsonError::Serialization)
     }
 
-    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStruct> {
         Err(StrictJsonError::Serialization)
     }
 

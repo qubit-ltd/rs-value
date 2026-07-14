@@ -9,7 +9,10 @@
 //! `TryFrom<&MultiValues>` implementations for strict typed reads.
 
 use super::multi_values::MultiValues;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 macro_rules! impl_multi_values_try_from_table {
     (
@@ -22,7 +25,7 @@ macro_rules! impl_multi_values_try_from_table {
                 $variant:ident,
                 $type:ty,
                 $data_type:expr,
-                $ownership:ident,
+                $materialization:ident,
                 $json_class:ident,
                 $value_doc:literal,
                 $multi_doc:literal
@@ -37,10 +40,11 @@ macro_rules! impl_multi_values_try_from_table {
                 #[inline]
                 fn try_from(values: &MultiValues) -> ValueResult<$type> {
                     match values {
-                        MultiValues::$variant(values) => {
-                            values.first().cloned().ok_or(ValueError::NoValue)
-                        }
-                        MultiValues::Empty(actual) if *actual == $data_type => {
+                        MultiValues::$variant(values) => values
+                            .first()
+                            .map(|value| materialize_stored!($materialization, value))
+                            .ok_or(ValueError::NoValue),
+                        MultiValues::Unset(actual) if *actual == $data_type => {
                             Err(ValueError::NoValue)
                         }
                         _ => Err(ValueError::TypeMismatch {
@@ -58,8 +62,11 @@ macro_rules! impl_multi_values_try_from_table {
                 #[inline]
                 fn try_from(values: &MultiValues) -> ValueResult<Vec<$type>> {
                     match values {
-                        MultiValues::$variant(values) => Ok(values.clone()),
-                        MultiValues::Empty(actual) if *actual == $data_type => {
+                        MultiValues::$variant(values) => Ok(values
+                            .iter()
+                            .map(|value| materialize_stored!($materialization, value))
+                            .collect()),
+                        MultiValues::Unset(actual) if *actual == $data_type => {
                             Err(ValueError::NoValue)
                         }
                         _ => Err(ValueError::TypeMismatch {

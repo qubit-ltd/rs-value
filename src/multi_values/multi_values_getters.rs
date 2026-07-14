@@ -14,7 +14,13 @@ use std::time::Duration;
 #[cfg(feature = "big-number")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "chrono")]
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 #[cfg(feature = "big-number")]
 use num_bigint::BigInt;
 #[cfg(feature = "url")]
@@ -22,7 +28,10 @@ use url::Url;
 
 use qubit_datatype::DataType;
 
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 use super::multi_values::MultiValues;
 
@@ -237,16 +246,6 @@ impl MultiValues {
         /// value; see `# Errors`.
         #[cfg(feature = "big-number")]
         ref: get_first_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
-    }
-
-    impl_get_first_value! {
-        /// Get the first isize value
-        copy: get_first_intsize, IntSize, isize, DataType::IntSize
-    }
-
-    impl_get_first_value! {
-        /// Get the first usize value
-        copy: get_first_uintsize, UIntSize, usize, DataType::UIntSize
     }
 
     impl_get_first_value! {
@@ -478,16 +477,6 @@ impl MultiValues {
         /// If types match, returns a reference to the big decimal array; see `# Errors`.
         #[cfg(feature = "big-number")]
         vec: get_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
-    }
-
-    impl_get_multi_values! {
-        /// Get reference to all isize values
-        slice: get_intsizes, IntSize, isize, DataType::IntSize
-    }
-
-    impl_get_multi_values! {
-        /// Get reference to all usize values
-        slice: get_uintsizes, UIntSize, usize, DataType::UIntSize
     }
 
     impl_get_multi_values! {

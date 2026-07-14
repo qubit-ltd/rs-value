@@ -8,7 +8,7 @@
 //! # Value Processing Framework
 //!
 //! Provides type-safe value storage and access functionality, supporting single
-//! values, multiple values, and named values.
+//! values, collections, explicit scalar-or-collection shape, and named values.
 //!
 //! # Module Description
 //!
@@ -20,6 +20,8 @@
 //! # Core behavior
 //!
 //! - [`Value::get`] and [`MultiValues::get`] perform strict typed reads.
+//! - [`ValueContainer`] preserves whether the source supplied a scalar or an
+//!   explicit collection, even when the collection contains one item.
 //! - `to` methods use `qubit-datatype` conversion rules and options.
 //! - [`Value::is_unset`] and [`MultiValues::is_unset`] distinguish an unset
 //!   container from a concrete value or concrete empty collection.
@@ -70,22 +72,35 @@
 //! assert_eq!(config.name(), "port");
 //! assert_eq!(config.get_int32().unwrap(), 8080);
 //! ```
+//!
+//! ## Explicit Shape Operations
+//!
+//! ```rust
+//! use qubit_value::ValueContainer;
+//!
+//! let scalar = ValueContainer::from(42_i32);
+//! let collection = ValueContainer::from(vec![42_i32]);
+//! assert!(scalar.is_scalar());
+//! assert!(collection.is_collection());
+//! ```
 
 // Sub-modules
 mod finite_float;
 mod into_value_default;
 #[macro_use]
 mod value_type_table;
-#[cfg(feature = "converter")]
+#[cfg(all(feature = "converter", feature = "json"))]
 mod json;
 pub mod multi_values;
 mod named_multi_values;
 mod named_value;
-#[cfg(feature = "converter")]
+#[cfg(all(feature = "converter", feature = "json"))]
 mod strict_json;
 mod value;
+mod value_container;
 mod value_error;
 mod wide_integer;
+mod wire;
 
 // Public exports
 pub use into_value_default::IntoValueDefault;
@@ -93,4 +108,8 @@ pub use multi_values::MultiValues;
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;
 pub use value::Value;
-pub use value_error::{ValueError, ValueResult};
+pub use value_container::ValueContainer;
+pub use value_error::{
+    ValueError,
+    ValueResult,
+};

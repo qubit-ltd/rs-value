@@ -11,7 +11,10 @@
 //! types and standard conversion traits.
 
 use qubit_datatype::DataType;
-use qubit_value::{MultiValues, Value};
+use qubit_value::{
+    MultiValues,
+    Value,
+};
 
 #[test]
 fn test_value_generic_api_uses_public_bounds() {
@@ -23,7 +26,7 @@ fn test_value_generic_api_uses_public_bounds() {
     assert_eq!(strict, 42);
     assert_eq!(converted, 42);
 
-    let mut text = Value::Empty(DataType::String);
+    let mut text = Value::Unset(DataType::String);
     text.set("hello");
 
     assert_eq!(text.get_string().unwrap(), "hello");
@@ -43,7 +46,7 @@ fn test_multi_values_generic_api_uses_public_bounds() {
     assert_eq!(converted_first, 1);
     assert_eq!(converted_all, vec![1, 2, 3]);
 
-    let mut values = MultiValues::Empty(DataType::Int32);
+    let mut values = MultiValues::Unset(DataType::Int32);
     values.set(vec![4i32, 5]);
     values.add(6i32).unwrap();
     values.add(&[7i32, 8][..]).unwrap();
