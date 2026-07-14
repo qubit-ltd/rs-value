@@ -1,13 +1,13 @@
 [package]
 name = "qubit-value"
-version = "0.7.9"
+version = "0.8.0"
 edition = "2024"
 rust-version = "1.94"
 autotests = false
 authors = ["Haixing Hu <starfish.hu@gmail.com>"]
 license = "Apache-2.0"
 repository = "https://github.com/qubit-ltd/rs-value"
-description = "Type-safe value container framework with unified abstractions for single values, multi-values, and named values with complete serde support"
+description = "Type-safe containers for single, multi-valued, and named runtime values"
 homepage = "https://github.com/qubit-ltd/rs-value"
 documentation = "https://docs.rs/qubit-value"
 readme = "README.md"
@@ -31,17 +31,44 @@ include = [
 name = "qubit_value"
 doctest = true
 
+[package.metadata.docs.rs]
+all-features = true
+
 [[test]]
 name = "integration_tests"
 path = "tests/mod.rs"
+required-features = ["all"]
+
+[[test]]
+name = "core_feature_tests"
+path = "tests/core_feature_tests.rs"
+
+[features]
+default = []
+chrono = ["dep:chrono", "qubit-datatype/chrono"]
+big-number = [
+    "dep:bigdecimal",
+    "dep:num-bigint",
+    "qubit-datatype/big-number",
+]
+url = ["dep:url", "qubit-datatype/url"]
+json = ["dep:serde_json", "qubit-datatype/json"]
+converter = [
+    "chrono",
+    "big-number",
+    "url",
+    "json",
+    "qubit-datatype/converter",
+]
+all = ["converter"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 thiserror = "2.0"
-chrono = { version = "0.4", features = ["serde"] }
-url = { version = "2.5", features = ["serde"] }
-num-bigint = { version = "0.4", features = ["serde"] }
-bigdecimal = { version = "0.4", features = ["serde"] }
+serde_json = { version = "1.0", optional = true }
+chrono = { version = "0.4", features = ["serde"], optional = true }
+url = { version = "2.5", features = ["serde"], optional = true }
+num-bigint = { version = "0.4", features = ["serde"], optional = true }
+bigdecimal = { version = "0.4", features = ["serde"], optional = true }
 
-qubit-datatype = "0.2"
+qubit-datatype = { version = "0.5", default-features = false }

@@ -12,10 +12,7 @@
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_value::{Value, ValueError};
 use std::str::FromStr;
 
 #[test]
@@ -57,18 +54,14 @@ fn test_value_generic_get() {
 
 #[test]
 fn test_value_defaulted_reads_use_default_only_for_empty() {
-    use qubit_datatype::{
-        DataConversionOptions,
-        StringConversionOptions,
-    };
+    use qubit_datatype::{DataConversionOptions, StringConversionOptions};
 
     let empty = Value::default();
     assert_eq!(empty.get_or::<String>("fallback").unwrap(), "fallback");
     assert_eq!(empty.to_or::<u16>(8080).unwrap(), 8080);
 
-    let options = DataConversionOptions::default().with_string_options(
-        StringConversionOptions::default().with_trim(true),
-    );
+    let options = DataConversionOptions::default()
+        .with_string_options(StringConversionOptions::default().with_trim(true));
     assert_eq!(
         empty.to_or_with::<String>(" fallback ", &options).unwrap(),
         " fallback "
@@ -136,77 +129,77 @@ fn test_value_generic_get_all_types() {
 fn test_value_set_methods() {
     // Test set method for basic types
     let mut value = Value::Empty(DataType::Int32);
-    value.set_int32(42).unwrap();
+    value.set(42);
     assert_eq!(value.get_int32().unwrap(), 42);
 
     let mut value = Value::Empty(DataType::Bool);
-    value.set_bool(true).unwrap();
+    value.set(true);
     assert!(value.get_bool().unwrap());
 
     let mut value = Value::Empty(DataType::String);
-    value.set_string("hello".to_string()).unwrap();
+    value.set("hello".to_string());
     assert_eq!(value.get_string().unwrap(), "hello");
 }
 #[test]
 fn test_value_generic_set() {
     // Test generic set method
     let mut value = Value::Empty(DataType::Int32);
-    value.set(42i32).unwrap();
+    value.set(42i32);
     assert_eq!(value.get_int32().unwrap(), 42);
 
     let mut value = Value::Empty(DataType::String);
-    value.set("hello".to_string()).unwrap();
+    value.set("hello".to_string());
     assert_eq!(value.get_string().unwrap(), "hello");
 
     let mut value = Value::Empty(DataType::Bool);
-    value.set(true).unwrap();
+    value.set(true);
     assert!(value.get_bool().unwrap());
 }
 #[test]
 fn test_value_set_all_types() {
     // Test set method for all types
     let mut value = Value::Empty(DataType::Bool);
-    value.set_bool(true).unwrap();
+    value.set(true);
     assert!(value.get_bool().unwrap());
 
     let mut value = Value::Empty(DataType::Char);
-    value.set_char('A').unwrap();
+    value.set('A');
     assert_eq!(value.get_char().unwrap(), 'A');
 
     let mut value = Value::Empty(DataType::Int8);
-    value.set_int8(42i8).unwrap();
+    value.set(42i8);
     assert_eq!(value.get_int8().unwrap(), 42);
 
     let mut value = Value::Empty(DataType::Int16);
-    value.set_int16(1000i16).unwrap();
+    value.set(1000i16);
     assert_eq!(value.get_int16().unwrap(), 1000);
 
     let mut value = Value::Empty(DataType::Int32);
-    value.set_int32(100000i32).unwrap();
+    value.set(100000i32);
     assert_eq!(value.get_int32().unwrap(), 100000);
 
     let mut value = Value::Empty(DataType::Int64);
-    value.set_int64(1000000000i64).unwrap();
+    value.set(1000000000i64);
     assert_eq!(value.get_int64().unwrap(), 1000000000);
 
     let mut value = Value::Empty(DataType::UInt8);
-    value.set_uint8(255u8).unwrap();
+    value.set(255u8);
     assert_eq!(value.get_uint8().unwrap(), 255);
 
     let mut value = Value::Empty(DataType::UInt16);
-    value.set_uint16(65535u16).unwrap();
+    value.set(65535u16);
     assert_eq!(value.get_uint16().unwrap(), 65535);
 
     let mut value = Value::Empty(DataType::UInt32);
-    value.set_uint32(4294967295u32).unwrap();
+    value.set(4294967295u32);
     assert_eq!(value.get_uint32().unwrap(), 4294967295);
 
     let mut value = Value::Empty(DataType::Float32);
-    value.set_float32(3.5f32).unwrap();
+    value.set(3.5f32);
     assert_eq!(value.get_float32().unwrap(), 3.5);
 
     let mut value = Value::Empty(DataType::Float64);
-    value.set_float64(3.5f64).unwrap();
+    value.set(3.5f64);
     assert_eq!(value.get_float64().unwrap(), 3.5);
 }
 #[test]
@@ -228,12 +221,12 @@ fn test_biginteger_value() {
     // Test setting value
     let mut value = Value::Empty(DataType::BigInteger);
     let new_big_int = BigInt::from_str("98765432109876543210").unwrap();
-    value.set_biginteger(new_big_int.clone()).unwrap();
+    value.set(new_big_int.clone());
     assert_eq!(value.get_biginteger().unwrap(), new_big_int);
 
     // Test generic methods
     let mut value = Value::Empty(DataType::BigInteger);
-    value.set(big_int.clone()).unwrap();
+    value.set(big_int.clone());
     let retrieved: BigInt = value.get().unwrap();
     assert_eq!(retrieved, big_int);
 }
@@ -256,12 +249,12 @@ fn test_bigdecimal_value() {
     // Test setting value
     let mut value = Value::Empty(DataType::BigDecimal);
     let new_big_decimal = BigDecimal::from_str("987.654321").unwrap();
-    value.set_bigdecimal(new_big_decimal.clone()).unwrap();
+    value.set(new_big_decimal.clone());
     assert_eq!(value.get_bigdecimal().unwrap(), new_big_decimal);
 
     // Test generic methods
     let mut value = Value::Empty(DataType::BigDecimal);
-    value.set(big_decimal.clone()).unwrap();
+    value.set(big_decimal.clone());
     let retrieved: BigDecimal = value.get().unwrap();
     assert_eq!(retrieved, big_decimal);
 }
@@ -290,19 +283,17 @@ fn test_biginteger_bigdecimal_type_mismatch() {
 fn test_value_set_all_integer_types() {
     // Test Int128
     let mut value = Value::Empty(DataType::Int128);
-    value.set_int128(123456789012345678i128).unwrap();
+    value.set(123456789012345678i128);
     assert_eq!(value.get_int128().unwrap(), 123456789012345678i128);
 
     // Test UInt64
     let mut value = Value::Empty(DataType::UInt64);
-    value.set_uint64(18446744073709551615u64).unwrap();
+    value.set(18446744073709551615u64);
     assert_eq!(value.get_uint64().unwrap(), 18446744073709551615u64);
 
     // Test UInt128
     let mut value = Value::Empty(DataType::UInt128);
-    value
-        .set_uint128(340282366920938463463374607431768211455u128)
-        .unwrap();
+    value.set(340282366920938463463374607431768211455u128);
     assert_eq!(
         value.get_uint128().unwrap(),
         340282366920938463463374607431768211455u128
@@ -422,27 +413,27 @@ fn test_value_type_mismatch_errors() {
 fn test_value_setter_type_mismatch() {
     // Test all setters handling of Empty values
     let mut value = Value::Empty(DataType::String);
-    value.set_bool(true).unwrap();
+    value.set(true);
     assert!(value.get_bool().unwrap());
 
     let mut value = Value::Empty(DataType::Bool);
-    value.set_char('X').unwrap();
+    value.set('X');
     assert_eq!(value.get_char().unwrap(), 'X');
 
     let mut value = Value::Empty(DataType::Char);
-    value.set_int8(10).unwrap();
+    value.set(10_i8);
     assert_eq!(value.get_int8().unwrap(), 10);
 
     let mut value = Value::Empty(DataType::Int8);
-    value.set_int16(1000).unwrap();
+    value.set(1_000_i16);
     assert_eq!(value.get_int16().unwrap(), 1000);
 
     let mut value = Value::Empty(DataType::Int16);
-    value.set_float32(3.5).unwrap();
+    value.set(3.5_f32);
     assert_eq!(value.get_float32().unwrap(), 3.5);
 
     let mut value = Value::Empty(DataType::Float32);
-    value.set_float64(2.5).unwrap();
+    value.set(2.5);
     assert_eq!(value.get_float64().unwrap(), 2.5);
 }
 #[test]
@@ -609,15 +600,15 @@ fn test_generic_set_for_coverage() {
     use chrono::NaiveDate;
 
     let mut v = Value::new('a');
-    v.set('b').unwrap();
+    v.set('b');
     assert_eq!(v.get_char().unwrap(), 'b');
 
     let mut v = Value::new(123u128);
-    v.set(456u128).unwrap();
+    v.set(456u128);
     assert_eq!(v.get_uint128().unwrap(), 456u128);
 
     let mut v = Value::new(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
-    v.set(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()).unwrap();
+    v.set(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap());
     assert_eq!(
         v.get_date().unwrap(),
         NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()

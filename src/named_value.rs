@@ -13,14 +13,8 @@
 //! Suitable for scenarios such as log annotation, configuration item
 //! encapsulation, and preserving strongly typed values in key-value pairs.
 
-use serde::{
-    Deserialize,
-    Serialize,
-};
-use std::ops::{
-    Deref,
-    DerefMut,
-};
+use serde::{Deserialize, Serialize};
+use std::ops::{Deref, DerefMut};
 
 use super::value::Value;
 
@@ -50,7 +44,7 @@ use super::value::Value;
 ///
 /// let named = NamedValue::new("flag", Value::Bool(true));
 /// // Call Value methods through Deref
-/// assert_eq!(named.to::<bool>().unwrap(), true);
+/// assert!(named.get_bool().unwrap());
 /// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NamedValue {
@@ -146,7 +140,7 @@ impl Deref for NamedValue {
     /// Dereference to the inner [`Value`]
     ///
     /// Allows direct invocation of methods on [`Value`], for example:
-    /// `named.to::<i32>()`.
+    /// `named.get_int32()`.
     ///
     /// # Returns
     ///
@@ -159,7 +153,7 @@ impl Deref for NamedValue {
     ///
     /// let named = NamedValue::new("flag", Value::Bool(true));
     /// // Call Value methods through Deref
-    /// assert_eq!(named.to::<bool>().unwrap(), true);
+    /// assert!(named.get_bool().unwrap());
     /// ```
     #[inline]
     fn deref(&self) -> &Self::Target {

@@ -9,47 +9,26 @@
 //!
 //! Provides type-safe storage and access functionality for single values.
 
-use bigdecimal::BigDecimal;
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
-use num_bigint::BigInt;
-use serde::{
-    Deserialize,
-    Serialize,
-};
-use std::collections::HashMap;
-use std::time::Duration;
-use url::Url;
+use serde::{Deserialize, Serialize};
 
-use qubit_datatype::{
-    DataConversionOptions,
-    DataConvertTo,
-    DataConverter,
-    DataType,
-};
+use qubit_datatype::DataType;
+#[cfg(feature = "converter")]
+use qubit_datatype::{DataConversionError, DataConversionOptions, DataConvertTo, DataConverter};
 
 use crate::value_error::ValueResult;
-use crate::{
-    IntoValueDefault,
-    ValueError,
-};
+use crate::{IntoValueDefault, ValueError};
 
 /// Single value container
 ///
 /// Uses an enum to represent different types of values, providing
 /// type-safe value storage and access.
 ///
-/// # Features
+/// # Behavior
 ///
-/// - Zero-cost abstraction with compile-time type checking
-/// - Supports multiple basic data types
-/// - Provides two sets of APIs for type checking and type conversion
-/// - Automatic memory management
+/// - Stores one value from the closed [`DataType`] family.
+/// - Provides strict getters and, with `converter`, option-controlled
+///   conversion methods.
+/// - Distinguishes an unset container from concrete inner values.
 ///
 /// # Example
 ///
@@ -60,72 +39,55 @@ use crate::{
 /// let value = Value::Int32(42);
 /// assert_eq!(value.get_int32().unwrap(), 42);
 ///
-/// // Type conversion
-/// let converted = value.to::<i64>().unwrap();
-/// assert_eq!(converted, 42i64);
+/// // Strict generic access
+/// let number: i32 = value.get().unwrap();
+/// assert_eq!(number, 42);
 ///
 /// // String value
 /// let text = Value::String("hello".to_string());
 /// assert_eq!(text.get_string().unwrap(), "hello");
 /// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum Value {
-    /// Empty value (has type but no value)
-    Empty(DataType),
-    /// Boolean value
-    Bool(bool),
-    /// Character value
-    Char(char),
-    /// 8-bit signed integer
-    Int8(i8),
-    /// 16-bit signed integer
-    Int16(i16),
-    /// 32-bit signed integer
-    Int32(i32),
-    /// 64-bit signed integer
-    Int64(i64),
-    /// 128-bit signed integer
-    Int128(i128),
-    /// 8-bit unsigned integer
-    UInt8(u8),
-    /// 16-bit unsigned integer
-    UInt16(u16),
-    /// 32-bit unsigned integer
-    UInt32(u32),
-    /// 64-bit unsigned integer
-    UInt64(u64),
-    /// 128-bit unsigned integer
-    UInt128(u128),
-    /// Platform-dependent signed integer (isize)
-    IntSize(isize),
-    /// Platform-dependent unsigned integer (usize)
-    UIntSize(usize),
-    /// 32-bit floating point number
-    Float32(f32),
-    /// 64-bit floating point number
-    Float64(f64),
-    /// Big integer type
-    BigInteger(BigInt),
-    /// Big decimal type
-    BigDecimal(BigDecimal),
-    /// String
-    String(String),
-    /// Date
-    Date(NaiveDate),
-    /// Time
-    Time(NaiveTime),
-    /// Date and time
-    DateTime(NaiveDateTime),
-    /// UTC instant
-    Instant(DateTime<Utc>),
-    /// Duration type (std::time::Duration)
-    Duration(Duration),
-    /// URL type (url::Url)
-    Url(Url),
-    /// String map type (HashMap<String, String>)
-    StringMap(HashMap<String, String>),
-    /// JSON value type (serde_json::Value)
-    Json(serde_json::Value),
+macro_rules! define_value_enum {
+    (
+        ;
+        $(
+            (
+                [$($cfg:meta),*],
+                [$($value_attr:meta),*],
+                [$($multi_attr:meta),*],
+                $variant:ident,
+                $type:ty,
+                $data_type:expr,
+                $ownership:ident,
+                $json_class:ident,
+                $value_doc:literal,
+                $multi_doc:literal
+            )
+        ),+ $(,)?
+    ) => {
+        #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+        pub enum Value {
+            /// Unset value with a declared data type.
+            Empty(DataType),
+            $(
+                $(#[$cfg])*
+                $(#[$value_attr])*
+                #[doc = $value_doc]
+                $variant($type),
+            )+
+        }
+    };
+}
+
+for_each_value_type!(define_value_enum);
+
+macro_rules! value_data_type_match {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+        match $value {
+            Value::Empty(data_type) => *data_type,
+            $($(#[$cfg])* Value::$variant(_) => $data_type,)+
+        }
+    };
 }
 
 // ============================================================================
@@ -237,7 +199,7 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is empty with the
+    /// Returns [`ValueError::NoValue`] when the value is unset with the
     /// requested type, or [`ValueError::TypeMismatch`] when the stored type
     /// differs from `T`.
     ///
@@ -276,7 +238,7 @@ impl Value {
 
     /// Generic getter method with a default value.
     ///
-    /// Returns the supplied default only when this value is empty. Type
+    /// Returns the supplied default only when this value is unset. Type
     /// mismatches and conversion errors are still returned as errors.
     #[inline]
     pub fn get_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
@@ -494,23 +456,27 @@ impl Value {
     /// assert_eq!(text, "42");
     /// ```
     #[inline]
+    #[cfg(feature = "converter")]
     pub fn to<T>(&self) -> ValueResult<T>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
-        self.to_with(&DataConversionOptions::default())
+        self.to_with(DataConversionOptions::default_ref())
     }
 
-    /// Converts this value to `T`, or returns `default` when it is empty.
+    /// Converts this value to `T`, or returns `default` when it is unset.
     ///
-    /// Conversion failures from non-empty values are preserved.
+    /// Conversion failures from concrete values are preserved.
     #[inline]
+    #[cfg(feature = "converter")]
     pub fn to_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
         match self.to() {
-            Err(ValueError::NoValue) => Ok(default.into_value_default()),
+            Err(ValueError::DataConversion(DataConversionError::Missing { .. })) => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -539,6 +505,7 @@ impl Value {
     /// Returns a [`crate::ValueError`] when the value is missing, unsupported,
     /// or invalid for `T` under the provided options.
     #[inline]
+    #[cfg(feature = "converter")]
     pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
@@ -547,10 +514,11 @@ impl Value {
     }
 
     /// Converts this value to `T` using conversion options, or returns
-    /// `default` when it is empty.
+    /// `default` when it is unset.
     ///
-    /// Conversion failures from non-empty values are preserved.
+    /// Conversion failures from concrete values are preserved.
     #[inline]
+    #[cfg(feature = "converter")]
     pub fn to_or_with<T>(
         &self,
         default: impl IntoValueDefault<T>,
@@ -560,7 +528,9 @@ impl Value {
         for<'a> DataConverter<'a>: DataConvertTo<T>,
     {
         match self.to_with(options) {
-            Err(ValueError::NoValue) => Ok(default.into_value_default()),
+            Err(ValueError::DataConversion(DataConversionError::Missing { .. })) => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -598,10 +568,10 @@ impl Value {
     ///
     /// * `value` - The value to set
     ///
-    /// # Returns
+    /// # Compile-time restriction
     ///
-    /// Always returns `Ok(())` for supported input types. Unsupported input
-    /// types fail to compile because they do not implement `Into<Value>`.
+    /// Unsupported input types fail to compile because they do not implement
+    /// `Into<Value>`.
     ///
     /// # Example
     ///
@@ -612,25 +582,24 @@ impl Value {
     /// let mut value = Value::Empty(DataType::Int32);
     ///
     /// // Through type inference
-    /// value.set(42i32).unwrap();
+    /// value.set(42i32);
     /// assert_eq!(value.get_int32().unwrap(), 42);
     ///
     /// // Explicitly specify type parameter
-    /// value.set::<i32>(100).unwrap();
+    /// value.set::<i32>(100);
     /// assert_eq!(value.get_int32().unwrap(), 100);
     ///
     /// // String type
     /// let mut text = Value::Empty(DataType::String);
-    /// text.set("hello".to_string()).unwrap();
+    /// text.set("hello".to_string());
     /// assert_eq!(text.get_string().unwrap(), "hello");
     /// ```
     #[inline]
-    pub fn set<T>(&mut self, value: T) -> ValueResult<()>
+    pub fn set<T>(&mut self, value: T)
     where
         T: Into<Self>,
     {
         *self = value.into();
-        Ok(())
     }
 
     /// Get the data type of the value
@@ -653,43 +622,15 @@ impl Value {
     /// ```
     #[inline]
     pub fn data_type(&self) -> DataType {
-        match self {
-            Value::Empty(dt) => *dt,
-            Value::Bool(_) => DataType::Bool,
-            Value::Char(_) => DataType::Char,
-            Value::Int8(_) => DataType::Int8,
-            Value::Int16(_) => DataType::Int16,
-            Value::Int32(_) => DataType::Int32,
-            Value::Int64(_) => DataType::Int64,
-            Value::Int128(_) => DataType::Int128,
-            Value::UInt8(_) => DataType::UInt8,
-            Value::UInt16(_) => DataType::UInt16,
-            Value::UInt32(_) => DataType::UInt32,
-            Value::UInt64(_) => DataType::UInt64,
-            Value::UInt128(_) => DataType::UInt128,
-            Value::Float32(_) => DataType::Float32,
-            Value::Float64(_) => DataType::Float64,
-            Value::String(_) => DataType::String,
-            Value::Date(_) => DataType::Date,
-            Value::Time(_) => DataType::Time,
-            Value::DateTime(_) => DataType::DateTime,
-            Value::Instant(_) => DataType::Instant,
-            Value::BigInteger(_) => DataType::BigInteger,
-            Value::BigDecimal(_) => DataType::BigDecimal,
-            Value::IntSize(_) => DataType::IntSize,
-            Value::UIntSize(_) => DataType::UIntSize,
-            Value::Duration(_) => DataType::Duration,
-            Value::Url(_) => DataType::Url,
-            Value::StringMap(_) => DataType::StringMap,
-            Value::Json(_) => DataType::Json,
-        }
+        for_each_value_type!(value_data_type_match, self)
     }
 
-    /// Check if the value is empty
+    /// Tests whether this container has no concrete value.
     ///
     /// # Returns
     ///
-    /// Returns `true` if the value is empty
+    /// Returns `true` only for [`Value::Empty`]. An empty string, map, or JSON
+    /// container is still a concrete value and returns `false`.
     ///
     /// # Example
     ///
@@ -698,14 +639,28 @@ impl Value {
     /// use qubit_value::Value;
     ///
     /// let value = Value::Int32(42);
-    /// assert!(!value.is_empty());
+    /// assert!(!value.is_unset());
     ///
     /// let empty = Value::Empty(DataType::String);
-    /// assert!(empty.is_empty());
+    /// assert!(empty.is_unset());
     /// ```
     #[inline]
-    pub fn is_empty(&self) -> bool {
+    pub fn is_unset(&self) -> bool {
         matches!(self, Value::Empty(_))
+    }
+
+    /// Tests whether a concrete value belongs to the numeric type family.
+    ///
+    /// An unset value returns `false`, even when its declared type is numeric.
+    #[inline]
+    pub fn is_numeric(&self) -> bool {
+        !self.is_unset() && self.data_type().is_numeric()
+    }
+
+    /// Removes the concrete value while preserving its declared data type.
+    #[inline]
+    pub fn unset(&mut self) {
+        *self = Value::Empty(self.data_type());
     }
 
     /// Clear the value while preserving the type
@@ -720,13 +675,12 @@ impl Value {
     ///
     /// let mut value = Value::Int32(42);
     /// value.clear();
-    /// assert!(value.is_empty());
+    /// assert!(value.is_unset());
     /// assert_eq!(value.data_type(), DataType::Int32);
     /// ```
     #[inline]
     pub fn clear(&mut self) {
-        let dt = self.data_type();
-        *self = Value::Empty(dt);
+        self.unset();
     }
 
     /// Set the data type
@@ -746,7 +700,7 @@ impl Value {
     ///
     /// let mut value = Value::Int32(42);
     /// value.set_type(DataType::String);
-    /// assert!(value.is_empty());
+    /// assert!(value.is_unset());
     /// assert_eq!(value.data_type(), DataType::String);
     /// ```
     #[inline]

@@ -17,17 +17,18 @@
 //! - `multi_values` - Multiple values container implementation
 //! - `named` - Named value implementation
 //!
-//! # Core Features
+//! # Core behavior
 //!
-//! - **Type Safety**: Compile-time type checking to avoid runtime type errors
-//! - **Zero-Cost Abstraction**: Implemented using enums with no additional
-//!   runtime overhead
-//! - **Multi-Value Support**: Unified interface for single and multiple value
-//!   access
-//! - **Naming Support**: Provides naming functionality for values for easy
-//!   identification and lookup
-//! - **Type Conversion**: Provides two sets of APIs for type checking and type
-//!   conversion
+//! - [`Value::get`] and [`MultiValues::get`] perform strict typed reads.
+//! - `to` methods use `qubit-datatype` conversion rules and options.
+//! - [`Value::is_unset`] and [`MultiValues::is_unset`] distinguish an unset
+//!   container from a concrete value or concrete empty collection.
+//! - Generic `set` replaces a value infallibly; [`MultiValues::add`] remains
+//!   fallible because appended values must have the same data type.
+//! - Serde uses a type-preserving tagged representation. With `converter`,
+//!   `to_json_value` provides a separate natural JSON projection.
+//! - Non-finite floats may exist in memory, but tagged Serde and natural JSON
+//!   reject them because JSON has no `NaN` or infinity number literals.
 //!
 //! # Usage Examples
 //!
@@ -40,9 +41,9 @@
 //! let value = Value::Int32(42);
 //! assert_eq!(value.get_int32().unwrap(), 42);
 //!
-//! // Type conversion
-//! let text = value.to::<String>().unwrap();
-//! assert_eq!(text, "42");
+//! // Strict generic access
+//! let number: i32 = value.get().unwrap();
+//! assert_eq!(number, 42);
 //! ```
 //!
 //! ## Multiple Values Operations
@@ -55,7 +56,7 @@
 //! assert_eq!(values.count(), 3);
 //!
 //! // Add values
-//! values.add_int32(4).unwrap();
+//! values.add(4).unwrap();
 //! assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3, 4]);
 //! ```
 //!
@@ -71,12 +72,20 @@
 //! ```
 
 // Sub-modules
+mod finite_float;
 mod into_value_default;
+#[macro_use]
+mod value_type_table;
+#[cfg(feature = "converter")]
+mod json;
 pub mod multi_values;
 mod named_multi_values;
 mod named_value;
+#[cfg(feature = "converter")]
+mod strict_json;
 mod value;
 mod value_error;
+mod wide_integer;
 
 // Public exports
 pub use into_value_default::IntoValueDefault;
@@ -84,7 +93,4 @@ pub use multi_values::MultiValues;
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;
 pub use value::Value;
-pub use value_error::{
-    ValueError,
-    ValueResult,
-};
+pub use value_error::{ValueError, ValueResult};

@@ -20,10 +20,7 @@
 //! - `f32` 的全部转换分支
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_value::{Value, ValueError};
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
@@ -928,8 +925,10 @@ fn test_to_f32_from_biginteger_out_of_range() {
     let err = Value::BigInteger(huge).to::<f32>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::ConversionError(ref msg)
-            if msg.contains("BigInteger value out of f32 range")
+        ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
+            reason: qubit_datatype::InvalidValueReason::OutOfRange,
+            ..
+        })
     ));
 }
 
@@ -940,8 +939,10 @@ fn test_to_f32_from_bigdecimal_out_of_range() {
     let err = Value::BigDecimal(huge).to::<f32>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::ConversionError(ref msg)
-            if msg.contains("BigDecimal value out of f32 range")
+        ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
+            reason: qubit_datatype::InvalidValueReason::OutOfRange,
+            ..
+        })
     ));
 }
 
@@ -957,8 +958,11 @@ fn test_to_f32_wrong_type() {
 #[test]
 fn test_to_f64_from_biginteger_normal() {
     use num_bigint::BigInt;
+    use qubit_datatype::{DataConversionOptions, NumericConversionPolicy};
     let big = BigInt::from(i64::MAX);
-    let result = Value::BigInteger(big).to::<f64>().unwrap();
+    let options =
+        DataConversionOptions::default().with_numeric_policy(NumericConversionPolicy::Lossy);
+    let result = Value::BigInteger(big).to_with::<f64>(&options).unwrap();
     assert!((result - i64::MAX as f64).abs() < 1.0);
 }
 
@@ -993,8 +997,10 @@ fn test_to_f64_from_biginteger_out_of_range() {
     let err = Value::BigInteger(huge).to::<f64>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::ConversionError(ref msg)
-            if msg.contains("BigInteger value out of f64 range")
+        ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
+            reason: qubit_datatype::InvalidValueReason::OutOfRange,
+            ..
+        })
     ));
 }
 
@@ -1005,8 +1011,10 @@ fn test_to_f64_from_bigdecimal_out_of_range() {
     let err = Value::BigDecimal(huge).to::<f64>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::ConversionError(ref msg)
-            if msg.contains("BigDecimal value out of f64 range")
+        ValueError::DataConversion(qubit_datatype::DataConversionError::InvalidValue {
+            reason: qubit_datatype::InvalidValueReason::OutOfRange,
+            ..
+        })
     ));
 }
 

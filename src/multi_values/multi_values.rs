@@ -9,22 +9,7 @@
 //!
 //! Provides type-safe storage and access functionality for multiple values.
 
-use bigdecimal::BigDecimal;
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
-use num_bigint::BigInt;
-use serde::{
-    Deserialize,
-    Serialize,
-};
-use std::collections::HashMap;
-use std::time::Duration;
-use url::Url;
+use serde::{Deserialize, Serialize};
 
 use qubit_datatype::DataType;
 
@@ -33,12 +18,12 @@ use qubit_datatype::DataType;
 /// Uses an enum to represent multiple values of different types, providing
 /// type-safe storage and access for multiple values.
 ///
-/// # Features
+/// # Behavior
 ///
-/// - Supports collections of multiple basic data types.
-/// - Provides two sets of APIs for type checking and type conversion.
-/// - Supports unified access to single and multiple values.
-/// - Automatic memory management.
+/// - Stores a homogeneous collection from the closed [`DataType`] family.
+/// - Provides strict getters and, with `converter`, option-controlled
+///   conversion methods.
+/// - Distinguishes an unset container from a concrete empty vector.
 ///
 /// # Example
 ///
@@ -58,65 +43,39 @@ use qubit_datatype::DataType;
 /// values.add(4).unwrap();
 /// assert_eq!(values.count(), 4);
 /// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum MultiValues {
-    /// Empty value (has type but no values)
-    Empty(DataType),
-    /// Boolean value list
-    Bool(Vec<bool>),
-    /// Character value list
-    Char(Vec<char>),
-    /// i8 list
-    Int8(Vec<i8>),
-    /// i16 list
-    Int16(Vec<i16>),
-    /// i32 list
-    Int32(Vec<i32>),
-    /// i64 list
-    Int64(Vec<i64>),
-    /// i128 list
-    Int128(Vec<i128>),
-    /// u8 list
-    UInt8(Vec<u8>),
-    /// u16 list
-    UInt16(Vec<u16>),
-    /// u32 list
-    UInt32(Vec<u32>),
-    /// u64 list
-    UInt64(Vec<u64>),
-    /// u128 list
-    UInt128(Vec<u128>),
-    /// isize list
-    IntSize(Vec<isize>),
-    /// usize list
-    UIntSize(Vec<usize>),
-    /// f32 list
-    Float32(Vec<f32>),
-    /// f64 list
-    Float64(Vec<f64>),
-    /// Big integer list
-    BigInteger(Vec<BigInt>),
-    /// Big decimal list
-    BigDecimal(Vec<BigDecimal>),
-    /// String list
-    String(Vec<String>),
-    /// Date list
-    Date(Vec<NaiveDate>),
-    /// Time list
-    Time(Vec<NaiveTime>),
-    /// DateTime list
-    DateTime(Vec<NaiveDateTime>),
-    /// UTC instant list
-    Instant(Vec<DateTime<Utc>>),
-    /// Duration list
-    Duration(Vec<Duration>),
-    /// Url list
-    Url(Vec<Url>),
-    /// StringMap list
-    StringMap(Vec<HashMap<String, String>>),
-    /// Json list
-    Json(Vec<serde_json::Value>),
+macro_rules! define_multi_values_enum {
+    (
+        ;
+        $(
+            (
+                [$($cfg:meta),*],
+                [$($value_attr:meta),*],
+                [$($multi_attr:meta),*],
+                $variant:ident,
+                $type:ty,
+                $data_type:expr,
+                $ownership:ident,
+                $json_class:ident,
+                $value_doc:literal,
+                $multi_doc:literal
+            )
+        ),+ $(,)?
+    ) => {
+        #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+        pub enum MultiValues {
+            /// Unset collection with a declared element data type.
+            Empty(DataType),
+            $(
+                $(#[$cfg])*
+                $(#[$multi_attr])*
+                #[doc = $multi_doc]
+                $variant(Vec<$type>),
+            )+
+        }
+    };
 }
+
+for_each_value_type!(define_multi_values_enum);
 
 // ============================================================================
 // Getter method generation macros
@@ -138,13 +97,15 @@ macro_rules! impl_get_multi_values {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::TypeMismatch`] when the stored data type"]
-        #[doc = "differs. Empty values of the requested type return an empty slice."]
+        #[doc = "Returns [`ValueError::NoValue`] when the container is unset"]
+        #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
+        #[doc = "the stored data type differs. A concrete empty vector returns"]
+        #[doc = "an empty slice."]
         #[inline]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v),
-                MultiValues::Empty(dt) if *dt == $data_type => Ok(&[]),
+                MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -159,13 +120,15 @@ macro_rules! impl_get_multi_values {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::TypeMismatch`] when the stored data type"]
-        #[doc = "differs. Empty values of the requested type return an empty slice."]
+        #[doc = "Returns [`ValueError::NoValue`] when the container is unset"]
+        #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
+        #[doc = "the stored data type differs. A concrete empty vector returns"]
+        #[doc = "an empty slice."]
         #[inline]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v.as_slice()),
-                MultiValues::Empty(dt) if *dt == $data_type => Ok(&[]),
+                MultiValues::Empty(dt) if *dt == $data_type => Err(ValueError::NoValue),
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -231,171 +194,6 @@ macro_rules! impl_get_first_value {
                     actual: self.data_type(),
                 }),
             }
-        }
-    };
-}
-
-/// Unified multiple values add method generation macro
-///
-/// Generates `add_[xxx]` methods for `MultiValues`, used to add a single value.
-///
-/// # Documentation Comment Support
-///
-/// The macro automatically extracts preceding documentation comments, so you
-/// can add `///` comments before macro invocations.
-macro_rules! impl_add_single_value {
-    ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
-        $(#[$attr])*
-        #[doc = ""]
-        #[doc = "# Errors"]
-        #[doc = ""]
-        #[doc = "Returns [`ValueError::TypeMismatch`] when the current stored"]
-        #[doc = "data type differs from the value being appended."]
-        #[inline]
-        pub fn $method(&mut self, value: $type) -> ValueResult<()> {
-            match self {
-                MultiValues::$variant(v) => {
-                    v.push(value);
-                    Ok(())
-                }
-                MultiValues::Empty(dt) if *dt == $data_type => {
-                    *self = MultiValues::$variant(vec![value]);
-                    Ok(())
-                }
-                _ => Err(ValueError::TypeMismatch {
-                    expected: $data_type,
-                    actual: self.data_type(),
-                }),
-            }
-        }
-    };
-}
-
-/// Unified multiple values add multiple method generation macro
-///
-/// Generates `add_[xxx]s` methods for `MultiValues`, used to add multiple
-/// values.
-///
-/// # Documentation Comment Support
-///
-/// The macro automatically extracts preceding documentation comments, so you
-/// can add `///` comments before macro invocations.
-macro_rules! impl_add_multi_values {
-    ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
-        $(#[$attr])*
-        #[doc = ""]
-        #[doc = "# Errors"]
-        #[doc = ""]
-        #[doc = "Returns [`ValueError::TypeMismatch`] when the current stored"]
-        #[doc = "data type differs from the values being appended."]
-        #[inline]
-        pub fn $method(&mut self, values: Vec<$type>) -> ValueResult<()> {
-            match self {
-                MultiValues::$variant(v) => {
-                    v.extend(values);
-                    Ok(())
-                }
-                MultiValues::Empty(dt) if *dt == $data_type => {
-                    *self = MultiValues::$variant(values);
-                    Ok(())
-                }
-                _ => Err(ValueError::TypeMismatch {
-                    expected: $data_type,
-                    actual: self.data_type(),
-                }),
-            }
-        }
-    };
-}
-
-/// Unified multiple values add from slice method generation macro
-///
-/// Generates `add_[xxx]s_slice` methods for `MultiValues`, used to append
-/// multiple values at once from a slice.
-macro_rules! impl_add_multi_values_slice {
-    ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
-        $(#[$attr])*
-        #[doc = ""]
-        #[doc = "# Errors"]
-        #[doc = ""]
-        #[doc = "Returns [`ValueError::TypeMismatch`] when the current stored"]
-        #[doc = "data type differs from the slice values being appended."]
-        #[inline]
-        pub fn $method(&mut self, values: &[$type]) -> ValueResult<()> {
-            match self {
-                MultiValues::$variant(v) => {
-                    v.extend_from_slice(values);
-                    Ok(())
-                }
-                MultiValues::Empty(dt) if *dt == $data_type => {
-                    *self = MultiValues::$variant(values.to_vec());
-                    Ok(())
-                }
-                _ => Err(ValueError::TypeMismatch {
-                    expected: $data_type,
-                    actual: self.data_type(),
-                }),
-            }
-        }
-    };
-}
-
-/// Unified multiple values single value set method generation macro
-///
-/// Generates `set_[xxx]` methods for `MultiValues`, used to set a single value
-/// (replacing the entire list).
-///
-/// # Documentation Comment Support
-///
-/// The macro automatically extracts preceding documentation comments, so you
-/// can add `///` comments before macro invocations.
-macro_rules! impl_set_single_value {
-    ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
-        $(#[$attr])*
-        pub fn $method(&mut self, value: $type) -> ValueResult<()> {
-            *self = MultiValues::$variant(vec![value]);
-            Ok(())
-        }
-    };
-}
-
-/// Unified multiple values set method generation macro
-///
-/// Generates `set_[xxx]s` methods for `MultiValues`, used to set the entire
-/// value list.
-///
-/// # Documentation Comment Support
-///
-/// The macro automatically extracts preceding documentation comments, so you
-/// can add `///` comments before macro invocations.
-macro_rules! impl_set_multi_values {
-    ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
-        $(#[$attr])*
-        pub fn $method(&mut self, values: Vec<$type>) -> ValueResult<()> {
-            *self = MultiValues::$variant(values);
-            Ok(())
-        }
-    };
-}
-
-/// Unified multiple values set (slice) method generation macro
-///
-/// Generates `set_[xxx]s_slice` methods for `MultiValues`, used to set the
-/// entire value list from a slice.
-///
-/// This method directly replaces the internally stored list without type
-/// matching checks, behaving consistently with `set_[xxx]s`.
-///
-/// # Documentation Comment Support
-///
-/// The macro automatically extracts preceding documentation comments, so you
-/// can add `///` comments before macro invocations.
-macro_rules! impl_set_multi_values_slice {
-    ($(#[$attr:meta])* $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
-        $(#[$attr])*
-        pub fn $method(&mut self, values: &[$type]) -> ValueResult<()> {
-            *self = MultiValues::$variant(values.to_vec());
-            Ok(())
         }
     };
 }

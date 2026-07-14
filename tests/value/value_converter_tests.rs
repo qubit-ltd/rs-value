@@ -6,10 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_value::{Value, ValueError};
 
 #[test]
 fn test_value_converter_converts_and_reports_invalid_input() {
@@ -19,7 +16,9 @@ fn test_value_converter_converts_and_reports_invalid_input() {
     let invalid = Value::String("not-a-number".to_string());
     assert!(matches!(
         invalid.to::<i32>(),
-        Err(ValueError::ConversionError(_))
+        Err(ValueError::DataConversion(
+            qubit_datatype::DataConversionError::InvalidValue { .. }
+        ))
     ));
 }
 

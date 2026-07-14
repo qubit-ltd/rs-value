@@ -7,10 +7,13 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::MultiValues;
+use qubit_value::{MultiValues, Value};
 
 #[test]
-fn test_multi_values_type_table_maps_representative_variants() {
+fn test_value_type_table_maps_representative_variants() {
+    assert_eq!(Value::Bool(true).data_type(), DataType::Bool);
+    assert_eq!(Value::Char('x').data_type(), DataType::Char);
+    assert_eq!(Value::Float64(1.25).data_type(), DataType::Float64);
     assert_eq!(MultiValues::Bool(vec![true]).data_type(), DataType::Bool);
     assert_eq!(MultiValues::Char(vec!['x']).data_type(), DataType::Char);
     assert_eq!(

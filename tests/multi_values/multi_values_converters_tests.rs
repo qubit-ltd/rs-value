@@ -6,11 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_value::{
-    MultiValues,
-    Value,
-    ValueError,
-};
+use qubit_datatype::{DataConversionError, DataType, InvalidValueReason};
+use qubit_value::{MultiValues, Value, ValueError};
 
 #[test]
 fn test_multi_values_converters_convert_first_list_and_value() {
@@ -24,6 +21,16 @@ fn test_multi_values_converters_convert_first_list_and_value() {
 fn test_multi_values_converters_report_list_conversion_index() {
     let values = MultiValues::String(vec!["1".to_string(), "bad".to_string()]);
     let error = values.to_list::<i32>().unwrap_err();
-    assert!(matches!(error, ValueError::ConversionError(_)));
-    assert!(error.to_string().contains("index 1"));
+    assert!(matches!(
+        error,
+        ValueError::DataListConversion(ref error)
+            if error.source_index == 1
+                && error.source == DataConversionError::InvalidValue {
+                    from: DataType::String,
+                    to: DataType::Int32,
+                    reason: InvalidValueReason::InvalidSyntax {
+                        expected: "integer",
+                    },
+                }
+    ));
 }

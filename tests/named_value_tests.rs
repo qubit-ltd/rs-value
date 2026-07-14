@@ -10,17 +10,9 @@
 //! Tests various functionalities of the named single value container。
 
 use chrono::DateTime as UtcDateTime;
-use chrono::{
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use qubit_datatype::DataType;
-use qubit_value::{
-    NamedValue,
-    Value,
-};
+use qubit_value::{NamedValue, Value};
 
 #[test]
 fn test_named_value_new() {
@@ -204,7 +196,7 @@ fn test_named_value_get_instant() {
 #[test]
 fn test_named_value_set_get_bool() {
     let mut nv = NamedValue::new("b", Value::Bool(false));
-    nv.set(true).unwrap();
+    nv.set(true);
     let b: bool = nv.get().unwrap();
     assert!(b);
 }
@@ -212,7 +204,7 @@ fn test_named_value_set_get_bool() {
 #[test]
 fn test_named_value_set_get_char() {
     let mut nv = NamedValue::new("c", Value::Char('x'));
-    nv.set('A').unwrap();
+    nv.set('A');
     let c: char = nv.get().unwrap();
     assert_eq!(c, 'A');
 }
@@ -220,7 +212,7 @@ fn test_named_value_set_get_char() {
 #[test]
 fn test_named_value_set_get_i8() {
     let mut nv = NamedValue::new("i8", Value::Int8(0));
-    nv.set(-8i8).unwrap();
+    nv.set(-8i8);
     let v: i8 = nv.get().unwrap();
     assert_eq!(v, -8);
 }
@@ -228,7 +220,7 @@ fn test_named_value_set_get_i8() {
 #[test]
 fn test_named_value_set_get_i16() {
     let mut nv = NamedValue::new("i16", Value::Int16(0));
-    nv.set(-16i16).unwrap();
+    nv.set(-16i16);
     let v: i16 = nv.get().unwrap();
     assert_eq!(v, -16);
 }
@@ -236,7 +228,7 @@ fn test_named_value_set_get_i16() {
 #[test]
 fn test_named_value_set_get_i32() {
     let mut nv = NamedValue::new("i32", Value::Int32(0));
-    nv.set(-32i32).unwrap();
+    nv.set(-32i32);
     let v: i32 = nv.get().unwrap();
     assert_eq!(v, -32);
 }
@@ -244,7 +236,7 @@ fn test_named_value_set_get_i32() {
 #[test]
 fn test_named_value_set_get_i64() {
     let mut nv = NamedValue::new("i64", Value::Int64(0));
-    nv.set(-64i64).unwrap();
+    nv.set(-64i64);
     let v: i64 = nv.get().unwrap();
     assert_eq!(v, -64);
 }
@@ -252,7 +244,7 @@ fn test_named_value_set_get_i64() {
 #[test]
 fn test_named_value_set_get_i128() {
     let mut nv = NamedValue::new("i128", Value::Int128(0));
-    nv.set(-128i128).unwrap();
+    nv.set(-128i128);
     let v: i128 = nv.get().unwrap();
     assert_eq!(v, -128);
 }
@@ -260,7 +252,7 @@ fn test_named_value_set_get_i128() {
 #[test]
 fn test_named_value_set_get_u8() {
     let mut nv = NamedValue::new("u8", Value::UInt8(0));
-    nv.set(8u8).unwrap();
+    nv.set(8u8);
     let v: u8 = nv.get().unwrap();
     assert_eq!(v, 8);
 }
@@ -268,7 +260,7 @@ fn test_named_value_set_get_u8() {
 #[test]
 fn test_named_value_set_get_u16() {
     let mut nv = NamedValue::new("u16", Value::UInt16(0));
-    nv.set(16u16).unwrap();
+    nv.set(16u16);
     let v: u16 = nv.get().unwrap();
     assert_eq!(v, 16);
 }
@@ -276,7 +268,7 @@ fn test_named_value_set_get_u16() {
 #[test]
 fn test_named_value_set_get_u32() {
     let mut nv = NamedValue::new("u32", Value::UInt32(0));
-    nv.set(32u32).unwrap();
+    nv.set(32u32);
     let v: u32 = nv.get().unwrap();
     assert_eq!(v, 32);
 }
@@ -284,7 +276,7 @@ fn test_named_value_set_get_u32() {
 #[test]
 fn test_named_value_set_get_u64() {
     let mut nv = NamedValue::new("u64", Value::UInt64(0));
-    nv.set(64u64).unwrap();
+    nv.set(64u64);
     let v: u64 = nv.get().unwrap();
     assert_eq!(v, 64);
 }
@@ -292,7 +284,7 @@ fn test_named_value_set_get_u64() {
 #[test]
 fn test_named_value_set_get_u128() {
     let mut nv = NamedValue::new("u128", Value::UInt128(0));
-    nv.set(128u128).unwrap();
+    nv.set(128u128);
     let v: u128 = nv.get().unwrap();
     assert_eq!(v, 128);
 }
@@ -300,7 +292,7 @@ fn test_named_value_set_get_u128() {
 #[test]
 fn test_named_value_set_get_f32() {
     let mut nv = NamedValue::new("f32", Value::Float32(0.0));
-    nv.set(1.5f32).unwrap();
+    nv.set(1.5f32);
     let v: f32 = nv.get().unwrap();
     assert_eq!(v, 1.5);
 }
@@ -308,7 +300,7 @@ fn test_named_value_set_get_f32() {
 #[test]
 fn test_named_value_set_get_f64() {
     let mut nv = NamedValue::new("f64", Value::Float64(0.0));
-    nv.set(2.5f64).unwrap();
+    nv.set(2.5f64);
     let v: f64 = nv.get().unwrap();
     assert_eq!(v, 2.5);
 }
@@ -316,7 +308,7 @@ fn test_named_value_set_get_f64() {
 #[test]
 fn test_named_value_set_get_string() {
     let mut nv = NamedValue::new("s", Value::String(String::new()));
-    nv.set("hello".to_string()).unwrap();
+    nv.set("hello".to_string());
     let s: String = nv.get().unwrap();
     assert_eq!(s, "hello");
 }
@@ -328,19 +320,16 @@ fn test_named_value_set_get_date() {
         Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()),
     );
     let date = NaiveDate::from_ymd_opt(2020, 5, 17).unwrap();
-    nv.set(date).unwrap();
+    nv.set(date);
     let got: NaiveDate = nv.get().unwrap();
     assert_eq!(got, date);
 }
 
 #[test]
 fn test_named_value_set_get_time() {
-    let mut nv = NamedValue::new(
-        "t",
-        Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
-    );
+    let mut nv = NamedValue::new("t", Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()));
     let time = NaiveTime::from_hms_milli_opt(13, 14, 15, 123).unwrap();
-    nv.set(time).unwrap();
+    nv.set(time);
     let got: NaiveTime = nv.get().unwrap();
     assert_eq!(got, time);
 }
@@ -358,7 +347,7 @@ fn test_named_value_set_get_datetime() {
         NaiveDate::from_ymd_opt(2021, 6, 7).unwrap(),
         NaiveTime::from_hms_opt(8, 9, 10).unwrap(),
     );
-    nv.set(dt).unwrap();
+    nv.set(dt);
     let got: NaiveDateTime = nv.get().unwrap();
     assert_eq!(got, dt);
 }
@@ -367,7 +356,7 @@ fn test_named_value_set_get_datetime() {
 fn test_named_value_set_get_instant() {
     let mut nv = NamedValue::new("inst", Value::Instant(Utc::now()));
     let inst: UtcDateTime<Utc> = Utc::now();
-    nv.set(inst).unwrap();
+    nv.set(inst);
     let got: UtcDateTime<Utc> = nv.get().unwrap();
     assert_eq!(got, inst);
 }
@@ -377,14 +366,14 @@ fn test_named_value_set_get_instant() {
 #[test]
 fn test_named_value_is_empty() {
     let nv = NamedValue::new("e", Value::Empty(DataType::Int32));
-    assert!(nv.is_empty());
+    assert!(nv.is_unset());
 }
 
 #[test]
 fn test_named_value_clear() {
     let mut nv = NamedValue::new("e", Value::Int32(7));
     nv.clear();
-    assert!(nv.is_empty());
+    assert!(nv.is_unset());
     assert_eq!(nv.data_type(), DataType::Int32);
 }
 
@@ -392,7 +381,7 @@ fn test_named_value_clear() {
 fn test_named_value_set_type() {
     let mut nv = NamedValue::new("e", Value::Int32(7));
     nv.set_type(DataType::String);
-    assert!(nv.is_empty());
+    assert!(nv.is_unset());
     assert_eq!(nv.data_type(), DataType::String);
 }
 

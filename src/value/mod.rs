@@ -13,6 +13,7 @@
 mod value;
 mod value_accessors;
 mod value_constructor;
+#[cfg(feature = "converter")]
 mod value_converters;
 mod value_getter;
 

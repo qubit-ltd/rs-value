@@ -9,10 +9,9 @@
 //!
 //! Defines various errors that may occur during value processing.
 
-use qubit_datatype::{
-    DataConversionError,
-    DataType,
-};
+use qubit_datatype::DataType;
+#[cfg(feature = "converter")]
+use qubit_datatype::{DataConversionError, DataListConversionError};
 use thiserror::Error;
 
 /// Value processing error type
@@ -23,8 +22,9 @@ use thiserror::Error;
 ///
 /// - Type mismatch error
 /// - No value error
-/// - Type conversion failure error
-/// - Conversion error
+/// - Structured single-value conversion errors when `converter` is enabled
+/// - Structured list conversion errors, including the failing item index,
+///   when `converter` is enabled
 ///
 /// # Example
 ///
@@ -49,66 +49,16 @@ pub enum ValueError {
         actual: DataType,
     },
 
-    /// Type conversion failed
-    #[error("Type conversion failed: from {from} to {to}")]
-    ConversionFailed {
-        /// Source data type
-        from: DataType,
-        /// Target data type
-        to: DataType,
-    },
+    /// Error returned by the shared single-value conversion layer.
+    #[cfg(feature = "converter")]
+    #[error("Data conversion error: {0}")]
+    DataConversion(#[from] DataConversionError),
 
-    /// Conversion error (with detailed information)
-    #[error("Conversion error: {0}")]
-    ConversionError(String),
-
-    /// Index out of bounds
-    #[error("Index out of bounds: index {index}, length {len}")]
-    IndexOutOfBounds {
-        /// Accessed index
-        index: usize,
-        /// Actual length
-        len: usize,
-    },
-
-    /// JSON serialization error
-    #[error("JSON serialization error: {0}")]
-    JsonSerializationError(String),
-
-    /// JSON deserialization error
-    #[error("JSON deserialization error: {0}")]
-    JsonDeserializationError(String),
+    /// Error returned by the shared list conversion layer.
+    #[cfg(feature = "converter")]
+    #[error("Data list conversion error: {0}")]
+    DataListConversion(#[from] DataListConversionError),
 }
 
 /// Value processing result type
 pub type ValueResult<T> = Result<T, ValueError>;
-
-/// Maps a shared `qubit_datatype` conversion error into this crate's error
-/// type.
-///
-/// # Parameters
-///
-/// * `error` - The error returned by the shared data conversion layer.
-///
-/// # Returns
-///
-/// Returns the corresponding [`ValueError`] variant.
-pub(crate) fn map_data_conversion_error(
-    error: DataConversionError,
-) -> ValueError {
-    match error {
-        DataConversionError::NoValue => ValueError::NoValue,
-        DataConversionError::ConversionFailed { from, to } => {
-            ValueError::ConversionFailed { from, to }
-        }
-        DataConversionError::ConversionError(message) => {
-            ValueError::ConversionError(message)
-        }
-        DataConversionError::JsonSerializationError(message) => {
-            ValueError::JsonSerializationError(message)
-        }
-        DataConversionError::JsonDeserializationError(message) => {
-            ValueError::JsonDeserializationError(message)
-        }
-    }
-}

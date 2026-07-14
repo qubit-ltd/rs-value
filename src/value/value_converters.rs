@@ -10,51 +10,24 @@
 //!
 //! This module focuses on conversion helpers backed by `qubit_datatype`.
 
-use qubit_datatype::{
-    DataConversionOptions,
-    DataConvertTo,
-    DataConverter,
-};
+use qubit_datatype::{DataConversionOptions, DataConvertTo, DataConverter};
 
 use super::value::Value;
-use crate::value_error::{
-    ValueResult,
-    map_data_conversion_error,
-};
+use crate::value_error::{ValueError, ValueResult};
+
+macro_rules! value_data_converter_match {
+    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $ownership:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+        match $value {
+            Value::Empty(data_type) => DataConverter::Empty(*data_type),
+            $($(#[$cfg])* Value::$variant(value) => DataConverter::from(value),)+
+        }
+    };
+}
 
 /// Wraps a `Value` into the common conversion helper for the `qubit_datatype`
 /// conversion API.
 fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
-    match value {
-        Value::Empty(data_type) => DataConverter::Empty(*data_type),
-        Value::Bool(value) => DataConverter::from(value),
-        Value::Char(value) => DataConverter::from(value),
-        Value::Int8(value) => DataConverter::from(value),
-        Value::Int16(value) => DataConverter::from(value),
-        Value::Int32(value) => DataConverter::from(value),
-        Value::Int64(value) => DataConverter::from(value),
-        Value::Int128(value) => DataConverter::from(value),
-        Value::UInt8(value) => DataConverter::from(value),
-        Value::UInt16(value) => DataConverter::from(value),
-        Value::UInt32(value) => DataConverter::from(value),
-        Value::UInt64(value) => DataConverter::from(value),
-        Value::UInt128(value) => DataConverter::from(value),
-        Value::IntSize(value) => DataConverter::from(value),
-        Value::UIntSize(value) => DataConverter::from(value),
-        Value::Float32(value) => DataConverter::from(value),
-        Value::Float64(value) => DataConverter::from(value),
-        Value::BigInteger(value) => DataConverter::from(value),
-        Value::BigDecimal(value) => DataConverter::from(value),
-        Value::String(value) => DataConverter::from(value),
-        Value::Date(value) => DataConverter::from(value),
-        Value::Time(value) => DataConverter::from(value),
-        Value::DateTime(value) => DataConverter::from(value),
-        Value::Instant(value) => DataConverter::from(value),
-        Value::Duration(value) => DataConverter::from(value),
-        Value::Url(value) => DataConverter::from(value),
-        Value::StringMap(value) => DataConverter::from(value),
-        Value::Json(value) => DataConverter::from(value),
-    }
+    for_each_value_type!(value_data_converter_match, value)
 }
 
 /// Converts a single `Value` into `T` using shared conversion helpers and
@@ -82,5 +55,5 @@ where
 {
     data_converter_from_value(value)
         .to_with::<T>(options)
-        .map_err(map_data_conversion_error)
+        .map_err(ValueError::from)
 }
