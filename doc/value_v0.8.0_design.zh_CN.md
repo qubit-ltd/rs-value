@@ -15,7 +15,7 @@
 当前主要问题不再是类型覆盖不足，而是以下契约尚未收敛：
 
 1. 非有限浮点通过 `serde_json` 序列化为 `null`，无法往返。
-2. `Empty(DataType)` 与具体类型的空集合没有明确区分。
+2. `Unset(DataType)` 与具体类型的空集合没有明确区分。
 3. 下游为数值分类和自然 JSON 投影重复穷举公共枚举。
 4. typed setter/adder 与泛型 API 重复，公共 API 和维护代码过多。
 5. `Value` 与 `MultiValues` 的类型映射散落在多个文件中。
@@ -31,19 +31,19 @@
 3. 为常用数值分类和自然 JSON 投影提供公共操作。
 4. 删除所有被泛型 API 完全覆盖的 typed setter/adder。
 5. 使用一个私有类型表维护 `Value` 与 `MultiValues` 的共同映射。
-6. 对齐 `rs-datatype 0.5.0` 的 feature 和结构化错误体系。
+6. 对齐 `rs-datatype 0.6.0` 的 feature 和结构化错误体系。
 7. 保留 `NamedValue` 与 `NamedMultiValues`。
 8. 更新 `rs-config`、`rs-metadata`，验证真实下游迁移。
 
 ## 3. 非目标
 
-1. 本次不引入 `ValueWireV1` 等新的 wire adapter；现有 externally-tagged
-   Serde schema 继续使用，并通过 golden tests 冻结。
+1. 不引入带版本字段的 `ValueWireV1`；继续使用 externally-tagged 外形，
+   由私有 payload adapter 与 golden tests 固定内部表示。
 2. 本次不把 `DataType` 改为开放枚举，也不添加 `#[non_exhaustive]`。
 3. 本次不引入任意业务对象或递归动态对象模型。
 4. 本次不删除或 feature-gate `NamedValue`、`NamedMultiValues`。
-5. 单元素 `MultiValues::String` 被视为标量文本来源的启发式规则不在本次
-   范围内；该问题需要单独设计来源形态后再修改。
+5. 不再根据 `MultiValues` 长度推断来源形态；标量或集合由
+   `ValueContainer` 显式表达。
 6. 本次不把 `rs-metadata` 的完整数值比较策略迁入 `rs-value`；只提供通用
    分类能力，专用比较策略仍由消费方负责。
 
@@ -51,11 +51,11 @@
 
 ### 4.1 rs-datatype 依赖
 
-`rs-datatype 0.5` 已发布，`rs-value` 直接使用 crates.io 依赖：
+`rs-datatype 0.6` 已发布，`rs-value` 直接使用 crates.io 依赖：
 
 ```toml
 qubit-datatype = {
-    version = "0.5",
+    version = "0.6",
     default-features = false,
 }
 ```
@@ -75,29 +75,23 @@ big-number = [
 ]
 url = ["dep:url", "qubit-datatype/url"]
 json = ["dep:serde_json", "qubit-datatype/json"]
-converter = [
-    "chrono",
-    "big-number",
-    "url",
-    "json",
-    "qubit-datatype/converter",
-]
-all = ["converter"]
+converter = ["qubit-datatype/converter"]
+all = ["converter", "chrono", "big-number", "url", "json"]
 ```
 
 约束如下：
 
 1. 默认 feature 为空，与 `rs-datatype` 对齐。
 2. `all` 是完整功能的稳定便捷入口。
-3. `converter` 沿用 `rs-datatype` 当前语义，启用全部 rich types。
+3. `converter` 只启用核心转换体系，不隐式启用 rich types。
 4. `serde` 和 `thiserror` 属于容器基础契约，保持必选依赖。
-5. `DataType` 的 27 个描述符始终存在；关闭某个 rich feature 只会移除
+5. `DataType` 的 25 个描述符始终存在；关闭某个 rich feature 只会移除
    对应具体 Rust 存储 variant 和 API。
-6. `Empty(DataType)` 仍可表达一个当前构建无法填入具体 rich value 的
+6. `Unset(DataType)` 仍可表达一个当前构建无法填入具体 rich value 的
    声明类型；这是 feature 裁剪下可接受的 typed-unset 状态。
-7. `converter` 控制 `Value::to*`、`MultiValues::to*`、自然 JSON 投影、
-   `DataConversion*` 错误分支，以及依赖结构化 conversion error 的 JSON
-   helper；这些 API 不在仅启用 `json` 的构建中出现。
+7. `converter` 控制 `Value::to*`、`MultiValues::to*` 与
+   `DataConversion*` 错误分支；自然 JSON 和 JSON conversion helper 需要
+   同时启用 `converter` 与 `json`。
 8. 单独启用 `json` 只提供 `Json` 存储 variant、`from_json_value()` 和对应
    Serde 支持。`from_serializable()`、`deserialize_json()` 与
    `to_json_value()` 由 `converter` 控制，避免在 `qubit-datatype/converter`
@@ -110,8 +104,8 @@ feature 的隐式行为。
 
 ### 5.1 定义
 
-- **unset**：容器是 `Value::Empty(DataType)` 或
-  `MultiValues::Empty(DataType)`，只有声明类型，没有具体值。
+- **unset**：容器是 `Value::Unset(DataType)` 或
+  `MultiValues::Unset(DataType)`，只有声明类型，没有具体值。
 - **set-but-empty**：容器具有具体 variant，但内部值自身为空，例如
   `Value::String(String::new())` 或 `MultiValues::Int32(Vec::new())`。
 - **set-and-nonempty**：容器具有具体 variant，且内部值非空。
@@ -129,9 +123,9 @@ pub fn unset(&mut self);
 
 | 值 | `is_unset()` | 内容自身是否为空 |
 |---|---:|---:|
-| `Value::Empty(DataType::Int32)` | `true` | 不适用 |
+| `Value::Unset(DataType::Int32)` | `true` | 不适用 |
 | `Value::String("")` | `false` | `get_string_ref()?.is_empty()` |
-| `MultiValues::Empty(DataType::Int32)` | `true` | 不适用 |
+| `MultiValues::Unset(DataType::Int32)` | `true` | 不适用 |
 | `MultiValues::Int32(vec![])` | `false` | `get_int32s()?.is_empty()` |
 | `MultiValues::String(vec![""])` | `false` | 列表非空，第一个字符串为空 |
 
@@ -158,7 +152,7 @@ pub fn unset(&mut self);
 
 1. `MultiValues::clear()` 清空内部 Vec，但保留具体 variant，因此结果是
    set-but-empty，并尽量保留 Vec capacity。
-2. `MultiValues::unset()` 转为 `Empty(self.data_type())`。
+2. `MultiValues::unset()` 转为 `Unset(self.data_type())`。
 3. `Value::clear()` 的既有行为等同于 unset；保留该方法以减少无关迁移，
    文档明确其语义，并新增同义但更明确的 `Value::unset()`。
 4. `set_type()` 切换类型时产生 typed unset。
@@ -227,14 +221,15 @@ Value::Int32(42).to_json_value()?;        // 42
 - Serde tagged wire 用于 `rs-metadata` 等需要保留 `DataType` 的协议。
 - 自然 JSON 用于 `rs-config` 结构化反序列化等数据投影。
 
-tagged wire 中 `Int128`/`UInt128` 的 payload 使用十进制字符串，而不是 JSON
-number。这样既保留完整 128 位值域，也能通过 `serde_json` 和 Serde 的内部缓冲枚举
-表示。反序列化只接受该十进制字符串形式；这是 0.8.0 的明确 wire 契约。
+tagged wire 中 `Int128`、`UInt128`、`BigInteger`、`BigDecimal` 的 payload
+使用十进制字符串，而不是 JSON number 或第三方 crate 的内部表示。`Duration`
+固定为 `{ secs, nanos }`，并拒绝超出一秒范围的 nanos。反序列化只接受这些
+canonical 形式。
 
 新增：
 
 ```rust
-#[cfg(feature = "converter")]
+#[cfg(all(feature = "converter", feature = "json"))]
 pub fn to_json_value(&self) -> ValueResult<serde_json::Value>;
 ```
 
@@ -242,9 +237,9 @@ pub fn to_json_value(&self) -> ValueResult<serde_json::Value>;
 
 | Value family | JSON 表示 |
 |---|---|
-| `Empty` | `null` |
+| `Unset` | `null` |
 | `Bool` | boolean |
-| `Int8..Int64`, `UInt8..UInt64`, `IntSize`, `UIntSize` | number |
+| `Int8..Int64`, `UInt8..UInt64` | number |
 | finite `Float32`, `Float64` | number |
 | non-finite float | error |
 | `Int128`, `UInt128`, `BigInteger`, `BigDecimal` | string |
@@ -255,14 +250,13 @@ pub fn to_json_value(&self) -> ValueResult<serde_json::Value>;
 | `StringMap` | object with string values |
 | `Json` | identity |
 
-`MultiValues` 先逐项使用同一标量映射，再按 cardinality 组合：
+`MultiValues` 先逐项使用同一标量映射，具体集合始终保持数组形态：
 
 | 状态 | JSON 表示 |
 |---|---|
 | unset | `null` |
 | set-but-empty | `[]` |
-| 一个元素 | scalar/object |
-| 多个元素 | array |
+| 一个或多个元素 | array |
 
 这里的 cardinality 规则仅定义自然 JSON shape，不参与字符串 collection
 delimiter 的转换启发式。
@@ -278,7 +272,7 @@ delimiter 的转换启发式。
 
 ### 8.1 权威边界
 
-1. `rs-datatype::DataType` 是 27 个协议类型的唯一权威。
+1. `rs-datatype::DataType` 是 25 个协议类型的唯一权威。
 2. `rs-value` 建立一个私有表，作为 `DataType` 到 Rust 存储表示的唯一
    映射。
 3. 类型表不是公共宏，不允许下游依赖其展开细节。
@@ -332,7 +326,7 @@ variant 的简短公共文档由表中静态元数据生成；复杂转换规则
 
 ### 9.1 规则
 
-以下 27 个类型族全部适用删除规则：
+以下 25 个类型族全部适用删除规则：
 
 | singular stem | plural stem |
 |---|---|
@@ -348,8 +342,6 @@ variant 的简短公共文档由表中静态元数据生成；复杂转换规则
 | `uint32` | `uint32s` |
 | `uint64` | `uint64s` |
 | `uint128` | `uint128s` |
-| `intsize` | `intsizes` |
-| `uintsize` | `uintsizes` |
 | `float32` | `float32s` |
 | `float64` | `float64s` |
 | `biginteger` | `bigintegers` |
@@ -374,7 +366,7 @@ variant 的简短公共文档由表中静态元数据生成；复杂转换规则
 6. `MultiValues::add_{plural}`；
 7. `MultiValues::add_{plural}_slice`。
 
-合计删除 `27 + 81 + 81 = 189` 个方法。`0.8.0` 直接删除，不保留
+合计删除 `25 + 75 + 75 = 175` 个方法。`0.8.0` 直接删除，不保留
 `#[deprecated]` 过渡期，也不增加 `typed-api` 兼容 feature。
 
 ### 9.2 替代 API
@@ -452,7 +444,7 @@ MultiValues::to_list()
 4. 明确 tagged wire 与自然 JSON 投影的区别。
 5. 明确非有限浮点可以存在于内存，但不能进入默认 Serde/JSON 协议。
 6. 记录 feature matrix 和 `all` 便捷 feature。
-7. 记录 `IntSize`/`UIntSize` 是平台相关类型，不保证跨架构持久化值域一致。
+7. 记录业务数据类型仅包含平台无关的固定宽度整数。
 8. README、README.zh_CN、crate-level rustdoc 和 doctests 同步迁移到泛型
    setter/adder。
 
@@ -460,7 +452,7 @@ MultiValues::to_list()
 
 ### 13.1 rs-config
 
-1. 从 crates.io 依赖 `qubit-datatype 0.5`，依赖 `qubit-value 0.8` 并启用
+1. 从 crates.io 依赖 `qubit-datatype 0.6`，依赖 `qubit-value 0.8` 并启用
    `qubit-value/all`；仅在 0.8 发布前的仓内验证命令中通过 Cargo patch 指向本地
    `rs-value`。
 2. `Property`/`Config` setter 适配无返回值的泛型 `set()`，删除不可能发生的
@@ -475,7 +467,7 @@ MultiValues::to_list()
 
 ### 13.2 rs-metadata
 
-1. 从 crates.io 依赖 `qubit-datatype 0.5`，依赖 `qubit-value 0.8` 并启用
+1. 从 crates.io 依赖 `qubit-datatype 0.6`，依赖 `qubit-value 0.8` 并启用
    `qubit-value/all`；仅在 0.8 发布前的仓内验证命令中通过 Cargo patch 指向本地
    `rs-value`。
 2. 数值类型分类使用 `Value::is_numeric()` 或 `DataType` family methods。
@@ -525,8 +517,9 @@ cargo test --all-features
 
 每个 feature 组合都应检查对应 variant/API 是否存在，且关闭 feature 时不残留
 无条件 import 或依赖。`json`-only 构建应包含 `Json` variant 和
-`from_json_value()`，但不包含 conversion helpers；`converter` 构建应包含
-自然 JSON 投影和全部结构化 conversion helpers。
+`from_json_value()`，但不包含 conversion helpers；`converter` 单独构建不
+引入 rich 依赖；自然 JSON 投影和 JSON conversion helpers 仅在同时启用
+`converter` 与 `json` 时提供。
 
 ### 14.4 回归与下游
 
@@ -539,7 +532,7 @@ cargo test --all-features
 
 ## 15. 实施顺序
 
-1. 切换 crates.io `rs-datatype 0.5` 依赖并建立 feature matrix。
+1. 切换 crates.io `rs-datatype 0.6` 依赖并建立 feature matrix。
 2. 引入共享类型表，先保持行为不变并验证全 feature 编译。
 3. 实现 unset 状态模型并迁移默认值语义。
 4. 实现严格 Serde 浮点校验和自然 JSON 投影。

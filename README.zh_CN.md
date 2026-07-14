@@ -34,16 +34,17 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
 - **灵活集合输入**: `MultiValues::new/set/add` 支持直接数组、切片、vector、
   借用的 vector 和借用字符串集合
 - **大数支持**: 可选的 `BigInt` 和 `BigDecimal` 变体
-- **扩展类型**: 原生支持 `isize`/`usize`、`Duration`、`Url`、
+- **扩展类型**: 原生支持 `Duration`、`Url`、
   `HashMap<String, String>` 和 `serde_json::Value`
 
 ### 📦 **核心类型**
-- **`Value`**: 单值容器，包含 `Empty(DataType)` 与 27 个具体变体，覆盖基本类型、字符串、
-  日期时间、大数、平台整数、时长、URL、字符串映射和 JSON
-- **`MultiValues`**: 多值容器，对应 `Vec<T>` 的枚举变体，含 `Empty(DataType)`
+- **`Value`**: 单值容器，包含 `Unset(DataType)` 与 25 个平台无关的具体变体
+- **`MultiValues`**: 多值容器，对应 `Vec<T>` 的枚举变体，含 `Unset(DataType)`
+- **`ValueContainer`**: 显式表示 `Scalar(Value)` 或
+  `Collection(MultiValues)`，不会根据集合长度推断形态
 - **`NamedValue`**: 绑定名称的 `Value`，提供 `Deref/DerefMut` 直达内部值
-- **`NamedMultiValues`**: 绑定名称的 `MultiValues`，提供 `Deref/DerefMut`，
-  并可 `to_named_value()`
+- **`NamedMultiValues`**: 绑定名称的 `MultiValues`，提供借用式
+  `to_named_value()` 与消费式 `into_named_value()`
 - **`ValueError` 与 `ValueResult<T>`**: 标准错误与结果别名
 
 ## 安装
@@ -63,8 +64,11 @@ qubit-value = { version = "0.8", features = ["all"] }
 | `big-number` | `BigInt` 与 `BigDecimal` 变体 |
 | `url` | URL 变体 |
 | `json` | `serde_json::Value` 变体 |
-| `converter` | 所有扩展变体、转换 API 与自然 JSON API |
-| `all` | 当前支持的全部能力（即 `converter`） |
+| `converter` | 核心转换 API，不隐式启用扩展类型族 |
+| `all` | `converter`、`chrono`、`big-number`、`url` 与 `json` |
+
+自然 JSON 投影需要同时启用 `converter` 与 `json`；如不需要其他扩展类型族，
+可使用 `features = ["converter", "json"]`。
 
 ## 使用示例
 
@@ -220,7 +224,7 @@ use qubit_datatype::DataType;
 use qubit_value::{MultiValues, Value};
 
 // 严格类型读取，并在空值时使用默认值
-let value = Value::Empty(DataType::String);
+let value = Value::Unset(DataType::String);
 let host: String = value.get_or("localhost")?;
 assert_eq!(host, "localhost");
 
@@ -229,17 +233,17 @@ let port: u16 = value.to_or(9000u16)?;
 assert_eq!(port, 8080);
 
 // 多值严格读取，并使用集合默认值
-let values = MultiValues::Empty(DataType::String);
+let values = MultiValues::Unset(DataType::String);
 let paths: Vec<String> = values.get_or(["cache", "tmp"])?;
 assert_eq!(paths, vec!["cache".to_string(), "tmp".to_string()]);
 
 // 首元素转换，并使用标量默认值
-let values = MultiValues::Empty(DataType::UInt16);
+let values = MultiValues::Unset(DataType::UInt16);
 let port: u16 = values.to_or(8080u16)?;
 assert_eq!(port, 8080);
 
 // 列表转换，并使用数组或切片默认值
-let values = MultiValues::Empty(DataType::String);
+let values = MultiValues::Unset(DataType::String);
 let tags: Vec<String> = values.to_list_or(["blue", "green"])?;
 assert_eq!(tags, vec!["blue".to_string(), "green".to_string()]);
 ```
@@ -261,13 +265,13 @@ let vec_source = vec![7i32, 8, 9];
 let vec_values = MultiValues::new(vec_source.clone());
 let borrowed_vec_values = MultiValues::new(&vec_source);
 
-let mut values = MultiValues::Empty(DataType::Int32);
+let mut values = MultiValues::Unset(DataType::Int32);
 values.set([10, 11, 12]);
 values.add(slice_source.as_slice())?;
 values.add(&vec_source)?;
 
 let strings = MultiValues::new(["api", "worker"]);
-let fallback: Vec<String> = MultiValues::Empty(DataType::String)
+let fallback: Vec<String> = MultiValues::Unset(DataType::String)
     .get_or(["cache", "tmp"])?;
 ```
 
@@ -314,7 +318,7 @@ assert_eq!(val, 8080);
 `new` 支持的 `T`：`bool`、`char`、`i8`、`i16`、`i32`、`i64`、`i128`、
 `u8`、`u16`、`u32`、`u64`、`u128`、`f32`、`f64`、`String`、`&str`、
 `NaiveDate`、`NaiveTime`、`NaiveDateTime`、`DateTime<Utc>`、`BigInt`、
-`BigDecimal`、`isize`、`usize`、`Duration`、`Url`、
+`BigDecimal`、`Duration`、`Url`、
 `HashMap<String, String>`、`serde_json::Value`。
 
 #### 获取
@@ -361,37 +365,10 @@ assert_eq!(val, 8080);
 - **`MultiValues::to_list_or_with<T>(&self, default, options) -> ValueResult<Vec<T>>`** —
   使用显式转换选项，并保持相同的列表默认值语义。
 
-**各目标类型支持的源变体：**
-
-| 目标 `T` | 支持的源变体 |
-|---|---|
-| `bool` | `Bool`；整数变体（0=false，非零=true）；`String` 值 `1`、`0`、`true`、`false`（`true`/`false` 忽略大小写） |
-| `i8` | `Int8`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
-| `i16` | `Int16`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
-| `i32` | `Int32`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
-| `i64` | `Int64`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
-| `i128` | `Int128`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
-| `isize` | `IntSize`；`Bool`；`Char`；所有整数变体；`Float32/64`；`String`；`BigInteger/BigDecimal` |
-| `u8` | `UInt8`；`Bool`；`Char`；所有整数变体（范围检查）；`String` |
-| `u16` | `UInt8/16/32/64/128`；`Bool`；`Char`；有符号整数变体（范围检查）；`String` |
-| `u32` | `UInt8/16/32/64/128`；`Bool`；`Char`；有符号整数变体（范围检查）；`String` |
-| `u64` | `UInt8/16/32/64/128`；`Bool`；`Char`；有符号整数变体（范围检查）；`String` |
-| `u128` | `UInt8/16/32/64/128`；`Bool`；`Char`；有符号整数变体（范围检查）；`String` |
-| `usize` | `UIntSize`；`Bool`；`Char`；所有整数变体（范围检查）；`String` |
-| `f32` | `Float32/64`；`Bool`；`Char`；所有整数变体；`String`；`BigInteger/BigDecimal` |
-| `f64` | `Float64`；`Bool`；`Char`；所有数值变体；`String`；`BigInteger/BigDecimal` |
-| `char` | `Char` |
-| `String` | 所有变体（整数/浮点/bool/char/日期时间/`Duration`/`Url`/`StringMap`/`Json`） |
-| `NaiveDate` | `Date` |
-| `NaiveTime` | `Time` |
-| `NaiveDateTime` | `DateTime` |
-| `DateTime<Utc>` | `Instant` |
-| `BigInt` | `BigInteger` |
-| `BigDecimal` | `BigDecimal` |
-| `Duration` | `Duration`；整数变体和 `BigInteger`（使用配置的时长单位）；`String`（可带 `ns`/`us`/`ms`/`s`/`m`/`h`/`d` 后缀；无后缀时使用配置的时长单位） |
-| `Url` | `Url`；`String` |
-| `HashMap<String, String>` | `StringMap` |
-| `serde_json::Value` | `Json`；`String`（解析为 JSON）；`StringMap` |
+完整的源/目标矩阵、范围规则、解析行为和转换选项语义，以
+[`qubit-datatype` 权威转换契约](https://docs.rs/qubit-datatype/latest/qubit_datatype/)
+为准。本 crate 只补充容器语义：严格 `get`、集合首项转换、unset 错误映射和
+带原始索引的列表错误。
 
 ### 类型化与具名 API
 
@@ -413,10 +390,11 @@ assert_eq!(val, 8080);
 - `Value::deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T>`
 - `Value::to_json_value(&self) -> ValueResult<serde_json::Value>`
 - `MultiValues::to_json_value(&self) -> ValueResult<serde_json::Value>`
+- `ValueContainer::to_json_value(&self) -> ValueResult<serde_json::Value>`
 
 带类型标签的 Serde 与自然 JSON 是两个独立契约。前者保留变体名称；后者把未设置值
-映射为 `null`，具体空集合映射为 `[]`，单元素集合映射为标量或对象，多元素集合映射为
-数组。自然 JSON 用字符串表示 128 位整数和大数。内存中可以保存非有限浮点数，但两个
+映射为 `null`；所有具体集合（包括单元素集合）始终映射为数组。自然 JSON 用字符串表示
+128 位整数和大数。内存中可以保存非有限浮点数，但两个
 JSON 边界都会拒绝 `NaN`、正无穷和负无穷，因为 JSON 没有这些数值字面量。
 
 ### 工具方法
@@ -462,8 +440,6 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 ### 基本标量类型
 - **有符号整数**: `i8`, `i16`, `i32`, `i64`, `i128`
 - **无符号整数**: `u8`, `u16`, `u32`, `u64`, `u128`
-- **平台整数**: `isize`, `usize`（`IntSize`/`UIntSize`）；其范围依赖目标架构，
-  不适合作为可移植的持久化类型
 - **浮点数**: `f32`, `f64`
 - **其他**: `bool`, `char`
 
@@ -477,7 +453,6 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 - `BigInt`, `BigDecimal`（通过 `num-bigint` 和 `bigdecimal`）
 
 ### 扩展类型
-- **`isize` / `usize`**: 平台相关整数
 - **`Duration`**: `std::time::Duration`；字符串转换使用配置的时长单位，
   默认是毫秒，例如 `1500ms`。解析时支持 `ns`、`us`、`ms`、`s`、`m`、
   `h` 和 `d` 后缀；无后缀字符串使用配置的时长单位解析。
@@ -488,11 +463,12 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 ## 序列化契约
 
 启用的类型均实现 `Serialize`/`Deserialize`：
-- `Value`、`MultiValues`、`NamedValue`、`NamedMultiValues`
+- `Value`、`MultiValues`、`ValueContainer`、`NamedValue`、`NamedMultiValues`
 
-带类型标签的序列化保留变体。`Int128` 与 `UInt128` 的标签 payload 使用十进制
-字符串，使其能合法、无损地通过 JSON 和 Serde 的缓冲枚举表示。浮点 payload 必须
-是有限值。
+带类型标签的序列化保留变体和显式容器形态。`Int128`、`UInt128`、
+`BigInteger` 与 `BigDecimal` 的 payload 使用十进制字符串；`Duration` 固定使用
+`{ "secs": u64, "nanos": u32 }` 并拒绝超过一秒范围的 nanos。浮点 payload
+必须是有限值。
 
 ## 性能说明
 
@@ -507,7 +483,7 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 
 ```toml
 [dependencies]
-qubit-datatype = { version = "0.5", default-features = false }
+qubit-datatype = { version = "0.6", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
