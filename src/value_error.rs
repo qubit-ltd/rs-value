@@ -20,6 +20,8 @@ use thiserror::Error;
 /// Value processing error type
 ///
 /// Defines various error conditions that may occur during value operations.
+/// Downstream matches must include a wildcard arm because this enum is
+/// non-exhaustive and may gain new error variants.
 ///
 /// # Features
 ///

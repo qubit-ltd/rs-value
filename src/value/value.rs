@@ -29,6 +29,9 @@ use crate::{
 /// Uses an enum to represent different types of values, providing
 /// type-safe value storage and access.
 ///
+/// This enum is non-exhaustive; downstream matches must include a wildcard
+/// arm so future value variants remain source-compatible.
+///
 /// # Behavior
 ///
 /// - Stores one value from the closed [`DataType`] family.
