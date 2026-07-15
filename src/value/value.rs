@@ -9,11 +9,6 @@
 //!
 //! Provides type-safe storage and access functionality for single values.
 
-use serde::{
-    Deserialize,
-    Serialize,
-};
-
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
 use qubit_datatype::{
@@ -64,8 +59,6 @@ macro_rules! define_value_enum {
         $(
             (
                 [$($cfg:meta),*],
-                [$($value_attr:meta),*],
-                [$($multi_attr:meta),*],
                 $variant:ident,
                 $type:ty,
                 $data_type:expr,
@@ -76,13 +69,13 @@ macro_rules! define_value_enum {
             )
         ),+ $(,)?
     ) => {
-        #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+        #[non_exhaustive]
+        #[derive(Debug, Clone, PartialEq)]
         pub enum Value {
             /// Unset value with a declared data type.
             Unset(DataType),
             $(
                 $(#[$cfg])*
-                $(#[$value_attr])*
                 #[doc = $value_doc]
                 $variant($type),
             )+
@@ -93,7 +86,7 @@ macro_rules! define_value_enum {
 for_each_value_type!(define_value_enum);
 
 macro_rules! value_data_type_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             Value::Unset(data_type) => *data_type,
             $($(#[$cfg])* Value::$variant(_) => $data_type,)+

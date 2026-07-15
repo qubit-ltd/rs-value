@@ -1,0 +1,65 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+// =============================================================================
+
+//! Owned collection payload used by V1 deserialization.
+
+use serde::Deserialize;
+
+use qubit_datatype::DataType;
+
+use crate::MultiValues;
+
+/// Defines the owned collection payload and its runtime conversion.
+macro_rules! define_collection_wire_owned {
+    (
+        $(
+            (
+                [$($cfg:meta),*],
+                [$($scalar_attr:meta),*],
+                [$($collection_attr:meta),*],
+                $variant:ident,
+                $type:ty,
+                $tag:literal
+            )
+        ),+ $(,)?
+    ) => {
+        /// Owned payload for one homogeneous typed collection.
+        #[derive(Deserialize)]
+        pub(in crate::value_wire) enum CollectionWireOwned {
+            /// Unset collection and its declared element data type.
+            #[serde(rename = "unset")]
+            Unset(
+                /// Declared element type of the unset collection.
+                DataType,
+            ),
+            $(
+                $(#[$cfg])*
+                $(#[$collection_attr])*
+                #[doc = concat!("Owned `", $tag, "` collection payload.")]
+                #[serde(rename = $tag)]
+                $variant(
+                    #[doc = concat!("Stored `", $tag, "` collection values.")]
+                    Vec<$type>,
+                ),
+            )+
+        }
+
+        impl From<CollectionWireOwned> for MultiValues {
+            /// Restores the exact runtime collection variant.
+            fn from(values: CollectionWireOwned) -> Self {
+                match values {
+                    CollectionWireOwned::Unset(data_type) => Self::Unset(data_type),
+                    $(
+                        $(#[$cfg])*
+                        CollectionWireOwned::$variant(values) => Self::$variant(values),
+                    )+
+                }
+            }
+        }
+    };
+}
+
+for_each_wire_type!(define_collection_wire_owned);

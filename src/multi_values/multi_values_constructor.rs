@@ -29,8 +29,6 @@ macro_rules! impl_multi_values_from_table {
         $(
             (
                 [$($cfg:meta),*],
-                [$($value_attr:meta),*],
-                [$($multi_attr:meta),*],
                 $variant:ident,
                 $type:ty,
                 $data_type:expr,

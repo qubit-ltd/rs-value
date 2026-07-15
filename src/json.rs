@@ -87,7 +87,7 @@ macro_rules! scalar_to_json {
 }
 
 macro_rules! value_to_json_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {{
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {{
         let result: Result<JsonValue, DataConversionError> = match $value {
             Value::Unset(_) => Ok(JsonValue::Null),
             $($(#[$cfg])* Value::$variant(value) => {
@@ -124,7 +124,7 @@ where
 }
 
 macro_rules! multi_values_to_json_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(_) => Ok(JsonValue::Null),
             $($(#[$cfg])* MultiValues::$variant(values) => {
