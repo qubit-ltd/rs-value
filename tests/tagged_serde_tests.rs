@@ -334,6 +334,8 @@ fn value_wire_v1_preserves_unset_empty_singleton_and_json_null() {
 
 #[test]
 fn value_wire_v1_owned_conversions_preserve_shape() {
+    let into_container: fn(ValueWireV1) -> ValueContainer =
+        ValueWireV1::into_container;
     let scalar = ValueWireV1::from(Value::Int32(42));
     assert_eq!(
         scalar.container(),
@@ -349,13 +351,13 @@ fn value_wire_v1_owned_conversions_preserve_shape() {
         ValueContainer::Scalar(Value::Int32(42)),
     );
     assert_eq!(
-        collection.into_container(),
+        into_container(collection),
         ValueContainer::Collection(MultiValues::Int32(vec![42])),
     );
     let container =
         ValueContainer::Scalar(Value::String("explicit".to_string()));
     assert_eq!(
-        ValueWireV1::from(container.clone()).into_container(),
+        into_container(ValueWireV1::from(container.clone())),
         container,
     );
 }
