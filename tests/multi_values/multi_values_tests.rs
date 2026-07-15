@@ -345,6 +345,26 @@ fn test_multi_value_defaulted_reads_use_default_only_for_unset() {
 }
 
 #[test]
+fn test_multi_value_defaulted_strict_reads_reject_mismatched_unset_type() {
+    let unset_int = MultiValues::Unset(DataType::Int32);
+
+    assert!(matches!(
+        unset_int.get_or::<String>(["fallback"]),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::String,
+            actual: DataType::Int32,
+        })
+    ));
+    assert!(matches!(
+        unset_int.get_first_or::<String>("fallback"),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::String,
+            actual: DataType::Int32,
+        })
+    ));
+}
+
+#[test]
 fn test_multi_value_generic_get_type_mismatch() {
     let mv = MultiValues::Int32(vec![1, 2, 3]);
     let result: Result<Vec<bool>, _> = mv.get();

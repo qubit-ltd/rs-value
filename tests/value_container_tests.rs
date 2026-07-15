@@ -119,11 +119,11 @@ fn test_value_container_tagged_wire_preserves_shape() {
 
     assert_eq!(
         serde_json::to_value(&scalar).expect("serialize scalar"),
-        json!({"Scalar": {"Int32": 42}})
+        json!({"version": 1, "value": {"scalar": {"int32": 42}}})
     );
     assert_eq!(
         serde_json::to_value(&collection).expect("serialize collection"),
-        json!({"Collection": {"Int32": [42]}})
+        json!({"version": 1, "value": {"collection": {"int32": [42]}}})
     );
 }
 

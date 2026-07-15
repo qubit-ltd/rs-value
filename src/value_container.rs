@@ -6,6 +6,12 @@
 
 //! Explicit scalar-or-collection value storage.
 
+use crate::{
+    MultiValues,
+    Value,
+    ValueError,
+    ValueResult,
+};
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
 use qubit_datatype::{
@@ -15,17 +21,6 @@ use qubit_datatype::{
     DataTypeOf,
     ScalarStringDataConverters,
 };
-use serde::{
-    Deserialize,
-    Serialize,
-};
-
-use crate::{
-    MultiValues,
-    Value,
-    ValueError,
-    ValueResult,
-};
 
 /// A typed value whose scalar or collection shape is explicit.
 ///
@@ -33,7 +28,7 @@ use crate::{
 /// `Scalar(Value::Int32(42))` and
 /// `Collection(MultiValues::Int32(vec![42]))` remain distinguishable through
 /// conversion and serialization boundaries.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ValueContainer {
     /// One typed value.
     Scalar(Value),
@@ -47,8 +42,6 @@ macro_rules! impl_value_container_from_table {
         $(
             (
                 [$($cfg:meta),*],
-                [$($value_attr:meta),*],
-                [$($multi_attr:meta),*],
                 $variant:ident,
                 $type:ty,
                 $data_type:expr,

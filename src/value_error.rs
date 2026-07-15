@@ -37,6 +37,7 @@ use thiserror::Error;
 /// let error = ValueError::NoValue;
 /// assert_eq!(error.to_string(), "No value");
 /// ```
+#[non_exhaustive]
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum ValueError {
     /// No value

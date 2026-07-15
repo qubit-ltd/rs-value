@@ -34,6 +34,7 @@ use qubit_value::{
 use serde::de::value::{
     EnumAccessDeserializer,
     Error as DeError,
+    MapDeserializer,
     SeqDeserializer,
     StrDeserializer,
 };
@@ -546,6 +547,81 @@ where
     EnumAccessDeserializer::new(TaggedPayload { variant, value })
 }
 
+/// Holds one of two heterogeneous deserializer inputs.
+enum Either<L, R> {
+    Left(L),
+    Right(R),
+}
+
+/// Delegates deserialization to one of two concrete deserializer types.
+enum EitherDeserializer<L, R> {
+    Left(L),
+    Right(R),
+}
+
+impl<'de, L, R> IntoDeserializer<'de, DeError> for Either<L, R>
+where
+    L: IntoDeserializer<'de, DeError>,
+    R: IntoDeserializer<'de, DeError>,
+{
+    type Deserializer = EitherDeserializer<L::Deserializer, R::Deserializer>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        match self {
+            Self::Left(value) => {
+                EitherDeserializer::Left(value.into_deserializer())
+            }
+            Self::Right(value) => {
+                EitherDeserializer::Right(value.into_deserializer())
+            }
+        }
+    }
+}
+
+impl<'de, L, R> serde::Deserializer<'de> for EitherDeserializer<L, R>
+where
+    L: serde::Deserializer<'de, Error = DeError>,
+    R: serde::Deserializer<'de, Error = DeError>,
+{
+    type Error = DeError;
+
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        match self {
+            Self::Left(value) => value.deserialize_any(visitor),
+            Self::Right(value) => value.deserialize_any(visitor),
+        }
+    }
+
+    serde::forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+        bytes byte_buf option unit unit_struct newtype_struct seq tuple
+        tuple_struct map struct enum identifier ignored_any
+    }
+}
+
+/// Builds a complete V1 envelope around a custom payload deserializer.
+fn wire_payload<'de, V>(
+    shape: &'static str,
+    variant: &'static str,
+    value: V,
+) -> impl serde::Deserializer<'de, Error = DeError>
+where
+    V: IntoDeserializer<'de, DeError>,
+{
+    let payload = tagged_payload(variant, value);
+    let shape = tagged_payload(shape, payload);
+    MapDeserializer::new(
+        vec![
+            ("version", Either::Left(1_u8)),
+            ("value", Either::Right(shape)),
+        ]
+        .into_iter(),
+    )
+}
+
 /// Returns whether strict serialization classifies the input as a generic
 /// JSON serialization failure.
 fn is_serialization_error<T>(value: &T) -> bool
@@ -720,54 +796,58 @@ fn test_strict_json_map_key_serializer_rejects_unsupported_key_shapes() {
 }
 
 #[test]
-fn test_tagged_deserialization_rejects_non_finite_scalar_and_collection_payloads()
- {
-    let float32 = tagged_payload("Float32", f32::NAN);
-    let error = Value::deserialize(float32).unwrap_err();
+fn test_value_wire_v1_deserialization_rejects_non_finite_payloads() {
+    for error in [
+        Value::deserialize(wire_payload("scalar", "float32", f32::NAN))
+            .unwrap_err(),
+        Value::deserialize(wire_payload("scalar", "float64", f64::INFINITY))
+            .unwrap_err(),
+    ] {
+        assert!(
+            error
+                .to_string()
+                .contains("non-finite floating-point value"),
+            "{error}",
+        );
+    }
+
+    let error = MultiValues::deserialize(wire_payload(
+        "collection",
+        "float32",
+        DeserializerSequence(vec![1.0_f32, f32::NAN]),
+    ))
+    .unwrap_err();
     assert!(
         error
             .to_string()
-            .contains("non-finite floating-point value"),
-        "{error}"
-    );
-
-    let float64 = tagged_payload("Float64", f64::INFINITY);
-    assert!(
-        Value::deserialize(float64)
-            .unwrap_err()
-            .to_string()
             .contains("non-finite floating-point value")
     );
 
-    let float32s = tagged_payload(
-        "Float32",
-        DeserializerSequence(vec![1.0_f32, f32::NAN]),
-    );
-    assert!(
-        MultiValues::deserialize(float32s)
-            .unwrap_err()
-            .to_string()
-            .contains("non-finite floating-point value")
-    );
-
-    let float64s = tagged_payload(
-        "Float64",
+    let error = MultiValues::deserialize(wire_payload(
+        "collection",
+        "float64",
         DeserializerSequence(vec![1.0_f64, f64::NEG_INFINITY]),
-    );
+    ))
+    .unwrap_err();
     assert!(
-        MultiValues::deserialize(float64s)
-            .unwrap_err()
+        error
             .to_string()
             .contains("non-finite floating-point value")
     );
 }
 
 #[test]
-fn test_tagged_float_deserialization_propagates_malformed_payload_errors() {
-    let scalar = tagged_payload("Float32", "not-a-float");
-    assert!(Value::deserialize(scalar).is_err());
-
-    let collection =
-        tagged_payload("Float64", DeserializerSequence(vec!["not-a-float"]));
-    assert!(MultiValues::deserialize(collection).is_err());
+fn test_value_wire_v1_float_deserialization_propagates_malformed_payloads() {
+    assert!(
+        Value::deserialize(wire_payload("scalar", "float32", "not-a-float"))
+            .is_err(),
+    );
+    assert!(
+        MultiValues::deserialize(wire_payload(
+            "collection",
+            "float64",
+            DeserializerSequence(vec!["not-a-float"]),
+        ))
+        .is_err(),
+    );
 }

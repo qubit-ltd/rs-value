@@ -23,7 +23,7 @@ use crate::value_error::{
 };
 
 macro_rules! value_data_converter_match {
-    ($value:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             Value::Unset(data_type) => DataConverter::Empty(*data_type),
             $($(#[$cfg])* Value::$variant(value) => DataConverter::from(value),)+

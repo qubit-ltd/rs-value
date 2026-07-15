@@ -67,7 +67,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.9", features = ["all"] }
+qubit-value = { version = "0.10", features = ["all"] }
 ```
 
 The default feature set is empty. Enable only the required families, or use
@@ -491,17 +491,34 @@ rounding is intentional. Text is not trimmed unless enabled in
 ## Serialization Contracts
 
 Enabled types implement `Serialize`/`Deserialize`:
-- `Value`, `MultiValues`, `ValueContainer`, `NamedValue`, `NamedMultiValues`
 
-Tagged serialization preserves the variant and explicit container shape. This
-is the current 0.9 wire contract; it intentionally provides no backward-
-compatibility guarantee for 0.8 payloads. Producers and consumers must enable
-the same optional type-family features.
+- `Value`, `MultiValues`, `ValueContainer`, `NamedValue`, `NamedMultiValues`
+- `ValueWireV1`, the public version-one wire DTO
+
+Type-preserving Serde uses one strict versioned envelope:
+
+```json
+{"version":1,"value":{"scalar":{"int32":42}}}
+```
+
+Collections use `collection` instead of `scalar`; an unset payload uses
+`{"unset":"int32"}`. `Value` accepts only scalar, `MultiValues` accepts only
+collection, and `ValueContainer` accepts both shapes. `Value` and
+`ValueContainer::Scalar` have identical wire, as do `MultiValues` and
+`ValueContainer::Collection`. Named wrappers keep their outer `name`/`value`
+fields and place this envelope in `value`.
+
+Version 0.10 intentionally rejects former externally tagged forms such as
+`{"Int32":42}`, `{"Unset":"int32"}`, and `{"Scalar":{"Int32":42}}`. It also
+rejects missing or unknown fields, versions other than numeric `1`, unknown
+shapes and types, and mismatched runtime entry shapes.
 
 `Int128`, `UInt128`, `BigInteger`, and `BigDecimal` payloads use canonical
-decimal strings; non-canonical forms such as `+1` and `01` are rejected.
-`Duration` uses `{ "secs": u64, "nanos": u32 }`, rejects nanos outside one
-second, and rejects unknown fields. Float payloads must be finite.
+decimal strings. `Duration` uses `{"secs":u64,"nanos":u32}` and requires nanos
+below one second. Float payloads must be finite.
+
+This type-preserving V1 wire is separate from `to_json_value()`, which emits
+natural JSON without runtime type tags and projects unset values to `null`.
 
 ## Performance Notes
 

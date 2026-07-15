@@ -27,9 +27,10 @@
 //!   container from a concrete value or concrete empty collection.
 //! - Generic `set` replaces a value infallibly; [`MultiValues::add`] remains
 //!   fallible because appended values must have the same data type.
-//! - Serde uses a type-preserving tagged representation. With `converter`,
-//!   `to_json_value` provides a separate natural JSON projection.
-//! - Non-finite floats may exist in memory, but tagged Serde and natural JSON
+//! - Serde uses the strict, type-preserving [`ValueWireV1`] envelope. With
+//!   `converter`, `to_json_value` provides a separate natural JSON projection.
+//! - Version one rejects the pre-0.10 externally tagged representation.
+//! - Non-finite floats may exist in memory, but V1 Serde and natural JSON
 //!   reject them because JSON has no `NaN` or infinity number literals.
 //!
 //! # Usage Examples
@@ -99,6 +100,7 @@ mod strict_json;
 mod value;
 mod value_container;
 mod value_error;
+mod value_wire;
 mod wide_integer;
 mod wire;
 
@@ -113,3 +115,4 @@ pub use value_error::{
     ValueError,
     ValueResult,
 };
+pub use value_wire::ValueWireV1;

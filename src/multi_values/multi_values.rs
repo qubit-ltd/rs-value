@@ -9,11 +9,6 @@
 //!
 //! Provides type-safe storage and access functionality for multiple values.
 
-use serde::{
-    Deserialize,
-    Serialize,
-};
-
 use qubit_datatype::DataType;
 
 /// Multiple values container
@@ -52,8 +47,6 @@ macro_rules! define_multi_values_enum {
         $(
             (
                 [$($cfg:meta),*],
-                [$($value_attr:meta),*],
-                [$($multi_attr:meta),*],
                 $variant:ident,
                 $type:ty,
                 $data_type:expr,
@@ -64,13 +57,13 @@ macro_rules! define_multi_values_enum {
             )
         ),+ $(,)?
     ) => {
-        #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+        #[non_exhaustive]
+        #[derive(Debug, Clone, PartialEq)]
         pub enum MultiValues {
             /// Unset collection with a declared element data type.
             Unset(DataType),
             $(
                 $(#[$cfg])*
-                $(#[$multi_attr])*
                 #[doc = $multi_doc]
                 $variant(Vec<$type>),
             )+

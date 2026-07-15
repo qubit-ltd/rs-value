@@ -53,7 +53,7 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.9", features = ["all"] }
+qubit-value = { version = "0.10", features = ["all"] }
 ```
 
 默认 feature 集为空。可按需启用类型族，也可使用 `all` 这一便捷 feature：
@@ -463,15 +463,31 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 ## 序列化契约
 
 启用的类型均实现 `Serialize`/`Deserialize`：
+
 - `Value`、`MultiValues`、`ValueContainer`、`NamedValue`、`NamedMultiValues`
+- 公开的第一版 wire DTO `ValueWireV1`
 
-带类型标签的序列化保留变体和显式容器形态。这是当前的 0.9 wire 契约，
-不承诺兼容 0.8 payload；生产端和消费端必须启用相同的可选类型族 feature。
+保留类型信息的 Serde 统一使用严格的版本化信封：
 
-`Int128`、`UInt128`、`BigInteger` 与 `BigDecimal` 的 payload 使用 canonical
-十进制字符串，`+1`、`01` 等非 canonical 形式会被拒绝。`Duration` 固定使用
-`{ "secs": u64, "nanos": u32 }`，拒绝超过一秒范围的 nanos 和未知字段。浮点
-payload 必须是有限值。
+```json
+{"version":1,"value":{"scalar":{"int32":42}}}
+```
+
+集合使用 `collection` 而不是 `scalar`；未设置值使用 `{"unset":"int32"}`。
+`Value` 只接受 scalar，`MultiValues` 只接受 collection，`ValueContainer`
+接受两种形态。Named wrapper 保留外层 `name`/`value` 字段，并将该信封放入
+`value`。
+
+0.10 会明确拒绝旧的外部标签格式，例如 `{"Int32":42}`、
+`{"Unset":"int32"}` 和 `{"Scalar":{"Int32":42}}`。缺失或未知字段、不是
+数字 `1` 的版本、未知 shape/类型，以及与运行时入口不匹配的 shape 同样会拒绝。
+
+`Int128`、`UInt128`、`BigInteger` 与 `BigDecimal` 使用 canonical 十进制
+字符串。`Duration` 使用 `{"secs":u64,"nanos":u32}`，且 nanos 必须小于一秒。
+浮点 payload 必须是有限值。
+
+保留类型的 V1 wire 与 `to_json_value()` 的自然 JSON 投影是两个独立契约。
+自然 JSON 不包含运行时类型标签，未设置值投影为 `null`。
 
 ## 性能说明
 

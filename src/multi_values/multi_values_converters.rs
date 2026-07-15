@@ -28,7 +28,7 @@ use crate::value_error::{
 use super::multi_values::MultiValues;
 
 macro_rules! multi_values_convert_first_match {
-    ($value:expr, $options:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(from) => Err(DataConversionError::Missing {
                 from: *from,
@@ -46,7 +46,7 @@ macro_rules! multi_values_convert_first_match {
 }
 
 macro_rules! multi_values_convert_list_match {
-    ($value:expr, $options:expr; $(([$($cfg:meta),*], [$($value_attr:meta),*], [$($multi_attr:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(from) => Err(DataConversionError::Missing {
                 from: *from,
