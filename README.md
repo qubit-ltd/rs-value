@@ -462,6 +462,10 @@ default. Use `to_with()` and `NumericConversionPolicy::Lossy` when truncation or
 rounding is intentional. Text is not trimmed unless enabled in
 `StringConversionOptions`.
 
+`Value`, `MultiValues`, and `ValueError` are non-exhaustive public enums.
+Downstream `match` expressions must keep a wildcard arm so future variants do
+not break source compatibility.
+
 ## Supported Data Types
 
 ### Basic Scalar Types
