@@ -435,6 +435,9 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 `to_with()` 指定 `NumericConversionPolicy::Lossy`。除非在
 `StringConversionOptions` 中显式开启，否则文本不会自动 trim。
 
+`Value`、`MultiValues` 与 `ValueError` 都是非穷尽公开 enum。下游对它们进行
+`match` 时必须保留通配分支，以便未来增加变体时保持源码兼容。
+
 ## 支持的数据类型
 
 ### 基本标量类型
