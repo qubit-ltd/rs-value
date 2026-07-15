@@ -157,6 +157,17 @@ fn tagged_wide_integer_payloads_require_decimal_strings() {
 }
 
 #[test]
+fn tagged_wide_integer_payloads_reject_noncanonical_strings() {
+    assert!(serde_json::from_value::<Value>(json!({"Int128": "+1"})).is_err());
+    assert!(serde_json::from_value::<Value>(json!({"Int128": "01"})).is_err());
+    assert!(serde_json::from_value::<Value>(json!({"UInt128": "01"})).is_err());
+    assert!(
+        serde_json::from_value::<MultiValues>(json!({"UInt128": ["1", "02"]}),)
+            .is_err()
+    );
+}
+
+#[test]
 fn tagged_big_number_payloads_require_decimal_strings() {
     assert!(
         serde_json::from_value::<Value>(json!({"BigInteger": [1, [123]]}))
@@ -171,11 +182,47 @@ fn tagged_big_number_payloads_require_decimal_strings() {
 }
 
 #[test]
+fn tagged_big_number_payloads_reject_noncanonical_strings() {
+    assert!(
+        serde_json::from_value::<Value>(json!({"BigInteger": "+1"})).is_err()
+    );
+    assert!(
+        serde_json::from_value::<Value>(json!({"BigInteger": "001"})).is_err()
+    );
+    assert!(
+        serde_json::from_value::<Value>(json!({"BigDecimal": "001.0"}))
+            .is_err()
+    );
+    assert!(
+        serde_json::from_value::<MultiValues>(
+            json!({"BigInteger": ["1", "02"]}),
+        )
+        .is_err()
+    );
+}
+
+#[test]
 fn tagged_duration_payload_rejects_out_of_range_nanos() {
     assert!(
         serde_json::from_value::<Value>(
             json!({"Duration": {"secs": 1, "nanos": 1_000_000_000}}),
         )
+        .is_err()
+    );
+}
+
+#[test]
+fn tagged_duration_payload_rejects_unknown_fields() {
+    assert!(
+        serde_json::from_value::<Value>(
+            json!({"Duration": {"secs": 1, "nanos": 2, "extra": 3}}),
+        )
+        .is_err()
+    );
+    assert!(
+        serde_json::from_value::<MultiValues>(json!({
+            "Duration": [{"secs": 1, "nanos": 2, "extra": 3}],
+        }))
         .is_err()
     );
 }

@@ -1,6 +1,6 @@
 [package]
 name = "qubit-value"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 rust-version = "1.94"
 autotests = false
@@ -43,6 +43,10 @@ required-features = ["all"]
 name = "core_feature_tests"
 path = "tests/core_feature_tests.rs"
 
+[[test]]
+name = "feature_contract_tests"
+path = "tests/feature_contract_tests.rs"
+
 [features]
 default = []
 chrono = ["dep:chrono", "qubit-datatype/chrono"]
@@ -66,3 +70,6 @@ num-bigint = { version = "0.4", optional = true }
 bigdecimal = { version = "0.4", optional = true }
 
 qubit-datatype = { version = "0.6", default-features = false }
+
+[dev-dependencies]
+serde_json = "1.0"

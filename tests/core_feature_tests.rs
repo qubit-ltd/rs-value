@@ -73,6 +73,54 @@ fn test_add_unset_value_preserves_scalar_shape() {
 }
 
 #[test]
+fn test_add_moves_owned_strings_when_promoting_scalar() {
+    let mut container = ValueContainer::from("existing");
+    let appended = vec!["appended".to_string()];
+    let appended_ptr = appended[0].as_ptr();
+
+    container
+        .add(appended)
+        .expect("owned strings have the same data type");
+
+    let ValueContainer::Collection(MultiValues::String(values)) = container
+    else {
+        panic!("expected a string collection");
+    };
+    assert_eq!(values[1].as_ptr(), appended_ptr);
+}
+
+#[test]
+fn test_add_moves_owned_strings_into_collection() {
+    let mut container = ValueContainer::from(vec!["existing".to_string()]);
+    let appended = vec!["appended".to_string()];
+    let appended_ptr = appended[0].as_ptr();
+
+    container
+        .add(appended)
+        .expect("owned strings have the same data type");
+
+    let ValueContainer::Collection(MultiValues::String(values)) = container
+    else {
+        panic!("expected a string collection");
+    };
+    assert_eq!(values[1].as_ptr(), appended_ptr);
+}
+
+#[test]
+fn test_add_rejects_mismatched_empty_collection() {
+    let mut container = ValueContainer::from(42_i32);
+
+    assert!(matches!(
+        container.add(Vec::<bool>::new()),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Int32,
+            actual: DataType::Bool,
+        })
+    ));
+    assert_eq!(container, ValueContainer::Scalar(Value::Int32(42)));
+}
+
+#[test]
 fn test_value_container_preserves_explicit_shapes() {
     let scalar = ValueContainer::from(42_i32);
     let collection = ValueContainer::from(vec![42_i32]);

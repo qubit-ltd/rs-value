@@ -39,9 +39,23 @@ where
 /// Parses one decimal string into an integer without retaining input text.
 struct IntegerVisitor<T>(PhantomData<T>);
 
+/// Parses and validates the unique textual form emitted by serialization.
+fn parse_canonical_integer<T, E>(value: &str) -> Result<T, E>
+where
+    T: FromStr + fmt::Display,
+    T::Err: fmt::Display,
+    E: de::Error,
+{
+    let parsed = value.parse::<T>().map_err(E::custom)?;
+    if parsed.to_string() != value {
+        return Err(E::custom("non-canonical 128-bit integer string"));
+    }
+    Ok(parsed)
+}
+
 impl<'de, T> Visitor<'de> for IntegerVisitor<T>
 where
-    T: FromStr,
+    T: FromStr + fmt::Display,
     T::Err: fmt::Display,
 {
     type Value = T;
@@ -54,7 +68,7 @@ where
     where
         E: de::Error,
     {
-        value.parse().map_err(E::custom)
+        parse_canonical_integer(value)
     }
 
     fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
@@ -70,7 +84,7 @@ struct ParsedInteger<T>(T);
 
 impl<'de, T> Deserialize<'de> for ParsedInteger<T>
 where
-    T: FromStr,
+    T: FromStr + fmt::Display,
     T::Err: fmt::Display,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

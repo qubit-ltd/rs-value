@@ -597,7 +597,8 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when this value is `Empty(Json)`,
+    /// Returns [`ValueError::NoValue`] when this value is
+    /// `Value::Unset(DataType::Json)`,
     /// [`ValueError::TypeMismatch`] when this value has a non-JSON data type,
     /// or [`ValueError::DataConversion`] when JSON deserialization fails.
     #[cfg(all(feature = "converter", feature = "json"))]
