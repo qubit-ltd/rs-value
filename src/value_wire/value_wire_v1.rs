@@ -61,7 +61,7 @@ impl ValueWireV1 {
     /// # Returns
     ///
     /// The preserved runtime container.
-    #[inline(always)]
+    #[inline]
     pub fn into_container(self) -> ValueContainer {
         self.value
     }
