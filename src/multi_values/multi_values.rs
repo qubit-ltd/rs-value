@@ -16,6 +16,9 @@ use qubit_datatype::DataType;
 /// Uses an enum to represent multiple values of different types, providing
 /// type-safe storage and access for multiple values.
 ///
+/// This enum is non-exhaustive; downstream matches must include a wildcard
+/// arm so future collection variants remain source-compatible.
+///
 /// # Behavior
 ///
 /// - Stores a homogeneous collection from the closed [`DataType`] family.
