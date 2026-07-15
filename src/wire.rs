@@ -61,9 +61,23 @@ mod decimal {
     /// Parses one canonical decimal string into the requested value type.
     struct DecimalVisitor<T>(PhantomData<T>);
 
+    /// Parses and validates the unique textual form emitted by serialization.
+    fn parse_canonical_decimal<T, E>(value: &str) -> Result<T, E>
+    where
+        T: FromStr + fmt::Display,
+        T::Err: fmt::Display,
+        E: de::Error,
+    {
+        let parsed = value.parse::<T>().map_err(E::custom)?;
+        if parsed.to_string() != value {
+            return Err(E::custom("non-canonical decimal string"));
+        }
+        Ok(parsed)
+    }
+
     impl<'de, T> Visitor<'de> for DecimalVisitor<T>
     where
-        T: FromStr,
+        T: FromStr + fmt::Display,
         T::Err: fmt::Display,
     {
         type Value = T;
@@ -76,7 +90,7 @@ mod decimal {
         where
             E: de::Error,
         {
-            value.parse().map_err(E::custom)
+            parse_canonical_decimal(value)
         }
 
         fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
@@ -92,7 +106,7 @@ mod decimal {
 
     impl<'de, T> Deserialize<'de> for ParsedDecimal<T>
     where
-        T: FromStr,
+        T: FromStr + fmt::Display,
         T::Err: fmt::Display,
     {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -120,7 +134,7 @@ mod decimal {
     /// Deserializes one decimal value from its textual form.
     pub(super) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     where
-        T: FromStr,
+        T: FromStr + fmt::Display,
         T::Err: fmt::Display,
         D: Deserializer<'de>,
     {
@@ -144,7 +158,7 @@ mod decimal {
         deserializer: D,
     ) -> Result<Vec<T>, D::Error>
     where
-        T: FromStr,
+        T: FromStr + fmt::Display,
         T::Err: fmt::Display,
         D: Deserializer<'de>,
     {
@@ -225,6 +239,7 @@ define_decimal_serde!(big_decimal, big_decimal_vec, bigdecimal::BigDecimal);
 
 /// Stable wire representation of a duration.
 #[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct DurationPayload {
     /// Whole seconds.
     secs: u64,

@@ -9,25 +9,25 @@
     },
     {
       "name": "chrono",
-      "commands": ["check", "doc"],
+      "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
       "features": ["chrono"]
     },
     {
       "name": "big-number",
-      "commands": ["check", "doc"],
+      "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
       "features": ["big-number"]
     },
     {
       "name": "url",
-      "commands": ["check", "doc"],
+      "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
       "features": ["url"]
     },
     {
       "name": "json",
-      "commands": ["check", "doc"],
+      "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
       "features": ["json"]
     },
@@ -39,25 +39,25 @@
     },
     {
       "name": "converter-chrono",
-      "commands": ["check", "doc"],
+      "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
       "features": ["converter", "chrono"]
     },
     {
       "name": "converter-big-number",
-      "commands": ["check", "doc"],
+      "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
       "features": ["converter", "big-number"]
     },
     {
       "name": "converter-url",
-      "commands": ["check", "doc"],
+      "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
       "features": ["converter", "url"]
     },
     {
       "name": "converter-json",
-      "commands": ["check", "doc"],
+      "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
       "features": ["converter", "json"]
     },

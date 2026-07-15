@@ -67,7 +67,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.8", features = ["all"] }
+qubit-value = { version = "0.9", features = ["all"] }
 ```
 
 The default feature set is empty. Enable only the required families, or use
@@ -493,10 +493,15 @@ rounding is intentional. Text is not trimmed unless enabled in
 Enabled types implement `Serialize`/`Deserialize`:
 - `Value`, `MultiValues`, `ValueContainer`, `NamedValue`, `NamedMultiValues`
 
-Tagged serialization preserves the variant and explicit container shape.
-`Int128`, `UInt128`, `BigInteger`, and `BigDecimal` payloads use decimal
-strings. `Duration` uses `{ "secs": u64, "nanos": u32 }` and rejects nanos
-outside one second. Float payloads must be finite.
+Tagged serialization preserves the variant and explicit container shape. This
+is the current 0.9 wire contract; it intentionally provides no backward-
+compatibility guarantee for 0.8 payloads. Producers and consumers must enable
+the same optional type-family features.
+
+`Int128`, `UInt128`, `BigInteger`, and `BigDecimal` payloads use canonical
+decimal strings; non-canonical forms such as `+1` and `01` are rejected.
+`Duration` uses `{ "secs": u64, "nanos": u32 }`, rejects nanos outside one
+second, and rejects unknown fields. Float payloads must be finite.
 
 ## Performance Notes
 

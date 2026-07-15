@@ -53,7 +53,7 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.8", features = ["all"] }
+qubit-value = { version = "0.9", features = ["all"] }
 ```
 
 默认 feature 集为空。可按需启用类型族，也可使用 `all` 这一便捷 feature：
@@ -465,10 +465,13 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 启用的类型均实现 `Serialize`/`Deserialize`：
 - `Value`、`MultiValues`、`ValueContainer`、`NamedValue`、`NamedMultiValues`
 
-带类型标签的序列化保留变体和显式容器形态。`Int128`、`UInt128`、
-`BigInteger` 与 `BigDecimal` 的 payload 使用十进制字符串；`Duration` 固定使用
-`{ "secs": u64, "nanos": u32 }` 并拒绝超过一秒范围的 nanos。浮点 payload
-必须是有限值。
+带类型标签的序列化保留变体和显式容器形态。这是当前的 0.9 wire 契约，
+不承诺兼容 0.8 payload；生产端和消费端必须启用相同的可选类型族 feature。
+
+`Int128`、`UInt128`、`BigInteger` 与 `BigDecimal` 的 payload 使用 canonical
+十进制字符串，`+1`、`01` 等非 canonical 形式会被拒绝。`Duration` 固定使用
+`{ "secs": u64, "nanos": u32 }`，拒绝超过一秒范围的 nanos 和未知字段。浮点
+payload 必须是有限值。
 
 ## 性能说明
 

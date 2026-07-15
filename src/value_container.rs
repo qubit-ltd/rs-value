@@ -256,8 +256,8 @@ impl ValueContainer {
     }
 
     /// Appends values, promoting scalar storage to collection storage when the
-    /// input contains at least one concrete value. Empty and unset input is a
-    /// no-op.
+    /// input contains at least one concrete value. Same-typed empty and unset
+    /// input is a no-op.
     ///
     /// # Errors
     ///
@@ -284,11 +284,11 @@ impl ValueContainer {
             Self::Scalar(value) => {
                 let value = std::mem::replace(value, Value::Unset(expected));
                 let mut collection = MultiValues::from(value);
-                collection.merge(&other)?;
+                collection.add(other)?;
                 *self = Self::Collection(collection);
                 Ok(())
             }
-            Self::Collection(collection) => collection.merge(&other),
+            Self::Collection(collection) => collection.add(other),
         }
     }
 
