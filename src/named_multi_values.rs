@@ -58,7 +58,7 @@ use super::named_value::NamedValue;
 /// assert_eq!(named.count(), 3);
 /// ```
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct NamedMultiValues {
     /// Name of the values
     name: String,

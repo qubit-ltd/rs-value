@@ -25,6 +25,13 @@ use qubit_value::{
 };
 
 #[test]
+fn test_named_multi_values_identity_is_reflexive_with_nan() {
+    let values =
+        NamedMultiValues::new("samples", MultiValues::Float32(vec![f32::NAN]));
+    assert_eq!(values, values);
+}
+
+#[test]
 fn test_named_multi_value_creation() {
     let nmv = NamedMultiValues::new(
         "ports",

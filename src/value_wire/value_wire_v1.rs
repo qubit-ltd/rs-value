@@ -29,7 +29,7 @@ use super::VALUE_WIRE_V1_VERSION;
 /// Other Serde formats may work, but their representation is not part of the
 /// V1 stability contract.
 #[must_use]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValueWireV1 {
     /// Explicit runtime shape and typed payload represented by this DTO.
     value: ValueContainer,

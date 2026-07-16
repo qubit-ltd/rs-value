@@ -36,6 +36,16 @@ use serde_json::{
 };
 use url::Url;
 
+#[test]
+fn test_value_wire_v1_identity_preserves_shape() {
+    assert_ne!(
+        ValueWireV1::from(Value::Int32(1)),
+        ValueWireV1::from(MultiValues::Int32(vec![1])),
+    );
+    let value = ValueWireV1::from(MultiValues::Float64(vec![f64::NAN]));
+    assert_eq!(value, value);
+}
+
 #[derive(Debug)]
 struct ValueFixture {
     data_type: DataType,

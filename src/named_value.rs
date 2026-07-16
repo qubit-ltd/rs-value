@@ -53,7 +53,7 @@ use super::value::Value;
 /// assert!(named.get_bool().unwrap());
 /// ```
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct NamedValue {
     /// Name of the value
     name: String,
