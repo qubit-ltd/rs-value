@@ -24,10 +24,54 @@ use std::sync::atomic::{
 use qubit_datatype::DataType;
 use qubit_value::{
     MultiValues,
+    StrictValueListRead,
+    StrictValueRead,
     Value,
+    ValueContainer,
+    ValueError,
 };
 
 static NEXT_PROJECT_ID: AtomicUsize = AtomicUsize::new(0);
+
+/// Reads one exact value through the public strict-read marker trait.
+///
+/// # Arguments
+///
+/// * `value` - Container to read without data conversion.
+///
+/// # Returns
+///
+/// The exact typed value stored in the container.
+///
+/// # Errors
+///
+/// Returns the strict value error reported by the container.
+fn read_strict<T>(value: &ValueContainer) -> Result<T, ValueError>
+where
+    T: StrictValueRead,
+{
+    value.get()
+}
+
+/// Reads an exact list through the public strict-list marker trait.
+///
+/// # Arguments
+///
+/// * `value` - Container to read without data conversion.
+///
+/// # Returns
+///
+/// The exact typed list stored in the container.
+///
+/// # Errors
+///
+/// Returns the strict value error reported by the container.
+fn read_list_strict<T>(value: &ValueContainer) -> Result<Vec<T>, ValueError>
+where
+    T: StrictValueListRead,
+{
+    value.get_list()
+}
 
 /// Compiles a temporary external consumer with every crate feature enabled.
 fn compile_all_features_consumer(source: &str) -> Output {
@@ -123,6 +167,17 @@ fn test_multi_values_generic_api_uses_public_bounds() {
     values.add(&[7i32, 8][..]).unwrap();
 
     assert_eq!(values.get_int32s().unwrap(), &[4, 5, 6, 7, 8]);
+}
+
+#[test]
+fn test_value_container_strict_marker_traits_hide_shape_specific_bounds() {
+    let scalar = ValueContainer::from(42_i32);
+    let collection = ValueContainer::from(vec![1_i32, 2, 3]);
+
+    assert_eq!(read_strict::<i32>(&scalar).unwrap(), 42);
+    assert_eq!(read_strict::<i32>(&collection).unwrap(), 1);
+    assert_eq!(read_list_strict::<i32>(&scalar).unwrap(), vec![42]);
+    assert_eq!(read_list_strict::<i32>(&collection).unwrap(), vec![1, 2, 3]);
 }
 
 #[test]

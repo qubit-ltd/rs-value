@@ -2,9 +2,15 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-//! Versioned, type-preserving wire representation for runtime values.
+//! Versioned, type-preserving JSON wire representation for runtime values.
+//!
+//! V1 compatibility applies to the documented JSON object structure. The
+//! Serde implementations can be used with other serializers, but their
+//! format-specific representation is outside the V1 stability contract.
 
 use serde::de::Error as _;
 use serde::{

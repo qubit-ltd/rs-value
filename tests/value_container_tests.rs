@@ -2,6 +2,8 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Tests for the explicit scalar-or-collection value container.
@@ -35,6 +37,28 @@ fn test_value_container_preserves_scalar_and_collection_shapes() {
         collection.to_json_value().expect("collection JSON"),
         json!([42])
     );
+}
+
+#[test]
+fn test_value_container_shape_accessors_preserve_values_and_mismatches() {
+    let scalar = ValueContainer::from(42_i32);
+    let collection = ValueContainer::from(vec![1_i32, 2, 3]);
+
+    assert_eq!(scalar.as_scalar(), Some(&Value::Int32(42)));
+    assert_eq!(scalar.as_collection(), None);
+    assert_eq!(collection.as_scalar(), None);
+    assert_eq!(
+        collection.as_collection(),
+        Some(&MultiValues::Int32(vec![1, 2, 3]))
+    );
+
+    assert_eq!(scalar.clone().into_scalar(), Ok(Value::Int32(42)));
+    assert_eq!(scalar.clone().into_collection(), Err(scalar));
+    assert_eq!(
+        collection.clone().into_collection(),
+        Ok(MultiValues::Int32(vec![1, 2, 3]))
+    );
+    assert_eq!(collection.clone().into_scalar(), Err(collection));
 }
 
 #[test]

@@ -2,15 +2,17 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Borrowed collection payload used by V1 serialization.
 
 use serde::Serialize;
 
-use qubit_datatype::DataType;
-
 use crate::MultiValues;
+
+use super::WireDataTypeV1;
 
 /// Defines the borrowed collection payload and its runtime conversion.
 macro_rules! define_collection_wire_ref {
@@ -33,7 +35,7 @@ macro_rules! define_collection_wire_ref {
             #[serde(rename = "unset")]
             Unset(
                 /// Declared element type of the unset collection.
-                &'a DataType,
+                WireDataTypeV1,
             ),
             $(
                 $(#[$cfg])*
@@ -51,7 +53,7 @@ macro_rules! define_collection_wire_ref {
             /// Borrows the exact runtime collection variant for V1 serialization.
             fn from(values: &'a MultiValues) -> Self {
                 match values {
-                    MultiValues::Unset(data_type) => Self::Unset(data_type),
+                    MultiValues::Unset(data_type) => Self::Unset((*data_type).into()),
                     $(
                         $(#[$cfg])*
                         MultiValues::$variant(values) => Self::$variant(values),

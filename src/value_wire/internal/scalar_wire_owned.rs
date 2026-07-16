@@ -2,15 +2,17 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Owned scalar payload used by V1 deserialization.
 
 use serde::Deserialize;
 
-use qubit_datatype::DataType;
-
 use crate::Value;
+
+use super::WireDataTypeV1;
 
 /// Defines the owned scalar payload and its exhaustive runtime conversion.
 macro_rules! define_scalar_wire_owned {
@@ -33,7 +35,7 @@ macro_rules! define_scalar_wire_owned {
             #[serde(rename = "unset")]
             Unset(
                 /// Declared data type of the unset scalar.
-                DataType,
+                WireDataTypeV1,
             ),
             $(
                 $(#[$cfg])*
@@ -51,7 +53,7 @@ macro_rules! define_scalar_wire_owned {
             /// Restores the exact runtime scalar variant.
             fn from(value: ScalarWireOwned) -> Self {
                 match value {
-                    ScalarWireOwned::Unset(data_type) => Self::Unset(data_type),
+                    ScalarWireOwned::Unset(data_type) => Self::Unset(data_type.into()),
                     $(
                         $(#[$cfg])*
                         ScalarWireOwned::$variant(value) => Self::$variant(value),
