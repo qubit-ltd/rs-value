@@ -2,6 +2,8 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Golden tests for the type-preserving tagged Serde representation.
 
@@ -242,6 +244,38 @@ fn value_wire_v1_fixtures_cover_every_data_type() {
     actual.sort_by_key(|data_type| data_type.as_str());
     expected.sort_by_key(|data_type| data_type.as_str());
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn value_wire_v1_unset_tags_cover_every_data_type() {
+    for data_type in DataType::ALL {
+        let scalar = ValueContainer::Scalar(Value::Unset(data_type));
+        let collection =
+            ValueContainer::Collection(MultiValues::Unset(data_type));
+        let expected_scalar = scalar_wire("unset", json!(data_type.as_str()));
+        let expected_collection =
+            collection_wire("unset", json!(data_type.as_str()));
+
+        assert_eq!(
+            serde_json::to_value(&scalar).expect("serialize unset scalar"),
+            expected_scalar
+        );
+        assert_eq!(
+            serde_json::from_value::<ValueContainer>(expected_scalar)
+                .expect("deserialize unset scalar"),
+            scalar
+        );
+        assert_eq!(
+            serde_json::to_value(&collection)
+                .expect("serialize unset collection"),
+            expected_collection
+        );
+        assert_eq!(
+            serde_json::from_value::<ValueContainer>(expected_collection)
+                .expect("deserialize unset collection"),
+            collection
+        );
+    }
 }
 
 #[test]

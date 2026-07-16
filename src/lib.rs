@@ -27,8 +27,10 @@
 //!   container from a concrete value or concrete empty collection.
 //! - Generic `set` replaces a value infallibly; [`MultiValues::add`] remains
 //!   fallible because appended values must have the same data type.
-//! - Serde uses the strict, type-preserving [`ValueWireV1`] envelope. With
-//!   `converter`, `to_json_value` provides a separate natural JSON projection.
+//! - Serde uses the strict, type-preserving [`ValueWireV1`] envelope. V1
+//!   compatibility covers its documented JSON structure; other serializer
+//!   formats are outside that stability contract. With `converter`,
+//!   `to_json_value` provides a separate natural JSON projection.
 //! - Version one rejects the pre-0.10 externally tagged representation.
 //! - Non-finite floats may exist in memory, but V1 Serde and natural JSON
 //!   reject them because JSON has no `NaN` or infinity number literals.
@@ -97,6 +99,8 @@ mod named_multi_values;
 mod named_value;
 #[cfg(all(feature = "converter", feature = "json"))]
 mod strict_json;
+mod strict_value_list_read;
+mod strict_value_read;
 mod value;
 mod value_container;
 mod value_error;
@@ -109,6 +113,8 @@ pub use into_value_default::IntoValueDefault;
 pub use multi_values::MultiValues;
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;
+pub use strict_value_list_read::StrictValueListRead;
+pub use strict_value_read::StrictValueRead;
 pub use value::Value;
 pub use value_container::ValueContainer;
 pub use value_error::{

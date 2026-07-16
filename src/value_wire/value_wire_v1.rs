@@ -2,9 +2,11 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-//! Public version-one wire DTO.
+//! Public DTO for the stable version-one JSON wire contract.
 
 use serde::{
     Deserialize,
@@ -21,7 +23,11 @@ use crate::{
 
 use super::VALUE_WIRE_V1_VERSION;
 
-/// Stable version-one wire DTO for a scalar or homogeneous collection.
+/// Stable version-one JSON wire DTO for a scalar or homogeneous collection.
+///
+/// The compatibility guarantee covers the documented JSON object structure.
+/// Other Serde formats may work, but their representation is not part of the
+/// V1 stability contract.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ValueWireV1 {
     /// Explicit runtime shape and typed payload represented by this DTO.

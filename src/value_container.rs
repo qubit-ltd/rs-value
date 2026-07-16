@@ -2,12 +2,16 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Explicit scalar-or-collection value storage.
 
 use crate::{
     MultiValues,
+    StrictValueListRead,
+    StrictValueRead,
     Value,
     ValueError,
     ValueResult,
@@ -178,10 +182,70 @@ impl ValueContainer {
         matches!(self, Self::Scalar(_))
     }
 
+    /// Returns the contained scalar without consuming this container.
+    ///
+    /// # Returns
+    ///
+    /// `Some` for scalar storage, or `None` for collection storage.
+    #[inline(always)]
+    pub const fn as_scalar(&self) -> Option<&Value> {
+        match self {
+            Self::Scalar(value) => Some(value),
+            Self::Collection(_) => None,
+        }
+    }
+
+    /// Consumes this container and returns its scalar value.
+    ///
+    /// # Returns
+    ///
+    /// The contained scalar value when this container has scalar shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns the original container unchanged when it has collection shape.
+    #[inline(always)]
+    pub fn into_scalar(self) -> Result<Value, Self> {
+        match self {
+            Self::Scalar(value) => Ok(value),
+            Self::Collection(_) => Err(self),
+        }
+    }
+
     /// Returns whether this container has collection shape.
     #[inline]
     pub const fn is_collection(&self) -> bool {
         matches!(self, Self::Collection(_))
+    }
+
+    /// Returns the contained collection without consuming this container.
+    ///
+    /// # Returns
+    ///
+    /// `Some` for collection storage, or `None` for scalar storage.
+    #[inline(always)]
+    pub const fn as_collection(&self) -> Option<&MultiValues> {
+        match self {
+            Self::Scalar(_) => None,
+            Self::Collection(values) => Some(values),
+        }
+    }
+
+    /// Consumes this container and returns its collection values.
+    ///
+    /// # Returns
+    ///
+    /// The contained values when this container has collection shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns the original container unchanged when it has scalar shape.
+    #[inline(always)]
+    pub fn into_collection(self) -> Result<MultiValues, Self> {
+        match self {
+            Self::Scalar(_) => Err(self),
+            Self::Collection(values) => Ok(values),
+        }
     }
 
     /// Returns whether the shape contains no concrete value or collection.
@@ -212,8 +276,7 @@ impl ValueContainer {
     #[inline]
     pub fn get<T>(&self) -> ValueResult<T>
     where
-        for<'a> T: TryFrom<&'a Value, Error = ValueError>
-            + TryFrom<&'a MultiValues, Error = ValueError>,
+        T: StrictValueRead,
     {
         match self {
             Self::Scalar(value) => value.get(),
@@ -230,12 +293,11 @@ impl ValueContainer {
     #[inline]
     pub fn get_list<T>(&self) -> ValueResult<Vec<T>>
     where
-        for<'a> T: TryFrom<&'a Value, Error = ValueError>,
-        for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
+        T: StrictValueListRead,
     {
         match self {
-            Self::Scalar(value) => value.get().map(|value| vec![value]),
-            Self::Collection(values) => values.get(),
+            Self::Scalar(value) => T::read_scalar_list(value),
+            Self::Collection(values) => T::read_collection_list(values),
         }
     }
 

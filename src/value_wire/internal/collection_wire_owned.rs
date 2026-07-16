@@ -2,15 +2,17 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Owned collection payload used by V1 deserialization.
 
 use serde::Deserialize;
 
-use qubit_datatype::DataType;
-
 use crate::MultiValues;
+
+use super::WireDataTypeV1;
 
 /// Defines the owned collection payload and its runtime conversion.
 macro_rules! define_collection_wire_owned {
@@ -33,7 +35,7 @@ macro_rules! define_collection_wire_owned {
             #[serde(rename = "unset")]
             Unset(
                 /// Declared element type of the unset collection.
-                DataType,
+                WireDataTypeV1,
             ),
             $(
                 $(#[$cfg])*
@@ -51,7 +53,7 @@ macro_rules! define_collection_wire_owned {
             /// Restores the exact runtime collection variant.
             fn from(values: CollectionWireOwned) -> Self {
                 match values {
-                    CollectionWireOwned::Unset(data_type) => Self::Unset(data_type),
+                    CollectionWireOwned::Unset(data_type) => Self::Unset(data_type.into()),
                     $(
                         $(#[$cfg])*
                         CollectionWireOwned::$variant(values) => Self::$variant(values),
