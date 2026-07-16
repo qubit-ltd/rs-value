@@ -2,16 +2,11 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Canonical Serde payload adapters for value variants.
-
-use std::time::Duration;
-
-use serde::{
-    Deserialize,
-    Serialize,
-};
 
 pub(crate) use crate::finite_float::{
     float32,
@@ -27,145 +22,11 @@ pub(crate) use crate::wide_integer::{
 };
 
 #[cfg(feature = "big-number")]
-mod decimal {
-    use std::fmt;
-    use std::marker::PhantomData;
-    use std::str::FromStr;
+mod decimal;
 
-    use serde::de::{
-        self,
-        Visitor,
-    };
-    use serde::{
-        Deserialize,
-        Deserializer,
-        Serialize,
-        Serializer,
-    };
+mod internal;
 
-    /// Serializes a decimal value through its stable textual form.
-    struct DisplayDecimal<'a, T>(&'a T);
-
-    impl<T> Serialize for DisplayDecimal<'_, T>
-    where
-        T: fmt::Display,
-    {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            serializer.collect_str(self.0)
-        }
-    }
-
-    /// Parses one canonical decimal string into the requested value type.
-    struct DecimalVisitor<T>(PhantomData<T>);
-
-    /// Parses and validates the unique textual form emitted by serialization.
-    fn parse_canonical_decimal<T, E>(value: &str) -> Result<T, E>
-    where
-        T: FromStr + fmt::Display,
-        T::Err: fmt::Display,
-        E: de::Error,
-    {
-        let parsed = value.parse::<T>().map_err(E::custom)?;
-        if parsed.to_string() != value {
-            return Err(E::custom("non-canonical decimal string"));
-        }
-        Ok(parsed)
-    }
-
-    impl<'de, T> Visitor<'de> for DecimalVisitor<T>
-    where
-        T: FromStr + fmt::Display,
-        T::Err: fmt::Display,
-    {
-        type Value = T;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a decimal string")
-        }
-
-        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            parse_canonical_decimal(value)
-        }
-
-        fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            self.visit_str(&value)
-        }
-    }
-
-    /// Deserializable wrapper used by canonical decimal collection adapters.
-    struct ParsedDecimal<T>(T);
-
-    impl<'de, T> Deserialize<'de> for ParsedDecimal<T>
-    where
-        T: FromStr + fmt::Display,
-        T::Err: fmt::Display,
-    {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            deserializer
-                .deserialize_str(DecimalVisitor(PhantomData))
-                .map(Self)
-        }
-    }
-
-    /// Serializes one decimal value as its stable textual form.
-    pub(super) fn serialize<T, S>(
-        value: &T,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        T: fmt::Display,
-        S: Serializer,
-    {
-        DisplayDecimal(value).serialize(serializer)
-    }
-
-    /// Deserializes one decimal value from its textual form.
-    pub(super) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
-    where
-        T: FromStr + fmt::Display,
-        T::Err: fmt::Display,
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_str(DecimalVisitor(PhantomData))
-    }
-
-    /// Serializes decimal values as a sequence of stable textual forms.
-    pub(super) fn serialize_vec<T, S>(
-        values: &[T],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        T: fmt::Display,
-        S: Serializer,
-    {
-        serializer.collect_seq(values.iter().map(DisplayDecimal))
-    }
-
-    /// Deserializes decimal values from a sequence of textual forms.
-    pub(super) fn deserialize_vec<'de, T, D>(
-        deserializer: D,
-    ) -> Result<Vec<T>, D::Error>
-    where
-        T: FromStr + fmt::Display,
-        T::Err: fmt::Display,
-        D: Deserializer<'de>,
-    {
-        Vec::<ParsedDecimal<T>>::deserialize(deserializer)
-            .map(|values| values.into_iter().map(|value| value.0).collect())
-    }
-}
+use internal::DurationPayload;
 
 #[cfg(feature = "big-number")]
 macro_rules! define_decimal_serde {
@@ -236,36 +97,6 @@ macro_rules! define_decimal_serde {
 define_decimal_serde!(big_integer, big_integer_vec, num_bigint::BigInt);
 #[cfg(feature = "big-number")]
 define_decimal_serde!(big_decimal, big_decimal_vec, bigdecimal::BigDecimal);
-
-/// Stable wire representation of a duration.
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct DurationPayload {
-    /// Whole seconds.
-    secs: u64,
-    /// Fractional nanoseconds, always less than one second.
-    nanos: u32,
-}
-
-impl From<&Duration> for DurationPayload {
-    fn from(value: &Duration) -> Self {
-        Self {
-            secs: value.as_secs(),
-            nanos: value.subsec_nanos(),
-        }
-    }
-}
-
-impl TryFrom<DurationPayload> for Duration {
-    type Error = &'static str;
-
-    fn try_from(value: DurationPayload) -> Result<Self, Self::Error> {
-        if value.nanos >= 1_000_000_000 {
-            return Err("duration nanoseconds must be less than 1000000000");
-        }
-        Ok(Self::new(value.secs, value.nanos))
-    }
-}
 
 /// Canonical scalar duration payload adapter.
 pub(crate) mod duration {
