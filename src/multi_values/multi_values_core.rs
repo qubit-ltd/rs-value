@@ -443,7 +443,6 @@ impl MultiValues {
     /// assert_eq!(values.data_type(), DataType::Int32);
     /// ```
     #[inline(always)]
-    #[must_use]
     pub fn data_type(&self) -> DataType {
         for_each_value_type!(multi_values_data_type_match, self)
     }
