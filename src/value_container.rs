@@ -59,7 +59,7 @@ macro_rules! impl_value_container_from_table {
         $(
             $(#[$cfg])*
             impl From<$type> for ValueContainer {
-                #[inline]
+                #[inline(always)]
                 fn from(value: $type) -> Self {
                     Self::Scalar(Value::$variant(value))
                 }
@@ -67,7 +67,7 @@ macro_rules! impl_value_container_from_table {
 
             $(#[$cfg])*
             impl From<Vec<$type>> for ValueContainer {
-                #[inline]
+                #[inline(always)]
                 fn from(values: Vec<$type>) -> Self {
                     Self::Collection(MultiValues::$variant(values))
                 }
@@ -153,14 +153,14 @@ impl<'a, 'b, const N: usize> From<&'a [&'b str; N]> for ValueContainer {
 }
 
 impl From<Value> for ValueContainer {
-    #[inline]
+    #[inline(always)]
     fn from(value: Value) -> Self {
         Self::Scalar(value)
     }
 }
 
 impl From<MultiValues> for ValueContainer {
-    #[inline]
+    #[inline(always)]
     fn from(values: MultiValues) -> Self {
         Self::Collection(values)
     }
@@ -168,7 +168,7 @@ impl From<MultiValues> for ValueContainer {
 
 impl ValueContainer {
     /// Returns the stored or declared data type.
-    #[inline]
+    #[inline(always)]
     pub fn data_type(&self) -> DataType {
         match self {
             Self::Scalar(value) => value.data_type(),
@@ -177,7 +177,7 @@ impl ValueContainer {
     }
 
     /// Returns whether this container has scalar shape.
-    #[inline]
+    #[inline(always)]
     pub const fn is_scalar(&self) -> bool {
         matches!(self, Self::Scalar(_))
     }
@@ -213,7 +213,7 @@ impl ValueContainer {
     }
 
     /// Returns whether this container has collection shape.
-    #[inline]
+    #[inline(always)]
     pub const fn is_collection(&self) -> bool {
         matches!(self, Self::Collection(_))
     }
@@ -259,7 +259,7 @@ impl ValueContainer {
 
     /// Returns zero for unset storage, one for a concrete scalar, or the
     /// concrete collection length.
-    #[inline]
+    #[inline(always)]
     pub fn count(&self) -> usize {
         match self {
             Self::Scalar(value) => usize::from(!value.is_unset()),
@@ -273,7 +273,7 @@ impl ValueContainer {
     ///
     /// Returns [`ValueError::NoValue`] for unset or empty matching storage and
     /// [`ValueError::TypeMismatch`] when the stored data type differs.
-    #[inline]
+    #[inline(always)]
     pub fn get<T>(&self) -> ValueResult<T>
     where
         T: StrictValueRead,
@@ -290,7 +290,7 @@ impl ValueContainer {
     ///
     /// Returns [`ValueError::NoValue`] for unset matching storage and
     /// [`ValueError::TypeMismatch`] when the stored data type differs.
-    #[inline]
+    #[inline(always)]
     pub fn get_list<T>(&self) -> ValueResult<Vec<T>>
     where
         T: StrictValueListRead,
@@ -302,7 +302,7 @@ impl ValueContainer {
     }
 
     /// Replaces this container, including its shape, from a supported input.
-    #[inline]
+    #[inline(always)]
     pub fn set<S>(&mut self, value: S)
     where
         S: Into<Self>,
@@ -349,7 +349,7 @@ impl ValueContainer {
 
     /// Clears concrete storage while preserving its scalar or collection
     /// shape and data type.
-    #[inline]
+    #[inline(always)]
     pub fn clear(&mut self) {
         match self {
             Self::Scalar(value) => value.clear(),
@@ -358,7 +358,7 @@ impl ValueContainer {
     }
 
     /// Removes concrete storage while preserving its shape and data type.
-    #[inline]
+    #[inline(always)]
     pub fn unset(&mut self) {
         match self {
             Self::Scalar(value) => value.unset(),
@@ -372,7 +372,7 @@ impl ValueContainer {
     ///
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
-    #[inline]
+    #[inline(always)]
     pub fn to<T>(&self) -> ValueResult<T>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
@@ -387,7 +387,7 @@ impl ValueContainer {
     ///
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
-    #[inline]
+    #[inline(always)]
     pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
@@ -408,7 +408,7 @@ impl ValueContainer {
     ///
     /// Returns the mapped single-value or indexed list conversion error.
     #[cfg(feature = "converter")]
-    #[inline]
+    #[inline(always)]
     pub fn to_list<T>(&self) -> ValueResult<Vec<T>>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,

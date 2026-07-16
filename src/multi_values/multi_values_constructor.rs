@@ -16,11 +16,7 @@ fn collect_strings<'a, I>(values: I) -> Vec<String>
 where
     I: IntoIterator<Item = &'a str>,
 {
-    let mut result = Vec::new();
-    for value in values {
-        result.push(value.to_string());
-    }
-    result
+    values.into_iter().map(str::to_owned).collect()
 }
 
 macro_rules! impl_multi_values_from_table {

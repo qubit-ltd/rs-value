@@ -29,7 +29,7 @@ macro_rules! impl_value_from_table {
         $(
             $(#[$cfg])*
             impl From<$type> for Value {
-                #[inline]
+                #[inline(always)]
                 fn from(value: $type) -> Self {
                     Value::$variant(value)
                 }
