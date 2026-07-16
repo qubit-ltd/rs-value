@@ -61,6 +61,15 @@ and conversion while maintaining Rust's safety guarantees.
   `to_named_value()` and consuming `into_named_value()` conversions
 - **`ValueError` & `ValueResult<T>`**: Standard error type and result alias
 
+`Value` implements lawful `Eq` and `Hash`: variants remain distinct, signed
+zeros and all NaN payloads are canonicalized, and string maps plus JSON objects
+hash independently of key iteration order. Use `numeric_cmp` with an explicit
+`NumericComparisonPolicy` when mathematical comparison across numeric variants
+is intended.
+
+Unset values are always typed. Prefer `Value::new_unset(data_type)` and
+`MultiValues::new_unset(data_type)`; neither container implements `Default`.
+
 ## Installation
 
 Add this to your `Cargo.toml`:

@@ -47,6 +47,13 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
   `to_named_value()` 与消费式 `into_named_value()`
 - **`ValueError` 与 `ValueResult<T>`**: 标准错误与结果别名
 
+`Value` 提供满足约束的 `Eq` 与 `Hash`：不同变体保持不同，正负零和所有 NaN
+payload 会被规范化，字符串映射与 JSON 对象的 hash 不依赖键迭代顺序。需要跨数值
+变体按数学值比较时，使用带显式 `NumericComparisonPolicy` 的 `numeric_cmp`。
+
+未设置值始终携带类型。推荐使用 `Value::new_unset(data_type)` 与
+`MultiValues::new_unset(data_type)`；这两个容器都不再实现 `Default`。
+
 ## 安装
 
 在 `Cargo.toml` 中添加：
