@@ -11,39 +11,7 @@
 
 use qubit_datatype::DataType;
 
-/// Multiple values container
-///
-/// Uses an enum to represent multiple values of different types, providing
-/// type-safe storage and access for multiple values.
-///
-/// This enum is non-exhaustive; downstream matches must include a wildcard
-/// arm so future collection variants remain source-compatible.
-///
-/// # Behavior
-///
-/// - Stores a homogeneous collection from the closed [`DataType`] family.
-/// - Provides strict getters and, with `converter`, option-controlled
-///   conversion methods.
-/// - Distinguishes an unset container from a concrete empty vector.
-///
-/// # Example
-///
-/// ```rust
-/// use qubit_value::MultiValues;
-///
-/// // Create integer multiple values
-/// let mut values = MultiValues::Int32(vec![1, 2, 3]);
-/// assert_eq!(values.count(), 3);
-/// assert_eq!(values.get_first_int32().unwrap(), 1);
-///
-/// // Get all values
-/// let all = values.get_int32s().unwrap();
-/// assert_eq!(all, &[1, 2, 3]);
-///
-/// // Use generic method to add value
-/// values.add(4).unwrap();
-/// assert_eq!(values.count(), 4);
-/// ```
+/// Defines the public multi-value container from the shared value-type table.
 macro_rules! define_multi_values_enum {
     (
         ;
@@ -60,6 +28,37 @@ macro_rules! define_multi_values_enum {
             )
         ),+ $(,)?
     ) => {
+        /// Multiple values container.
+        ///
+        /// Uses an enum to represent multiple values of different types,
+        /// providing type-safe storage and access for multiple values.
+        ///
+        /// This enum is non-exhaustive; downstream matches must include a
+        /// wildcard arm so future collection variants remain source-compatible.
+        ///
+        /// # Behavior
+        ///
+        /// - Stores a homogeneous collection from the closed [`DataType`]
+        ///   family.
+        /// - Provides strict getters and, with `converter`, option-controlled
+        ///   conversion methods.
+        /// - Distinguishes an unset container from a concrete empty vector.
+        ///
+        /// # Example
+        ///
+        /// ```rust
+        /// use qubit_value::MultiValues;
+        ///
+        /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
+        /// assert_eq!(values.count(), 3);
+        /// assert_eq!(values.get_first_int32().unwrap(), 1);
+        ///
+        /// let all = values.get_int32s().unwrap();
+        /// assert_eq!(all, &[1, 2, 3]);
+        ///
+        /// values.add(4).unwrap();
+        /// assert_eq!(values.count(), 4);
+        /// ```
         #[non_exhaustive]
         #[derive(Debug, Clone, PartialEq)]
         pub enum MultiValues {
