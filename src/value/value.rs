@@ -24,38 +24,7 @@ use crate::{
     ValueError,
 };
 
-/// Single value container
-///
-/// Uses an enum to represent different types of values, providing
-/// type-safe value storage and access.
-///
-/// This enum is non-exhaustive; downstream matches must include a wildcard
-/// arm so future value variants remain source-compatible.
-///
-/// # Behavior
-///
-/// - Stores one value from the closed [`DataType`] family.
-/// - Provides strict getters and, with `converter`, option-controlled
-///   conversion methods.
-/// - Distinguishes an unset container from concrete inner values.
-///
-/// # Example
-///
-/// ```rust
-/// use qubit_value::Value;
-///
-/// // Create an integer value
-/// let value = Value::Int32(42);
-/// assert_eq!(value.get_int32().unwrap(), 42);
-///
-/// // Strict generic access
-/// let number: i32 = value.get().unwrap();
-/// assert_eq!(number, 42);
-///
-/// // String value
-/// let text = Value::String("hello".to_string());
-/// assert_eq!(text.get_string().unwrap(), "hello");
-/// ```
+/// Defines the public single-value container from the shared value-type table.
 macro_rules! define_value_enum {
     (
         ;
@@ -72,6 +41,35 @@ macro_rules! define_value_enum {
             )
         ),+ $(,)?
     ) => {
+        /// Single value container.
+        ///
+        /// Uses an enum to represent different types of values, providing
+        /// type-safe value storage and access.
+        ///
+        /// This enum is non-exhaustive; downstream matches must include a
+        /// wildcard arm so future value variants remain source-compatible.
+        ///
+        /// # Behavior
+        ///
+        /// - Stores one value from the closed [`DataType`] family.
+        /// - Provides strict getters and, with `converter`, option-controlled
+        ///   conversion methods.
+        /// - Distinguishes an unset container from concrete inner values.
+        ///
+        /// # Example
+        ///
+        /// ```rust
+        /// use qubit_value::Value;
+        ///
+        /// let value = Value::Int32(42);
+        /// assert_eq!(value.get_int32().unwrap(), 42);
+        ///
+        /// let number: i32 = value.get().unwrap();
+        /// assert_eq!(number, 42);
+        ///
+        /// let text = Value::String("hello".to_string());
+        /// assert_eq!(text.get_string().unwrap(), "hello");
+        /// ```
         #[non_exhaustive]
         #[derive(Debug, Clone, PartialEq)]
         pub enum Value {
