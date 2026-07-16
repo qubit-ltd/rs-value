@@ -5,7 +5,7 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Golden tests for the type-preserving tagged Serde representation.
+//! Golden tests for the type-preserving versioned wire representation.
 
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -164,7 +164,7 @@ fn value_fixtures() -> Vec<ValueFixture> {
                 BigDecimal::from_str("123.4500").expect("valid decimal"),
             ),
             tag: "bigdecimal",
-            payload: json!("123.4500"),
+            payload: json!({"coefficient": "1234500", "scale": 4}),
         },
         ValueFixture {
             data_type: DataType::String,
@@ -487,14 +487,19 @@ fn value_wire_v1_wide_integer_payloads_require_canonical_decimal_strings() {
 }
 
 #[test]
-fn value_wire_v1_big_number_payloads_require_canonical_decimal_strings() {
+fn value_wire_v1_big_number_payloads_require_canonical_structures() {
     for invalid in [
         scalar_wire("biginteger", json!([1, [123]])),
         scalar_wire("biginteger", json!("12x")),
         scalar_wire("biginteger", json!("+1")),
         scalar_wire("biginteger", json!("001")),
         scalar_wire("bigdecimal", json!(12.5)),
-        scalar_wire("bigdecimal", json!("001.0")),
+        scalar_wire("bigdecimal", json!("1.0")),
+        scalar_wire("bigdecimal", json!({"coefficient": "01", "scale": 1})),
+        scalar_wire(
+            "bigdecimal",
+            json!({"coefficient": "1", "scale": 1, "extra": true}),
+        ),
     ] {
         assert!(serde_json::from_value::<Value>(invalid).is_err());
     }
