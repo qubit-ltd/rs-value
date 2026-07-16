@@ -26,6 +26,8 @@ mod decimal;
 
 mod internal;
 
+#[cfg(feature = "big-number")]
+use internal::BigDecimalPayload;
 use internal::DurationPayload;
 
 #[cfg(feature = "big-number")]
@@ -95,8 +97,82 @@ macro_rules! define_decimal_serde {
 
 #[cfg(feature = "big-number")]
 define_decimal_serde!(big_integer, big_integer_vec, num_bigint::BigInt);
+
+/// Canonical arbitrary-precision decimal scalar payload adapter.
 #[cfg(feature = "big-number")]
-define_decimal_serde!(big_decimal, big_decimal_vec, bigdecimal::BigDecimal);
+pub(crate) mod big_decimal {
+    use bigdecimal::BigDecimal;
+    use serde::de::Error as _;
+    use serde::{
+        Deserialize,
+        Deserializer,
+        Serialize,
+        Serializer,
+    };
+
+    use super::BigDecimalPayload;
+
+    /// Serializes a decimal as an exact `{ coefficient, scale }` payload.
+    pub(crate) fn serialize<S>(
+        value: &BigDecimal,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        BigDecimalPayload::from(value).serialize(serializer)
+    }
+
+    /// Deserializes and validates an exact decimal payload.
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<BigDecimal, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        BigDecimalPayload::deserialize(deserializer)?
+            .try_into()
+            .map_err(D::Error::custom)
+    }
+}
+
+/// Canonical arbitrary-precision decimal collection payload adapter.
+#[cfg(feature = "big-number")]
+pub(crate) mod big_decimal_vec {
+    use bigdecimal::BigDecimal;
+    use serde::de::Error as _;
+    use serde::{
+        Deserialize,
+        Deserializer,
+        Serializer,
+    };
+
+    use super::BigDecimalPayload;
+
+    /// Serializes decimals as exact `{ coefficient, scale }` payloads.
+    pub(crate) fn serialize<S>(
+        values: &[BigDecimal],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_seq(values.iter().map(BigDecimalPayload::from))
+    }
+
+    /// Deserializes and validates exact decimal payloads.
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Vec<BigDecimal>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Vec::<BigDecimalPayload>::deserialize(deserializer)?
+            .into_iter()
+            .map(|value| value.try_into().map_err(D::Error::custom))
+            .collect()
+    }
+}
 
 /// Canonical scalar duration payload adapter.
 pub(crate) mod duration {

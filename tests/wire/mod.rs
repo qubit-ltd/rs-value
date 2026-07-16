@@ -6,12 +6,6 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-//! Internal payload types for canonical wire adapters.
+//! Tests for canonical wire payload adapters.
 
-#[cfg(feature = "big-number")]
-mod big_decimal_payload;
-mod duration_payload;
-
-#[cfg(feature = "big-number")]
-pub(in crate::wire) use big_decimal_payload::BigDecimalPayload;
-pub(in crate::wire) use duration_payload::DurationPayload;
+mod internal;
