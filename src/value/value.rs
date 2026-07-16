@@ -14,8 +14,7 @@ use qubit_datatype::DataType;
 use qubit_datatype::{
     DataConversionError,
     DataConversionOptions,
-    DataConvertTo,
-    DataConverter,
+    DataConversionTarget,
 };
 
 use crate::value_error::ValueResult;
@@ -70,8 +69,9 @@ macro_rules! define_value_enum {
         /// let text = Value::String("hello".to_string());
         /// assert_eq!(text.get_string().unwrap(), "hello");
         /// ```
+        #[must_use]
         #[non_exhaustive]
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone)]
         pub enum Value {
             /// Unset value with a declared data type.
             Unset(DataType),
@@ -111,6 +111,20 @@ macro_rules! value_data_type_match {
 /// The macro automatically extracts preceding documentation comments, so
 /// you can add `///` comments before macro invocations.
 impl Value {
+    /// Creates an unset scalar with an explicit declared type.
+    ///
+    /// # Arguments
+    ///
+    /// * `data_type` - Declared type retained while no concrete value exists.
+    ///
+    /// # Returns
+    ///
+    /// An unset scalar carrying `data_type`.
+    #[inline(always)]
+    pub const fn new_unset(data_type: DataType) -> Self {
+        Self::Unset(data_type)
+    }
+
     /// Generic constructor method
     ///
     /// Creates a `Value` from any supported type, avoiding direct use of
@@ -284,7 +298,7 @@ impl Value {
     #[cfg(feature = "converter")]
     pub fn to<T>(&self) -> ValueResult<T>
     where
-        for<'a> DataConverter<'a>: DataConvertTo<T>,
+        T: DataConversionTarget,
     {
         self.to_with(DataConversionOptions::default_ref())
     }
@@ -296,7 +310,7 @@ impl Value {
     #[cfg(feature = "converter")]
     pub fn to_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
-        for<'a> DataConverter<'a>: DataConvertTo<T>,
+        T: DataConversionTarget,
     {
         match self.to() {
             Err(ValueError::DataConversion(DataConversionError::Missing {
@@ -333,7 +347,7 @@ impl Value {
     #[cfg(feature = "converter")]
     pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
-        for<'a> DataConverter<'a>: DataConvertTo<T>,
+        T: DataConversionTarget,
     {
         super::value_converters::convert_with_data_converter_with(self, options)
     }
@@ -350,7 +364,7 @@ impl Value {
         options: &DataConversionOptions,
     ) -> ValueResult<T>
     where
-        for<'a> DataConverter<'a>: DataConvertTo<T>,
+        T: DataConversionTarget,
     {
         match self.to_with(options) {
             Err(ValueError::DataConversion(DataConversionError::Missing {
@@ -445,6 +459,7 @@ impl Value {
     /// assert_eq!(empty.data_type(), DataType::String);
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn data_type(&self) -> DataType {
         for_each_value_type!(value_data_type_match, self)
     }
@@ -469,6 +484,7 @@ impl Value {
     /// assert!(empty.is_unset());
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn is_unset(&self) -> bool {
         matches!(self, Value::Unset(_))
     }
@@ -477,6 +493,7 @@ impl Value {
     ///
     /// An unset value returns `false`, even when its declared type is numeric.
     #[inline]
+    #[must_use]
     pub fn is_numeric(&self) -> bool {
         !self.is_unset() && self.data_type().is_numeric()
     }
@@ -532,12 +549,5 @@ impl Value {
         if self.data_type() != data_type {
             *self = Value::Unset(data_type);
         }
-    }
-}
-
-impl Default for Value {
-    #[inline]
-    fn default() -> Self {
-        Value::Unset(DataType::String)
     }
 }

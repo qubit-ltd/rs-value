@@ -52,6 +52,7 @@ use super::value::Value;
 /// // Call Value methods through Deref
 /// assert!(named.get_bool().unwrap());
 /// ```
+#[must_use]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NamedValue {
     /// Name of the value
@@ -107,6 +108,7 @@ impl NamedValue {
     /// assert_eq!(named.name(), "host");
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }

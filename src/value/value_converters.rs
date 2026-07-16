@@ -12,7 +12,7 @@
 
 use qubit_datatype::{
     DataConversionOptions,
-    DataConvertTo,
+    DataConversionTarget,
     DataConverter,
 };
 
@@ -58,7 +58,7 @@ pub(super) fn convert_with_data_converter_with<T>(
     options: &DataConversionOptions,
 ) -> ValueResult<T>
 where
-    for<'a> DataConverter<'a>: DataConvertTo<T>,
+    T: DataConversionTarget,
 {
     data_converter_from_value(value)
         .to_with::<T>(options)

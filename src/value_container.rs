@@ -20,8 +20,7 @@ use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
 use qubit_datatype::{
     DataConversionOptions,
-    DataConvertTo,
-    DataConverter,
+    DataConversionTarget,
     DataTypeOf,
     ScalarStringDataConverters,
 };
@@ -32,6 +31,7 @@ use qubit_datatype::{
 /// `Scalar(Value::Int32(42))` and
 /// `Collection(MultiValues::Int32(vec![42]))` remain distinguishable through
 /// conversion and serialization boundaries.
+#[must_use]
 #[derive(Debug, Clone, PartialEq)]
 pub enum ValueContainer {
     /// One typed value.
@@ -169,6 +169,7 @@ impl From<MultiValues> for ValueContainer {
 impl ValueContainer {
     /// Returns the stored or declared data type.
     #[inline(always)]
+    #[must_use]
     pub fn data_type(&self) -> DataType {
         match self {
             Self::Scalar(value) => value.data_type(),
@@ -178,6 +179,7 @@ impl ValueContainer {
 
     /// Returns whether this container has scalar shape.
     #[inline(always)]
+    #[must_use]
     pub const fn is_scalar(&self) -> bool {
         matches!(self, Self::Scalar(_))
     }
@@ -214,6 +216,7 @@ impl ValueContainer {
 
     /// Returns whether this container has collection shape.
     #[inline(always)]
+    #[must_use]
     pub const fn is_collection(&self) -> bool {
         matches!(self, Self::Collection(_))
     }
@@ -250,6 +253,7 @@ impl ValueContainer {
 
     /// Returns whether the shape contains no concrete value or collection.
     #[inline]
+    #[must_use]
     pub fn is_unset(&self) -> bool {
         match self {
             Self::Scalar(value) => value.is_unset(),
@@ -260,6 +264,7 @@ impl ValueContainer {
     /// Returns zero for unset storage, one for a concrete scalar, or the
     /// concrete collection length.
     #[inline(always)]
+    #[must_use]
     pub fn count(&self) -> usize {
         match self {
             Self::Scalar(value) => usize::from(!value.is_unset()),
@@ -375,7 +380,7 @@ impl ValueContainer {
     #[inline(always)]
     pub fn to<T>(&self) -> ValueResult<T>
     where
-        for<'a> DataConverter<'a>: DataConvertTo<T>,
+        T: DataConversionTarget,
         T: DataTypeOf,
     {
         self.to_with(DataConversionOptions::default_ref())
@@ -390,7 +395,7 @@ impl ValueContainer {
     #[inline(always)]
     pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
-        for<'a> DataConverter<'a>: DataConvertTo<T>,
+        T: DataConversionTarget,
         T: DataTypeOf,
     {
         match self {
@@ -411,7 +416,7 @@ impl ValueContainer {
     #[inline(always)]
     pub fn to_list<T>(&self) -> ValueResult<Vec<T>>
     where
-        for<'a> DataConverter<'a>: DataConvertTo<T>,
+        T: DataConversionTarget,
         T: DataTypeOf,
     {
         self.to_list_with(DataConversionOptions::default_ref())
@@ -428,7 +433,7 @@ impl ValueContainer {
         options: &DataConversionOptions,
     ) -> ValueResult<Vec<T>>
     where
-        for<'a> DataConverter<'a>: DataConvertTo<T>,
+        T: DataConversionTarget,
         T: DataTypeOf,
     {
         match self {

@@ -62,7 +62,7 @@ fn test_value_defaulted_reads_use_default_only_for_empty() {
         StringConversionOptions,
     };
 
-    let empty = Value::default();
+    let empty = Value::new_unset(DataType::String);
     assert_eq!(empty.get_or::<String>("fallback").unwrap(), "fallback");
     assert_eq!(empty.to_or::<u16>(8080).unwrap(), 8080);
 

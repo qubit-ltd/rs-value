@@ -16,6 +16,8 @@ mod value_converter_tests;
 mod value_converters_tests;
 mod value_core_tests;
 mod value_getter_tests;
+mod value_identity_tests;
+mod value_numeric_comparison_tests;
 mod value_setter_tests;
 mod value_tests;
 mod value_v030_tests;
