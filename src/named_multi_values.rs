@@ -118,7 +118,7 @@ impl NamedMultiValues {
     /// let named = NamedMultiValues::new("items", MultiValues::Int32(vec![1, 2, 3]));
     /// assert_eq!(named.name(), "items");
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -144,7 +144,7 @@ impl NamedMultiValues {
     /// named.set_name("new");
     /// assert_eq!(named.name(), "new");
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn set_name(&mut self, name: impl Into<String>) {
         self.name = name.into();
     }
@@ -178,7 +178,7 @@ impl NamedMultiValues {
 impl Deref for NamedMultiValues {
     type Target = MultiValues;
 
-    #[inline]
+    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         &self.value
     }
@@ -187,7 +187,7 @@ impl Deref for NamedMultiValues {
 /// Transparently delegate mutable methods to the inner `MultiValues` through
 /// `DerefMut`.
 impl DerefMut for NamedMultiValues {
-    #[inline]
+    #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }

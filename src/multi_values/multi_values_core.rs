@@ -191,7 +191,7 @@ impl MultiValues {
     /// let nums = multi.get::<i32>().unwrap();
     /// assert_eq!(nums, vec![1, 2, 3]);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn get<T>(&self) -> ValueResult<Vec<T>>
     where
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
@@ -259,7 +259,7 @@ impl MultiValues {
     /// let first: String = multi.get_first().unwrap();
     /// assert_eq!(first, "hello");
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
@@ -342,7 +342,7 @@ impl MultiValues {
     /// mv.set(vec!["hello".to_string(), "world".to_string()]);
     /// assert_eq!(mv.get_strings().unwrap(), &["hello", "world"]);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn set<S>(&mut self, values: S)
     where
         S: Into<Self>,
@@ -392,7 +392,6 @@ impl MultiValues {
     /// mv.add(slice).unwrap();
     /// assert_eq!(mv.get_int32s().unwrap(), &[42, 100, 200, 300, 400, 500]);
     /// ```
-    #[inline]
     pub fn add<S>(&mut self, values: S) -> ValueResult<()>
     where
         S: Into<Self>,
@@ -428,7 +427,7 @@ impl MultiValues {
     /// let values = MultiValues::Int32(vec![1, 2, 3]);
     /// assert_eq!(values.data_type(), DataType::Int32);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn data_type(&self) -> DataType {
         for_each_value_type!(multi_values_data_type_match, self)
     }
@@ -451,7 +450,7 @@ impl MultiValues {
     /// let empty = MultiValues::Unset(DataType::String);
     /// assert_eq!(empty.count(), 0);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn count(&self) -> usize {
         for_each_value_type!(multi_values_count_match, self)
     }
@@ -475,7 +474,7 @@ impl MultiValues {
     /// let empty = MultiValues::Unset(DataType::String);
     /// assert!(empty.is_unset());
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn is_unset(&self) -> bool {
         matches!(self, MultiValues::Unset(_))
     }
@@ -490,7 +489,7 @@ impl MultiValues {
     }
 
     /// Removes the concrete vector while preserving its declared data type.
-    #[inline]
+    #[inline(always)]
     pub fn unset(&mut self) {
         *self = MultiValues::Unset(self.data_type());
     }
@@ -508,7 +507,7 @@ impl MultiValues {
     /// assert_eq!(values.count(), 0);
     /// assert_eq!(values.data_type(), DataType::Int32);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn clear(&mut self) {
         for_each_value_type!(multi_values_clear_match, self)
     }

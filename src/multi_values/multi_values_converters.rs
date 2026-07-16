@@ -87,7 +87,7 @@ macro_rules! multi_values_convert_list_match {
 ///
 /// Returns the mapped single-value conversion error for an empty source or an
 /// invalid first source value.
-#[inline]
+#[inline(always)]
 fn convert_first_with<'a, T, I>(
     values: DataConverters<I>,
     options: &DataConversionOptions,
@@ -120,7 +120,7 @@ where
 /// # Errors
 ///
 /// Returns a mapped batch conversion error containing the failing source index.
-#[inline]
+#[inline(always)]
 fn convert_values_with<'a, T, I>(
     values: DataConverters<I>,
     options: &DataConversionOptions,
@@ -154,7 +154,7 @@ impl MultiValues {
     /// Returns a structured missing-value conversion error when the container
     /// is unset, an empty-collection error for a concrete empty vector, or a
     /// conversion error when the first value cannot be converted to `T`.
-    #[inline]
+    #[inline(always)]
     pub fn to<T>(&self) -> ValueResult<T>
     where
         for<'a> DataConverter<'a>: DataConvertTo<T>,
@@ -163,8 +163,28 @@ impl MultiValues {
         self.to_with(DataConversionOptions::default_ref())
     }
 
-    /// Converts the first stored value to `T`, or returns `default` when no
-    /// value is stored.
+    /// Converts the first stored value to `T`, or returns `default` only when
+    /// the container is [`MultiValues::Unset`].
+    ///
+    /// A concrete empty collection remains an error and does not use the
+    /// default.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target type.
+    ///
+    /// # Arguments
+    ///
+    /// * `default` - Value returned only for an unset container.
+    ///
+    /// # Returns
+    ///
+    /// The converted first value, or `default` for an unset container.
+    ///
+    /// # Errors
+    ///
+    /// Returns an empty-collection error for a concrete empty vector, or a
+    /// conversion error when the first value cannot be converted to `T`.
     #[inline]
     pub fn to_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
@@ -211,7 +231,7 @@ impl MultiValues {
     }
 
     /// Converts the first stored value to `T` using conversion options, or
-    /// returns `default` when the container is unset.
+    /// returns `default` only when the container is [`MultiValues::Unset`].
     #[inline]
     pub fn to_or_with<T>(
         &self,

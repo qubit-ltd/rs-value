@@ -106,7 +106,7 @@ impl NamedValue {
     /// let named = NamedValue::new("host", Value::String("localhost".to_string()));
     /// assert_eq!(named.name(), "host");
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -128,13 +128,13 @@ impl NamedValue {
     /// named.set_name("new_name");
     /// assert_eq!(named.name(), "new_name");
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn set_name(&mut self, name: impl Into<String>) {
         self.name = name.into();
     }
 
     /// Consume the instance and return `(name, value)`.
-    #[inline]
+    #[inline(always)]
     pub fn into_parts(self) -> (String, Value) {
         (self.name, self.value)
     }
@@ -161,7 +161,7 @@ impl Deref for NamedValue {
     /// // Call Value methods through Deref
     /// assert!(named.get_bool().unwrap());
     /// ```
-    #[inline]
+    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         &self.value
     }
@@ -176,7 +176,7 @@ impl DerefMut for NamedValue {
     /// # Returns
     ///
     /// Returns a mutable reference `&mut Value` to the inner value.
-    #[inline]
+    #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }

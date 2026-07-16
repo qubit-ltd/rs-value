@@ -231,7 +231,7 @@ impl Value {
     /// let b: bool = flag.get().unwrap();
     /// assert_eq!(b, true);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn get<T>(&self) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
@@ -280,7 +280,7 @@ impl Value {
     /// assert_eq!(value.to::<i64>().unwrap(), 42);
     /// assert_eq!(value.to::<String>().unwrap(), "42");
     /// ```
-    #[inline]
+    #[inline(always)]
     #[cfg(feature = "converter")]
     pub fn to<T>(&self) -> ValueResult<T>
     where
@@ -418,7 +418,7 @@ impl Value {
     /// text.set("hello".to_string());
     /// assert_eq!(text.get_string().unwrap(), "hello");
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn set<T>(&mut self, value: T)
     where
         T: Into<Self>,
@@ -444,7 +444,7 @@ impl Value {
     /// let empty = Value::Unset(DataType::String);
     /// assert_eq!(empty.data_type(), DataType::String);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn data_type(&self) -> DataType {
         for_each_value_type!(value_data_type_match, self)
     }
@@ -468,7 +468,7 @@ impl Value {
     /// let empty = Value::Unset(DataType::String);
     /// assert!(empty.is_unset());
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn is_unset(&self) -> bool {
         matches!(self, Value::Unset(_))
     }
@@ -482,7 +482,7 @@ impl Value {
     }
 
     /// Removes the concrete value while preserving its declared data type.
-    #[inline]
+    #[inline(always)]
     pub fn unset(&mut self) {
         *self = Value::Unset(self.data_type());
     }
@@ -502,7 +502,7 @@ impl Value {
     /// assert!(value.is_unset());
     /// assert_eq!(value.data_type(), DataType::Int32);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn clear(&mut self) {
         self.unset();
     }
