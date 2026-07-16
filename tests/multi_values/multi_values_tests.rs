@@ -201,7 +201,7 @@ fn test_multi_value_strings() {
 
 #[test]
 fn test_multi_value_default() {
-    let mv: MultiValues = Default::default();
+    let mv = MultiValues::new_unset(DataType::String);
     assert_eq!(mv.data_type(), DataType::String);
     assert_eq!(mv.count(), 0);
 }

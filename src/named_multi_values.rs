@@ -57,6 +57,7 @@ use super::named_value::NamedValue;
 /// assert_eq!(named.name(), "ports");
 /// assert_eq!(named.count(), 3);
 /// ```
+#[must_use]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NamedMultiValues {
     /// Name of the values
@@ -119,6 +120,7 @@ impl NamedMultiValues {
     /// assert_eq!(named.name(), "items");
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }

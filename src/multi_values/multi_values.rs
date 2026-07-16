@@ -59,6 +59,7 @@ macro_rules! define_multi_values_enum {
         /// values.add(4).unwrap();
         /// assert_eq!(values.count(), 4);
         /// ```
+        #[must_use]
         #[non_exhaustive]
         #[derive(Debug, Clone, PartialEq)]
         pub enum MultiValues {

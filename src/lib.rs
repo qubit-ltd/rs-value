@@ -97,6 +97,7 @@ mod json;
 pub mod multi_values;
 mod named_multi_values;
 mod named_value;
+mod numeric_comparison_error;
 #[cfg(all(feature = "converter", feature = "json"))]
 mod strict_json;
 mod strict_value_list_read;
@@ -113,6 +114,7 @@ pub use into_value_default::IntoValueDefault;
 pub use multi_values::MultiValues;
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;
+pub use numeric_comparison_error::NumericComparisonError;
 pub use strict_value_list_read::StrictValueListRead;
 pub use strict_value_read::StrictValueRead;
 pub use value::Value;

@@ -120,6 +120,21 @@ macro_rules! value_into_multi_values_match {
 }
 
 impl MultiValues {
+    /// Creates an unset collection with an explicit declared element type.
+    ///
+    /// # Arguments
+    ///
+    /// * `data_type` - Declared element type retained while the collection is
+    ///   unset.
+    ///
+    /// # Returns
+    ///
+    /// An unset collection carrying `data_type`.
+    #[inline(always)]
+    pub const fn new_unset(data_type: DataType) -> Self {
+        Self::Unset(data_type)
+    }
+
     /// Generic constructor method
     ///
     /// Creates `MultiValues` from any supported input form, avoiding direct
@@ -428,6 +443,7 @@ impl MultiValues {
     /// assert_eq!(values.data_type(), DataType::Int32);
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn data_type(&self) -> DataType {
         for_each_value_type!(multi_values_data_type_match, self)
     }
@@ -451,6 +467,7 @@ impl MultiValues {
     /// assert_eq!(empty.count(), 0);
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn count(&self) -> usize {
         for_each_value_type!(multi_values_count_match, self)
     }
@@ -475,6 +492,7 @@ impl MultiValues {
     /// assert!(empty.is_unset());
     /// ```
     #[inline(always)]
+    #[must_use]
     pub fn is_unset(&self) -> bool {
         matches!(self, MultiValues::Unset(_))
     }
@@ -484,6 +502,7 @@ impl MultiValues {
     /// A concrete empty numeric vector returns `true`; an unset collection
     /// returns `false`, even when its declared type is numeric.
     #[inline]
+    #[must_use]
     pub fn is_numeric(&self) -> bool {
         !self.is_unset() && self.data_type().is_numeric()
     }
@@ -573,13 +592,6 @@ impl MultiValues {
         }
         for_each_value_type!(multi_values_merge_match, self, other);
         Ok(())
-    }
-}
-
-impl Default for MultiValues {
-    #[inline]
-    fn default() -> Self {
-        MultiValues::Unset(DataType::String)
     }
 }
 

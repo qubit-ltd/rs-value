@@ -97,7 +97,7 @@ fn test_value_tagged_serde_rejects_non_finite_floats() {
 }
 #[test]
 fn test_value_default() {
-    let v: Value = Default::default();
+    let v = Value::new_unset(DataType::String);
     assert_eq!(v.data_type(), DataType::String);
     assert!(v.is_unset());
 }

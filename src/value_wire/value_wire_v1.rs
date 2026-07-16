@@ -28,6 +28,7 @@ use super::VALUE_WIRE_V1_VERSION;
 /// The compatibility guarantee covers the documented JSON object structure.
 /// Other Serde formats may work, but their representation is not part of the
 /// V1 stability contract.
+#[must_use]
 #[derive(Debug, Clone, PartialEq)]
 pub struct ValueWireV1 {
     /// Explicit runtime shape and typed payload represented by this DTO.

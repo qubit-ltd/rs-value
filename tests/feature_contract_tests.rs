@@ -16,8 +16,18 @@ use chrono::NaiveDate;
 #[cfg(feature = "big-number")]
 use num_bigint::BigInt;
 #[cfg(feature = "converter")]
+use qubit_datatype::{
+    DataConversionError,
+    DataConversionOptions,
+    DataConversionTarget,
+    DataConverter,
+    DataType,
+    DataTypeOf,
+};
+#[cfg(feature = "converter")]
 use qubit_value::ValueContainer;
 #[cfg(any(
+    feature = "converter",
     feature = "chrono",
     feature = "big-number",
     feature = "url",
@@ -74,6 +84,43 @@ fn converter_feature_converts_core_values() {
         vec![43, 44]
     );
     assert_json_round_trip(&collection);
+}
+
+/// A downstream conversion target used to validate rs-value's public bounds.
+#[cfg(feature = "converter")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Port(u16);
+
+#[cfg(feature = "converter")]
+impl DataTypeOf for Port {
+    const DATA_TYPE: DataType = DataType::UInt16;
+}
+
+#[cfg(feature = "converter")]
+impl DataConversionTarget for Port {
+    fn convert_from(
+        source: &DataConverter<'_>,
+        options: &DataConversionOptions,
+    ) -> Result<Self, DataConversionError> {
+        u16::convert_from(source, options).map(Self)
+    }
+}
+
+/// Verifies every value shape accepts a downstream-owned target directly.
+#[cfg(feature = "converter")]
+#[test]
+fn converter_feature_accepts_target_side_extension() {
+    assert_eq!(Value::from("8080").to::<Port>().unwrap(), Port(8080));
+    assert_eq!(
+        MultiValues::from(vec!["8080", "8081"])
+            .to_list::<Port>()
+            .unwrap(),
+        vec![Port(8080), Port(8081)]
+    );
+    assert_eq!(
+        ValueContainer::from("8082").to::<Port>().unwrap(),
+        Port(8082)
+    );
 }
 
 #[cfg(feature = "chrono")]

@@ -131,6 +131,18 @@ fn assert_non_exhaustive_match_failure(output: &Output) {
     );
 }
 
+/// Verifies that an external consumer compilation succeeds.
+fn assert_consumer_compiles(output: &Output) {
+    let diagnostics = cargo_diagnostics(output);
+    assert!(output.status.success(), "{diagnostics}");
+}
+
+/// Verifies that an external consumer compilation fails.
+fn assert_consumer_fails(output: &Output) {
+    let diagnostics = cargo_diagnostics(output);
+    assert!(!output.status.success(), "{diagnostics}");
+}
+
 #[test]
 fn test_value_generic_api_uses_public_bounds() {
     let value = Value::new(42i32);
@@ -250,4 +262,39 @@ fn main() { let _ = classify; }
 "#,
     );
     assert_non_exhaustive_match_failure(&output);
+}
+
+#[test]
+fn test_external_consumer_requires_explicit_unset_type() {
+    let default_output = compile_all_features_consumer(concat!(
+        "use qubit_value::Value;\n",
+        "fn main() { let _ = Value::",
+        "default(); }\n",
+    ));
+    assert_consumer_fails(&default_output);
+
+    let explicit_output = compile_all_features_consumer(
+        r#"
+use qubit_value::{MultiValues, Value};
+fn main() {
+    let _ = Value::new_unset(Value::Int32(0).data_type());
+    let _ = MultiValues::new_unset(Value::String(String::new()).data_type());
+}
+"#,
+    );
+    assert_consumer_compiles(&explicit_output);
+}
+
+#[test]
+fn test_external_consumer_observes_must_use_contract() {
+    let output = compile_all_features_consumer(
+        r#"
+#![deny(unused_must_use)]
+use qubit_value::Value;
+fn main() {
+    Value::Int32(1);
+}
+"#,
+    );
+    assert_consumer_fails(&output);
 }

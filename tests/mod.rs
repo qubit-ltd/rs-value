@@ -14,6 +14,7 @@ mod json_tests;
 mod multi_values;
 mod named_multi_values_tests;
 mod named_value_tests;
+mod numeric_comparison_error_tests;
 mod public_api_boundary_tests;
 mod value;
 mod value_container_tests;
