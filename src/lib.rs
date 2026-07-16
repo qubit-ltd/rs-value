@@ -89,6 +89,7 @@
 
 // Sub-modules
 mod finite_float;
+mod identity;
 mod into_value_default;
 #[macro_use]
 mod value_type_table;
