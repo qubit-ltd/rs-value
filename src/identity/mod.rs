@@ -134,7 +134,7 @@ pub(crate) fn hash_string_map<H: Hasher>(
 ) {
     value.len().hash(state);
     let mut entries: Vec<_> = value.iter().collect();
-    entries.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
+    entries.sort_unstable_by_key(|(left, _)| *left);
     for (key, value) in entries {
         key.hash(state);
         value.hash(state);
