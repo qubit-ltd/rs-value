@@ -21,7 +21,6 @@ use qubit_datatype::DataType;
 use qubit_datatype::{
     DataConversionOptions,
     DataConversionTarget,
-    DataTypeOf,
     ScalarStringDataConverters,
 };
 
@@ -381,7 +380,6 @@ impl ValueContainer {
     pub fn to<T>(&self) -> ValueResult<T>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         self.to_with(DataConversionOptions::default_ref())
     }
@@ -396,7 +394,6 @@ impl ValueContainer {
     pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         match self {
             Self::Scalar(value) => value.to_with(options),
@@ -417,7 +414,6 @@ impl ValueContainer {
     pub fn to_list<T>(&self) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         self.to_list_with(DataConversionOptions::default_ref())
     }
@@ -434,7 +430,6 @@ impl ValueContainer {
     ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         match self {
             Self::Scalar(Value::String(value)) => {
