@@ -25,25 +25,54 @@ impl Value {
     /// representation identity, while numeric comparison compares mathematical
     /// values under an explicit policy.
     ///
-    /// # Arguments
+    /// Validation is deterministic: missing operands are checked from left to
+    /// right, followed by concrete operand types from left to right, and then
+    /// NaN positions.
+    ///
+    /// # Parameters
     ///
     /// * `other` - Right numeric operand.
     /// * `policy` - Exact or approximate numeric comparison policy.
     ///
     /// # Returns
     ///
-    /// The mathematical ordering of both numeric operands.
+    /// The mathematical ordering of the two concrete, non-NaN numeric
+    /// operands.
     ///
     /// # Errors
     ///
-    /// Returns [`NumericComparisonError::LeftNotNumeric`] or
-    /// [`NumericComparisonError::RightNotNumeric`] for non-numeric and unset
-    /// operands, and [`NumericComparisonError::UnorderedNaN`] for NaN.
+    /// Returns [`NumericComparisonError::LeftMissing`] or
+    /// [`NumericComparisonError::RightMissing`] when the corresponding operand
+    /// is unset. Returns [`NumericComparisonError::LeftNotNumeric`] or
+    /// [`NumericComparisonError::RightNotNumeric`] when the corresponding
+    /// concrete operand is not numeric. Returns
+    /// [`NumericComparisonError::LeftNaN`],
+    /// [`NumericComparisonError::RightNaN`], or
+    /// [`NumericComparisonError::BothNaN`] according to the position of NaN
+    /// operands. Missing operands are checked left-to-right, then concrete
+    /// operand types are checked left-to-right, and finally NaN positions are
+    /// classified.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the lower-level comparator cannot order two concrete,
+    /// non-NaN numeric representations, which would violate its contract.
     pub fn numeric_cmp(
         &self,
         other: &Self,
         policy: NumericComparisonPolicy,
     ) -> Result<Ordering, NumericComparisonError> {
+        if let Self::Unset(declared) = self {
+            return Err(NumericComparisonError::LeftMissing {
+                declared: *declared,
+            });
+        }
+        if let Self::Unset(declared) = other {
+            return Err(NumericComparisonError::RightMissing {
+                declared: *declared,
+            });
+        }
+
         let left = self.as_numeric_ref().ok_or_else(|| {
             NumericComparisonError::LeftNotNumeric {
                 actual: self.data_type(),
@@ -54,8 +83,16 @@ impl Value {
                 actual: other.data_type(),
             }
         })?;
-        compare_numeric(left, right, policy)
-            .ok_or(NumericComparisonError::UnorderedNaN)
+
+        match (self.is_nan_numeric(), other.is_nan_numeric()) {
+            (true, true) => return Err(NumericComparisonError::BothNaN),
+            (true, false) => return Err(NumericComparisonError::LeftNaN),
+            (false, true) => return Err(NumericComparisonError::RightNaN),
+            (false, false) => {}
+        }
+
+        Ok(compare_numeric(left, right, policy)
+            .expect("concrete non-NaN NumericValueRef values must be ordered"))
     }
 
     /// Borrows this value as a lower-level numeric representation.
@@ -84,6 +121,20 @@ impl Value {
             #[cfg(feature = "big-number")]
             Self::BigDecimal(value) => Some(NumericValueRef::BigDecimal(value)),
             _ => None,
+        }
+    }
+
+    /// Reports whether this concrete numeric value is NaN.
+    ///
+    /// # Returns
+    ///
+    /// `true` only for primitive floating-point NaN variants.
+    #[inline(always)]
+    fn is_nan_numeric(&self) -> bool {
+        match self {
+            Self::Float32(value) => value.is_nan(),
+            Self::Float64(value) => value.is_nan(),
+            _ => false,
         }
     }
 }
