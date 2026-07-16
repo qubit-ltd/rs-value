@@ -2,42 +2,24 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Serde adapters for JSON-compatible 128-bit integer payloads.
 
 use std::fmt;
-use std::marker::PhantomData;
 use std::str::FromStr;
 
-use serde::de::{
-    self,
-    Visitor,
+use serde::de;
+
+mod internal;
+
+use internal::{
+    DisplayInteger,
+    IntegerVisitor,
+    ParsedInteger,
 };
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
-
-/// Serializes a displayable integer as a decimal string without allocating.
-struct DisplayInteger<'a, T>(&'a T);
-
-impl<T> Serialize for DisplayInteger<'_, T>
-where
-    T: fmt::Display,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.collect_str(self.0)
-    }
-}
-
-/// Parses one decimal string into an integer without retaining input text.
-struct IntegerVisitor<T>(PhantomData<T>);
 
 /// Parses and validates the unique textual form emitted by serialization.
 fn parse_canonical_integer<T, E>(value: &str) -> Result<T, E>
@@ -51,50 +33,6 @@ where
         return Err(E::custom("non-canonical 128-bit integer string"));
     }
     Ok(parsed)
-}
-
-impl<'de, T> Visitor<'de> for IntegerVisitor<T>
-where
-    T: FromStr + fmt::Display,
-    T::Err: fmt::Display,
-{
-    type Value = T;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a base-10 128-bit integer string")
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        parse_canonical_integer(value)
-    }
-
-    fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        self.visit_str(&value)
-    }
-}
-
-/// Deserializable wrapper used by collection adapters.
-struct ParsedInteger<T>(T);
-
-impl<'de, T> Deserialize<'de> for ParsedInteger<T>
-where
-    T: FromStr + fmt::Display,
-    T::Err: fmt::Display,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer
-            .deserialize_str(IntegerVisitor(PhantomData))
-            .map(Self)
-    }
 }
 
 macro_rules! define_wide_integer_serde {
@@ -113,6 +51,7 @@ macro_rules! define_wide_integer_serde {
                 IntegerVisitor,
             };
 
+            /// Serializes a wide integer as a canonical decimal string.
             pub(crate) fn serialize<S>(
                 value: &$type,
                 serializer: S,
@@ -123,6 +62,7 @@ macro_rules! define_wide_integer_serde {
                 DisplayInteger(value).serialize(serializer)
             }
 
+            /// Deserializes a wide integer from a canonical decimal string.
             pub(crate) fn deserialize<'de, D>(
                 deserializer: D,
             ) -> Result<$type, D::Error>
@@ -145,6 +85,7 @@ macro_rules! define_wide_integer_serde {
                 ParsedInteger,
             };
 
+            /// Serializes wide integers as canonical decimal strings.
             pub(crate) fn serialize<S>(
                 values: &[$type],
                 serializer: S,
@@ -155,6 +96,7 @@ macro_rules! define_wide_integer_serde {
                 serializer.collect_seq(values.iter().map(DisplayInteger))
             }
 
+            /// Deserializes wide integers from canonical decimal strings.
             pub(crate) fn deserialize<'de, D>(
                 deserializer: D,
             ) -> Result<Vec<$type>, D::Error>

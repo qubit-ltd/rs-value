@@ -246,6 +246,23 @@ fn test_from_serializable_rejects_nested_non_finite_floats() {
             }
         ))
     ));
+
+    for payload in [
+        InvalidEnumPayload::Tuple(f64::NAN, 1),
+        InvalidEnumPayload::Struct {
+            value: f64::INFINITY,
+        },
+    ] {
+        assert!(matches!(
+            Value::from_serializable(&payload),
+            Err(ValueError::DataConversion(
+                DataConversionError::InvalidValue {
+                    reason: InvalidValueReason::NonFinite,
+                    ..
+                }
+            ))
+        ));
+    }
 }
 
 #[test]
@@ -295,6 +312,12 @@ enum EnumPayload {
     Newtype(u8),
     Tuple(u8, u16),
     Struct { value: u8 },
+}
+
+#[derive(Serialize)]
+enum InvalidEnumPayload {
+    Tuple(f64, u8),
+    Struct { value: f64 },
 }
 
 struct BytePayload;
