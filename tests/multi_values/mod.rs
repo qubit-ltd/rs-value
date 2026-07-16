@@ -16,6 +16,7 @@ mod multi_values_core_tests;
 mod multi_values_generic_coverage_tests;
 mod multi_values_getter_tests;
 mod multi_values_getters_tests;
+mod multi_values_identity_tests;
 mod multi_values_setters_tests;
 mod multi_values_tests;
 mod multi_values_type_table_tests;

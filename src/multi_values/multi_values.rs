@@ -61,7 +61,7 @@ macro_rules! define_multi_values_enum {
         /// ```
         #[must_use]
         #[non_exhaustive]
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone)]
         pub enum MultiValues {
             /// Unset collection with a declared element data type.
             Unset(DataType),
