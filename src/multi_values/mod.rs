@@ -18,5 +18,6 @@ mod multi_values_converters;
 mod multi_values_core;
 mod multi_values_getter;
 mod multi_values_getters;
+mod multi_values_identity;
 
 pub use multi_values::MultiValues;
