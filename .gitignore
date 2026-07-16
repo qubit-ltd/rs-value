@@ -59,6 +59,7 @@ node_modules/
 
 # Project specific exclusions
 external/
+.worktrees/
 .cursor
 .cursor/
 
