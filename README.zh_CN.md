@@ -353,7 +353,7 @@ assert_eq!(val, 8080);
   使用显式转换选项，并保持相同的默认值语义。
 - **`MultiValues::to<T>(&self) -> ValueResult<T>`** — 转换第一个存储值。
 - **`MultiValues::to_or<T>(&self, default) -> ValueResult<T>`** —
-  转换第一个存储值，如果没有值则返回默认值。
+  转换第一个存储值，仅当容器为 `Unset` 时返回默认值。
 - **`MultiValues::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   使用显式转换选项，并保持相同的默认值语义。
 - **`MultiValues::to_list<T>(&self) -> ValueResult<Vec<T>>`** —
@@ -488,12 +488,15 @@ serializer 使用，但这些格式各自的表示不属于 V1 稳定契约。
 `{"Unset":"int32"}` 和 `{"Scalar":{"Int32":42}}`。缺失或未知字段、不是
 数字 `1` 的版本、未知 shape/类型，以及与运行时入口不匹配的 shape 同样会拒绝。
 
-`Int128`、`UInt128`、`BigInteger` 与 `BigDecimal` 使用 canonical 十进制
-字符串。`Duration` 使用 `{"secs":u64,"nanos":u32}`，且 nanos 必须小于一秒。
-浮点 payload 必须是有限值。
+`Int128`、`UInt128` 与 `BigInteger` 使用 canonical 十进制字符串。
+`BigDecimal` 使用精确的 `{"coefficient":"...","scale":i64}` payload。
+`Duration` 使用 `{"secs":u64,"nanos":u32}`，且 nanos 必须小于一秒。浮点
+payload 必须是有限值。
 
 保留类型的 V1 wire 与 `to_json_value()` 的自然 JSON 投影是两个独立契约。
 自然 JSON 不包含运行时类型标签，未设置值投影为 `null`。
+Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍入时使用
+`to_json_value_with()` 并传入有损转换选项。
 
 ## 性能说明
 
