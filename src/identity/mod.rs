@@ -8,7 +8,10 @@
 //! Shared equality and hashing for runtime value payloads.
 
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::hash::{
+    Hash,
+    Hasher,
+};
 
 #[cfg(feature = "big-number")]
 mod big_decimal_hash;
@@ -70,7 +73,10 @@ pub(crate) fn canonical_f64_bits(value: f64) -> u64 {
 /// significant and array element order is significant.
 #[cfg(feature = "json")]
 #[inline(always)]
-pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bool {
+pub(crate) fn json_eq(
+    left: &serde_json::Value,
+    right: &serde_json::Value,
+) -> bool {
     left == right
 }
 
@@ -122,7 +128,10 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 ///
 /// * `value` - Map to hash.
 /// * `state` - Destination hasher.
-pub(crate) fn hash_string_map<H: Hasher>(value: &HashMap<String, String>, state: &mut H) {
+pub(crate) fn hash_string_map<H: Hasher>(
+    value: &HashMap<String, String>,
+    state: &mut H,
+) {
     value.len().hash(state);
     let mut entries: Vec<_> = value.iter().collect();
     entries.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));

@@ -173,20 +173,25 @@ fn test_value_big_decimal_identity_normalizes_coefficient_and_scale() {
         );
     }
 
-    let values: HashSet<_> = encodings.into_iter().map(Value::BigDecimal).collect();
+    let values: HashSet<_> =
+        encodings.into_iter().map(Value::BigDecimal).collect();
     assert_eq!(values.len(), 1);
 }
 
 /// Verifies zero and extreme scales never trigger scale-sized hashing work.
 #[test]
 fn test_value_big_decimal_hash_handles_extreme_scales() {
-    let zero_min = Value::BigDecimal(BigDecimal::new(BigInt::from(0), i64::MIN));
-    let zero_max = Value::BigDecimal(BigDecimal::new(BigInt::from(0), i64::MAX));
+    let zero_min =
+        Value::BigDecimal(BigDecimal::new(BigInt::from(0), i64::MIN));
+    let zero_max =
+        Value::BigDecimal(BigDecimal::new(BigInt::from(0), i64::MAX));
     assert_eq!(zero_min, zero_max);
     assert_eq!(hash(&zero_min), hash(&zero_max));
 
-    let positive = Value::BigDecimal(BigDecimal::new(BigInt::from(1), i64::MIN));
-    let negative = Value::BigDecimal(BigDecimal::new(BigInt::from(-1), i64::MIN));
+    let positive =
+        Value::BigDecimal(BigDecimal::new(BigInt::from(1), i64::MIN));
+    let negative =
+        Value::BigDecimal(BigDecimal::new(BigInt::from(-1), i64::MIN));
     assert_eq!(positive, positive);
     assert_eq!(negative, negative);
     let _ = hash(&positive);
