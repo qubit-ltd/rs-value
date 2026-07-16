@@ -372,7 +372,7 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 - **`MultiValues::to<T>(&self) -> ValueResult<T>`** — converts the first stored
   value.
 - **`MultiValues::to_or<T>(&self, default) -> ValueResult<T>`** — converts the
-  first stored value, or returns the default when no value exists.
+  first stored value, or returns the default only when the container is unset.
 - **`MultiValues::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   same fallback behavior while using explicit conversion options.
 - **`MultiValues::to_list<T>(&self) -> ValueResult<Vec<T>>`** — converts all
@@ -521,12 +521,15 @@ Version 0.10 intentionally rejects former externally tagged forms such as
 rejects missing or unknown fields, versions other than numeric `1`, unknown
 shapes and types, and mismatched runtime entry shapes.
 
-`Int128`, `UInt128`, `BigInteger`, and `BigDecimal` payloads use canonical
-decimal strings. `Duration` uses `{"secs":u64,"nanos":u32}` and requires nanos
-below one second. Float payloads must be finite.
+`Int128`, `UInt128`, and `BigInteger` payloads use canonical decimal strings.
+`BigDecimal` uses an exact `{"coefficient":"...","scale":i64}` payload.
+`Duration` uses `{"secs":u64,"nanos":u32}` and requires nanos below one
+second. Float payloads must be finite.
 
 This type-preserving V1 wire is separate from `to_json_value()`, which emits
 natural JSON without runtime type tags and projects unset values to `null`.
+Duration projection is exact by default; use `to_json_value_with()` and lossy
+conversion options when unit rounding is intentional.
 
 ## Performance Notes
 
