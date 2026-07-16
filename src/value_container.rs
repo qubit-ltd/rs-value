@@ -168,7 +168,6 @@ impl From<MultiValues> for ValueContainer {
 impl ValueContainer {
     /// Returns the stored or declared data type.
     #[inline(always)]
-    #[must_use]
     pub fn data_type(&self) -> DataType {
         match self {
             Self::Scalar(value) => value.data_type(),

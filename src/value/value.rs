@@ -466,7 +466,6 @@ impl Value {
     /// assert_eq!(empty.data_type(), DataType::String);
     /// ```
     #[inline(always)]
-    #[must_use]
     pub fn data_type(&self) -> DataType {
         for_each_value_type!(value_data_type_match, self)
     }
