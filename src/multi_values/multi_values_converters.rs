@@ -16,7 +16,6 @@ use qubit_datatype::{
     DataConversionTarget,
     DataConverter,
     DataConverters,
-    DataTypeOf,
 };
 
 use crate::IntoValueDefault;
@@ -94,7 +93,6 @@ fn convert_first_with<'a, T, I>(
 ) -> ValueResult<T>
 where
     T: DataConversionTarget,
-    T: DataTypeOf,
     I: Iterator,
     I::Item: Into<DataConverter<'a>>,
 {
@@ -127,7 +125,6 @@ fn convert_values_with<'a, T, I>(
 ) -> ValueResult<Vec<T>>
 where
     T: DataConversionTarget,
-    T: DataTypeOf,
     I: Iterator,
     I::Item: Into<DataConverter<'a>>,
 {
@@ -158,7 +155,6 @@ impl MultiValues {
     pub fn to<T>(&self) -> ValueResult<T>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         self.to_with(DataConversionOptions::default_ref())
     }
@@ -189,7 +185,6 @@ impl MultiValues {
     pub fn to_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         match self.to() {
             Err(ValueError::DataConversion(DataConversionError::Missing {
@@ -225,7 +220,6 @@ impl MultiValues {
     pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         for_each_value_type!(multi_values_convert_first_match, self, options)
     }
@@ -240,7 +234,6 @@ impl MultiValues {
     ) -> ValueResult<T>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         match self.to_with(options) {
             Err(ValueError::DataConversion(DataConversionError::Missing {
@@ -272,7 +265,6 @@ impl MultiValues {
     pub fn to_list<T>(&self) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         self.to_list_with(DataConversionOptions::default_ref())
     }
@@ -286,7 +278,6 @@ impl MultiValues {
     ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         match self.to_list() {
             Err(ValueError::DataConversion(DataConversionError::Missing {
@@ -323,7 +314,6 @@ impl MultiValues {
     ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         for_each_value_type!(multi_values_convert_list_match, self, options)
     }
@@ -338,7 +328,6 @@ impl MultiValues {
     ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
-        T: DataTypeOf,
     {
         match self.to_list_with(options) {
             Err(ValueError::DataConversion(DataConversionError::Missing {
