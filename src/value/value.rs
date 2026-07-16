@@ -55,6 +55,13 @@ macro_rules! define_value_enum {
         ///   conversion methods.
         /// - Distinguishes an unset container from concrete inner values.
         ///
+        /// # Equality and hashing
+        ///
+        /// Equality preserves enum-variant identity. Signed zero is canonicalized,
+        /// every NaN payload within one float width is equal, and unordered payloads
+        /// hash structurally. Standard hash output is suitable for in-memory keys but
+        /// is not a stable persistent fingerprint.
+        ///
         /// # Example
         ///
         /// ```rust

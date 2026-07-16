@@ -47,9 +47,16 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
   `to_named_value()` 与消费式 `into_named_value()`
 - **`ValueError` 与 `ValueResult<T>`**: 标准错误与结果别名
 
-`Value` 提供满足约束的 `Eq` 与 `Hash`：不同变体保持不同，正负零和所有 NaN
-payload 会被规范化，字符串映射与 JSON 对象的 hash 不依赖键迭代顺序。需要跨数值
-变体按数学值比较时，使用带显式 `NumericComparisonPolicy` 的 `numeric_cmp`。
+`Value`、`MultiValues`、`ValueContainer`、`NamedValue`、`NamedMultiValues` 与
+`ValueWireV1` 均实现了满足约束的 `Eq` 和 `Hash`。不同变体以及标量/集合形态保持
+不同；同一浮点宽度内的正负零和所有 NaN payload 会被规范化；字符串映射与 JSON
+对象的 hash 不依赖键迭代顺序；集合元素顺序仍然有意义。需要跨数值变体按数学值
+比较时，请使用带显式 `NumericComparisonPolicy` 的 `numeric_cmp`。
+
+这些实现面向 Rust hash 集合和进程内缓存，其 hash 输出不是稳定指纹：结果可能随
+hasher、Rust 版本、crate 版本、启用的 feature、平台或实现变化。不要持久化
+`DefaultHasher` 输出，也不要把它用作分布式缓存键。持久身份需要另行设计带版本的
+规范字节表示与 fingerprint API。
 
 未设置值始终携带类型。推荐使用 `Value::new_unset(data_type)` 与
 `MultiValues::new_unset(data_type)`；这两个容器都不再实现 `Default`。
