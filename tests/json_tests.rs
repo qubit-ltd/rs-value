@@ -23,12 +23,14 @@ use chrono::{
 use num_bigint::BigInt;
 use qubit_datatype::{
     DataConversionError,
+    DataConversionOptions,
     DataType,
     InvalidValueReason,
 };
 use qubit_value::{
     MultiValues,
     Value,
+    ValueContainer,
     ValueError,
 };
 use serde::de::value::{
@@ -107,7 +109,7 @@ fn test_value_natural_json_projection() {
         json!(instant.to_string())
     );
     assert_eq!(
-        Value::Duration(Duration::from_nanos(1_500_000))
+        Value::Duration(Duration::from_millis(2))
             .to_json_value()
             .unwrap(),
         json!("2ms")
@@ -125,6 +127,47 @@ fn test_value_natural_json_projection() {
     );
     let nested = json!({"items": [1, null, true]});
     assert_eq!(Value::Json(nested.clone()).to_json_value().unwrap(), nested);
+}
+
+#[test]
+fn test_duration_natural_json_projection_obeys_conversion_options() {
+    let value = Value::Duration(Duration::from_micros(1_500));
+    assert!(matches!(
+        value.to_json_value(),
+        Err(ValueError::DataConversion(
+            DataConversionError::InvalidValue {
+                reason: InvalidValueReason::PrecisionLoss,
+                ..
+            }
+        ))
+    ));
+    assert_eq!(
+        value
+            .to_json_value_with(&DataConversionOptions::lossy())
+            .unwrap(),
+        json!("2ms")
+    );
+
+    let values = MultiValues::Duration(vec![Duration::from_micros(1_500)]);
+    assert!(
+        values
+            .to_json_value_with(DataConversionOptions::default_ref())
+            .is_err()
+    );
+    assert_eq!(
+        values
+            .to_json_value_with(&DataConversionOptions::lossy())
+            .unwrap(),
+        json!(["2ms"])
+    );
+
+    let container = ValueContainer::Collection(values);
+    assert_eq!(
+        container
+            .to_json_value_with(&DataConversionOptions::lossy())
+            .unwrap(),
+        json!(["2ms"])
+    );
 }
 
 #[test]

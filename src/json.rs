@@ -8,10 +8,10 @@
 
 //! Natural JSON projection for value containers.
 
-use std::time::Duration;
-
 use qubit_datatype::{
     DataConversionError,
+    DataConversionOptions,
+    DataConverter,
     DataListConversionError,
     DataType,
     InvalidValueReason,
@@ -44,34 +44,25 @@ fn finite_float(
     )
 }
 
-/// Formats a duration as rounded whole milliseconds with an `ms` suffix.
-fn duration_string(value: &Duration) -> String {
-    const NANOS_PER_MILLISECOND: u128 = 1_000_000;
-
-    let total_nanos = value.as_nanos();
-    let millis = total_nanos / NANOS_PER_MILLISECOND;
-    let remainder = total_nanos % NANOS_PER_MILLISECOND;
-    let rounded = millis + u128::from(remainder >= NANOS_PER_MILLISECOND / 2);
-    format!("{rounded}ms")
-}
-
 macro_rules! scalar_to_json {
-    (json_bool, $value:expr, $from:expr) => {
+    (json_bool, $value:expr, $from:expr, $options:expr) => {
         Ok(JsonValue::Bool(*$value))
     };
-    (json_number, $value:expr, $from:expr) => {
+    (json_number, $value:expr, $from:expr, $options:expr) => {
         Ok(JsonValue::from(*$value))
     };
-    (json_float, $value:expr, $from:expr) => {
+    (json_float, $value:expr, $from:expr, $options:expr) => {
         finite_float(*$value as f64, $from)
     };
-    (json_string, $value:expr, $from:expr) => {
+    (json_string, $value:expr, $from:expr, $options:expr) => {
         Ok(JsonValue::String($value.to_string()))
     };
-    (json_duration, $value:expr, $from:expr) => {
-        Ok(JsonValue::String(duration_string($value)))
+    (json_duration, $value:expr, $from:expr, $options:expr) => {
+        DataConverter::from(*$value)
+            .to_with::<String>($options)
+            .map(JsonValue::String)
     };
-    (json_object, $value:expr, $from:expr) => {
+    (json_object, $value:expr, $from:expr, $options:expr) => {
         Ok(JsonValue::Object(
             $value
                 .iter()
@@ -81,17 +72,17 @@ macro_rules! scalar_to_json {
                 .collect::<Map<String, JsonValue>>(),
         ))
     };
-    (json_identity, $value:expr, $from:expr) => {
+    (json_identity, $value:expr, $from:expr, $options:expr) => {
         Ok($value.clone())
     };
 }
 
 macro_rules! value_to_json_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {{
+    ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {{
         let result: Result<JsonValue, DataConversionError> = match $value {
             Value::Unset(_) => Ok(JsonValue::Null),
             $($(#[$cfg])* Value::$variant(value) => {
-                scalar_to_json!($json_class, value, $data_type)
+                scalar_to_json!($json_class, value, $data_type, $options)
             },)+
         };
         result.map_err(ValueError::from)
@@ -124,12 +115,12 @@ where
 }
 
 macro_rules! multi_values_to_json_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(_) => Ok(JsonValue::Null),
             $($(#[$cfg])* MultiValues::$variant(values) => {
                 collection_to_json(values, |value| {
-                    scalar_to_json!($json_class, value, $data_type)
+                    scalar_to_json!($json_class, value, $data_type, $options)
                 })
             },)+
         }
@@ -146,9 +137,31 @@ impl Value {
     /// # Errors
     ///
     /// Returns a structured conversion error for values JSON cannot represent,
-    /// including non-finite floating-point values.
+    /// including non-finite floating-point values and inexact durations.
+    #[inline]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        for_each_value_type!(value_to_json_match, self)
+        self.to_json_value_with(DataConversionOptions::default_ref())
+    }
+
+    /// Projects this typed value using explicit conversion options.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Controls duration units and precision-loss behavior.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation of this value.
+    ///
+    /// # Errors
+    ///
+    /// Returns a structured conversion error when JSON projection or duration
+    /// formatting violates the requested options.
+    pub fn to_json_value_with(
+        &self,
+        options: &DataConversionOptions,
+    ) -> ValueResult<JsonValue> {
+        for_each_value_type!(value_to_json_match, self, options)
     }
 }
 
@@ -162,8 +175,30 @@ impl MultiValues {
     ///
     /// Returns a list conversion error containing the zero-based source index
     /// when an item cannot be represented as JSON.
+    #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        for_each_value_type!(multi_values_to_json_match, self)
+        self.to_json_value_with(DataConversionOptions::default_ref())
+    }
+
+    /// Projects this collection using explicit conversion options.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Controls duration units and precision-loss behavior.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation of this collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an indexed list conversion error when an item cannot be
+    /// represented under the requested options.
+    pub fn to_json_value_with(
+        &self,
+        options: &DataConversionOptions,
+    ) -> ValueResult<JsonValue> {
+        for_each_value_type!(multi_values_to_json_match, self, options)
     }
 }
 
@@ -176,10 +211,32 @@ impl ValueContainer {
     /// # Errors
     ///
     /// Returns the same structured projection error as the contained value.
+    #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
+        self.to_json_value_with(DataConversionOptions::default_ref())
+    }
+
+    /// Projects this container using explicit conversion options.
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Controls duration units and precision-loss behavior.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation while preserving container shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same structured projection error as the contained value.
+    #[inline]
+    pub fn to_json_value_with(
+        &self,
+        options: &DataConversionOptions,
+    ) -> ValueResult<JsonValue> {
         match self {
-            Self::Scalar(value) => value.to_json_value(),
-            Self::Collection(values) => values.to_json_value(),
+            Self::Scalar(value) => value.to_json_value_with(options),
+            Self::Collection(values) => values.to_json_value_with(options),
         }
     }
 }
