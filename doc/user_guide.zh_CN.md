@@ -27,6 +27,9 @@ qubit-value = { version = "0.10", features = ["all"] }
 {"version":1,"value":{"collection":{"unset":"int32"}}}
 ```
 
+V1 的兼容性承诺覆盖上述 JSON 对象结构。其他 Serde 格式可以使用，但其
+格式相关表示不属于稳定契约。
+
 `Value` 只接受 scalar，`MultiValues` 只接受 collection，`ValueContainer`
 接受两者。信封必须包含数字版本 `1`；未知字段、未知类型、错误 shape 和所有
 0.10 之前的 payload 都会被拒绝。宽整数和大数使用 canonical 十进制字符串；

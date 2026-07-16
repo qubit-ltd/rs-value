@@ -505,6 +505,10 @@ Type-preserving Serde uses one strict versioned envelope:
 {"version":1,"value":{"scalar":{"int32":42}}}
 ```
 
+The V1 compatibility guarantee applies to this JSON object structure. The
+Serde implementations may be used with other serializers, but their
+format-specific representation is not part of the V1 stability contract.
+
 Collections use `collection` instead of `scalar`; an unset payload uses
 `{"unset":"int32"}`. `Value` accepts only scalar, `MultiValues` accepts only
 collection, and `ValueContainer` accepts both shapes. `Value` and
