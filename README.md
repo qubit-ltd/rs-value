@@ -61,11 +61,20 @@ and conversion while maintaining Rust's safety guarantees.
   `to_named_value()` and consuming `into_named_value()` conversions
 - **`ValueError` & `ValueResult<T>`**: Standard error type and result alias
 
-`Value` implements lawful `Eq` and `Hash`: variants remain distinct, signed
-zeros and all NaN payloads are canonicalized, and string maps plus JSON objects
-hash independently of key iteration order. Use `numeric_cmp` with an explicit
-`NumericComparisonPolicy` when mathematical comparison across numeric variants
-is intended.
+`Value`, `MultiValues`, `ValueContainer`, `NamedValue`, `NamedMultiValues`, and
+`ValueWireV1` implement lawful `Eq` and `Hash`. Variants and scalar/collection
+shape remain distinct; signed zeros and all NaN payloads within the same float
+width are canonicalized; string maps and JSON objects hash independently of key
+iteration order; and collection order remains significant. Use `numeric_cmp`
+with an explicit `NumericComparisonPolicy` for mathematical comparison across
+numeric variants.
+
+These implementations are intended for Rust hash collections and in-memory
+caches. Their hash output is not a stable fingerprint: it may change with the
+hasher, Rust version, crate version, enabled features, platform, or
+implementation. Do not persist `DefaultHasher` output or use it as a
+distributed-cache key. A persistent identity format requires a separately
+versioned canonical byte representation and fingerprint API.
 
 Unset values are always typed. Prefer `Value::new_unset(data_type)` and
 `MultiValues::new_unset(data_type)`; neither container implements `Default`.

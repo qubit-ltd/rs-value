@@ -44,6 +44,13 @@ macro_rules! define_multi_values_enum {
         ///   conversion methods.
         /// - Distinguishes an unset container from a concrete empty vector.
         ///
+        /// # Equality and hashing
+        ///
+        /// Equality preserves the collection variant and element order. Float
+        /// elements use canonical signed-zero and NaN identity, while map-like
+        /// elements hash structurally. Standard hash output is suitable for in-memory
+        /// keys but is not a stable persistent fingerprint.
+        ///
         /// # Example
         ///
         /// ```rust
