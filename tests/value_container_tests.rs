@@ -8,6 +8,9 @@
 
 //! Tests for the explicit scalar-or-collection value container.
 
+use std::collections::HashSet;
+use std::hash::Hash;
+
 use qubit_datatype::{
     CollectionConversionOptions,
     DataConversionOptions,
@@ -15,11 +18,39 @@ use qubit_datatype::{
 };
 use qubit_value::{
     MultiValues,
+    NamedMultiValues,
+    NamedValue,
     Value,
     ValueContainer,
     ValueError,
+    ValueWireV1,
 };
 use serde_json::json;
+
+/// Requires a type to satisfy the complete hash-key contract.
+fn assert_hash_key<T: Eq + Hash>() {}
+
+#[test]
+fn test_runtime_value_wrappers_implement_hash_key_contract() {
+    assert_hash_key::<ValueContainer>();
+    assert_hash_key::<NamedValue>();
+    assert_hash_key::<NamedMultiValues>();
+    assert_hash_key::<ValueWireV1>();
+
+    assert_ne!(
+        ValueContainer::Scalar(Value::Int32(1)),
+        ValueContainer::Collection(MultiValues::Int32(vec![1])),
+    );
+
+    let keys = HashSet::from([
+        ValueContainer::Collection(MultiValues::Float64(vec![f64::NAN])),
+        ValueContainer::Collection(MultiValues::Float64(vec![f64::from_bits(
+            0x7fff_ffff_ffff_ffff,
+        )])),
+        ValueContainer::Scalar(Value::Float64(f64::NAN)),
+    ]);
+    assert_eq!(keys.len(), 2);
+}
 
 #[test]
 fn test_value_container_preserves_scalar_and_collection_shapes() {

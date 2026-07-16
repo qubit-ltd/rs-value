@@ -23,6 +23,18 @@ use qubit_value::{
 };
 
 #[test]
+fn test_named_value_identity_includes_name() {
+    assert_ne!(
+        NamedValue::new("left", Value::Float64(f64::NAN)),
+        NamedValue::new("right", Value::Float64(f64::NAN)),
+    );
+    assert_eq!(
+        NamedValue::new("same", Value::Float64(f64::NAN)),
+        NamedValue::new("same", Value::Float64(f64::NAN)),
+    );
+}
+
+#[test]
 fn test_named_value_new() {
     let nv = NamedValue::new("port", Value::Int32(8080));
     assert_eq!(nv.name(), "port");

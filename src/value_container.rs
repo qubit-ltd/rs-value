@@ -32,7 +32,7 @@ use qubit_datatype::{
 /// `Collection(MultiValues::Int32(vec![42]))` remain distinguishable through
 /// conversion and serialization boundaries.
 #[must_use]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValueContainer {
     /// One typed value.
     Scalar(Value),
