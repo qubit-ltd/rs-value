@@ -28,6 +28,10 @@ Direct Serde uses `ValueWireV1`:
 {"version":1,"value":{"collection":{"unset":"int32"}}}
 ```
 
+V1 compatibility covers this JSON object structure. Other Serde formats may
+work, but their format-specific representations are outside the stability
+contract.
+
 `Value` accepts scalar only, `MultiValues` accepts collection only, and
 `ValueContainer` accepts either. The envelope requires numeric version `1` and
 rejects unknown fields, unknown types, wrong shapes, and all pre-0.10 payloads.

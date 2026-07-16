@@ -476,6 +476,9 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 {"version":1,"value":{"scalar":{"int32":42}}}
 ```
 
+V1 的兼容性承诺仅覆盖这里展示的 JSON 对象结构。Serde 实现可以配合其他
+serializer 使用，但这些格式各自的表示不属于 V1 稳定契约。
+
 集合使用 `collection` 而不是 `scalar`；未设置值使用 `{"unset":"int32"}`。
 `Value` 只接受 scalar，`MultiValues` 只接受 collection，`ValueContainer`
 接受两种形态。Named wrapper 保留外层 `name`/`value` 字段，并将该信封放入
