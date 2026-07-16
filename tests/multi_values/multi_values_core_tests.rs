@@ -55,12 +55,28 @@ fn test_multi_values_is_numeric_is_state_aware() {
 
 #[test]
 fn test_multi_values_tagged_serde_rejects_non_finite_floats() {
-    let finite = MultiValues::Float32(vec![1.0, 2.5]);
-    let json = serde_json::to_string(&finite).unwrap();
-    assert_eq!(serde_json::from_str::<MultiValues>(&json).unwrap(), finite);
+    for finite in [
+        MultiValues::Float32(vec![1.0, 2.5]),
+        MultiValues::Float64(vec![1.0, 2.5]),
+    ] {
+        let json = serde_json::to_string(&finite).unwrap();
+        assert_eq!(serde_json::from_str::<MultiValues>(&json).unwrap(), finite);
+    }
 
-    let non_finite = MultiValues::Float32(vec![1.0, f32::NEG_INFINITY]);
-    assert!(serde_json::to_value(non_finite).is_err());
+    assert!(
+        serde_json::to_value(MultiValues::Float32(vec![
+            1.0,
+            f32::NEG_INFINITY,
+        ]))
+        .is_err()
+    );
+    assert!(
+        serde_json::to_value(MultiValues::Float64(vec![
+            1.0,
+            f64::NEG_INFINITY,
+        ]))
+        .is_err()
+    );
 }
 
 #[test]
