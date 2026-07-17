@@ -35,7 +35,7 @@ macro_rules! impl_multi_values_try_from_table {
             impl TryFrom<&MultiValues> for $type {
                 type Error = ValueError;
 
-                #[inline]
+                #[inline(always)]
                 fn try_from(values: &MultiValues) -> ValueResult<$type> {
                     match values {
                         MultiValues::$variant(values) => values
@@ -57,7 +57,7 @@ macro_rules! impl_multi_values_try_from_table {
             impl TryFrom<&MultiValues> for Vec<$type> {
                 type Error = ValueError;
 
-                #[inline]
+                #[inline(always)]
                 fn try_from(values: &MultiValues) -> ValueResult<Vec<$type>> {
                     match values {
                         MultiValues::$variant(values) => Ok(values

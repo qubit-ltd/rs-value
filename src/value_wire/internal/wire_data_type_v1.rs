@@ -43,7 +43,6 @@ macro_rules! define_wire_data_type_v1 {
 
         impl From<DataType> for WireDataTypeV1 {
             /// Maps a runtime data type to its frozen V1 tag.
-            #[inline(always)]
             fn from(data_type: DataType) -> Self {
                 match data_type {
                     $(DataType::$variant => Self::$variant,)+
@@ -53,7 +52,6 @@ macro_rules! define_wire_data_type_v1 {
 
         impl From<WireDataTypeV1> for DataType {
             /// Restores a runtime data type from its frozen V1 tag.
-            #[inline(always)]
             fn from(data_type: WireDataTypeV1) -> Self {
                 match data_type {
                     $(WireDataTypeV1::$variant => Self::$variant,)+

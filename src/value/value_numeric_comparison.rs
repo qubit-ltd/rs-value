@@ -110,7 +110,6 @@ impl Value {
     ///
     /// A borrowed numeric representation for every concrete numeric variant,
     /// or `None` for unset and non-numeric variants.
-    #[inline]
     fn as_numeric_ref(&self) -> Option<NumericValueRef<'_>> {
         match self {
             Self::Int8(value) => Some(NumericValueRef::Int8(*value)),

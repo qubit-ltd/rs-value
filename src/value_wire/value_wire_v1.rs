@@ -48,7 +48,7 @@ impl ValueWireV1 {
     /// # Returns
     ///
     /// A V1 DTO containing `value`.
-    #[inline]
+    #[inline(always)]
     pub const fn new(value: ValueContainer) -> Self {
         Self { value }
     }
@@ -68,7 +68,7 @@ impl ValueWireV1 {
     /// # Returns
     ///
     /// The preserved runtime container.
-    #[inline]
+    #[inline(always)]
     pub fn into_container(self) -> ValueContainer {
         self.value
     }
@@ -76,7 +76,7 @@ impl ValueWireV1 {
 
 impl From<Value> for ValueWireV1 {
     /// Wraps a runtime scalar in a V1 DTO.
-    #[inline]
+    #[inline(always)]
     fn from(value: Value) -> Self {
         Self::new(ValueContainer::Scalar(value))
     }
@@ -84,7 +84,7 @@ impl From<Value> for ValueWireV1 {
 
 impl From<MultiValues> for ValueWireV1 {
     /// Wraps a runtime collection in a V1 DTO.
-    #[inline]
+    #[inline(always)]
     fn from(values: MultiValues) -> Self {
         Self::new(ValueContainer::Collection(values))
     }
@@ -92,7 +92,7 @@ impl From<MultiValues> for ValueWireV1 {
 
 impl From<ValueContainer> for ValueWireV1 {
     /// Wraps an explicit runtime shape in a V1 DTO.
-    #[inline]
+    #[inline(always)]
     fn from(value: ValueContainer) -> Self {
         Self::new(value)
     }
@@ -100,7 +100,7 @@ impl From<ValueContainer> for ValueWireV1 {
 
 impl From<ValueWireV1> for ValueContainer {
     /// Unwraps the runtime container from a V1 DTO.
-    #[inline]
+    #[inline(always)]
     fn from(value: ValueWireV1) -> Self {
         value.into_container()
     }

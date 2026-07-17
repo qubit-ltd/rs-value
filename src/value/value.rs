@@ -177,7 +177,7 @@ impl Value {
     /// let v = Value::new("hello".to_string());
     /// assert_eq!(v.get_string().unwrap(), "hello");
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn new<T>(value: T) -> Self
     where
         T: Into<Self>,
@@ -349,7 +349,7 @@ impl Value {
     ///
     /// Returns a [`crate::ValueError`] when the value is missing, unsupported,
     /// or invalid for `T` under the provided options.
-    #[inline]
+    #[inline(always)]
     #[cfg(feature = "converter")]
     pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
@@ -497,7 +497,7 @@ impl Value {
     /// Tests whether a concrete value belongs to the numeric type family.
     ///
     /// An unset value returns `false`, even when its declared type is numeric.
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub fn is_numeric(&self) -> bool {
         !self.is_unset() && self.data_type().is_numeric()

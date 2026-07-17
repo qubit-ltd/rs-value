@@ -52,7 +52,7 @@ macro_rules! impl_get_value {
         #[doc = "Returns [`ValueError::NoValue`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
-        #[inline]
+        #[inline(always)]
         pub fn $method(&self) -> ValueResult<$type> {
             match self {
                 Value::$variant(v) => Ok(*v),
@@ -79,7 +79,7 @@ macro_rules! impl_get_value {
         #[doc = "Returns [`ValueError::NoValue`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
-        #[inline]
+        #[inline(always)]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match self {
                 Value::$variant(v) => {
@@ -541,7 +541,7 @@ impl Value {
     /// # Returns
     ///
     /// Returns a `Value::Json` wrapping the given JSON value.
-    #[inline]
+    #[inline(always)]
     #[cfg(feature = "json")]
     pub fn from_json_value(json: serde_json::Value) -> Self {
         Value::Json(json)

@@ -46,31 +46,31 @@ impl Serializer for StrictJsonSerializer {
     type SerializeStructVariant = StructVariantSerializer;
 
     /// Serializes a Boolean JSON value.
-    #[inline]
+    #[inline(always)]
     fn serialize_bool(self, value: bool) -> Result<Value> {
         Ok(Value::Bool(value))
     }
 
     /// Serializes an 8-bit signed integer.
-    #[inline]
+    #[inline(always)]
     fn serialize_i8(self, value: i8) -> Result<Value> {
         self.serialize_i64(value.into())
     }
 
     /// Serializes a 16-bit signed integer.
-    #[inline]
+    #[inline(always)]
     fn serialize_i16(self, value: i16) -> Result<Value> {
         self.serialize_i64(value.into())
     }
 
     /// Serializes a 32-bit signed integer.
-    #[inline]
+    #[inline(always)]
     fn serialize_i32(self, value: i32) -> Result<Value> {
         self.serialize_i64(value.into())
     }
 
     /// Serializes a JSON-compatible signed integer.
-    #[inline]
+    #[inline(always)]
     fn serialize_i64(self, value: i64) -> Result<Value> {
         Ok(Value::Number(value.into()))
     }
@@ -87,25 +87,25 @@ impl Serializer for StrictJsonSerializer {
     }
 
     /// Serializes an 8-bit unsigned integer.
-    #[inline]
+    #[inline(always)]
     fn serialize_u8(self, value: u8) -> Result<Value> {
         self.serialize_u64(value.into())
     }
 
     /// Serializes a 16-bit unsigned integer.
-    #[inline]
+    #[inline(always)]
     fn serialize_u16(self, value: u16) -> Result<Value> {
         self.serialize_u64(value.into())
     }
 
     /// Serializes a 32-bit unsigned integer.
-    #[inline]
+    #[inline(always)]
     fn serialize_u32(self, value: u32) -> Result<Value> {
         self.serialize_u64(value.into())
     }
 
     /// Serializes a JSON-compatible unsigned integer.
-    #[inline]
+    #[inline(always)]
     fn serialize_u64(self, value: u64) -> Result<Value> {
         Ok(Value::Number(value.into()))
     }
@@ -118,7 +118,7 @@ impl Serializer for StrictJsonSerializer {
     }
 
     /// Serializes a finite 32-bit floating-point value.
-    #[inline]
+    #[inline(always)]
     fn serialize_f32(self, value: f32) -> Result<Value> {
         self.serialize_f64(value.into())
     }
@@ -153,13 +153,13 @@ impl Serializer for StrictJsonSerializer {
     }
 
     /// Serializes an absent option as JSON null.
-    #[inline]
+    #[inline(always)]
     fn serialize_none(self) -> Result<Value> {
         self.serialize_unit()
     }
 
     /// Serializes the value inside a present option.
-    #[inline]
+    #[inline(always)]
     fn serialize_some<T>(self, value: &T) -> Result<Value>
     where
         T: ?Sized + Serialize,
@@ -168,19 +168,19 @@ impl Serializer for StrictJsonSerializer {
     }
 
     /// Serializes a unit value as JSON null.
-    #[inline]
+    #[inline(always)]
     fn serialize_unit(self) -> Result<Value> {
         Ok(Value::Null)
     }
 
     /// Serializes a unit struct as JSON null.
-    #[inline]
+    #[inline(always)]
     fn serialize_unit_struct(self, _name: &'static str) -> Result<Value> {
         self.serialize_unit()
     }
 
     /// Serializes a unit variant through its variant name.
-    #[inline]
+    #[inline(always)]
     fn serialize_unit_variant(
         self,
         _name: &'static str,
@@ -191,7 +191,7 @@ impl Serializer for StrictJsonSerializer {
     }
 
     /// Delegates a newtype struct to its wrapped value.
-    #[inline]
+    #[inline(always)]
     fn serialize_newtype_struct<T>(
         self,
         _name: &'static str,
@@ -227,13 +227,13 @@ impl Serializer for StrictJsonSerializer {
     }
 
     /// Creates a tuple serializer with the declared capacity.
-    #[inline]
+    #[inline(always)]
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
         self.serialize_seq(Some(len))
     }
 
     /// Creates a tuple-struct serializer with the declared capacity.
-    #[inline]
+    #[inline(always)]
     fn serialize_tuple_struct(
         self,
         _name: &'static str,
@@ -265,7 +265,7 @@ impl Serializer for StrictJsonSerializer {
     }
 
     /// Creates a struct serializer with the declared capacity.
-    #[inline]
+    #[inline(always)]
     fn serialize_struct(
         self,
         _name: &'static str,
