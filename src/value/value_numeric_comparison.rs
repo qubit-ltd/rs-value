@@ -25,6 +25,15 @@ impl Value {
     /// representation identity, while numeric comparison compares mathematical
     /// values under an explicit policy.
     ///
+    /// [`NumericComparisonPolicy::Approximate`] orders primitive infinities
+    /// separately. When a finite primitive float participates, it attempts to
+    /// project both operands to finite `f64` values; if either operand cannot
+    /// be projected that way, comparison falls back to the exact path.
+    /// Projected comparison is pair-dependent and not transitive across
+    /// mixed representations. Do not use it to implement [`Ord`], sort or
+    /// group values, or construct ordered-map or ordered-set keys. Use
+    /// [`NumericComparisonPolicy::Exact`] for deterministic ordering.
+    ///
     /// Validation is deterministic: missing operands are checked from left to
     /// right, followed by concrete operand types from left to right, and then
     /// NaN positions.
