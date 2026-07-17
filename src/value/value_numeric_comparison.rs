@@ -19,6 +19,15 @@ use super::Value;
 use crate::NumericComparisonError;
 
 impl Value {
+    /// Tests whether this value is a concrete floating-point NaN.
+    ///
+    /// Non-floating-point values and unset values return `false`.
+    #[inline(always)]
+    #[must_use]
+    pub fn is_nan(&self) -> bool {
+        self.as_numeric_ref().is_some_and(|value| value.is_nan())
+    }
+
     /// Compares concrete numeric values across representation variants.
     ///
     /// This operation is separate from [`PartialEq`]: equality preserves enum

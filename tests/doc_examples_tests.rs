@@ -51,7 +51,7 @@ fn test_doc_example_multi_value_operations() {
     a.merge(&b).unwrap();
     assert_eq!(a.get_int32s().unwrap(), &[1, 2, 3, 4]);
 
-    let single = a.to_value();
+    let single = a.first_value();
     let first_val: i32 = single.get().unwrap();
     assert_eq!(first_val, 1);
 }
@@ -73,7 +73,7 @@ fn test_doc_example_named_value_operations() {
     let first_port: i32 = nmv.get_first().unwrap();
     assert_eq!(first_port, 8080);
 
-    let first_named = nmv.to_named_value();
+    let first_named = nmv.first_named_value();
     assert_eq!(first_named.name(), "ports");
     let val: i32 = first_named.get().unwrap();
     assert_eq!(val, 8080);

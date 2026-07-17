@@ -79,7 +79,7 @@ fn test_named_value_to_named_multi_value() {
 fn test_named_multi_value_consuming_conversion_reuses_owned_parts() {
     let named =
         NamedMultiValues::new("port", MultiValues::Int32(vec![8080, 8081]));
-    let value = named.into_named_value();
+    let value = named.into_first_named_value();
 
     assert_eq!(value.name(), "port");
     assert_eq!(value.get_int32().unwrap(), 8080);
@@ -282,21 +282,21 @@ fn test_nmv_add_string_vec() {
 }
 
 #[test]
-fn test_named_multi_values_to_named_value_non_empty() {
+fn test_named_multi_values_first_named_value_non_empty() {
     let nmv =
         NamedMultiValues::new("ports", MultiValues::Int32(vec![8080, 8081]));
-    let named = nmv.to_named_value();
+    let named = nmv.first_named_value();
     assert_eq!(named.name(), "ports");
     assert_eq!(named.get_int32().unwrap(), 8080);
 }
 
 #[test]
-fn test_named_multi_values_to_named_value_empty_preserves_type() {
+fn test_named_multi_values_first_named_value_empty_preserves_type() {
     let nmv = NamedMultiValues::new(
         "threshold",
         MultiValues::Unset(DataType::Float64),
     );
-    let named = nmv.to_named_value();
+    let named = nmv.first_named_value();
     assert_eq!(named.name(), "threshold");
     assert_eq!(named.data_type(), DataType::Float64);
     assert!(matches!(

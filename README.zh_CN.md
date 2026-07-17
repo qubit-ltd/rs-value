@@ -44,7 +44,7 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
   `Collection(MultiValues)`，不会根据集合长度推断形态
 - **`NamedValue`**: 绑定名称的 `Value`，提供 `Deref/DerefMut` 直达内部值
 - **`NamedMultiValues`**: 绑定名称的 `MultiValues`，提供借用式
-  `to_named_value()` 与消费式 `into_named_value()`
+  `first_named_value()` 与消费式 `into_first_named_value()`
 - **`ValueError` 与 `ValueResult<T>`**: 标准错误与结果别名
 
 `Value`、`MultiValues`、`ValueContainer`、`NamedValue`、`NamedMultiValues` 与
@@ -223,7 +223,7 @@ a.merge(&b)?;
 assert_eq!(a.get_int32s()?, &[1, 2, 3, 4]);
 
 // 转为单值（取首元素）
-let single = a.to_value();
+let single = a.first_value();
 let first_val: i32 = single.get()?;
 assert_eq!(first_val, 1);
 ```
@@ -311,7 +311,7 @@ let first_port: i32 = nmv.get_first()?;
 assert_eq!(first_port, 8080);
 
 // 命名多值 → 命名单值（取首元素）
-let first_named = nmv.to_named_value();
+let first_named = nmv.first_named_value();
 assert_eq!(first_named.name(), "ports");
 let val: i32 = first_named.get()?;
 assert_eq!(val, 8080);
@@ -417,6 +417,7 @@ JSON 边界都会拒绝 `NaN`、正无穷和负无穷，因为 JSON 没有这些
 - `data_type()` — 获取数据类型
 - `is_unset()` — 检查是否没有存储具体值
 - `is_numeric()` — 判断具体值是否为数值类型
+- `is_nan()` — 判断具体值是否为浮点 NaN
 - `unset()` / `clear()` — 移除值并保留声明类型
 - `set_type()` — 更改类型
 
@@ -428,7 +429,7 @@ JSON 边界都会拒绝 `NaN`、正无穷和负无穷，因为 JSON 没有这些
 - `clear()` — 清空具体 vector 并保持具体状态；未设置值仍保持未设置
 - `set_type()` — 更改类型
 - `merge()` — 与另一个多值合并（类型需一致）
-- `to_value()` — 转换为单值（取首元素）
+- `first_value()` / `into_first_value()` — 将首元素转换为单值
 
 ## 错误类型
 
@@ -541,7 +542,7 @@ bigdecimal = { version = "0.4", features = ["serde"] }
 # 使用默认的空 feature 集测试核心 API
 cargo test --no-default-features
 
-# 测试核心 API 和正则校验
+# 测试全部 feature 组合与 API 契约
 cargo test --all-features
 
 # 运行项目 CI 检查

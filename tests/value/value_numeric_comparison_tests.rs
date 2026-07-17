@@ -127,6 +127,18 @@ fn test_value_numeric_cmp_reports_nan_position_after_type_validation() {
     );
 }
 
+/// Verifies only concrete NaN float values are classified as NaN.
+#[test]
+fn test_value_is_nan_classifies_only_nan_floats() {
+    assert!(Value::Float32(f32::NAN).is_nan());
+    assert!(Value::Float64(f64::NAN).is_nan());
+    assert!(!Value::Float32(1.0).is_nan());
+    assert!(!Value::Float64(f64::INFINITY).is_nan());
+    assert!(!Value::Int32(1).is_nan());
+    assert!(!Value::String("NaN".to_owned()).is_nan());
+    assert!(!Value::Unset(DataType::Float64).is_nan());
+}
+
 /// Exercises the lower-level numeric projection for every numeric variant.
 #[test]
 fn test_value_numeric_cmp_covers_every_numeric_variant() {
