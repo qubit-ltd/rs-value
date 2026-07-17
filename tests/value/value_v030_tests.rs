@@ -117,9 +117,7 @@ fn test_value_duration_as_duration_invalid_string() {
     let v = Value::String("1.5s".to_string());
     assert!(matches!(
         v.to::<Duration>(),
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::InvalidValue { .. }
-        ))
+        Err(ValueError::DataConversion(error)) if error.kind() == qubit_datatype::DataConversionErrorKind::InvalidValue
     ));
 }
 
@@ -232,9 +230,7 @@ fn test_value_url_as_url_invalid_string() {
     let v = Value::String("not-a-url".to_string());
     assert!(matches!(
         v.to::<Url>(),
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::InvalidValue { .. }
-        ))
+        Err(ValueError::DataConversion(error)) if error.kind() == qubit_datatype::DataConversionErrorKind::InvalidValue
     ));
 }
 
@@ -462,12 +458,11 @@ fn test_value_json_as_json_invalid_string() {
     let v = Value::String("{invalid json}".to_string());
     assert!(matches!(
         v.to::<serde_json::Value>(),
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::InvalidValue {
-                reason: qubit_datatype::InvalidValueReason::Deserialization { .. },
-                ..
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if matches!(
+                error.reason(),
+                Some(qubit_datatype::InvalidValueReason::Deserialization { .. }),
+            )
     ));
 }
 
@@ -572,12 +567,11 @@ fn test_value_from_serializable_error() {
     let result = Value::from_serializable(&FailingSerialize);
     assert!(matches!(
         result,
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::InvalidValue {
-                reason: qubit_datatype::InvalidValueReason::Serialization { .. },
-                ..
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if matches!(
+                error.reason(),
+                Some(qubit_datatype::InvalidValueReason::Serialization { .. }),
+            )
     ));
 }
 
@@ -624,12 +618,11 @@ fn test_value_deserialize_json_invalid_shape_returns_error() {
     let result = v.deserialize_json::<Config>();
     assert!(matches!(
         result,
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::InvalidValue {
-                reason: qubit_datatype::InvalidValueReason::Deserialization { .. },
-                ..
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if matches!(
+                error.reason(),
+                Some(qubit_datatype::InvalidValueReason::Deserialization { .. }),
+            )
     ));
 }
 

@@ -32,13 +32,13 @@ fn test_multi_values_converters_report_list_conversion_index() {
     assert!(matches!(
         error,
         ValueError::DataListConversion(ref error)
-            if error.source_index == 1
-                && error.source == DataConversionError::InvalidValue {
-                    from: DataType::String,
-                    to: DataType::Int32,
-                    reason: InvalidValueReason::InvalidSyntax {
+            if error.source_index() == 1
+                && error.conversion_error() == &DataConversionError::invalid(
+                    DataType::String,
+                    DataType::Int32,
+                    InvalidValueReason::InvalidSyntax {
                         expected: "integer",
                     },
-                }
+                )
     ));
 }

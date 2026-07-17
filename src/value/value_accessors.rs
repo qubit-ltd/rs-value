@@ -574,11 +574,11 @@ impl Value {
                     }
                 }
             };
-            ValueError::from(DataConversionError::InvalidValue {
-                from: DataType::Json,
-                to: DataType::Json,
+            ValueError::from(DataConversionError::invalid(
+                DataType::Json,
+                DataType::Json,
                 reason,
-            })
+            ))
         })?;
         Ok(Value::Json(json))
     }
@@ -606,13 +606,13 @@ impl Value {
         match self {
             Value::Json(v) => {
                 serde::Deserialize::deserialize(v).map_err(|_| {
-                    ValueError::from(DataConversionError::InvalidValue {
-                        from: DataType::Json,
-                        to: DataType::Json,
-                        reason: InvalidValueReason::Deserialization {
+                    ValueError::from(DataConversionError::invalid(
+                        DataType::Json,
+                        DataType::Json,
+                        InvalidValueReason::Deserialization {
                             format: DataFormat::Json,
                         },
-                    })
+                    ))
                 })
             }
             Value::Unset(dt) if *dt == DataType::Json => {
