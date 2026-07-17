@@ -134,12 +134,8 @@ fn test_duration_natural_json_projection_obeys_conversion_options() {
     let value = Value::Duration(Duration::from_micros(1_500));
     assert!(matches!(
         value.to_json_value(),
-        Err(ValueError::DataConversion(
-            DataConversionError::InvalidValue {
-                reason: InvalidValueReason::PrecisionLoss,
-                ..
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if matches!(error.reason(), Some(InvalidValueReason::PrecisionLoss))
     ));
     assert_eq!(
         value
@@ -203,24 +199,23 @@ fn test_multi_values_natural_json_projection_preserves_collection_shape() {
 fn test_natural_json_projection_reports_non_finite_values() {
     assert!(matches!(
         Value::Float64(f64::NAN).to_json_value(),
-        Err(ValueError::DataConversion(
-            DataConversionError::InvalidValue {
-                from: DataType::Float64,
-                to: DataType::Json,
-                reason: InvalidValueReason::NonFinite,
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if error == DataConversionError::invalid(
+                DataType::Float64,
+                DataType::Json,
+                InvalidValueReason::NonFinite,
+            )
     ));
 
     assert!(matches!(
         MultiValues::Float32(vec![1.0, f32::INFINITY]).to_json_value(),
         Err(ValueError::DataListConversion(error))
-            if error.source_index == 1
-                && error.source == DataConversionError::InvalidValue {
-                    from: DataType::Float32,
-                    to: DataType::Json,
-                    reason: InvalidValueReason::NonFinite,
-                }
+            if error.source_index() == 1
+                && error.conversion_error() == &DataConversionError::invalid(
+                    DataType::Float32,
+                    DataType::Json,
+                    InvalidValueReason::NonFinite,
+                )
     ));
 }
 
@@ -247,23 +242,18 @@ impl Serialize for NonFiniteMapKey {
 fn test_from_serializable_rejects_nested_non_finite_floats() {
     assert!(matches!(
         Value::from_serializable(&Value::Float64(f64::NAN)),
-        Err(ValueError::DataConversion(
-            DataConversionError::InvalidValue {
-                reason: InvalidValueReason::NonFinite,
-                ..
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if matches!(error.reason(), Some(InvalidValueReason::NonFinite))
     ));
 
     assert!(matches!(
         Value::from_serializable(&f64::NAN),
-        Err(ValueError::DataConversion(
-            DataConversionError::InvalidValue {
-                from: DataType::Json,
-                to: DataType::Json,
-                reason: InvalidValueReason::NonFinite,
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if error == DataConversionError::invalid(
+                DataType::Json,
+                DataType::Json,
+                InvalidValueReason::NonFinite,
+            )
     ));
 
     let payload = SerializablePayload {
@@ -272,22 +262,14 @@ fn test_from_serializable_rejects_nested_non_finite_floats() {
     };
     assert!(matches!(
         Value::from_serializable(&payload),
-        Err(ValueError::DataConversion(
-            DataConversionError::InvalidValue {
-                reason: InvalidValueReason::NonFinite,
-                ..
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if matches!(error.reason(), Some(InvalidValueReason::NonFinite))
     ));
 
     assert!(matches!(
         Value::from_serializable(&NonFiniteMapKey),
-        Err(ValueError::DataConversion(
-            DataConversionError::InvalidValue {
-                reason: InvalidValueReason::NonFinite,
-                ..
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if matches!(error.reason(), Some(InvalidValueReason::NonFinite))
     ));
 
     for payload in [
@@ -298,12 +280,8 @@ fn test_from_serializable_rejects_nested_non_finite_floats() {
     ] {
         assert!(matches!(
             Value::from_serializable(&payload),
-            Err(ValueError::DataConversion(
-                DataConversionError::InvalidValue {
-                    reason: InvalidValueReason::NonFinite,
-                    ..
-                }
-            ))
+            Err(ValueError::DataConversion(error))
+                if matches!(error.reason(), Some(InvalidValueReason::NonFinite))
         ));
     }
 }
@@ -696,12 +674,11 @@ where
 {
     matches!(
         Value::from_serializable(value),
-        Err(ValueError::DataConversion(
-            DataConversionError::InvalidValue {
-                reason: InvalidValueReason::Serialization { .. },
-                ..
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if matches!(
+                error.reason(),
+                Some(InvalidValueReason::Serialization { .. }),
+            )
     )
 }
 
@@ -851,12 +828,8 @@ fn test_strict_json_map_key_serializer_rejects_unsupported_key_shapes() {
     for key in [MapKeyKind::NonFiniteFloat32, MapKeyKind::NonFiniteFloat64] {
         assert!(matches!(
             Value::from_serializable(&SingleKeyMap(key)),
-            Err(ValueError::DataConversion(
-                DataConversionError::InvalidValue {
-                    reason: InvalidValueReason::NonFinite,
-                    ..
-                }
-            ))
+            Err(ValueError::DataConversion(error))
+                if matches!(error.reason(), Some(InvalidValueReason::NonFinite))
         ));
     }
 }

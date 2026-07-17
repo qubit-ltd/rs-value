@@ -12,7 +12,6 @@
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
 use qubit_datatype::{
-    DataConversionError,
     DataConversionOptions,
     DataConversionTarget,
 };
@@ -320,9 +319,9 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to() {
-            Err(ValueError::DataConversion(DataConversionError::Missing {
-                ..
-            })) => Ok(default.into_value_default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -374,9 +373,9 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(DataConversionError::Missing {
-                ..
-            })) => Ok(default.into_value_default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }

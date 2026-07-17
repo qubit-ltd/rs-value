@@ -21,6 +21,7 @@ use num_bigint::BigInt;
 use qubit_datatype::{
     CollectionConversionOptions,
     DataConversionError,
+    DataConversionErrorKind,
     DataConversionOptions,
     DataType,
 };
@@ -270,9 +271,7 @@ fn test_multi_value_defaulted_reads_use_default_only_for_unset() {
     ));
     assert!(matches!(
         empty.to_or::<String>("fallback"),
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::EmptyCollection { .. }
-        ))
+        Err(ValueError::DataConversion(error)) if error.kind() == DataConversionErrorKind::EmptyCollection
     ));
     assert!(
         empty
@@ -598,10 +597,11 @@ fn test_multi_value_generic_to_list_converts_all_variants_to_string() {
     let empty = MultiValues::Unset(DataType::String).to_list::<String>();
     assert!(matches!(
         empty,
-        Err(ValueError::DataConversion(DataConversionError::Missing {
-            from: DataType::String,
-            to: DataType::String,
-        }))
+        Err(ValueError::DataConversion(error))
+            if error == DataConversionError::missing(
+                DataType::String,
+                DataType::String,
+            )
     ));
 }
 
@@ -610,17 +610,13 @@ fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
     let empty = MultiValues::Unset(DataType::String);
     assert!(matches!(
         empty.to::<bool>(),
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::Missing { .. }
-        ))
+        Err(ValueError::DataConversion(error)) if error.kind() == DataConversionErrorKind::Missing
     ));
 
     let empty = MultiValues::String(Vec::new());
     assert!(matches!(
         empty.to::<bool>(),
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::EmptyCollection { .. }
-        ))
+        Err(ValueError::DataConversion(error)) if error.kind() == DataConversionErrorKind::EmptyCollection
     ));
 
     let invalid = MultiValues::String(vec!["yes".to_string()]);
@@ -633,23 +629,21 @@ fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
         MultiValues::Date(vec![NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()]);
     assert!(matches!(
         unsupported.to::<bool>(),
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::Unsupported {
-                from: DataType::Date,
-                to: DataType::Bool
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if error == DataConversionError::unsupported(
+                DataType::Date,
+                DataType::Bool,
+            )
     ));
 
     let invalid_json = MultiValues::String(vec!["{".to_string()]);
     assert!(matches!(
         invalid_json.to::<JsonValue>(),
-        Err(ValueError::DataConversion(
-            qubit_datatype::DataConversionError::InvalidValue {
-                reason: qubit_datatype::InvalidValueReason::Deserialization { .. },
-                ..
-            }
-        ))
+        Err(ValueError::DataConversion(error))
+            if matches!(
+                error.reason(),
+                Some(qubit_datatype::InvalidValueReason::Deserialization { .. }),
+            )
     ));
 }
 
@@ -663,7 +657,7 @@ fn test_multi_value_generic_to_list_reports_failing_index() {
 
     match invalid.to_list::<bool>() {
         Err(ValueError::DataListConversion(error)) => {
-            assert_eq!(error.source_index, 1);
+            assert_eq!(error.source_index(), 1);
         }
         other => panic!("expected indexed conversion error, got {other:?}"),
     }

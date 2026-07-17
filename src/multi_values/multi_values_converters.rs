@@ -29,11 +29,9 @@ use super::multi_values::MultiValues;
 macro_rules! multi_values_convert_first_match {
     ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            MultiValues::Unset(from) => Err(DataConversionError::Missing {
-                from: *from,
-                to: T::DATA_TYPE,
+            MultiValues::Unset(from) => {
+                Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
             }
-            .into()),
             $(
                 $(#[$cfg])*
                 MultiValues::$variant(values) => {
@@ -47,11 +45,9 @@ macro_rules! multi_values_convert_first_match {
 macro_rules! multi_values_convert_list_match {
     ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
-            MultiValues::Unset(from) => Err(DataConversionError::Missing {
-                from: *from,
-                to: T::DATA_TYPE,
+            MultiValues::Unset(from) => {
+                Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
             }
-            .into()),
             $(
                 $(#[$cfg])*
                 MultiValues::$variant(values) => {
@@ -187,9 +183,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to() {
-            Err(ValueError::DataConversion(DataConversionError::Missing {
-                ..
-            })) => Ok(default.into_value_default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -236,9 +232,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(DataConversionError::Missing {
-                ..
-            })) => Ok(default.into_value_default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -280,9 +276,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_list() {
-            Err(ValueError::DataConversion(DataConversionError::Missing {
-                ..
-            })) => Ok(default.into_value_default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -330,9 +326,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_list_with(options) {
-            Err(ValueError::DataConversion(DataConversionError::Missing {
-                ..
-            })) => Ok(default.into_value_default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }

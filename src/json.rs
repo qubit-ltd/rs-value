@@ -36,11 +36,11 @@ fn finite_float(
     from: DataType,
 ) -> Result<JsonValue, DataConversionError> {
     Number::from_f64(value).map(JsonValue::Number).ok_or(
-        DataConversionError::InvalidValue {
+        DataConversionError::invalid(
             from,
-            to: DataType::Json,
-            reason: InvalidValueReason::NonFinite,
-        },
+            DataType::Json,
+            InvalidValueReason::NonFinite,
+        ),
     )
 }
 
@@ -102,11 +102,9 @@ where
         match project(value) {
             Ok(value) => projected.push(value),
             Err(source) => {
-                return Err(DataListConversionError {
-                    source_index,
-                    source,
-                }
-                .into());
+                return Err(
+                    DataListConversionError::new(source_index, source).into()
+                );
             }
         }
     }
