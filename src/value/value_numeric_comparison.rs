@@ -84,7 +84,7 @@ impl Value {
             }
         })?;
 
-        match (self.is_nan_numeric(), other.is_nan_numeric()) {
+        match (left.is_nan(), right.is_nan()) {
             (true, true) => return Err(NumericComparisonError::BothNaN),
             (true, false) => return Err(NumericComparisonError::LeftNaN),
             (false, true) => return Err(NumericComparisonError::RightNaN),
@@ -121,20 +121,6 @@ impl Value {
             #[cfg(feature = "big-number")]
             Self::BigDecimal(value) => Some(NumericValueRef::BigDecimal(value)),
             _ => None,
-        }
-    }
-
-    /// Reports whether this concrete numeric value is NaN.
-    ///
-    /// # Returns
-    ///
-    /// `true` only for primitive floating-point NaN variants.
-    #[inline(always)]
-    fn is_nan_numeric(&self) -> bool {
-        match self {
-            Self::Float32(value) => value.is_nan(),
-            Self::Float64(value) => value.is_nan(),
-            _ => false,
         }
     }
 }
