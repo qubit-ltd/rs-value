@@ -52,7 +52,7 @@ impl SerializeTuple for SequenceSerializer {
     type Error = StrictJsonError;
 
     /// Serializes and appends one tuple element.
-    #[inline]
+    #[inline(always)]
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
@@ -61,7 +61,7 @@ impl SerializeTuple for SequenceSerializer {
     }
 
     /// Returns the accumulated tuple as a JSON array.
-    #[inline]
+    #[inline(always)]
     fn end(self) -> Result<Value> {
         SerializeSeq::end(self)
     }
@@ -72,7 +72,7 @@ impl SerializeTupleStruct for SequenceSerializer {
     type Error = StrictJsonError;
 
     /// Serializes and appends one tuple-struct field.
-    #[inline]
+    #[inline(always)]
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
@@ -81,7 +81,7 @@ impl SerializeTupleStruct for SequenceSerializer {
     }
 
     /// Returns the accumulated tuple struct as a JSON array.
-    #[inline]
+    #[inline(always)]
     fn end(self) -> Result<Value> {
         SerializeSeq::end(self)
     }

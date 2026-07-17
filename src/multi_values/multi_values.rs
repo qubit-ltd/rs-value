@@ -107,7 +107,7 @@ macro_rules! impl_get_multi_values {
         #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs. A concrete empty vector returns"]
         #[doc = "an empty slice."]
-        #[inline]
+        #[inline(always)]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v),
@@ -130,7 +130,7 @@ macro_rules! impl_get_multi_values {
         #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs. A concrete empty vector returns"]
         #[doc = "an empty slice."]
-        #[inline]
+        #[inline(always)]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match self {
                 MultiValues::$variant(v) => Ok(v.as_slice()),
@@ -163,7 +163,7 @@ macro_rules! impl_get_first_value {
         #[doc = "Returns [`ValueError::NoValue`] when the requested type matches"]
         #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs."]
-        #[inline]
+        #[inline(always)]
         pub fn $method(&self) -> ValueResult<$type> {
             match self {
                 MultiValues::$variant(v) if !v.is_empty() => Ok(v[0]),
@@ -186,7 +186,7 @@ macro_rules! impl_get_first_value {
         #[doc = "Returns [`ValueError::NoValue`] when the requested type matches"]
         #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs."]
-        #[inline]
+        #[inline(always)]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match self {
                 MultiValues::$variant(v) if !v.is_empty() => {

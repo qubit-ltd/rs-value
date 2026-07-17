@@ -68,7 +68,6 @@ macro_rules! impl_value_identity {
         $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?
     ) => {
         impl PartialEq for Value {
-            #[inline]
             fn eq(&self, other: &Self) -> bool {
                 match (self, other) {
                     (Self::Unset(left), Self::Unset(right)) => left == right,

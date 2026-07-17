@@ -165,7 +165,7 @@ impl MultiValues {
     /// let mv = MultiValues::new(vec!["a".to_string(), "b".to_string()]);
     /// assert_eq!(mv.count(), 2);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn new<S>(values: S) -> Self
     where
         S: Into<Self>,
@@ -500,7 +500,7 @@ impl MultiValues {
     ///
     /// A concrete empty numeric vector returns `true`; an unset collection
     /// returns `false`, even when its declared type is numeric.
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub fn is_numeric(&self) -> bool {
         !self.is_unset() && self.data_type().is_numeric()
@@ -595,7 +595,6 @@ impl MultiValues {
 }
 
 impl From<Value> for MultiValues {
-    #[inline]
     fn from(value: Value) -> Self {
         for_each_value_type!(value_into_multi_values_match, value)
     }

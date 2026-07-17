@@ -212,7 +212,6 @@ impl MultiValues {
     /// Returns a structured missing-value conversion error when the container
     /// is unset, an empty-collection error for a concrete empty vector, or a
     /// conversion error when the first value cannot be converted to `T`.
-    #[inline]
     pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
         T: DataConversionTarget,

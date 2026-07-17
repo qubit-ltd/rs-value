@@ -250,7 +250,7 @@ impl ValueContainer {
     }
 
     /// Returns whether the shape contains no concrete value or collection.
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub fn is_unset(&self) -> bool {
         match self {

@@ -25,7 +25,7 @@ pub trait IntoValueDefault<T> {
 }
 
 impl<T> IntoValueDefault<T> for T {
-    #[inline]
+    #[inline(always)]
     fn into_value_default(self) -> T {
         self
     }

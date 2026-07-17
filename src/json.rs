@@ -136,7 +136,7 @@ impl Value {
     ///
     /// Returns a structured conversion error for values JSON cannot represent,
     /// including non-finite floating-point values and inexact durations.
-    #[inline]
+    #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
         self.to_json_value_with(DataConversionOptions::default_ref())
     }
@@ -227,7 +227,7 @@ impl ValueContainer {
     /// # Errors
     ///
     /// Returns the same structured projection error as the contained value.
-    #[inline]
+    #[inline(always)]
     pub fn to_json_value_with(
         &self,
         options: &DataConversionOptions,

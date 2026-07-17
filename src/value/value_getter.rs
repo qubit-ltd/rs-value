@@ -35,7 +35,7 @@ macro_rules! impl_value_try_from_table {
             impl TryFrom<&Value> for $type {
                 type Error = ValueError;
 
-                #[inline]
+                #[inline(always)]
                 fn try_from(value: &Value) -> ValueResult<$type> {
                     match value {
                         Value::$variant(value) => {

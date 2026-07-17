@@ -96,7 +96,6 @@ macro_rules! impl_multi_values_identity {
         $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?
     ) => {
         impl PartialEq for MultiValues {
-            #[inline]
             fn eq(&self, other: &Self) -> bool {
                 match (self, other) {
                     (Self::Unset(left), Self::Unset(right)) => left == right,
