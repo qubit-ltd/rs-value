@@ -157,8 +157,8 @@ impl NamedMultiValues {
     /// the inner [`MultiValues`]. If there is no element, the returned value is
     /// `Value::Unset` with the same data type.
     #[inline]
-    pub fn to_named_value(&self) -> NamedValue {
-        NamedValue::new(self.name.as_str(), self.value.to_value())
+    pub fn first_named_value(&self) -> NamedValue {
+        NamedValue::new(self.name.as_str(), self.value.first_value())
     }
 
     /// Consumes this container and converts its first item to a named value.
@@ -167,8 +167,8 @@ impl NamedMultiValues {
     /// or unset collection produces [`crate::Value::Unset`] with the same data
     /// type.
     #[inline]
-    pub fn into_named_value(self) -> NamedValue {
-        NamedValue::new(self.name, self.value.into_value())
+    pub fn into_first_named_value(self) -> NamedValue {
+        NamedValue::new(self.name, self.value.into_first_value())
     }
 
     // Values can be directly assigned or mutable methods called on the inner

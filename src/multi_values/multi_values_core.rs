@@ -63,7 +63,7 @@ macro_rules! multi_values_append_match {
     };
 }
 
-macro_rules! multi_values_to_value_match {
+macro_rules! multi_values_first_value_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(data_type) => Value::Unset(*data_type),
@@ -79,7 +79,7 @@ macro_rules! multi_values_to_value_match {
     };
 }
 
-macro_rules! multi_values_into_value_match {
+macro_rules! multi_values_into_first_value_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(data_type) => Value::Unset(data_type),
@@ -561,16 +561,16 @@ impl MultiValues {
     ///
     /// Returns `Value::Unset` with the same declared type when no element is
     /// stored.
-    pub fn to_value(&self) -> Value {
-        for_each_value_type!(multi_values_to_value_match, self)
+    pub fn first_value(&self) -> Value {
+        for_each_value_type!(multi_values_first_value_match, self)
     }
 
     /// Consumes this collection and returns its first item as a [`Value`].
     ///
     /// Empty and unset collections become [`Value::Unset`] with the same data
     /// type. Owned element storage is moved instead of cloned.
-    pub fn into_value(self) -> Value {
-        for_each_value_type!(multi_values_into_value_match, self)
+    pub fn into_first_value(self) -> Value {
+        for_each_value_type!(multi_values_into_first_value_match, self)
     }
 
     /// Appends all values from another container with the same data type.

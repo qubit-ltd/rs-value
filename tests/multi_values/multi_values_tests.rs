@@ -3462,240 +3462,258 @@ fn test_multi_values_merge_when_self_is_empty() {
 }
 
 #[test]
-fn test_multi_values_to_value_takes_first_element() {
+fn test_multi_values_first_value_takes_first_element() {
     let numbers = MultiValues::Int32(vec![10, 20, 30]);
-    assert_eq!(numbers.to_value(), Value::Int32(10));
+    assert_eq!(numbers.first_value(), Value::Int32(10));
 
     let strings = MultiValues::String(vec!["a".to_string(), "b".to_string()]);
-    assert_eq!(strings.to_value(), Value::String("a".to_string()));
+    assert_eq!(strings.first_value(), Value::String("a".to_string()));
 }
 
 #[test]
-fn test_multi_values_to_value_on_empty_preserves_type() {
+fn test_multi_values_into_first_value_takes_first_element() {
+    let strings = MultiValues::String(vec!["a".to_owned(), "b".to_owned()]);
+    assert_eq!(strings.into_first_value(), Value::String("a".to_owned()));
+}
+
+#[test]
+fn test_multi_values_first_value_on_empty_preserves_type() {
     let empty_declared = MultiValues::Unset(DataType::UInt64);
-    assert_eq!(empty_declared.to_value(), Value::Unset(DataType::UInt64));
+    assert_eq!(empty_declared.first_value(), Value::Unset(DataType::UInt64));
 
     let empty_vec = MultiValues::Int32(vec![]);
-    assert_eq!(empty_vec.to_value(), Value::Unset(DataType::Int32));
+    assert_eq!(empty_vec.first_value(), Value::Unset(DataType::Int32));
 }
 
 #[test]
-fn test_multi_values_to_value_extended_types() {
+fn test_multi_values_first_value_extended_types() {
     let duration = MultiValues::Duration(vec![
         Duration::from_secs(30),
         Duration::from_secs(45),
     ]);
     assert_eq!(
-        duration.to_value(),
+        duration.first_value(),
         Value::Duration(Duration::from_secs(30))
     );
 
     let url = Url::parse("https://example.com/query?a=1").unwrap();
     let other_url = Url::parse("https://rust-lang.org/").unwrap();
     let urls = MultiValues::Url(vec![url.clone(), other_url]);
-    assert_eq!(urls.to_value(), Value::Url(url));
+    assert_eq!(urls.first_value(), Value::Url(url));
 
     let mut map = HashMap::new();
     map.insert("k1".to_string(), "v1".to_string());
     let map2 = map.clone();
     map.insert("k2".to_string(), "v2".to_string());
     let string_maps = MultiValues::StringMap(vec![map.clone(), map2]);
-    assert_eq!(string_maps.to_value(), Value::StringMap(map));
+    assert_eq!(string_maps.first_value(), Value::StringMap(map));
 
     let json_value = JsonValue::Object(
         serde_json::json!({"a": 1}).as_object().unwrap().clone(),
     );
     let another_json = JsonValue::Bool(true);
     let jsons = MultiValues::Json(vec![json_value.clone(), another_json]);
-    assert_eq!(jsons.to_value(), Value::Json(json_value));
+    assert_eq!(jsons.first_value(), Value::Json(json_value));
 
     let empty_duration = MultiValues::Duration(vec![]);
-    assert_eq!(empty_duration.to_value(), Value::Unset(DataType::Duration));
+    assert_eq!(
+        empty_duration.first_value(),
+        Value::Unset(DataType::Duration)
+    );
 
     let empty_url = MultiValues::Url(vec![]);
-    assert_eq!(empty_url.to_value(), Value::Unset(DataType::Url));
+    assert_eq!(empty_url.first_value(), Value::Unset(DataType::Url));
 
     let empty_string_map = MultiValues::StringMap(vec![]);
     assert_eq!(
-        empty_string_map.to_value(),
+        empty_string_map.first_value(),
         Value::Unset(DataType::StringMap)
     );
 
     let empty_json = MultiValues::Json(vec![]);
-    assert_eq!(empty_json.to_value(), Value::Unset(DataType::Json));
+    assert_eq!(empty_json.first_value(), Value::Unset(DataType::Json));
 }
 
 #[test]
-fn test_multi_values_to_value_all_variants() {
+fn test_multi_values_first_value_all_variants() {
     assert_eq!(
-        MultiValues::Bool(vec![true, false]).to_value(),
+        MultiValues::Bool(vec![true, false]).first_value(),
         Value::Bool(true)
     );
     assert_eq!(
-        MultiValues::Char(vec!['a', 'b']).to_value(),
+        MultiValues::Char(vec!['a', 'b']).first_value(),
         Value::Char('a')
     );
-    assert_eq!(MultiValues::Int8(vec![1, 2]).to_value(), Value::Int8(1));
+    assert_eq!(MultiValues::Int8(vec![1, 2]).first_value(), Value::Int8(1));
     assert_eq!(
-        MultiValues::Int16(vec![10, 20]).to_value(),
+        MultiValues::Int16(vec![10, 20]).first_value(),
         Value::Int16(10)
     );
     assert_eq!(
-        MultiValues::Int32(vec![10, 20]).to_value(),
+        MultiValues::Int32(vec![10, 20]).first_value(),
         Value::Int32(10)
     );
     assert_eq!(
-        MultiValues::Int64(vec![100, 200]).to_value(),
+        MultiValues::Int64(vec![100, 200]).first_value(),
         Value::Int64(100)
     );
     assert_eq!(
-        MultiValues::Int128(vec![1000, 2000]).to_value(),
+        MultiValues::Int128(vec![1000, 2000]).first_value(),
         Value::Int128(1000)
     );
-    assert_eq!(MultiValues::UInt8(vec![1, 2]).to_value(), Value::UInt8(1));
     assert_eq!(
-        MultiValues::UInt16(vec![10, 20]).to_value(),
+        MultiValues::UInt8(vec![1, 2]).first_value(),
+        Value::UInt8(1)
+    );
+    assert_eq!(
+        MultiValues::UInt16(vec![10, 20]).first_value(),
         Value::UInt16(10)
     );
     assert_eq!(
-        MultiValues::UInt32(vec![100, 200]).to_value(),
+        MultiValues::UInt32(vec![100, 200]).first_value(),
         Value::UInt32(100)
     );
     assert_eq!(
-        MultiValues::UInt64(vec![1000, 2000]).to_value(),
+        MultiValues::UInt64(vec![1000, 2000]).first_value(),
         Value::UInt64(1000)
     );
     assert_eq!(
-        MultiValues::UInt128(vec![10000, 20000]).to_value(),
+        MultiValues::UInt128(vec![10000, 20000]).first_value(),
         Value::UInt128(10000)
     );
     assert_eq!(
-        MultiValues::Float32(vec![1.5f32, 2.5f32]).to_value(),
+        MultiValues::Float32(vec![1.5f32, 2.5f32]).first_value(),
         Value::Float32(1.5f32)
     );
     assert_eq!(
-        MultiValues::Float64(vec![1.5f64, 2.5f64]).to_value(),
+        MultiValues::Float64(vec![1.5f64, 2.5f64]).first_value(),
         Value::Float64(1.5f64)
     );
 
     let big_int = BigInt::from_str("123456789012345678901234567890").unwrap();
     assert_eq!(
         MultiValues::BigInteger(vec![big_int.clone(), BigInt::from(42)])
-            .to_value(),
+            .first_value(),
         Value::BigInteger(big_int)
     );
 
     let big_decimal = BigDecimal::from_str("12.25").unwrap();
     assert_eq!(
         MultiValues::BigDecimal(vec![big_decimal.clone(), BigDecimal::from(3)])
-            .to_value(),
+            .first_value(),
         Value::BigDecimal(big_decimal)
     );
 
     let date = NaiveDate::from_ymd_opt(2026, 4, 17).unwrap();
-    assert_eq!(MultiValues::Date(vec![date]).to_value(), Value::Date(date));
+    assert_eq!(
+        MultiValues::Date(vec![date]).first_value(),
+        Value::Date(date)
+    );
 
     let time = NaiveTime::from_hms_opt(8, 30, 15).unwrap();
-    assert_eq!(MultiValues::Time(vec![time]).to_value(), Value::Time(time));
+    assert_eq!(
+        MultiValues::Time(vec![time]).first_value(),
+        Value::Time(time)
+    );
 
     let datetime = NaiveDateTime::new(date, time);
     assert_eq!(
-        MultiValues::DateTime(vec![datetime]).to_value(),
+        MultiValues::DateTime(vec![datetime]).first_value(),
         Value::DateTime(datetime)
     );
 
     let instant = Utc.timestamp_opt(1_700_000_000, 0).single().unwrap();
     assert_eq!(
-        MultiValues::Instant(vec![instant]).to_value(),
+        MultiValues::Instant(vec![instant]).first_value(),
         Value::Instant(instant)
     );
 }
 
 #[test]
-fn test_multi_values_to_value_empty_for_all_variants() {
+fn test_multi_values_first_value_empty_for_all_variants() {
     assert_eq!(
-        MultiValues::Bool(vec![]).to_value(),
+        MultiValues::Bool(vec![]).first_value(),
         Value::Unset(DataType::Bool)
     );
     assert_eq!(
-        MultiValues::Char(vec![]).to_value(),
+        MultiValues::Char(vec![]).first_value(),
         Value::Unset(DataType::Char)
     );
     assert_eq!(
-        MultiValues::Int8(vec![]).to_value(),
+        MultiValues::Int8(vec![]).first_value(),
         Value::Unset(DataType::Int8)
     );
     assert_eq!(
-        MultiValues::Int16(vec![]).to_value(),
+        MultiValues::Int16(vec![]).first_value(),
         Value::Unset(DataType::Int16)
     );
     assert_eq!(
-        MultiValues::Int32(vec![]).to_value(),
+        MultiValues::Int32(vec![]).first_value(),
         Value::Unset(DataType::Int32)
     );
     assert_eq!(
-        MultiValues::Int64(vec![]).to_value(),
+        MultiValues::Int64(vec![]).first_value(),
         Value::Unset(DataType::Int64)
     );
     assert_eq!(
-        MultiValues::Int128(vec![]).to_value(),
+        MultiValues::Int128(vec![]).first_value(),
         Value::Unset(DataType::Int128)
     );
     assert_eq!(
-        MultiValues::UInt8(vec![]).to_value(),
+        MultiValues::UInt8(vec![]).first_value(),
         Value::Unset(DataType::UInt8)
     );
     assert_eq!(
-        MultiValues::UInt16(vec![]).to_value(),
+        MultiValues::UInt16(vec![]).first_value(),
         Value::Unset(DataType::UInt16)
     );
     assert_eq!(
-        MultiValues::UInt32(vec![]).to_value(),
+        MultiValues::UInt32(vec![]).first_value(),
         Value::Unset(DataType::UInt32)
     );
     assert_eq!(
-        MultiValues::UInt64(vec![]).to_value(),
+        MultiValues::UInt64(vec![]).first_value(),
         Value::Unset(DataType::UInt64)
     );
     assert_eq!(
-        MultiValues::UInt128(vec![]).to_value(),
+        MultiValues::UInt128(vec![]).first_value(),
         Value::Unset(DataType::UInt128)
     );
     assert_eq!(
-        MultiValues::Float32(vec![]).to_value(),
+        MultiValues::Float32(vec![]).first_value(),
         Value::Unset(DataType::Float32)
     );
     assert_eq!(
-        MultiValues::Float64(vec![]).to_value(),
+        MultiValues::Float64(vec![]).first_value(),
         Value::Unset(DataType::Float64)
     );
     assert_eq!(
-        MultiValues::BigInteger(vec![]).to_value(),
+        MultiValues::BigInteger(vec![]).first_value(),
         Value::Unset(DataType::BigInteger)
     );
     assert_eq!(
-        MultiValues::BigDecimal(vec![]).to_value(),
+        MultiValues::BigDecimal(vec![]).first_value(),
         Value::Unset(DataType::BigDecimal)
     );
 
     assert_eq!(
-        MultiValues::Date(vec![]).to_value(),
+        MultiValues::Date(vec![]).first_value(),
         Value::Unset(DataType::Date)
     );
     assert_eq!(
-        MultiValues::Time(vec![]).to_value(),
+        MultiValues::Time(vec![]).first_value(),
         Value::Unset(DataType::Time)
     );
     assert_eq!(
-        MultiValues::DateTime(vec![]).to_value(),
+        MultiValues::DateTime(vec![]).first_value(),
         Value::Unset(DataType::DateTime)
     );
     assert_eq!(
-        MultiValues::Instant(vec![]).to_value(),
+        MultiValues::Instant(vec![]).first_value(),
         Value::Unset(DataType::Instant)
     );
     assert_eq!(
-        MultiValues::Duration(vec![]).to_value(),
+        MultiValues::Duration(vec![]).first_value(),
         Value::Unset(DataType::Duration)
     );
 }

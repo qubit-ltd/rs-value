@@ -58,7 +58,7 @@ and conversion while maintaining Rust's safety guarantees.
 - **`NamedValue`**: Name-bound `Value` providing `Deref/DerefMut` access to
   inner value
 - **`NamedMultiValues`**: Name-bound `MultiValues` with borrowed
-  `to_named_value()` and consuming `into_named_value()` conversions
+  `first_named_value()` and consuming `into_first_named_value()` conversions
 - **`ValueError` & `ValueResult<T>`**: Standard error type and result alias
 
 `Value`, `MultiValues`, `ValueContainer`, `NamedValue`, `NamedMultiValues`, and
@@ -242,7 +242,7 @@ a.merge(&b)?;
 assert_eq!(a.get_int32s()?, &[1, 2, 3, 4]);
 
 // Convert to single value (takes first element)
-let single = a.to_value();
+let single = a.first_value();
 let first_val: i32 = single.get()?;
 assert_eq!(first_val, 1);
 ```
@@ -332,7 +332,7 @@ let first_port: i32 = nmv.get_first()?;
 assert_eq!(first_port, 8080);
 
 // Named multi-value → Named single value (takes first element)
-let first_named = nmv.to_named_value();
+let first_named = nmv.first_named_value();
 assert_eq!(first_named.name(), "ports");
 let val: i32 = first_named.get()?;
 assert_eq!(val, 8080);
@@ -446,6 +446,7 @@ number literals.
 - `data_type()` — get the data type
 - `is_unset()` — check whether no concrete value is stored
 - `is_numeric()` — classify a concrete numeric value
+- `is_nan()` — test whether the concrete value is a floating-point NaN
 - `unset()` / `clear()` — remove the value while preserving its declared type
 - `set_type()` — change the type
 
@@ -458,7 +459,8 @@ number literals.
   unset remains unset
 - `set_type()` — change the type
 - `merge()` — merge with another multi-value (types must match)
-- `to_value()` — convert to single value (takes first element)
+- `first_value()` / `into_first_value()` — convert the first element to a
+  single value
 
 ## Error Types
 
@@ -579,7 +581,7 @@ bigdecimal = { version = "0.4", features = ["serde"] }
 # Core API with the default empty feature set
 cargo test --no-default-features
 
-# Core API plus regex validation
+# All feature combinations and API contracts
 cargo test --all-features
 
 # Project CI checks

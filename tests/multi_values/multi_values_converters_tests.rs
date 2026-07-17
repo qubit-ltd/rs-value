@@ -22,7 +22,7 @@ fn test_multi_values_converters_convert_first_list_and_value() {
     let values = MultiValues::String(vec!["1".to_string(), "2".to_string()]);
     assert_eq!(values.to::<i32>().unwrap(), 1);
     assert_eq!(values.to_list::<i32>().unwrap(), vec![1, 2]);
-    assert_eq!(values.to_value(), Value::String("1".to_string()));
+    assert_eq!(values.first_value(), Value::String("1".to_string()));
 }
 
 #[test]
