@@ -12,8 +12,8 @@
 //!
 //! # Public API Overview
 //!
-//! - [`Value`] stores one typed scalar, including an explicit
-//!   `Unset(DataType)` state.
+//! - [`Value`] stores one typed scalar, including an explicit `Unset(DataType)`
+//!   state.
 //! - [`MultiValues`] stores one homogeneous typed collection.
 //! - [`ValueContainer`] preserves whether storage is scalar or collection.
 //! - [`NamedValue`] and [`NamedMultiValues`] provide name wrappers.

@@ -30,6 +30,28 @@ use super::{
     TupleVariantSerializer,
 };
 
+/// Maximum number of compound items reserved from a Serde length hint.
+const MAX_PREALLOCATED_ITEMS: usize = 1_024;
+
+/// Bounds a Serde compound length hint before using it for preallocation.
+///
+/// This limit affects only the initial reservation. Compound serializers still
+/// accept every item emitted by the source value and grow normally as needed.
+///
+/// # Parameters
+///
+/// * `len` - Optional number of items declared by the source serializer.
+///
+/// # Returns
+///
+/// Zero when no hint is present, or the declared length capped at
+/// [`MAX_PREALLOCATED_ITEMS`].
+#[inline(always)]
+#[must_use]
+fn preallocated_capacity(len: Option<usize>) -> usize {
+    len.unwrap_or(0).min(MAX_PREALLOCATED_ITEMS)
+}
+
 /// Builds a JSON value while rejecting every non-finite floating-point value.
 #[derive(Clone, Copy)]
 pub(in crate::strict_json) struct StrictJsonSerializer;
@@ -222,7 +244,7 @@ impl Serializer for StrictJsonSerializer {
     /// Creates a sequence serializer with the declared capacity.
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
         Ok(SequenceSerializer {
-            values: Vec::with_capacity(len.unwrap_or(0)),
+            values: Vec::with_capacity(preallocated_capacity(len)),
         })
     }
 
@@ -252,14 +274,14 @@ impl Serializer for StrictJsonSerializer {
     ) -> Result<Self::SerializeTupleVariant> {
         Ok(TupleVariantSerializer {
             variant: variant.to_string(),
-            values: Vec::with_capacity(len),
+            values: Vec::with_capacity(preallocated_capacity(Some(len))),
         })
     }
 
     /// Creates a map serializer with the declared capacity.
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
         Ok(ObjectSerializer {
-            values: Map::with_capacity(len.unwrap_or(0)),
+            values: Map::with_capacity(preallocated_capacity(len)),
             next_key: None,
         })
     }
@@ -284,7 +306,7 @@ impl Serializer for StrictJsonSerializer {
     ) -> Result<Self::SerializeStructVariant> {
         Ok(StructVariantSerializer {
             variant: variant.to_string(),
-            values: Map::with_capacity(len),
+            values: Map::with_capacity(preallocated_capacity(Some(len))),
         })
     }
 
