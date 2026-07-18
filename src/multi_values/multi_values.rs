@@ -71,11 +71,17 @@ macro_rules! define_multi_values_enum {
         #[derive(Debug, Clone)]
         pub enum MultiValues {
             /// Unset collection with a declared element data type.
-            Unset(DataType),
+            Unset(
+                /// Declared element type retained while the collection is unset.
+                DataType,
+            ),
             $(
                 $(#[$cfg])*
                 #[doc = $multi_doc]
-                $variant(Vec<$type>),
+                $variant(
+                    #[doc = concat!("Stored ", $multi_doc, " payload.")]
+                    Vec<$type>,
+                ),
             )+
         }
     };

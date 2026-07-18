@@ -12,17 +12,16 @@ use serde::Serialize;
 use serde_json::Value;
 
 mod internal;
-mod strict_json_error;
 
+pub(crate) use internal::StrictJsonError;
 use internal::StrictJsonSerializer;
-pub(crate) use strict_json_error::StrictJsonError;
 
 /// Result returned by strict JSON serialization helpers.
 type Result<T> = std::result::Result<T, StrictJsonError>;
 
 /// Serializes a value to JSON while rejecting every non-finite float.
 ///
-/// # Arguments
+/// # Parameters
 ///
 /// * `value` - Serializable value to project into strict JSON.
 ///

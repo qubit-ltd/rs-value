@@ -29,8 +29,8 @@
 //!   fallible because appended values must have the same data type.
 //! - Serde uses the strict, type-preserving [`ValueWireV1`] envelope. V1
 //!   compatibility covers its documented JSON structure; other serializer
-//!   formats are outside that stability contract. With `converter`,
-//!   `to_json_value` provides a separate natural JSON projection.
+//!   formats are outside that stability contract. With both `converter` and
+//!   `json`, `to_json_value` provides a separate natural JSON projection.
 //! - Version one rejects the pre-0.10 externally tagged representation.
 //! - Non-finite floats may exist in memory, but V1 Serde and natural JSON
 //!   reject them because JSON has no `NaN` or infinity number literals.
@@ -86,6 +86,8 @@
 //! assert!(scalar.is_scalar());
 //! assert!(collection.is_collection());
 //! ```
+
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 // Sub-modules
 mod finite_float;

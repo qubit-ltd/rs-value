@@ -306,7 +306,25 @@ fn test_multi_value_defaulted_reads_use_default_only_for_unset() {
     );
     assert_eq!(unset.to_or::<String>("fallback").unwrap(), "fallback");
     assert_eq!(
+        unset
+            .to_or_with::<String>(
+                "fallback",
+                DataConversionOptions::default_ref(),
+            )
+            .unwrap(),
+        "fallback"
+    );
+    assert_eq!(
         unset.to_list_or::<String>(["fallback"]).unwrap(),
+        vec!["fallback"]
+    );
+    assert_eq!(
+        unset
+            .to_list_or_with::<String>(
+                ["fallback"],
+                DataConversionOptions::default_ref(),
+            )
+            .unwrap(),
         vec!["fallback"]
     );
 

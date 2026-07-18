@@ -22,7 +22,7 @@ use crate::{
 pub trait StrictValueListRead: Sized {
     /// Strictly reads one scalar as a one-item list.
     ///
-    /// # Arguments
+    /// # Parameters
     ///
     /// * `value` - Scalar runtime value to read.
     ///
@@ -39,7 +39,7 @@ pub trait StrictValueListRead: Sized {
 
     /// Strictly reads every item from a homogeneous collection.
     ///
-    /// # Arguments
+    /// # Parameters
     ///
     /// * `values` - Runtime collection to read.
     ///
