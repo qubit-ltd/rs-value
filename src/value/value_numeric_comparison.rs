@@ -106,7 +106,7 @@ impl Value {
             (false, false) => {}
         }
 
-        left.compare_to(right, policy)
+        left.compare(right, policy)
             .ok_or_else(|| NumericComparisonError::Indeterminate {
                 left: self.data_type(),
                 right: other.data_type(),

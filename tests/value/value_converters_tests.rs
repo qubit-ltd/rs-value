@@ -20,7 +20,7 @@ use qubit_datatype::{
     DataConversionOptions,
     DataType,
     InvalidValueReason,
-    NumericConversionPolicy,
+    NumericConversionOptions,
     StringConversionOptions,
 };
 use qubit_value::{
@@ -58,7 +58,7 @@ fn test_value_to_with_applies_exactness_equally_to_typed_and_text_sources() {
     }
 
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     assert_eq!(Value::Float64(1.5).to_with::<i32>(&lossy), Ok(1));
     assert_eq!(
         Value::String("1.5".to_string()).to_with::<i32>(&lossy),
@@ -293,7 +293,7 @@ fn test_value_as_int32_all_branches() {
 
     // Test Float32/Float64 to i32 conversion
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     let value = Value::Float32(42.7);
     assert_eq!(value.to_with::<i32>(&lossy).unwrap(), 42);
     let value = Value::Float64(99.9);
@@ -514,7 +514,7 @@ fn test_value_as_float64_conversions() {
 #[test]
 fn test_big_type_conversions_for_coverage() {
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     use bigdecimal::BigDecimal;
     use num_bigint::BigInt;
     use std::f64;
@@ -763,7 +763,7 @@ fn test_as_int64_small_uint128_conversion_failed() {
 #[test]
 fn test_as_float64_int128_conversion_failed() {
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     // Test Int128 to f64 conversion
     let value = Value::Int128(100);
     assert_eq!(value.to::<f64>().unwrap(), 100.0);
@@ -775,7 +775,7 @@ fn test_as_float64_int128_conversion_failed() {
 #[test]
 fn test_as_float64_uint128_conversion_failed() {
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     // Test UInt128 to f64 conversion
     let value = Value::UInt128(100);
     assert_eq!(value.to::<f64>().unwrap(), 100.0);
@@ -1244,7 +1244,7 @@ fn test_as_float64_biginteger_conversion_error() {
 #[test]
 fn test_as_float64_bigdecimal_conversion_error() {
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     use std::str::FromStr;
 
     // BigDecimal within normal range should convert successfully
@@ -1335,7 +1335,7 @@ fn test_as_int64_all_unsigned_types() {
 #[test]
 fn test_as_float64_all_integer_types() {
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     // Ensure all integer types to float64 conversion are tested
 
     // Signed integers
@@ -1397,7 +1397,7 @@ fn test_as_string_direct_string_type() {
 #[test]
 fn test_conversion_with_edge_values() {
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     // Test boundary value conversions
 
     // Int32 boundary values
@@ -1519,7 +1519,7 @@ fn test_as_int64_big_types_edge_cases() {
     let huge_bigint = BigInt::from_str("99999999999999999999").unwrap();
     let value = Value::BigInteger(huge_bigint);
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     let result = value.to_with::<i64>(&lossy);
     assert!(result.is_err());
 
@@ -1603,7 +1603,7 @@ fn test_char_numeric_conversions() {
 #[test]
 fn test_float_to_int64_conversions() {
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     let f32_val = Value::Float32(42.7);
     assert_eq!(f32_val.to_with::<i64>(&lossy).unwrap(), 42);
 
@@ -1843,7 +1843,7 @@ fn test_as_float64_bigdecimal_conversion_edge_cases() {
     let normal_value =
         Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     assert!(
         (normal_value.to_with::<f64>(&lossy).unwrap() - 123.456).abs() < 1e-10
     );
@@ -1964,7 +1964,7 @@ fn test_as_float64_string_parse_all_error_cases() {
     // Comparison: Valid floating point string should succeed
     let valid_value = Value::String("123.45".to_string());
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     assert!(valid_value.to_with::<f64>(&lossy).is_ok());
     assert_eq!(valid_value.to_with::<f64>(&lossy).unwrap(), 123.45);
 }
@@ -2027,7 +2027,7 @@ fn test_big_number_to_f32_and_f64_failures() {
 #[test]
 fn test_narrow_signed_integer_converters_accept_numeric_sources() {
     let lossy = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+        .with_numeric_options(NumericConversionOptions::lossy());
     let cases = vec![
         (Value::Bool(true), 1i128),
         (Value::Bool(false), 0),
