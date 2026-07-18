@@ -41,7 +41,7 @@ impl ValueWireV1 {
 
     /// Creates a V1 DTO from an explicit scalar-or-collection container.
     ///
-    /// # Arguments
+    /// # Parameters
     ///
     /// * `value` - Runtime container whose exact type and shape are preserved.
     ///

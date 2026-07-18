@@ -80,11 +80,17 @@ macro_rules! define_value_enum {
         #[derive(Debug, Clone)]
         pub enum Value {
             /// Unset value with a declared data type.
-            Unset(DataType),
+            Unset(
+                /// Declared data type retained while the value is unset.
+                DataType,
+            ),
             $(
                 $(#[$cfg])*
                 #[doc = $value_doc]
-                $variant($type),
+                $variant(
+                    #[doc = concat!("Stored ", $value_doc, " payload.")]
+                    $type,
+                ),
             )+
         }
     };
@@ -119,7 +125,7 @@ macro_rules! value_data_type_match {
 impl Value {
     /// Creates an unset scalar with an explicit declared type.
     ///
-    /// # Arguments
+    /// # Parameters
     ///
     /// * `data_type` - Declared type retained while no concrete value exists.
     ///

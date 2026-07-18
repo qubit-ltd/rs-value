@@ -165,7 +165,7 @@ impl MultiValues {
     ///
     /// * `T` - Target type.
     ///
-    /// # Arguments
+    /// # Parameters
     ///
     /// * `default` - Value returned only for an unset container.
     ///

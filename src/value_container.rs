@@ -34,9 +34,15 @@ use qubit_datatype::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValueContainer {
     /// One typed value.
-    Scalar(Value),
+    Scalar(
+        /// Stored scalar value.
+        Value,
+    ),
     /// A homogeneous typed collection.
-    Collection(MultiValues),
+    Collection(
+        /// Stored homogeneous collection.
+        MultiValues,
+    ),
 }
 
 macro_rules! impl_value_container_from_table {

@@ -143,7 +143,7 @@ impl Value {
 
     /// Projects this typed value using explicit conversion options.
     ///
-    /// # Arguments
+    /// # Parameters
     ///
     /// * `options` - Controls duration units and precision-loss behavior.
     ///
@@ -180,7 +180,7 @@ impl MultiValues {
 
     /// Projects this collection using explicit conversion options.
     ///
-    /// # Arguments
+    /// # Parameters
     ///
     /// * `options` - Controls duration units and precision-loss behavior.
     ///
@@ -216,7 +216,7 @@ impl ValueContainer {
 
     /// Projects this container using explicit conversion options.
     ///
-    /// # Arguments
+    /// # Parameters
     ///
     /// * `options` - Controls duration units and precision-loss behavior.
     ///

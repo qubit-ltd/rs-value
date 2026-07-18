@@ -58,12 +58,20 @@ pub enum ValueError {
     /// Error returned by the shared single-value conversion layer.
     #[cfg(feature = "converter")]
     #[error("Data conversion error: {0}")]
-    DataConversion(#[from] DataConversionError),
+    DataConversion(
+        /// Structured conversion failure from `qubit-datatype`.
+        #[from]
+        DataConversionError,
+    ),
 
     /// Error returned by the shared list conversion layer.
     #[cfg(feature = "converter")]
     #[error("Data list conversion error: {0}")]
-    DataListConversion(#[from] DataListConversionError),
+    DataListConversion(
+        /// Structured list conversion failure, including the source index.
+        #[from]
+        DataListConversionError,
+    ),
 }
 
 /// Value processing result type

@@ -122,7 +122,7 @@ macro_rules! value_into_multi_values_match {
 impl MultiValues {
     /// Creates an unset collection with an explicit declared element type.
     ///
-    /// # Arguments
+    /// # Parameters
     ///
     /// * `data_type` - Declared element type retained while the collection is
     ///   unset.
