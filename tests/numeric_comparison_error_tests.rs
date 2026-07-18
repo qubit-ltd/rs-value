@@ -40,6 +40,13 @@ fn test_numeric_comparison_error_display_and_equality() {
         (NumericComparisonError::LeftNaN, "left value is NaN"),
         (NumericComparisonError::RightNaN, "right value is NaN"),
         (NumericComparisonError::BothNaN, "both values are NaN"),
+        (
+            NumericComparisonError::Indeterminate {
+                left: DataType::BigDecimal,
+                right: DataType::Float64,
+            },
+            "numeric comparison is indeterminate between bigdecimal and float64",
+        ),
     ];
 
     for (error, expected) in cases {

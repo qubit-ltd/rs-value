@@ -47,4 +47,12 @@ pub enum NumericComparisonError {
     /// Both operands are NaN.
     #[error("both values are NaN")]
     BothNaN,
+    /// The lower-level numeric comparator could not order the operands.
+    #[error("numeric comparison is indeterminate between {left} and {right}")]
+    Indeterminate {
+        /// Runtime type of the left numeric operand.
+        left: DataType,
+        /// Runtime type of the right numeric operand.
+        right: DataType,
+    },
 }
