@@ -202,11 +202,11 @@ fn numeric_classification_depends_on_concrete_state() {
 #[test]
 fn named_wrappers_retain_generic_core_access() {
     let mut named = NamedValue::new("port", Value::Int32(8080));
-    named.set(9090_i32);
-    assert_eq!(named.get_int32().unwrap(), 9090);
+    named.value_mut().set(9090_i32);
+    assert_eq!(named.value().get_int32().unwrap(), 9090);
 
     let mut named_values =
         NamedMultiValues::new("ports", MultiValues::Int32(vec![8080]));
-    named_values.add(9090_i32).unwrap();
-    assert_eq!(named_values.get_int32s().unwrap(), &[8080, 9090]);
+    named_values.values_mut().add(9090_i32).unwrap();
+    assert_eq!(named_values.values().get_int32s().unwrap(), &[8080, 9090]);
 }

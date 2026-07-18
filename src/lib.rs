@@ -73,7 +73,7 @@
 //! // Create a named value
 //! let config = NamedValue::new("port", Value::Int32(8080));
 //! assert_eq!(config.name(), "port");
-//! assert_eq!(config.get_int32().unwrap(), 8080);
+//! assert_eq!(config.value().get_int32().unwrap(), 8080);
 //! ```
 //!
 //! ## Explicit Shape Operations
