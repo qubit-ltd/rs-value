@@ -43,7 +43,8 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
 - **`MultiValues`**: 多值容器，对应 `Vec<T>` 的枚举变体，含 `Unset(DataType)`
 - **`ValueContainer`**: 显式表示 `Scalar(Value)` 或
   `Collection(MultiValues)`，不会根据集合长度推断形态
-- **`NamedValue`**: 绑定名称的 `Value`，提供 `Deref/DerefMut` 直达内部值
+- **`NamedValue`**: 绑定名称的 `Value`，通过显式的 `value()` 和
+  `value_mut()` 访问内部值
 - **`NamedMultiValues`**: 绑定名称的 `MultiValues`，提供借用式
   `first_named_value()` 与消费式 `into_first_named_value()`
 - **`ValueError` 与 `ValueResult<T>`**: 标准错误与结果别名
@@ -300,23 +301,23 @@ use qubit_value::{NamedValue, NamedMultiValues, Value, MultiValues};
 // 命名单值
 let mut nv = NamedValue::new("timeout", Value::new(30i32));
 assert_eq!(nv.name(), "timeout");
-let timeout: i32 = nv.get()?;
+let timeout: i32 = nv.value().get()?;
 assert_eq!(timeout, 30);
 
 nv.set_name("read_timeout");
-nv.set(45i32);
-assert_eq!(nv.get_int32()?, 45);
+nv.value_mut().set(45i32);
+assert_eq!(nv.value().get_int32()?, 45);
 
 // 命名多值
 let mut nmv = NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
-nmv.add(8082)?;
-let first_port: i32 = nmv.get_first()?;
+nmv.values_mut().add(8082)?;
+let first_port: i32 = nmv.values().get_first()?;
 assert_eq!(first_port, 8080);
 
 // 命名多值 → 命名单值（取首元素）
 let first_named = nmv.first_named_value();
 assert_eq!(first_named.name(), "ports");
-let val: i32 = first_named.get()?;
+let val: i32 = first_named.value().get()?;
 assert_eq!(val, 8080);
 ```
 
@@ -542,10 +543,10 @@ bigdecimal = { version = "0.4", optional = true }
 ## 测试
 
 ```bash
-# 使用默认的空 feature 集测试核心 API
-cargo test --no-default-features
+# 使用默认 feature 集运行测试
+cargo test
 
-# 启用全部 feature 进行测试
+# 使用项目声明的全部 feature 运行测试
 cargo test --all-features
 
 # 运行项目 CI 检查

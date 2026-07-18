@@ -55,8 +55,8 @@ and conversion while maintaining Rust's safety guarantees.
   variants, with `Unset(DataType)`
 - **`ValueContainer`**: Explicit `Scalar(Value)` or
   `Collection(MultiValues)` shape without length-based inference
-- **`NamedValue`**: Name-bound `Value` providing `Deref/DerefMut` access to
-  inner value
+- **`NamedValue`**: Name-bound `Value` with explicit `value()` and
+  `value_mut()` access to the inner value
 - **`NamedMultiValues`**: Name-bound `MultiValues` with borrowed
   `first_named_value()` and consuming `into_first_named_value()` conversions
 - **`ValueError` & `ValueResult<T>`**: Standard error type and result alias
@@ -320,23 +320,23 @@ use qubit_value::{NamedValue, NamedMultiValues, Value, MultiValues};
 // Named single value
 let mut nv = NamedValue::new("timeout", Value::new(30i32));
 assert_eq!(nv.name(), "timeout");
-let timeout: i32 = nv.get()?;
+let timeout: i32 = nv.value().get()?;
 assert_eq!(timeout, 30);
 
 nv.set_name("read_timeout");
-nv.set(45i32);
-assert_eq!(nv.get_int32()?, 45);
+nv.value_mut().set(45i32);
+assert_eq!(nv.value().get_int32()?, 45);
 
 // Named multi-value
 let mut nmv = NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
-nmv.add(8082)?;
-let first_port: i32 = nmv.get_first()?;
+nmv.values_mut().add(8082)?;
+let first_port: i32 = nmv.values().get_first()?;
 assert_eq!(first_port, 8080);
 
 // Named multi-value → Named single value (takes first element)
 let first_named = nmv.first_named_value();
 assert_eq!(first_named.name(), "ports");
-let val: i32 = first_named.get()?;
+let val: i32 = first_named.value().get()?;
 assert_eq!(val, 8080);
 ```
 
@@ -580,10 +580,10 @@ bigdecimal = { version = "0.4", optional = true }
 ## Testing
 
 ```bash
-# Core API with the default empty feature set
-cargo test --no-default-features
+# Run tests with the default feature set
+cargo test
 
-# All features enabled
+# Run tests with all declared features
 cargo test --all-features
 
 # Project CI checks

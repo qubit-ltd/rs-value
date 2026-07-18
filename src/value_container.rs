@@ -173,6 +173,11 @@ impl From<MultiValues> for ValueContainer {
 
 impl ValueContainer {
     /// Returns the stored or declared data type.
+    ///
+    /// # Returns
+    ///
+    /// The scalar or collection element type, including the declared type of
+    /// unset storage.
     #[inline(always)]
     pub fn data_type(&self) -> DataType {
         match self {
@@ -182,6 +187,10 @@ impl ValueContainer {
     }
 
     /// Returns whether this container has scalar shape.
+    ///
+    /// # Returns
+    ///
+    /// `true` for [`ValueContainer::Scalar`].
     #[inline(always)]
     #[must_use]
     pub const fn is_scalar(&self) -> bool {
@@ -219,6 +228,10 @@ impl ValueContainer {
     }
 
     /// Returns whether this container has collection shape.
+    ///
+    /// # Returns
+    ///
+    /// `true` for [`ValueContainer::Collection`].
     #[inline(always)]
     #[must_use]
     pub const fn is_collection(&self) -> bool {
@@ -256,6 +269,10 @@ impl ValueContainer {
     }
 
     /// Returns whether the shape contains no concrete value or collection.
+    ///
+    /// # Returns
+    ///
+    /// `true` when the contained scalar or collection is unset.
     #[inline(always)]
     #[must_use]
     pub fn is_unset(&self) -> bool {
@@ -267,6 +284,10 @@ impl ValueContainer {
 
     /// Returns zero for unset storage, one for a concrete scalar, or the
     /// concrete collection length.
+    ///
+    /// # Returns
+    ///
+    /// The number of concrete values represented by this container.
     #[inline(always)]
     #[must_use]
     pub fn count(&self) -> usize {
@@ -277,6 +298,14 @@ impl ValueContainer {
     }
 
     /// Strictly reads a scalar or the first collection item as `T`.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Strict target type.
+    ///
+    /// # Returns
+    ///
+    /// The scalar value or first collection item.
     ///
     /// # Errors
     ///
@@ -295,6 +324,14 @@ impl ValueContainer {
 
     /// Strictly reads a scalar as a one-item list or all collection items.
     ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Strict target element type.
+    ///
+    /// # Returns
+    ///
+    /// A one-item scalar list or all collection items.
+    ///
     /// # Errors
     ///
     /// Returns [`ValueError::NoValue`] for unset matching storage and
@@ -311,6 +348,14 @@ impl ValueContainer {
     }
 
     /// Replaces this container, including its shape, from a supported input.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Input type convertible into [`ValueContainer`].
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - New scalar or collection value.
     #[inline(always)]
     pub fn set<S>(&mut self, value: S)
     where
@@ -322,6 +367,18 @@ impl ValueContainer {
     /// Appends values, promoting scalar storage to collection storage when the
     /// input contains at least one concrete value. Same-typed empty and unset
     /// input is a no-op.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Input type convertible into [`ValueContainer`].
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Scalar or collection values to append.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after appending or accepting an empty same-typed input.
     ///
     /// # Errors
     ///
@@ -377,6 +434,14 @@ impl ValueContainer {
 
     /// Converts a scalar or the first collection item to `T`.
     ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    ///
+    /// # Returns
+    ///
+    /// The converted scalar or first collection item.
+    ///
     /// # Errors
     ///
     /// Returns the mapped `qubit-datatype` conversion error.
@@ -390,6 +455,18 @@ impl ValueContainer {
     }
 
     /// Converts a scalar or the first collection item using explicit options.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    ///
+    /// # Parameters
+    ///
+    /// * `options` - Conversion options forwarded to the contained value.
+    ///
+    /// # Returns
+    ///
+    /// The converted scalar or first collection item.
     ///
     /// # Errors
     ///
@@ -411,6 +488,14 @@ impl ValueContainer {
     /// Scalar strings may be split according to collection conversion options;
     /// strings already stored in a collection are never split again.
     ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target list element type.
+    ///
+    /// # Returns
+    ///
+    /// A converted scalar list or all converted collection items.
+    ///
     /// # Errors
     ///
     /// Returns the mapped single-value or indexed list conversion error.
@@ -424,6 +509,18 @@ impl ValueContainer {
     }
 
     /// Converts to a list using explicit conversion options.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target list element type.
+    ///
+    /// # Parameters
+    ///
+    /// * `options` - Conversion options forwarded to the contained value.
+    ///
+    /// # Returns
+    ///
+    /// A converted scalar list or all converted collection items.
     ///
     /// # Errors
     ///

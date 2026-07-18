@@ -21,6 +21,10 @@ where
 /// API.
 pub trait IntoValueDefault<T> {
     /// Converts this argument into the default value.
+    ///
+    /// # Returns
+    ///
+    /// The owned default value expected by the read API.
     fn into_value_default(self) -> T;
 }
 

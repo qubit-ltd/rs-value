@@ -148,6 +148,10 @@ impl MultiValues {
     ///
     /// * `S` - Input type convertible into [`MultiValues`].
     ///
+    /// # Parameters
+    ///
+    /// * `values` - Values to convert into a collection.
+    ///
     /// # Returns
     ///
     /// Returns `MultiValues` wrapping the converted input values.
@@ -218,6 +222,23 @@ impl MultiValues {
     ///
     /// Returns the supplied default only when this container is unset. A
     /// concrete empty vector remains an empty result.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element type for the strict read.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Lazily materialized list used only for unset storage.
+    ///
+    /// # Returns
+    ///
+    /// The concrete stored list, or `default` for unset storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
+    /// `T`.
     #[inline]
     pub fn get_or<T>(
         &self,
@@ -287,6 +308,23 @@ impl MultiValues {
     /// Returns the supplied default only when the container is unset. A
     /// concrete empty vector returns [`ValueError::NoValue`]; type mismatches
     /// are also preserved.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target type for the strict first-item read.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Lazily materialized value used only for unset storage.
+    ///
+    /// # Returns
+    ///
+    /// The first concrete item, or `default` for unset storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::NoValue`] for a concrete empty collection or
+    /// [`ValueError::TypeMismatch`] when the stored type differs from `T`.
     #[inline]
     pub fn get_first_or<T>(
         &self,
@@ -381,6 +419,14 @@ impl MultiValues {
     /// # Type Parameters
     ///
     /// * `S` - Input type convertible into [`MultiValues`].
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Values to append.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after appending, including when the input is empty.
     ///
     /// # Errors
     ///
@@ -500,6 +546,10 @@ impl MultiValues {
     ///
     /// A concrete empty numeric vector returns `true`; an unset collection
     /// returns `false`, even when its declared type is numeric.
+    ///
+    /// # Returns
+    ///
+    /// `true` for concrete collections with a numeric element type.
     #[inline(always)]
     #[must_use]
     pub fn is_numeric(&self) -> bool {
@@ -561,6 +611,10 @@ impl MultiValues {
     ///
     /// Returns `Value::Unset` with the same declared type when no element is
     /// stored.
+    ///
+    /// # Returns
+    ///
+    /// A cloned first item, or a typed unset value when no item exists.
     pub fn first_value(&self) -> Value {
         for_each_value_type!(multi_values_first_value_match, self)
     }
@@ -569,11 +623,23 @@ impl MultiValues {
     ///
     /// Empty and unset collections become [`Value::Unset`] with the same data
     /// type. Owned element storage is moved instead of cloned.
+    ///
+    /// # Returns
+    ///
+    /// The owned first item, or a typed unset value when no item exists.
     pub fn into_first_value(self) -> Value {
         for_each_value_type!(multi_values_into_first_value_match, self)
     }
 
     /// Appends all values from another container with the same data type.
+    ///
+    /// # Parameters
+    ///
+    /// * `other` - Collection whose values are cloned and appended.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after appending, including when `other` is empty.
     ///
     /// # Errors
     ///
