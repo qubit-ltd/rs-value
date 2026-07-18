@@ -38,8 +38,9 @@ impl SerializeStructVariant for StructVariantSerializer {
     where
         T: ?Sized + Serialize,
     {
-        self.values.insert(key.to_string(), to_value(value)?);
-        Ok(())
+        to_value(value).map(|value| {
+            self.values.insert(key.to_string(), value);
+        })
     }
 
     /// Returns the struct variant as a nested single-key JSON object.
