@@ -16,7 +16,8 @@
 use qubit_datatype::{
     DataConversionOptions,
     DataType,
-    NumericConversionPolicy,
+    DurationConversionOptions,
+    DurationRoundingPolicy,
 };
 use qubit_value::{
     Value,
@@ -490,8 +491,10 @@ fn test_value_to_json() {
 #[test]
 fn test_value_to_string() {
     let v = Value::Duration(Duration::from_nanos(7));
-    let options = DataConversionOptions::default()
-        .with_numeric_policy(NumericConversionPolicy::Lossy);
+    let options = DataConversionOptions::default().with_duration_options(
+        DurationConversionOptions::default()
+            .with_rounding_policy(DurationRoundingPolicy::HalfUp),
+    );
     let got: String = v.to_with(&options).unwrap();
     assert_eq!(got, "0ms");
 }
