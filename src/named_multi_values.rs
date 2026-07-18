@@ -15,10 +15,6 @@ use serde::{
     Deserialize,
     Serialize,
 };
-use std::ops::{
-    Deref,
-    DerefMut,
-};
 
 use super::multi_values::MultiValues;
 use super::named_value::NamedValue;
@@ -33,8 +29,7 @@ use super::named_value::NamedValue;
 /// # Features
 ///
 /// - Provides clear name identification for multiple value collections
-/// - Transparently reuses all capabilities of `MultiValues` through
-///   `Deref/DerefMut`
+/// - Exposes the inner [`MultiValues`] through explicit accessors
 /// - Supports `serde` serialization and deserialization
 ///
 /// # Use Cases
@@ -55,7 +50,17 @@ use super::named_value::NamedValue;
 /// );
 ///
 /// assert_eq!(named.name(), "ports");
-/// assert_eq!(named.count(), 3);
+/// assert_eq!(named.values().count(), 3);
+/// ```
+///
+/// The wrapper intentionally does not forward [`MultiValues`] methods
+/// implicitly:
+///
+/// ```compile_fail
+/// use qubit_value::{MultiValues, NamedMultiValues};
+///
+/// let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080]));
+/// let _ = named.count();
 /// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -120,12 +125,10 @@ impl NamedMultiValues {
     /// assert_eq!(named.name(), "items");
     /// ```
     #[inline(always)]
-    #[must_use]
+    #[must_use = "the borrowed name should be used"]
     pub fn name(&self) -> &str {
         &self.name
     }
-
-    // Methods of MultiValues are forwarded through Deref/DerefMut
 
     /// Set a new name
     ///
@@ -151,11 +154,58 @@ impl NamedMultiValues {
         self.name = name.into();
     }
 
+    /// Borrows the contained values.
+    ///
+    /// # Returns
+    ///
+    /// A shared reference to the contained [`MultiValues`].
+    #[inline(always)]
+    #[must_use = "the borrowed values should be used"]
+    pub fn values(&self) -> &MultiValues {
+        &self.value
+    }
+
+    /// Mutably borrows the contained values.
+    ///
+    /// # Returns
+    ///
+    /// An exclusive reference to the contained [`MultiValues`].
+    #[inline(always)]
+    #[must_use = "the mutable values reference should be used"]
+    pub fn values_mut(&mut self) -> &mut MultiValues {
+        &mut self.value
+    }
+
+    /// Replaces the contained values.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - New collection to store under the existing name.
+    #[inline(always)]
+    pub fn set_values(&mut self, values: MultiValues) {
+        self.value = values;
+    }
+
+    /// Consumes this wrapper and returns its owned name and values.
+    ///
+    /// # Returns
+    ///
+    /// The `(name, values)` pair without cloning either component.
+    #[inline(always)]
+    #[must_use = "consuming NamedMultiValues without using its parts loses both fields"]
+    pub fn into_parts(self) -> (String, MultiValues) {
+        (self.name, self.value)
+    }
+
     /// Convert this named multi-values into a named single value.
     ///
     /// The returned value keeps the same name and uses the first element from
     /// the inner [`MultiValues`]. If there is no element, the returned value is
     /// `Value::Unset` with the same data type.
+    ///
+    /// # Returns
+    ///
+    /// A named clone of the first item, or a named typed unset value.
     #[inline]
     pub fn first_named_value(&self) -> NamedValue {
         NamedValue::new(self.name.as_str(), self.value.first_value())
@@ -166,32 +216,14 @@ impl NamedMultiValues {
     /// The owned name and first stored item are moved into the result. An empty
     /// or unset collection produces [`crate::Value::Unset`] with the same data
     /// type.
+    ///
+    /// # Returns
+    ///
+    /// A named owned first item, or a named typed unset value.
     #[inline]
     pub fn into_first_named_value(self) -> NamedValue {
-        NamedValue::new(self.name, self.value.into_first_value())
-    }
-
-    // Values can be directly assigned or mutable methods called on the inner
-    // value through DerefMut
-}
-
-/// Transparently delegate read-only methods to the inner `MultiValues` through
-/// `Deref`.
-impl Deref for NamedMultiValues {
-    type Target = MultiValues;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-/// Transparently delegate mutable methods to the inner `MultiValues` through
-/// `DerefMut`.
-impl DerefMut for NamedMultiValues {
-    #[inline(always)]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
+        let (name, values) = self.into_parts();
+        NamedValue::new(name, values.into_first_value())
     }
 }
 

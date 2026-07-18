@@ -17,10 +17,6 @@ use serde::{
     Deserialize,
     Serialize,
 };
-use std::ops::{
-    Deref,
-    DerefMut,
-};
 
 use super::value::Value;
 
@@ -33,8 +29,7 @@ use super::value::Value;
 /// # Features
 ///
 /// - Provides stable name identification for values
-/// - Automatically dereferences to the inner [`Value`] via `Deref`, allowing
-///   direct access to [`Value`] methods
+/// - Exposes the inner [`Value`] through explicit accessors
 /// - Supports `serde` serialization and deserialization
 ///
 /// # Use Cases
@@ -49,8 +44,16 @@ use super::value::Value;
 /// use qubit_value::{NamedValue, Value};
 ///
 /// let named = NamedValue::new("flag", Value::Bool(true));
-/// // Call Value methods through Deref
-/// assert!(named.get_bool().unwrap());
+/// assert!(named.value().get_bool().unwrap());
+/// ```
+///
+/// The wrapper intentionally does not forward [`Value`] methods implicitly:
+///
+/// ```compile_fail
+/// use qubit_value::{NamedValue, Value};
+///
+/// let named = NamedValue::new("flag", Value::Bool(true));
+/// let _ = named.get_bool();
 /// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -108,7 +111,7 @@ impl NamedValue {
     /// assert_eq!(named.name(), "host");
     /// ```
     #[inline(always)]
-    #[must_use]
+    #[must_use = "the borrowed name should be used"]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -135,51 +138,46 @@ impl NamedValue {
         self.name = name.into();
     }
 
-    /// Consume the instance and return `(name, value)`.
-    #[inline(always)]
-    pub fn into_parts(self) -> (String, Value) {
-        (self.name, self.value)
-    }
-}
-
-impl Deref for NamedValue {
-    type Target = Value;
-
-    /// Dereference to the inner [`Value`]
-    ///
-    /// Allows direct invocation of methods on [`Value`], for example:
-    /// `named.get_int32()`.
+    /// Borrows the contained value.
     ///
     /// # Returns
     ///
-    /// Returns an immutable reference `&Value` to the inner value.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use qubit_value::{NamedValue, Value};
-    ///
-    /// let named = NamedValue::new("flag", Value::Bool(true));
-    /// // Call Value methods through Deref
-    /// assert!(named.get_bool().unwrap());
-    /// ```
+    /// A shared reference to the contained [`Value`].
     #[inline(always)]
-    fn deref(&self) -> &Self::Target {
+    #[must_use = "the borrowed value should be used"]
+    pub fn value(&self) -> &Value {
         &self.value
     }
-}
 
-impl DerefMut for NamedValue {
-    /// Mutable dereference to the inner [`Value`]
-    ///
-    /// Allows in-place modification of the inner value (provided [`Value`]
-    /// itself offers corresponding mutable methods).
+    /// Mutably borrows the contained value.
     ///
     /// # Returns
     ///
-    /// Returns a mutable reference `&mut Value` to the inner value.
+    /// An exclusive reference to the contained [`Value`].
     #[inline(always)]
-    fn deref_mut(&mut self) -> &mut Self::Target {
+    #[must_use = "the mutable value reference should be used"]
+    pub fn value_mut(&mut self) -> &mut Value {
         &mut self.value
+    }
+
+    /// Replaces the contained value.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - New value to store under the existing name.
+    #[inline(always)]
+    pub fn set_value(&mut self, value: Value) {
+        self.value = value;
+    }
+
+    /// Consumes this wrapper and returns its owned name and value.
+    ///
+    /// # Returns
+    ///
+    /// The `(name, value)` pair without cloning either component.
+    #[inline(always)]
+    #[must_use = "consuming NamedValue without using its parts loses both fields"]
+    pub fn into_parts(self) -> (String, Value) {
+        (self.name, self.value)
     }
 }

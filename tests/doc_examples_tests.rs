@@ -60,21 +60,21 @@ fn test_doc_example_multi_value_operations() {
 fn test_doc_example_named_value_operations() {
     let mut nv = NamedValue::new("timeout", Value::new(30i32));
     assert_eq!(nv.name(), "timeout");
-    let timeout: i32 = nv.get().unwrap();
+    let timeout: i32 = nv.value().get().unwrap();
     assert_eq!(timeout, 30);
 
     nv.set_name("read_timeout");
-    nv.set(45i32);
-    assert_eq!(nv.get_int32().unwrap(), 45);
+    nv.value_mut().set(45i32);
+    assert_eq!(nv.value().get_int32().unwrap(), 45);
 
     let mut nmv =
         NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
-    nmv.add(8082).unwrap();
-    let first_port: i32 = nmv.get_first().unwrap();
+    nmv.values_mut().add(8082).unwrap();
+    let first_port: i32 = nmv.values().get_first().unwrap();
     assert_eq!(first_port, 8080);
 
     let first_named = nmv.first_named_value();
     assert_eq!(first_named.name(), "ports");
-    let val: i32 = first_named.get().unwrap();
+    let val: i32 = first_named.value().get().unwrap();
     assert_eq!(val, 8080);
 }
