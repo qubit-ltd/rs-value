@@ -6,8 +6,10 @@
 qubit-value = { version = "0.10", features = ["all"] }
 ```
 
-The default feature set is empty. Enable only `chrono`, `big-number`, `url`,
-`json`, or `converter` when the application does not need all families.
+The default feature set is empty. Enable only `chrono`, `big-integer`,
+`big-decimal`, `url`, `json`, or `converter` when the application does not
+need all families. `big-number` remains a compatibility alias for both big
+number families.
 
 ## Runtime shapes
 
@@ -45,6 +47,6 @@ Owned adapters are available through `From<Value>`, `From<MultiValues>`, and
 
 ## Natural JSON
 
-With `converter`, `to_json_value()` emits ordinary application JSON without
-runtime type tags. Use Wire V1 whenever the receiver must reconstruct the
-exact runtime type and shape.
+With both `converter` and `json`, `to_json_value()` emits ordinary application
+JSON without runtime type tags. Use Wire V1 whenever the receiver must
+reconstruct the exact runtime type and shape.

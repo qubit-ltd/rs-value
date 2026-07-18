@@ -6,8 +6,9 @@
 qubit-value = { version = "0.10", features = ["all"] }
 ```
 
-默认 feature 集为空。不需要全部类型族时，只启用 `chrono`、`big-number`、
-`url`、`json` 或 `converter`。
+默认 feature 集为空。不需要全部类型族时，只启用 `chrono`、`big-integer`、
+`big-decimal`、`url`、`json` 或 `converter`。`big-number` 继续作为两个大数
+类型族的兼容别名。
 
 ## 运行时形态
 
@@ -41,5 +42,5 @@ V1 的兼容性承诺覆盖上述 JSON 对象结构。其他 Serde 格式可以�
 
 ## 自然 JSON
 
-启用 `converter` 后，`to_json_value()` 生成不含运行时类型标签的普通业务
-JSON。如果接收方必须恢复精确的数据类型和形态，应使用 Wire V1。
+同时启用 `converter` 与 `json` 后，`to_json_value()` 生成不含运行时类型标签
+的普通业务 JSON。如果接收方必须恢复精确的数据类型和形态，应使用 Wire V1。

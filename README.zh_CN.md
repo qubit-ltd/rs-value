@@ -38,7 +38,8 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
   `HashMap<String, String>` 和 `serde_json::Value`
 
 ### 📦 **核心类型**
-- **`Value`**: 单值容器，包含 `Unset(DataType)` 与 25 个平台无关的具体变体
+- **`Value`**: 单值容器，包含 `Unset(DataType)`，并根据已启用 feature 提供
+  最多 25 个平台无关的具体变体
 - **`MultiValues`**: 多值容器，对应 `Vec<T>` 的枚举变体，含 `Unset(DataType)`
 - **`ValueContainer`**: 显式表示 `Scalar(Value)` 或
   `Collection(MultiValues)`，不会根据集合长度推断形态
@@ -67,7 +68,7 @@ hasher、Rust 版本、crate 版本、启用的 feature、平台或实现变化�
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.10", features = ["all"] }
+qubit-value = "0.10"
 ```
 
 默认 feature 集为空。可按需启用类型族，也可使用 `all` 这一便捷 feature：
@@ -75,7 +76,9 @@ qubit-value = { version = "0.10", features = ["all"] }
 | Feature | 启用内容 |
 |---|---|
 | `chrono` | 日期、时间、日期时间与 UTC 时刻变体 |
-| `big-number` | `BigInt` 与 `BigDecimal` 变体 |
+| `big-integer` | `BigInt` 变体 |
+| `big-decimal` | `BigDecimal` 变体 |
+| `big-number` | `big-integer` 与 `big-decimal` 的兼容别名 |
 | `url` | URL 变体 |
 | `json` | `serde_json::Value` 变体 |
 | `converter` | 核心转换 API，不隐式启用扩展类型族 |
@@ -528,12 +531,12 @@ Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍�
 [dependencies]
 qubit-datatype = { version = "0.7", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 thiserror = "2.0"
-chrono = { version = "0.4", features = ["serde"] }
-url = { version = "2.5", features = ["serde"] }
-num-bigint = { version = "0.4", features = ["serde"] }
-bigdecimal = { version = "0.4", features = ["serde"] }
+serde_json = { version = "1.0", optional = true }
+chrono = { version = "0.4", features = ["serde"], optional = true }
+url = { version = "2.5", features = ["serde"], optional = true }
+num-bigint = { version = "0.4", optional = true }
+bigdecimal = { version = "0.4", optional = true }
 ```
 
 ## 测试
@@ -542,7 +545,7 @@ bigdecimal = { version = "0.4", features = ["serde"] }
 # 使用默认的空 feature 集测试核心 API
 cargo test --no-default-features
 
-# 测试全部 feature 组合与 API 契约
+# 启用全部 feature 进行测试
 cargo test --all-features
 
 # 运行项目 CI 检查
