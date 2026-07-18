@@ -22,6 +22,10 @@ impl Value {
     /// Tests whether this value is a concrete floating-point NaN.
     ///
     /// Non-floating-point values and unset values return `false`.
+    ///
+    /// # Returns
+    ///
+    /// `true` only for concrete `Float32` or `Float64` NaN values.
     #[inline(always)]
     #[must_use]
     pub fn is_nan(&self) -> bool {
@@ -67,14 +71,10 @@ impl Value {
     /// [`NumericComparisonError::LeftNaN`],
     /// [`NumericComparisonError::RightNaN`], or
     /// [`NumericComparisonError::BothNaN`] according to the position of NaN
-    /// operands. Missing operands are checked left-to-right, then concrete
-    /// operand types are checked left-to-right, and finally NaN positions are
-    /// classified.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the lower-level comparator cannot order two concrete,
-    /// non-NaN numeric representations, which would violate its contract.
+    /// operands. Returns [`NumericComparisonError::Indeterminate`] if the
+    /// lower-level comparator cannot order the validated numeric operands.
+    /// Missing operands are checked left-to-right, then concrete operand types
+    /// are checked left-to-right, and finally NaN positions are classified.
     pub fn numeric_cmp(
         &self,
         other: &Self,
@@ -109,8 +109,12 @@ impl Value {
             (false, false) => {}
         }
 
-        Ok(compare_numeric(left, right, policy)
-            .expect("concrete non-NaN NumericValueRef values must be ordered"))
+        compare_numeric(left, right, policy).ok_or_else(|| {
+            NumericComparisonError::Indeterminate {
+                left: self.data_type(),
+                right: other.data_type(),
+            }
+        })
     }
 
     /// Borrows this value as a lower-level numeric representation.
@@ -121,22 +125,22 @@ impl Value {
     /// or `None` for unset and non-numeric variants.
     fn as_numeric_ref(&self) -> Option<NumericValueRef<'_>> {
         match self {
-            Self::Int8(value) => Some(NumericValueRef::Int8(*value)),
-            Self::Int16(value) => Some(NumericValueRef::Int16(*value)),
-            Self::Int32(value) => Some(NumericValueRef::Int32(*value)),
-            Self::Int64(value) => Some(NumericValueRef::Int64(*value)),
-            Self::Int128(value) => Some(NumericValueRef::Int128(*value)),
-            Self::UInt8(value) => Some(NumericValueRef::UInt8(*value)),
-            Self::UInt16(value) => Some(NumericValueRef::UInt16(*value)),
-            Self::UInt32(value) => Some(NumericValueRef::UInt32(*value)),
-            Self::UInt64(value) => Some(NumericValueRef::UInt64(*value)),
-            Self::UInt128(value) => Some(NumericValueRef::UInt128(*value)),
-            Self::Float32(value) => Some(NumericValueRef::Float32(*value)),
-            Self::Float64(value) => Some(NumericValueRef::Float64(*value)),
+            Self::Int8(value) => Some(NumericValueRef::from(*value)),
+            Self::Int16(value) => Some(NumericValueRef::from(*value)),
+            Self::Int32(value) => Some(NumericValueRef::from(*value)),
+            Self::Int64(value) => Some(NumericValueRef::from(*value)),
+            Self::Int128(value) => Some(NumericValueRef::from(*value)),
+            Self::UInt8(value) => Some(NumericValueRef::from(*value)),
+            Self::UInt16(value) => Some(NumericValueRef::from(*value)),
+            Self::UInt32(value) => Some(NumericValueRef::from(*value)),
+            Self::UInt64(value) => Some(NumericValueRef::from(*value)),
+            Self::UInt128(value) => Some(NumericValueRef::from(*value)),
+            Self::Float32(value) => Some(NumericValueRef::from(*value)),
+            Self::Float64(value) => Some(NumericValueRef::from(*value)),
             #[cfg(feature = "big-integer")]
-            Self::BigInteger(value) => Some(NumericValueRef::BigInteger(value)),
+            Self::BigInteger(value) => Some(NumericValueRef::from(value)),
             #[cfg(feature = "big-decimal")]
-            Self::BigDecimal(value) => Some(NumericValueRef::BigDecimal(value)),
+            Self::BigDecimal(value) => Some(NumericValueRef::from(value)),
             _ => None,
         }
     }
