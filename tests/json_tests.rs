@@ -882,6 +882,18 @@ fn test_value_wire_v1_float_deserialization_propagates_malformed_payloads() {
             .is_err(),
     );
     assert!(
+        Value::deserialize(wire_payload("scalar", "float64", "not-a-float"))
+            .is_err(),
+    );
+    assert!(
+        MultiValues::deserialize(wire_payload(
+            "collection",
+            "float32",
+            DeserializerSequence(vec!["not-a-float"]),
+        ))
+        .is_err(),
+    );
+    assert!(
         MultiValues::deserialize(wire_payload(
             "collection",
             "float64",

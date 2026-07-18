@@ -38,8 +38,7 @@ impl SerializeTupleVariant for TupleVariantSerializer {
     where
         T: ?Sized + Serialize,
     {
-        self.values.push(to_value(value)?);
-        Ok(())
+        to_value(value).map(|value| self.values.push(value))
     }
 
     /// Returns the tuple variant as a single-key JSON object.
