@@ -49,8 +49,8 @@ and conversion while maintaining Rust's safety guarantees.
   `HashMap<String, String>`, and `serde_json::Value`
 
 ### 📦 **Core Types**
-- **`Value`**: Single value container with `Unset(DataType)` and 25 concrete
-  platform-independent variants
+- **`Value`**: Single value container with `Unset(DataType)` and up to 25
+  platform-independent concrete variants, depending on enabled features
 - **`MultiValues`**: Multi-value container corresponding to `Vec<T>` enum
   variants, with `Unset(DataType)`
 - **`ValueContainer`**: Explicit `Scalar(Value)` or
@@ -85,7 +85,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.10", features = ["all"] }
+qubit-value = "0.10"
 ```
 
 The default feature set is empty. Enable only the required families, or use
@@ -94,7 +94,9 @@ The default feature set is empty. Enable only the required families, or use
 | Feature | Enables |
 |---|---|
 | `chrono` | Date, time, date-time, and UTC instant variants |
-| `big-number` | `BigInt` and `BigDecimal` variants |
+| `big-integer` | `BigInt` variants |
+| `big-decimal` | `BigDecimal` variants |
+| `big-number` | Compatibility alias for `big-integer` and `big-decimal` |
 | `url` | URL variants |
 | `json` | `serde_json::Value` variants |
 | `converter` | Core conversion APIs without enabling rich type families |
@@ -567,12 +569,12 @@ conversion options when unit rounding is intentional.
 [dependencies]
 qubit-datatype = { version = "0.7", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 thiserror = "2.0"
-chrono = { version = "0.4", features = ["serde"] }
-url = { version = "2.5", features = ["serde"] }
-num-bigint = { version = "0.4", features = ["serde"] }
-bigdecimal = { version = "0.4", features = ["serde"] }
+serde_json = { version = "1.0", optional = true }
+chrono = { version = "0.4", features = ["serde"], optional = true }
+url = { version = "2.5", features = ["serde"], optional = true }
+num-bigint = { version = "0.4", optional = true }
+bigdecimal = { version = "0.4", optional = true }
 ```
 
 ## Testing
@@ -581,7 +583,7 @@ bigdecimal = { version = "0.4", features = ["serde"] }
 # Core API with the default empty feature set
 cargo test --no-default-features
 
-# All feature combinations and API contracts
+# All features enabled
 cargo test --all-features
 
 # Project CI checks
