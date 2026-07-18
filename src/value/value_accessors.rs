@@ -9,7 +9,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "chrono")]
 use chrono::{
@@ -19,7 +19,7 @@ use chrono::{
     NaiveTime,
     Utc,
 };
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde::Serialize;
@@ -101,6 +101,63 @@ macro_rules! impl_get_value {
 }
 
 impl Value {
+    /// Creates a `Value` from a `serde_json::Value`.
+    ///
+    /// # Parameters
+    ///
+    /// * `json` - The JSON value to wrap.
+    ///
+    /// # Returns
+    ///
+    /// A `Value::Json` wrapping the given JSON value.
+    #[inline(always)]
+    #[cfg(feature = "json")]
+    pub fn from_json_value(json: serde_json::Value) -> Self {
+        Value::Json(json)
+    }
+
+    /// Creates a `Value` from any serializable value by converting it to JSON.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Any type implementing `Serialize`.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - The value to serialize into JSON.
+    ///
+    /// # Returns
+    ///
+    /// A `Value::Json` containing the serialized representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::DataConversion`] with
+    /// [`InvalidValueReason::NonFinite`] when any nested float is non-finite,
+    /// or [`InvalidValueReason::Serialization`] when Serde cannot represent
+    /// the input as JSON.
+    #[cfg(all(feature = "converter", feature = "json"))]
+    pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
+        let json = crate::strict_json::to_value(value).map_err(|error| {
+            let reason = match error {
+                crate::strict_json::StrictJsonError::NonFinite => {
+                    InvalidValueReason::NonFinite
+                }
+                crate::strict_json::StrictJsonError::Serialization => {
+                    InvalidValueReason::Serialization {
+                        format: DataFormat::Json,
+                    }
+                }
+            };
+            ValueError::from(DataConversionError::invalid(
+                DataType::Json,
+                DataType::Json,
+                reason,
+            ))
+        })?;
+        Ok(Value::Json(json))
+    }
+
     // ========================================================================
     // Type-checking getters (strict type matching)
     // ========================================================================
@@ -307,7 +364,7 @@ impl Value {
         copy: get_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
-    #[cfg(feature = "big-number")]
+    #[cfg(feature = "big-integer")]
     impl_get_value! {
         /// Get big integer value.
         ///
@@ -331,7 +388,7 @@ impl Value {
         ref: get_biginteger, BigInteger, BigInt, DataType::BigInteger, |v: &BigInt| v.clone()
     }
 
-    #[cfg(feature = "big-number")]
+    #[cfg(feature = "big-decimal")]
     impl_get_value! {
         /// Get big decimal value.
         ///
@@ -415,7 +472,8 @@ impl Value {
     /// Returns [`ValueError::NoValue`] when the value is unset with
     /// `DataType::BigInteger`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
-    #[cfg(feature = "big-number")]
+    #[cfg(feature = "big-integer")]
+    #[inline(always)]
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         match self {
             Value::BigInteger(v) => Ok(v),
@@ -440,7 +498,8 @@ impl Value {
     /// Returns [`ValueError::NoValue`] when the value is unset with
     /// `DataType::BigDecimal`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
-    #[cfg(feature = "big-number")]
+    #[cfg(feature = "big-decimal")]
+    #[inline(always)]
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         match self {
             Value::BigDecimal(v) => Ok(v),
@@ -466,6 +525,7 @@ impl Value {
     /// `DataType::Url`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
     #[cfg(feature = "url")]
+    #[inline(always)]
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match self {
             Value::Url(v) => Ok(v),
@@ -490,6 +550,7 @@ impl Value {
     /// Returns [`ValueError::NoValue`] when the value is unset with
     /// `DataType::StringMap`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
+    #[inline(always)]
     pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
         match self {
             Value::StringMap(v) => Ok(v),
@@ -515,6 +576,7 @@ impl Value {
     /// `DataType::Json`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
     #[cfg(feature = "json")]
+    #[inline(always)]
     pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
         match self {
             Value::Json(v) => Ok(v),
@@ -530,57 +592,6 @@ impl Value {
                 actual: self.data_type(),
             }),
         }
-    }
-
-    /// Create a `Value` from a `serde_json::Value`.
-    ///
-    /// # Parameters
-    ///
-    /// * `json` - The JSON value to wrap.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Value::Json` wrapping the given JSON value.
-    #[inline(always)]
-    #[cfg(feature = "json")]
-    pub fn from_json_value(json: serde_json::Value) -> Self {
-        Value::Json(json)
-    }
-
-    /// Create a `Value` from any serializable value by converting it to JSON.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `T` - Any type implementing `Serialize`.
-    ///
-    /// # Parameters
-    ///
-    /// * `value` - The value to serialize into JSON.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Ok(Value::Json(...))` on success, or an error if
-    /// serialization fails.
-    #[cfg(all(feature = "converter", feature = "json"))]
-    pub fn from_serializable<T: Serialize>(value: &T) -> ValueResult<Self> {
-        let json = crate::strict_json::to_value(value).map_err(|error| {
-            let reason = match error {
-                crate::strict_json::StrictJsonError::NonFinite => {
-                    InvalidValueReason::NonFinite
-                }
-                crate::strict_json::StrictJsonError::Serialization => {
-                    InvalidValueReason::Serialization {
-                        format: DataFormat::Json,
-                    }
-                }
-            };
-            ValueError::from(DataConversionError::invalid(
-                DataType::Json,
-                DataType::Json,
-                reason,
-            ))
-        })?;
-        Ok(Value::Json(json))
     }
 
     /// Deserialize the inner JSON value into a target type.

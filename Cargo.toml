@@ -29,6 +29,10 @@ doctest = true
 
 [package.metadata.docs.rs]
 all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(docsrs)"] }
 
 [[test]]
 name = "integration_tests"
@@ -46,11 +50,16 @@ path = "tests/feature_contract_tests.rs"
 [features]
 default = []
 chrono = ["dep:chrono", "qubit-datatype/chrono"]
-big-number = [
+big-integer = [
+    "dep:num-bigint",
+    "qubit-datatype/big-integer",
+]
+big-decimal = [
     "dep:bigdecimal",
     "dep:num-bigint",
-    "qubit-datatype/big-number",
+    "qubit-datatype/big-decimal",
 ]
+big-number = ["big-integer", "big-decimal"]
 url = ["dep:url", "qubit-datatype/url"]
 json = ["dep:serde_json", "qubit-datatype/json"]
 converter = ["qubit-datatype/converter"]

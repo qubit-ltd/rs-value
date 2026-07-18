@@ -6,14 +6,14 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 use std::str::FromStr;
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "chrono")]
 use chrono::NaiveDate;
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 #[cfg(feature = "converter")]
 use qubit_datatype::{
@@ -29,7 +29,8 @@ use qubit_value::ValueContainer;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
-    feature = "big-number",
+    feature = "big-integer",
+    feature = "big-decimal",
     feature = "url",
     feature = "json",
 ))]
@@ -40,7 +41,8 @@ use qubit_value::{
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
-    feature = "big-number",
+    feature = "big-integer",
+    feature = "big-decimal",
     feature = "url",
     feature = "json",
 ))]
@@ -48,7 +50,8 @@ use serde::Serialize;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
-    feature = "big-number",
+    feature = "big-integer",
+    feature = "big-decimal",
     feature = "url",
     feature = "json",
 ))]
@@ -59,7 +62,8 @@ use url::Url;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
-    feature = "big-number",
+    feature = "big-integer",
+    feature = "big-decimal",
     feature = "url",
     feature = "json",
 ))]
@@ -136,35 +140,41 @@ fn chrono_feature_preserves_values_and_wire_payloads() {
     assert_json_round_trip(&collection);
 }
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-integer")]
 #[test]
-fn big_number_feature_preserves_values_and_wire_payloads() {
+fn big_integer_feature_preserves_values_and_wire_payloads() {
     let integer = BigInt::from(123_456_789_i64);
-    let decimal = BigDecimal::from_str("123.4500").expect("valid decimal");
     let integer_value = Value::BigInteger(integer.clone());
-    let decimal_value = Value::BigDecimal(decimal.clone());
     let integers = MultiValues::BigInteger(vec![integer.clone()]);
-    let decimals = MultiValues::BigDecimal(vec![decimal.clone()]);
 
     assert_eq!(
         integer_value.get::<BigInt>().expect("read big integer"),
         integer
     );
     assert_eq!(
-        decimal_value.get::<BigDecimal>().expect("read big decimal"),
-        decimal
-    );
-    assert_eq!(
         integers.get_bigintegers().expect("read big integers"),
         &[integer]
+    );
+    assert_json_round_trip(&integer_value);
+    assert_json_round_trip(&integers);
+}
+
+#[cfg(feature = "big-decimal")]
+#[test]
+fn big_decimal_feature_preserves_values_and_wire_payloads() {
+    let decimal = BigDecimal::from_str("123.4500").expect("valid decimal");
+    let decimal_value = Value::BigDecimal(decimal.clone());
+    let decimals = MultiValues::BigDecimal(vec![decimal.clone()]);
+
+    assert_eq!(
+        decimal_value.get::<BigDecimal>().expect("read big decimal"),
+        decimal
     );
     assert_eq!(
         decimals.get_bigdecimals().expect("read big decimals"),
         &[decimal]
     );
-    assert_json_round_trip(&integer_value);
     assert_json_round_trip(&decimal_value);
-    assert_json_round_trip(&integers);
     assert_json_round_trip(&decimals);
 }
 
@@ -209,15 +219,20 @@ fn converter_chrono_features_convert_text_to_date() {
     );
 }
 
-#[cfg(all(feature = "converter", feature = "big-number"))]
+#[cfg(all(feature = "converter", feature = "big-integer"))]
 #[test]
-fn converter_big_number_features_convert_text_to_big_numbers() {
+fn converter_big_integer_features_convert_text_to_big_integer() {
     assert_eq!(
         Value::from("123456789")
             .to::<BigInt>()
             .expect("convert text to big integer"),
         BigInt::from(123_456_789_i64)
     );
+}
+
+#[cfg(all(feature = "converter", feature = "big-decimal"))]
+#[test]
+fn converter_big_decimal_features_convert_text_to_big_decimal() {
     assert_eq!(
         Value::from("123.4500")
             .to::<BigDecimal>()
