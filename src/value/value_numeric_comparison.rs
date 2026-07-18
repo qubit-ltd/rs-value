@@ -9,11 +9,7 @@
 
 use std::cmp::Ordering;
 
-use qubit_datatype::{
-    NumericComparisonPolicy,
-    NumericValueRef,
-    compare_numeric,
-};
+use qubit_datatype::{NumberRef, NumericComparisonPolicy};
 
 use super::Value;
 use crate::NumericComparisonError;
@@ -29,7 +25,7 @@ impl Value {
     #[inline(always)]
     #[must_use]
     pub fn is_nan(&self) -> bool {
-        self.as_numeric_ref().is_some_and(|value| value.is_nan())
+        self.as_number_ref().is_some_and(|value| value.is_nan())
     }
 
     /// Compares concrete numeric values across representation variants.
@@ -91,16 +87,17 @@ impl Value {
             });
         }
 
-        let left = self.as_numeric_ref().ok_or_else(|| {
-            NumericComparisonError::LeftNotNumeric {
+        let left = self
+            .as_number_ref()
+            .ok_or_else(|| NumericComparisonError::LeftNotNumeric {
                 actual: self.data_type(),
-            }
-        })?;
-        let right = other.as_numeric_ref().ok_or_else(|| {
-            NumericComparisonError::RightNotNumeric {
-                actual: other.data_type(),
-            }
-        })?;
+            })?;
+        let right =
+            other
+                .as_number_ref()
+                .ok_or_else(|| NumericComparisonError::RightNotNumeric {
+                    actual: other.data_type(),
+                })?;
 
         match (left.is_nan(), right.is_nan()) {
             (true, true) => return Err(NumericComparisonError::BothNaN),
@@ -109,12 +106,11 @@ impl Value {
             (false, false) => {}
         }
 
-        compare_numeric(left, right, policy).ok_or_else(|| {
-            NumericComparisonError::Indeterminate {
+        left.compare_to(right, policy)
+            .ok_or_else(|| NumericComparisonError::Indeterminate {
                 left: self.data_type(),
                 right: other.data_type(),
-            }
-        })
+            })
     }
 
     /// Borrows this value as a lower-level numeric representation.
@@ -123,24 +119,24 @@ impl Value {
     ///
     /// A borrowed numeric representation for every concrete numeric variant,
     /// or `None` for unset and non-numeric variants.
-    fn as_numeric_ref(&self) -> Option<NumericValueRef<'_>> {
+    fn as_number_ref(&self) -> Option<NumberRef<'_>> {
         match self {
-            Self::Int8(value) => Some(NumericValueRef::from(*value)),
-            Self::Int16(value) => Some(NumericValueRef::from(*value)),
-            Self::Int32(value) => Some(NumericValueRef::from(*value)),
-            Self::Int64(value) => Some(NumericValueRef::from(*value)),
-            Self::Int128(value) => Some(NumericValueRef::from(*value)),
-            Self::UInt8(value) => Some(NumericValueRef::from(*value)),
-            Self::UInt16(value) => Some(NumericValueRef::from(*value)),
-            Self::UInt32(value) => Some(NumericValueRef::from(*value)),
-            Self::UInt64(value) => Some(NumericValueRef::from(*value)),
-            Self::UInt128(value) => Some(NumericValueRef::from(*value)),
-            Self::Float32(value) => Some(NumericValueRef::from(*value)),
-            Self::Float64(value) => Some(NumericValueRef::from(*value)),
+            Self::Int8(value) => Some(NumberRef::from(*value)),
+            Self::Int16(value) => Some(NumberRef::from(*value)),
+            Self::Int32(value) => Some(NumberRef::from(*value)),
+            Self::Int64(value) => Some(NumberRef::from(*value)),
+            Self::Int128(value) => Some(NumberRef::from(*value)),
+            Self::UInt8(value) => Some(NumberRef::from(*value)),
+            Self::UInt16(value) => Some(NumberRef::from(*value)),
+            Self::UInt32(value) => Some(NumberRef::from(*value)),
+            Self::UInt64(value) => Some(NumberRef::from(*value)),
+            Self::UInt128(value) => Some(NumberRef::from(*value)),
+            Self::Float32(value) => Some(NumberRef::from(*value)),
+            Self::Float64(value) => Some(NumberRef::from(*value)),
             #[cfg(feature = "big-integer")]
-            Self::BigInteger(value) => Some(NumericValueRef::from(value)),
+            Self::BigInteger(value) => Some(NumberRef::from(value)),
             #[cfg(feature = "big-decimal")]
-            Self::BigDecimal(value) => Some(NumericValueRef::from(value)),
+            Self::BigDecimal(value) => Some(NumberRef::from(value)),
             _ => None,
         }
     }
