@@ -1,0 +1,7 @@
+target
+corpus/*
+!corpus/deserialize_value_container/
+!corpus/deserialize_value_container/**
+!corpus/round_trip_value_container/
+!corpus/round_trip_value_container/**
+artifacts
