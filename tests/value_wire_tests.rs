@@ -12,28 +12,11 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    TimeZone,
-    Utc,
-};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    Value,
-    ValueContainer,
-    ValueWireV1,
-};
-use serde_json::{
-    Map,
-    Value as JsonValue,
-    json,
-};
+use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value, ValueContainer, ValueWireV1};
+use serde_json::{Map, Value as JsonValue, json};
 use url::Url;
 
 #[test]
@@ -170,9 +153,7 @@ fn value_fixtures() -> Vec<ValueFixture> {
         },
         ValueFixture {
             data_type: DataType::BigDecimal,
-            value: Value::BigDecimal(
-                BigDecimal::from_str("123.4500").expect("valid decimal"),
-            ),
+            value: Value::BigDecimal(BigDecimal::from_str("123.4500").expect("valid decimal")),
             tag: "bigdecimal",
             payload: json!({"coefficient": "1234500", "scale": 4}),
         },
@@ -197,20 +178,14 @@ fn value_fixtures() -> Vec<ValueFixture> {
         ValueFixture {
             data_type: DataType::DateTime,
             value: Value::DateTime(
-                NaiveDateTime::parse_from_str(
-                    "2026-07-14 01:02:03",
-                    "%Y-%m-%d %H:%M:%S",
-                )
-                .unwrap(),
+                NaiveDateTime::parse_from_str("2026-07-14 01:02:03", "%Y-%m-%d %H:%M:%S").unwrap(),
             ),
             tag: "datetime",
             payload: json!("2026-07-14T01:02:03"),
         },
         ValueFixture {
             data_type: DataType::Instant,
-            value: Value::Instant(
-                Utc.with_ymd_and_hms(2026, 7, 14, 1, 2, 3).unwrap(),
-            ),
+            value: Value::Instant(Utc.with_ymd_and_hms(2026, 7, 14, 1, 2, 3).unwrap()),
             tag: "instant",
             payload: json!("2026-07-14T01:02:03Z"),
         },
@@ -228,10 +203,7 @@ fn value_fixtures() -> Vec<ValueFixture> {
         },
         ValueFixture {
             data_type: DataType::StringMap,
-            value: Value::StringMap(HashMap::from([(
-                "key".to_string(),
-                "value".to_string(),
-            )])),
+            value: Value::StringMap(HashMap::from([("key".to_string(), "value".to_string())])),
             tag: "stringmap",
             payload: json!({"key": "value"}),
         },
@@ -258,13 +230,11 @@ fn value_wire_v1_fixtures_cover_every_data_type() {
 
 #[test]
 fn value_wire_v1_unset_tags_cover_every_data_type() {
-    for data_type in DataType::ALL {
+    for &data_type in DataType::ALL {
         let scalar = ValueContainer::Scalar(Value::Unset(data_type));
-        let collection =
-            ValueContainer::Collection(MultiValues::Unset(data_type));
+        let collection = ValueContainer::Collection(MultiValues::Unset(data_type));
         let expected_scalar = scalar_wire("unset", json!(data_type.as_str()));
-        let expected_collection =
-            collection_wire("unset", json!(data_type.as_str()));
+        let expected_collection = collection_wire("unset", json!(data_type.as_str()));
 
         assert_eq!(
             serde_json::to_value(&scalar).expect("serialize unset scalar"),
@@ -276,8 +246,7 @@ fn value_wire_v1_unset_tags_cover_every_data_type() {
             scalar
         );
         assert_eq!(
-            serde_json::to_value(&collection)
-                .expect("serialize unset collection"),
+            serde_json::to_value(&collection).expect("serialize unset collection"),
             expected_collection
         );
         assert_eq!(
@@ -378,8 +347,7 @@ fn value_wire_v1_preserves_unset_empty_singleton_and_json_null() {
 
 #[test]
 fn value_wire_v1_owned_conversions_preserve_shape() {
-    let into_container: fn(ValueWireV1) -> ValueContainer =
-        ValueWireV1::into_container;
+    let into_container: fn(ValueWireV1) -> ValueContainer = ValueWireV1::into_container;
     let scalar = ValueWireV1::from(Value::Int32(42));
     assert_eq!(
         scalar.container(),
@@ -398,8 +366,7 @@ fn value_wire_v1_owned_conversions_preserve_shape() {
         into_container(collection),
         ValueContainer::Collection(MultiValues::Int32(vec![42])),
     );
-    let container =
-        ValueContainer::Scalar(Value::String("explicit".to_string()));
+    let container = ValueContainer::Scalar(Value::String("explicit".to_string()));
     assert_eq!(
         into_container(ValueWireV1::from(container.clone())),
         container,
@@ -419,8 +386,7 @@ fn named_values_keep_outer_fields_and_embed_value_wire_v1() {
         named
     );
 
-    let named =
-        NamedMultiValues::new("ports", MultiValues::Int32(vec![8080, 8081]));
+    let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080, 8081]));
     let expected = json!({
         "name": "ports",
         "value": collection_wire("int32", json!([8080, 8081])),
@@ -514,11 +480,8 @@ fn value_wire_v1_big_number_payloads_require_canonical_structures() {
         assert!(serde_json::from_value::<Value>(invalid).is_err());
     }
     assert!(
-        serde_json::from_value::<MultiValues>(collection_wire(
-            "biginteger",
-            json!(["1", "02"]),
-        ))
-        .is_err(),
+        serde_json::from_value::<MultiValues>(collection_wire("biginteger", json!(["1", "02"]),))
+            .is_err(),
     );
 }
 
