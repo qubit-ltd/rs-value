@@ -8,10 +8,10 @@
 
 //! Internal payload types for canonical wire adapters.
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 mod big_decimal_payload;
 mod duration_payload;
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 pub(in crate::wire) use big_decimal_payload::BigDecimalPayload;
 pub(in crate::wire) use duration_payload::DurationPayload;

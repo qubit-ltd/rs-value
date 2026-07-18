@@ -21,16 +21,16 @@ pub(crate) use crate::wide_integer::{
     uint128_vec,
 };
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-integer")]
 mod decimal;
 
 mod internal;
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 use internal::BigDecimalPayload;
 use internal::DurationPayload;
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-integer")]
 macro_rules! define_decimal_serde {
     ($scalar_module:ident, $vector_module:ident, $type:ty) => {
         pub(crate) mod $scalar_module {
@@ -95,11 +95,11 @@ macro_rules! define_decimal_serde {
     };
 }
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-integer")]
 define_decimal_serde!(big_integer, big_integer_vec, num_bigint::BigInt);
 
 /// Canonical arbitrary-precision decimal scalar payload adapter.
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 pub(crate) mod big_decimal {
     use bigdecimal::BigDecimal;
     use serde::de::Error as _;
@@ -137,7 +137,7 @@ pub(crate) mod big_decimal {
 }
 
 /// Canonical arbitrary-precision decimal collection payload adapter.
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 pub(crate) mod big_decimal_vec {
     use bigdecimal::BigDecimal;
     use serde::de::Error as _;

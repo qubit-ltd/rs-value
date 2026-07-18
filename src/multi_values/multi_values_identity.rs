@@ -13,7 +13,7 @@ use std::hash::{
 };
 
 use super::MultiValues;
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 use crate::identity::hash_big_decimal;
 use crate::identity::{
     canonical_f32_bits,

@@ -133,9 +133,9 @@ impl Value {
             Self::UInt128(value) => Some(NumericValueRef::UInt128(*value)),
             Self::Float32(value) => Some(NumericValueRef::Float32(*value)),
             Self::Float64(value) => Some(NumericValueRef::Float64(*value)),
-            #[cfg(feature = "big-number")]
+            #[cfg(feature = "big-integer")]
             Self::BigInteger(value) => Some(NumericValueRef::BigInteger(value)),
-            #[cfg(feature = "big-number")]
+            #[cfg(feature = "big-decimal")]
             Self::BigDecimal(value) => Some(NumericValueRef::BigDecimal(value)),
             _ => None,
         }

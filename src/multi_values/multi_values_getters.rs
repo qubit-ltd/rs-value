@@ -11,7 +11,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "chrono")]
 use chrono::{
@@ -21,7 +21,7 @@ use chrono::{
     NaiveTime,
     Utc,
 };
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 #[cfg(feature = "url")]
 use url::Url;
@@ -233,7 +233,7 @@ impl MultiValues {
         ///
         /// If types match and a value exists, returns the first big integer
         /// value; see `# Errors`.
-        #[cfg(feature = "big-number")]
+        #[cfg(feature = "big-integer")]
         ref: get_first_biginteger, BigInteger, BigInt, DataType::BigInteger, |v: &BigInt| v.clone()
     }
 
@@ -244,7 +244,7 @@ impl MultiValues {
         ///
         /// If types match and a value exists, returns the first big decimal
         /// value; see `# Errors`.
-        #[cfg(feature = "big-number")]
+        #[cfg(feature = "big-decimal")]
         ref: get_first_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
     }
 
@@ -465,7 +465,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match, returns a reference to the big integer array; see `# Errors`.
-        #[cfg(feature = "big-number")]
+        #[cfg(feature = "big-integer")]
         vec: get_bigintegers, BigInteger, BigInt, DataType::BigInteger
     }
 
@@ -475,7 +475,7 @@ impl MultiValues {
         /// # Returns
         ///
         /// If types match, returns a reference to the big decimal array; see `# Errors`.
-        #[cfg(feature = "big-number")]
+        #[cfg(feature = "big-decimal")]
         vec: get_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 

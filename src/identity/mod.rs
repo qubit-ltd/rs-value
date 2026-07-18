@@ -7,14 +7,14 @@
 // =============================================================================
 //! Shared equality and hashing for runtime value payloads.
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 mod big_decimal_hash;
 mod float_identity;
 #[cfg(feature = "json")]
 mod json_identity;
 mod string_map_hash;
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 pub(crate) use big_decimal_hash::hash_big_decimal;
 pub(crate) use float_identity::{
     canonical_f32_bits,

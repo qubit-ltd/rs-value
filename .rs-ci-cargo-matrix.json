@@ -14,6 +14,18 @@
       "features": ["chrono"]
     },
     {
+      "name": "big-integer",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["big-integer"]
+    },
+    {
+      "name": "big-decimal",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["big-decimal"]
+    },
+    {
       "name": "big-number",
       "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
@@ -42,6 +54,18 @@
       "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
       "features": ["converter", "chrono"]
+    },
+    {
+      "name": "converter-big-integer",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["converter", "big-integer"]
+    },
+    {
+      "name": "converter-big-decimal",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["converter", "big-decimal"]
     },
     {
       "name": "converter-big-number",
