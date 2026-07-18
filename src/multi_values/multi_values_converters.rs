@@ -221,6 +221,24 @@ impl MultiValues {
 
     /// Converts the first stored value to `T` using conversion options, or
     /// returns `default` only when the container is [`MultiValues::Unset`].
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Lazily materialized value used only for unset storage.
+    /// * `options` - Conversion options forwarded to `qubit_datatype`.
+    ///
+    /// # Returns
+    ///
+    /// The converted first item, or `default` for unset storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an empty-collection error or a conversion error for concrete
+    /// values that cannot be converted under `options`.
     #[inline]
     pub fn to_or_with<T>(
         &self,
@@ -266,6 +284,22 @@ impl MultiValues {
 
     /// Converts all stored values to `T`, or returns `default` when the
     /// container is unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element type.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Lazily materialized list used only for unset storage.
+    ///
+    /// # Returns
+    ///
+    /// All converted items, or `default` for unset storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first item conversion error for concrete storage.
     #[inline]
     pub fn to_list_or<T>(
         &self,
@@ -315,6 +349,23 @@ impl MultiValues {
 
     /// Converts all stored values to `T` using conversion options, or returns
     /// `default` when the container is unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element type.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Lazily materialized list used only for unset storage.
+    /// * `options` - Conversion options forwarded to `qubit_datatype`.
+    ///
+    /// # Returns
+    ///
+    /// All converted items, or `default` for unset storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first item conversion error for concrete storage.
     #[inline]
     pub fn to_list_or_with<T>(
         &self,

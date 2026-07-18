@@ -163,6 +163,10 @@ impl Value {
     ///
     /// * `T` - The type of the value to wrap
     ///
+    /// # Parameters
+    ///
+    /// * `value` - Value to wrap.
+    ///
     /// # Returns
     ///
     /// Returns a `Value` wrapping the given value
@@ -269,6 +273,23 @@ impl Value {
     ///
     /// Returns the supplied default only when this value is unset. Type
     /// mismatches and conversion errors are still returned as errors.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target type for the strict read and default value.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Lazily materialized value used only when `self` is unset.
+    ///
+    /// # Returns
+    ///
+    /// The stored value, or `default` when the value is unset.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
+    /// `T`.
     #[inline]
     pub fn get_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
@@ -297,6 +318,10 @@ impl Value {
     /// Returns a mapped conversion error when the value is unset, the
     /// conversion is unsupported, or the source is invalid for `T`.
     ///
+    /// # Returns
+    ///
+    /// The converted value.
+    ///
     /// # Example
     ///
     /// ```rust
@@ -318,6 +343,23 @@ impl Value {
     /// Converts this value to `T`, or returns `default` when it is unset.
     ///
     /// Conversion failures from concrete values are preserved.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Lazily materialized value used only when `self` is unset.
+    ///
+    /// # Returns
+    ///
+    /// The converted value, or `default` when the value is unset.
+    ///
+    /// # Errors
+    ///
+    /// Returns a mapped conversion error for concrete values that cannot be
+    /// converted to `T`.
     #[inline]
     #[cfg(feature = "converter")]
     pub fn to_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
@@ -368,6 +410,24 @@ impl Value {
     /// `default` when it is unset.
     ///
     /// Conversion failures from concrete values are preserved.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Lazily materialized value used only when `self` is unset.
+    /// * `options` - Conversion options forwarded to the shared converter.
+    ///
+    /// # Returns
+    ///
+    /// The converted value, or `default` when the value is unset.
+    ///
+    /// # Errors
+    ///
+    /// Returns a mapped conversion error for concrete values that cannot be
+    /// converted under `options`.
     #[inline]
     #[cfg(feature = "converter")]
     pub fn to_or_with<T>(
@@ -503,6 +563,10 @@ impl Value {
     /// Tests whether a concrete value belongs to the numeric type family.
     ///
     /// An unset value returns `false`, even when its declared type is numeric.
+    ///
+    /// # Returns
+    ///
+    /// `true` for concrete numeric variants; otherwise `false`.
     #[inline(always)]
     #[must_use]
     pub fn is_numeric(&self) -> bool {

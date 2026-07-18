@@ -250,22 +250,38 @@ impl MultiValues {
 
     impl_get_first_value! {
         /// Get the first Duration value
+        ///
+        /// # Returns
+        ///
+        /// The first duration when the stored type matches.
         copy: get_first_duration, Duration, Duration, DataType::Duration
     }
 
     impl_get_first_value! {
         /// Get the first Url value
+        ///
+        /// # Returns
+        ///
+        /// A clone of the first URL when the stored type matches.
         #[cfg(feature = "url")]
         ref: get_first_url, Url, Url, DataType::Url, |v: &Url| v.clone()
     }
 
     impl_get_first_value! {
         /// Get the first StringMap value
+        ///
+        /// # Returns
+        ///
+        /// A clone of the first string map when the stored type matches.
         ref: get_first_string_map, StringMap, HashMap<String, String>, DataType::StringMap, |v: &HashMap<String, String>| v.clone()
     }
 
     impl_get_first_value! {
         /// Get the first Json value
+        ///
+        /// # Returns
+        ///
+        /// A clone of the first JSON value when the stored type matches.
         #[cfg(feature = "json")]
         ref: get_first_json, Json, serde_json::Value, DataType::Json, |v: &serde_json::Value| v.clone()
     }
@@ -481,22 +497,38 @@ impl MultiValues {
 
     impl_get_multi_values! {
         /// Get reference to all Duration values
+        ///
+        /// # Returns
+        ///
+        /// A slice containing all stored durations.
         slice: get_durations, Duration, Duration, DataType::Duration
     }
 
     impl_get_multi_values! {
         /// Get reference to all Url values
+        ///
+        /// # Returns
+        ///
+        /// A reference to the vector containing all stored URLs.
         #[cfg(feature = "url")]
         vec: get_urls, Url, Url, DataType::Url
     }
 
     impl_get_multi_values! {
         /// Get reference to all StringMap values
+        ///
+        /// # Returns
+        ///
+        /// A reference to the vector containing all stored string maps.
         vec: get_string_maps, StringMap, HashMap<String, String>, DataType::StringMap
     }
 
     impl_get_multi_values! {
         /// Get reference to all Json values
+        ///
+        /// # Returns
+        ///
+        /// A reference to the vector containing all stored JSON values.
         #[cfg(feature = "json")]
         vec: get_jsons, Json, serde_json::Value, DataType::Json
     }

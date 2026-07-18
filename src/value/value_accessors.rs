@@ -467,6 +467,10 @@ impl Value {
 
     /// Borrow the inner `BigInt` without cloning.
     ///
+    /// # Returns
+    ///
+    /// A shared reference to the stored integer.
+    ///
     /// # Errors
     ///
     /// Returns [`ValueError::NoValue`] when the value is unset with
@@ -492,6 +496,10 @@ impl Value {
     }
 
     /// Borrow the inner `BigDecimal` without cloning.
+    ///
+    /// # Returns
+    ///
+    /// A shared reference to the stored decimal.
     ///
     /// # Errors
     ///
@@ -519,6 +527,10 @@ impl Value {
 
     /// Borrow the inner `Url` without cloning.
     ///
+    /// # Returns
+    ///
+    /// A shared reference to the stored URL.
+    ///
     /// # Errors
     ///
     /// Returns [`ValueError::NoValue`] when the value is unset with
@@ -545,6 +557,10 @@ impl Value {
 
     /// Borrow the inner `HashMap<String, String>` without cloning.
     ///
+    /// # Returns
+    ///
+    /// A shared reference to the stored string map.
+    ///
     /// # Errors
     ///
     /// Returns [`ValueError::NoValue`] when the value is unset with
@@ -569,6 +585,10 @@ impl Value {
     }
 
     /// Borrow the inner JSON value without cloning.
+    ///
+    /// # Returns
+    ///
+    /// A shared reference to the stored JSON value.
     ///
     /// # Errors
     ///

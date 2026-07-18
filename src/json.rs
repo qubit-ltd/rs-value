@@ -132,6 +132,10 @@ impl Value {
     /// example,
     /// `Value::Int32(42)` projects to the JSON number `42`.
     ///
+    /// # Returns
+    ///
+    /// The natural JSON representation of this value.
+    ///
     /// # Errors
     ///
     /// Returns a structured conversion error for values JSON cannot represent,
@@ -169,6 +173,10 @@ impl MultiValues {
     /// Unset is `null`; every concrete collection is an array, including empty
     /// and one-item collections.
     ///
+    /// # Returns
+    ///
+    /// The natural JSON representation of this collection.
+    ///
     /// # Errors
     ///
     /// Returns a list conversion error containing the zero-based source index
@@ -205,6 +213,10 @@ impl ValueContainer {
     ///
     /// Scalar storage uses the natural scalar projection; concrete collection
     /// storage always uses a JSON array.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation while preserving container shape.
     ///
     /// # Errors
     ///
