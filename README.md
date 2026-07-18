@@ -105,6 +105,15 @@ The default feature set is empty. Enable only the required families, or use
 Natural JSON projection requires both `converter` and `json`. For example,
 use `features = ["converter", "json"]` without enabling other rich families.
 
+The feature set is part of the runtime value contract. A V1 wire envelope keeps
+its versioned object structure across builds, but a concrete rich-type payload
+such as `date`, `biginteger`, `bigdecimal`, `url`, or `json` can be read only by
+a build with the corresponding feature enabled. Producers and consumers that
+exchange those payloads should therefore agree on the required type features.
+An unset payload such as `{"unset":"date"}` preserves a declared
+`DataType`, but does not make the concrete date value available in a build
+without `chrono`.
+
 ## Usage Examples
 
 ### Single Value Operations
@@ -479,10 +488,12 @@ ValueError::DataListConversion(DataListConversionError) // indexed list failure
 
 All operations that may fail return `ValueResult<T> = Result<T, ValueError>`.
 Conversion errors preserve the shared structured source error; list errors also
-preserve the original `source_index`. `to()` uses exact numeric conversion by
-default. Use `to_with()` and `NumericConversionPolicy::Lossy` when truncation or
-rounding is intentional. Text is not trimmed unless enabled in
-`StringConversionOptions`.
+preserve the original `source_index`. `to()` uses the strict conversion profile
+by default. Use `to_with()` and `DataConversionOptions::lossy()` when all
+documented lossy behavior is intentional, or replace only the required
+`NumericConversionOptions` policy. Numeric text and `BigInt` resource caps are
+configurable through `NumericConversionLimits`. Text is not trimmed unless
+enabled in `StringConversionOptions`.
 
 `Value`, `MultiValues`, and `ValueError` are non-exhaustive public enums.
 Downstream `match` expressions must keep a wildcard arm so future variants do

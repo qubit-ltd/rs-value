@@ -88,6 +88,13 @@ qubit-value = "0.10"
 自然 JSON 投影需要同时启用 `converter` 与 `json`；如不需要其他扩展类型族，
 可使用 `features = ["converter", "json"]`。
 
+feature 集也是运行时值契约的一部分。V1 wire 信封的版本化对象结构在不同构建
+之间保持不变，但 `date`、`biginteger`、`bigdecimal`、`url` 或 `json` 等具体
+扩展类型 payload，只有启用了对应 feature 的构建才能读取。交换这些 payload
+的生产者与消费者应当约定一致的类型 feature。像 `{"unset":"date"}` 这样的
+未设置 payload 仍会保留声明的 `DataType`，但不会让未启用 `chrono` 的构建获得
+具体日期值的支持。
+
 ## 使用示例
 
 ### 单值操作
@@ -450,9 +457,11 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 
 所有可能失败的操作均返回 `ValueResult<T> = Result<T, ValueError>`。
 转换错误会保留共享转换层的结构化 source；列表错误还会保留原始
-`source_index`。`to()` 默认使用精确数值转换；确实需要截断或舍入时，应通过
-`to_with()` 指定 `NumericConversionPolicy::Lossy`。除非在
-`StringConversionOptions` 中显式开启，否则文本不会自动 trim。
+`source_index`。`to()` 默认使用严格转换 profile；确实需要全部已定义的有损行为
+时，可通过 `to_with()` 指定 `DataConversionOptions::lossy()`，也可以只替换所需的
+`NumericConversionOptions` 策略。数值文本与 `BigInt` 的资源上限可通过
+`NumericConversionLimits` 配置。除非在 `StringConversionOptions` 中显式开启，
+否则文本不会自动 trim。
 
 `Value`、`MultiValues` 与 `ValueError` 都是非穷尽公开 enum。下游对它们进行
 `match` 时必须保留通配分支，以便未来增加变体时保持源码兼容。

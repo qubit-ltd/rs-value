@@ -34,6 +34,15 @@ V1 compatibility covers this JSON object structure. Other Serde formats may
 work, but their format-specific representations are outside the stability
 contract.
 
+This structural guarantee does not make every concrete type available under
+every feature set. A concrete rich-type tag can be deserialized only when the
+receiving build enables its feature: `chrono` for date/time values,
+`big-integer` or `big-decimal` for big numbers, `url` for URLs, and `json` for
+JSON values. Producers and consumers exchanging those payloads should agree on
+the required features; an unsupported concrete tag is rejected. An `unset`
+payload may still preserve a declared `DataType` without enabling the feature
+needed to hold a concrete value of that type.
+
 `Value` accepts scalar only, `MultiValues` accepts collection only, and
 `ValueContainer` accepts either. The envelope requires numeric version `1` and
 rejects unknown fields, unknown types, wrong shapes, and all pre-0.10 payloads.
