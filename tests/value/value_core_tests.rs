@@ -12,7 +12,10 @@
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::str::FromStr;
 
 #[test]
@@ -155,7 +158,11 @@ fn test_value_ref_types() {
 }
 #[test]
 fn test_value_datetime_types() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test Date
     let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
@@ -217,7 +224,11 @@ fn test_set_on_non_empty_for_coverage() {
 #[test]
 fn test_data_type_coverage_all_variants() {
     // Test data_type() method coverage for all data type variants
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Empty type (all possible DataType)
     assert_eq!(Value::Unset(DataType::Bool).data_type(), DataType::Bool);
@@ -312,7 +323,11 @@ fn test_data_type_coverage_all_variants() {
 }
 #[test]
 fn test_is_unset_distinguishes_empty_inner_values() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     assert!(!Value::Bool(true).is_unset());
     assert!(!Value::Char('A').is_unset());
@@ -329,8 +344,12 @@ fn test_is_unset_distinguishes_empty_inner_values() {
     assert!(!Value::Float32(1.0).is_unset());
     assert!(!Value::Float64(1.0).is_unset());
     assert!(!Value::String(String::new()).is_unset());
-    assert!(!Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_unset());
-    assert!(!Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_unset());
+    assert!(
+        !Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_unset()
+    );
+    assert!(
+        !Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_unset()
+    );
     assert!(
         !Value::DateTime(
             NaiveDate::from_ymd_opt(2024, 1, 1)
@@ -342,7 +361,9 @@ fn test_is_unset_distinguishes_empty_inner_values() {
     );
     assert!(!Value::Instant(Utc::now()).is_unset());
     assert!(!Value::BigInteger(BigInt::from(123)).is_unset());
-    assert!(!Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_unset());
+    assert!(
+        !Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_unset()
+    );
 
     for &data_type in DataType::ALL {
         assert!(Value::Unset(data_type).is_unset());

@@ -297,6 +297,21 @@ impl ValueContainer {
         }
     }
 
+    /// Reports whether this container represents no concrete values.
+    ///
+    /// Unset scalar and collection storage is empty. A concrete empty
+    /// collection is also empty, while every concrete scalar remains non-empty,
+    /// including an empty string, map, or JSON value.
+    ///
+    /// # Returns
+    ///
+    /// `true` when [`Self::count`] is zero; otherwise, `false`.
+    #[inline(always)]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.count() == 0
+    }
+
     /// Strictly reads a scalar or the first collection item as `T`.
     ///
     /// # Type Parameters

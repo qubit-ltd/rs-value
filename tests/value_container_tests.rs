@@ -70,6 +70,22 @@ fn test_value_container_preserves_scalar_and_collection_shapes() {
     );
 }
 
+/// Verifies effective emptiness without treating concrete scalar payloads as
+/// empty.
+#[test]
+fn test_value_container_is_empty_distinguishes_concrete_scalars() {
+    let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
+    let unset_collection =
+        ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let empty_collection = ValueContainer::from(Vec::<String>::new());
+    let empty_string = ValueContainer::from("");
+
+    assert!(unset_scalar.is_empty());
+    assert!(unset_collection.is_empty());
+    assert!(empty_collection.is_empty());
+    assert!(!empty_string.is_empty());
+}
+
 #[test]
 fn test_value_container_shape_accessors_preserve_values_and_mismatches() {
     let scalar = ValueContainer::from(42_i32);
