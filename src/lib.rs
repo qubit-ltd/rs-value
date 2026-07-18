@@ -10,12 +10,14 @@
 //! Provides type-safe value storage and access functionality, supporting single
 //! values, collections, explicit scalar-or-collection shape, and named values.
 //!
-//! # Module Description
+//! # Public API Overview
 //!
-//! - `error` - Defines error types related to value processing
-//! - `value` - Single value container implementation
-//! - `multi_values` - Multiple values container implementation
-//! - `named` - Named value implementation
+//! - [`Value`] stores one typed scalar, including an explicit
+//!   `Unset(DataType)` state.
+//! - [`MultiValues`] stores one homogeneous typed collection.
+//! - [`ValueContainer`] preserves whether storage is scalar or collection.
+//! - [`NamedValue`] and [`NamedMultiValues`] provide name wrappers.
+//! - [`ValueWireV1`] names the versioned, type-preserving Serde contract.
 //!
 //! # Core behavior
 //!
@@ -23,6 +25,9 @@
 //! - [`ValueContainer`] preserves whether the source supplied a scalar or an
 //!   explicit collection, even when the collection contains one item.
 //! - `to` methods use `qubit-datatype` conversion rules and options.
+//! - Optional type families and conversion methods are available only when the
+//!   corresponding crate features are enabled; all-features documentation shows
+//!   the superset of those APIs.
 //! - [`Value::is_unset`] and [`MultiValues::is_unset`] distinguish an unset
 //!   container from a concrete value or concrete empty collection.
 //! - Generic `set` replaces a value infallibly; [`MultiValues::add`] remains

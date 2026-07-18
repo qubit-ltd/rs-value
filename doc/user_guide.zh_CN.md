@@ -31,6 +31,13 @@ qubit-value = { version = "0.10", features = ["all"] }
 V1 的兼容性承诺覆盖上述 JSON 对象结构。其他 Serde 格式可以使用，但其
 格式相关表示不属于稳定契约。
 
+这个结构性保证不意味着所有 feature 集都支持所有具体类型。具体扩展类型的
+tag 只有在接收方启用对应 feature 时才能反序列化：日期/时间使用 `chrono`，
+大数使用 `big-integer` 或 `big-decimal`，URL 使用 `url`，JSON 使用 `json`。
+交换这些 payload 的生产者与消费者应约定所需 feature；不支持的具体 tag 会被
+拒绝。`unset` payload 仍可以保留声明的 `DataType`，但不要求构建启用能够存储
+该类型具体值的 feature。
+
 `Value` 只接受 scalar，`MultiValues` 只接受 collection，`ValueContainer`
 接受两者。信封必须包含数字版本 `1`；未知字段、未知类型、错误 shape 和所有
 0.10 之前的 payload 都会被拒绝。宽整数和大数使用 canonical 十进制字符串；
