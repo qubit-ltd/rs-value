@@ -539,7 +539,7 @@ Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍�
 
 ```toml
 [dependencies]
-qubit-datatype = { version = "0.7", default-features = false }
+qubit-datatype = { version = "0.8", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 serde_json = { version = "1.0", optional = true }

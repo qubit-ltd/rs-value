@@ -578,7 +578,7 @@ conversion options when unit rounding is intentional.
 
 ```toml
 [dependencies]
-qubit-datatype = { version = "0.7", default-features = false }
+qubit-datatype = { version = "0.8", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 serde_json = { version = "1.0", optional = true }
