@@ -17,6 +17,35 @@ use qubit_datatype::{
 use super::Value;
 use crate::NumericComparisonError;
 
+/// Projects one stored value according to its type-table numeric strategy.
+macro_rules! project_number_ref {
+    (number_copy, $value:expr) => {
+        Some(NumberRef::from(*$value))
+    };
+    (number_ref, $value:expr) => {
+        Some(NumberRef::from($value))
+    };
+    (not_number, $value:expr) => {{
+        let _ = $value;
+        None
+    }};
+}
+
+/// Generates the exhaustive numeric projection from the value type table.
+macro_rules! value_number_ref_match {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+        match $value {
+            Value::Unset(_) => None,
+            $(
+                $(#[$cfg])*
+                Value::$variant(value) => {
+                    project_number_ref!($number_projection, value)
+                }
+            )+
+        }
+    };
+}
+
 impl Value {
     /// Tests whether this value is a concrete floating-point NaN.
     ///
@@ -123,24 +152,6 @@ impl Value {
     /// A borrowed numeric representation for every concrete numeric variant,
     /// or `None` for unset and non-numeric variants.
     fn as_number_ref(&self) -> Option<NumberRef<'_>> {
-        match self {
-            Self::Int8(value) => Some(NumberRef::from(*value)),
-            Self::Int16(value) => Some(NumberRef::from(*value)),
-            Self::Int32(value) => Some(NumberRef::from(*value)),
-            Self::Int64(value) => Some(NumberRef::from(*value)),
-            Self::Int128(value) => Some(NumberRef::from(*value)),
-            Self::UInt8(value) => Some(NumberRef::from(*value)),
-            Self::UInt16(value) => Some(NumberRef::from(*value)),
-            Self::UInt32(value) => Some(NumberRef::from(*value)),
-            Self::UInt64(value) => Some(NumberRef::from(*value)),
-            Self::UInt128(value) => Some(NumberRef::from(*value)),
-            Self::Float32(value) => Some(NumberRef::from(*value)),
-            Self::Float64(value) => Some(NumberRef::from(*value)),
-            #[cfg(feature = "big-integer")]
-            Self::BigInteger(value) => Some(NumberRef::from(value)),
-            #[cfg(feature = "big-decimal")]
-            Self::BigDecimal(value) => Some(NumberRef::from(value)),
-            _ => None,
-        }
+        for_each_value_type!(value_number_ref_match, self)
     }
 }

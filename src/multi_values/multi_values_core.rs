@@ -22,7 +22,7 @@ use crate::{
 use super::multi_values::MultiValues;
 
 macro_rules! multi_values_data_type_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(dt) => *dt,
             $($(#[$cfg])* MultiValues::$variant(_) => $data_type,)+
@@ -31,7 +31,7 @@ macro_rules! multi_values_data_type_match {
 }
 
 macro_rules! multi_values_count_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(_) => 0,
             $($(#[$cfg])* MultiValues::$variant(values) => values.len(),)+
@@ -40,7 +40,7 @@ macro_rules! multi_values_count_match {
 }
 
 macro_rules! multi_values_clear_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(_) => {}
             $($(#[$cfg])* MultiValues::$variant(values) => values.clear(),)+
@@ -49,7 +49,7 @@ macro_rules! multi_values_clear_match {
 }
 
 macro_rules! multi_values_append_match {
-    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match ($left, $right) {
             $(
                 $(#[$cfg])*
@@ -64,7 +64,7 @@ macro_rules! multi_values_append_match {
 }
 
 macro_rules! multi_values_first_value_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(data_type) => Value::Unset(*data_type),
             $(
@@ -80,7 +80,7 @@ macro_rules! multi_values_first_value_match {
 }
 
 macro_rules! multi_values_into_first_value_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             MultiValues::Unset(data_type) => Value::Unset(data_type),
             $(
@@ -96,7 +96,7 @@ macro_rules! multi_values_into_first_value_match {
 }
 
 macro_rules! multi_values_merge_match {
-    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match ($left, $right) {
             $(
                 $(#[$cfg])*
@@ -111,7 +111,7 @@ macro_rules! multi_values_merge_match {
 }
 
 macro_rules! value_into_multi_values_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             Value::Unset(data_type) => MultiValues::Unset(data_type),
             $($(#[$cfg])* Value::$variant(value) => MultiValues::$variant(vec![value]),)+

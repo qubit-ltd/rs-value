@@ -25,6 +25,7 @@ macro_rules! impl_value_try_from_table {
                 $data_type:expr,
                 $materialization:ident,
                 $json_class:ident,
+                $number_projection:ident,
                 $value_doc:literal,
                 $multi_doc:literal
             )

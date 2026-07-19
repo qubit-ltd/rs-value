@@ -23,6 +23,7 @@ macro_rules! define_multi_values_enum {
                 $data_type:expr,
                 $materialization:ident,
                 $json_class:ident,
+                $number_projection:ident,
                 $value_doc:literal,
                 $multi_doc:literal
             )
