@@ -8,18 +8,9 @@
 
 //! Public DTO for the stable version-one JSON wire contract.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
+use crate::{MultiValues, Value, ValueContainer};
 
 use super::VALUE_WIRE_V1_VERSION;
 

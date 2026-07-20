@@ -9,39 +9,22 @@
 //! Natural JSON projection for value containers.
 
 use qubit_datatype::{
-    DataConversionError,
-    DataConversionOptions,
-    DataConverter,
-    DataListConversionError,
-    DataType,
+    DataConversionError, DataConversionOptions, DataConverter, DataListConversionError, DataType,
     InvalidValueReason,
 };
-use serde_json::{
-    Map,
-    Number,
-    Value as JsonValue,
-};
+use serde_json::{Map, Number, Value as JsonValue};
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-    ValueError,
-    ValueResult,
-};
+use crate::{MultiValues, Value, ValueContainer, ValueError, ValueResult};
 
 /// Converts a finite float to a JSON number.
-fn finite_float(
-    value: f64,
-    from: DataType,
-) -> Result<JsonValue, DataConversionError> {
-    Number::from_f64(value).map(JsonValue::Number).ok_or(
-        DataConversionError::invalid(
+fn finite_float(value: f64, from: DataType) -> Result<JsonValue, DataConversionError> {
+    Number::from_f64(value)
+        .map(JsonValue::Number)
+        .ok_or(DataConversionError::invalid(
             from,
             DataType::Json,
             InvalidValueReason::NonFinite,
-        ),
-    )
+        ))
 }
 
 macro_rules! scalar_to_json {
@@ -66,9 +49,7 @@ macro_rules! scalar_to_json {
         Ok(JsonValue::Object(
             $value
                 .iter()
-                .map(|(key, value)| {
-                    (key.clone(), JsonValue::String(value.clone()))
-                })
+                .map(|(key, value)| (key.clone(), JsonValue::String(value.clone())))
                 .collect::<Map<String, JsonValue>>(),
         ))
     };
@@ -90,10 +71,7 @@ macro_rules! value_to_json_match {
 }
 
 /// Projects a concrete vector according to the natural JSON cardinality rule.
-fn collection_to_json<T, F>(
-    values: &[T],
-    mut project: F,
-) -> ValueResult<JsonValue>
+fn collection_to_json<T, F>(values: &[T], mut project: F) -> ValueResult<JsonValue>
 where
     F: FnMut(&T) -> Result<JsonValue, DataConversionError>,
 {
@@ -102,9 +80,7 @@ where
         match project(value) {
             Ok(value) => projected.push(value),
             Err(source) => {
-                return Err(
-                    DataListConversionError::new(source_index, source).into()
-                );
+                return Err(DataListConversionError::new(source_index, source).into());
             }
         }
     }
@@ -159,10 +135,7 @@ impl Value {
     ///
     /// Returns a structured conversion error when JSON projection or duration
     /// formatting violates the requested options.
-    pub fn to_json_value_with(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<JsonValue> {
+    pub fn to_json_value_with(&self, options: &DataConversionOptions) -> ValueResult<JsonValue> {
         for_each_value_type!(value_to_json_match, self, options)
     }
 }
@@ -200,10 +173,7 @@ impl MultiValues {
     ///
     /// Returns an indexed list conversion error when an item cannot be
     /// represented under the requested options.
-    pub fn to_json_value_with(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<JsonValue> {
+    pub fn to_json_value_with(&self, options: &DataConversionOptions) -> ValueResult<JsonValue> {
         for_each_value_type!(multi_values_to_json_match, self, options)
     }
 }
@@ -240,10 +210,7 @@ impl ValueContainer {
     ///
     /// Returns the same structured projection error as the contained value.
     #[inline(always)]
-    pub fn to_json_value_with(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<JsonValue> {
+    pub fn to_json_value_with(&self, options: &DataConversionOptions) -> ValueResult<JsonValue> {
         match self {
             Self::Scalar(value) => value.to_json_value_with(options),
             Self::Collection(values) => values.to_json_value_with(options),

@@ -17,11 +17,7 @@ use chrono::NaiveDate;
 use num_bigint::BigInt;
 #[cfg(feature = "converter")]
 use qubit_datatype::{
-    DataConversionError,
-    DataConversionOptions,
-    DataConversionTarget,
-    DataConverter,
-    DataType,
+    DataConversionError, DataConversionOptions, DataConversionTarget, DataConverter, DataType,
     DataTypeOf,
 };
 #[cfg(feature = "converter")]
@@ -34,10 +30,7 @@ use qubit_value::ValueContainer;
     feature = "url",
     feature = "json",
 ))]
-use qubit_value::{
-    MultiValues,
-    Value,
-};
+use qubit_value::{MultiValues, Value};
 #[cfg(any(
     feature = "converter",
     feature = "chrono",

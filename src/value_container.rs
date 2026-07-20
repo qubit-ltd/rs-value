@@ -8,21 +8,10 @@
 
 //! Explicit scalar-or-collection value storage.
 
-use crate::{
-    MultiValues,
-    StrictValueListRead,
-    StrictValueRead,
-    Value,
-    ValueError,
-    ValueResult,
-};
+use crate::{MultiValues, StrictValueListRead, StrictValueRead, Value, ValueError, ValueResult};
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionOptions,
-    DataConversionTarget,
-    ScalarStringDataConverters,
-};
+use qubit_datatype::{DataConversionOptions, DataConversionTarget, ScalarStringDataConverters};
 
 /// A typed value whose scalar or collection shape is explicit.
 ///
@@ -542,22 +531,15 @@ impl ValueContainer {
     ///
     /// Returns the mapped single-value or indexed list conversion error.
     #[cfg(feature = "converter")]
-    pub fn to_list_with<T>(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(&self, options: &DataConversionOptions) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
         match self {
-            Self::Scalar(Value::String(value)) => {
-                ScalarStringDataConverters::from(value.as_str())
-                    .to_vec_with(options)
-                    .map_err(ValueError::from)
-            }
-            Self::Scalar(value) => {
-                value.to_with(options).map(|value| vec![value])
-            }
+            Self::Scalar(Value::String(value)) => ScalarStringDataConverters::from(value.as_str())
+                .to_vec_with(options)
+                .map_err(ValueError::from),
+            Self::Scalar(value) => value.to_with(options).map(|value| vec![value]),
             Self::Collection(values) => values.to_list_with(options),
         }
     }

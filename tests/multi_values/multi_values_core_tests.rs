@@ -7,10 +7,7 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    ValueError,
-};
+use qubit_value::{MultiValues, ValueError};
 
 #[test]
 fn test_multi_values_core_tracks_count_and_type_changes() {
@@ -63,20 +60,8 @@ fn test_multi_values_tagged_serde_rejects_non_finite_floats() {
         assert_eq!(serde_json::from_str::<MultiValues>(&json).unwrap(), finite);
     }
 
-    assert!(
-        serde_json::to_value(MultiValues::Float32(vec![
-            1.0,
-            f32::NEG_INFINITY,
-        ]))
-        .is_err()
-    );
-    assert!(
-        serde_json::to_value(MultiValues::Float64(vec![
-            1.0,
-            f64::NEG_INFINITY,
-        ]))
-        .is_err()
-    );
+    assert!(serde_json::to_value(MultiValues::Float32(vec![1.0, f32::NEG_INFINITY,])).is_err());
+    assert!(serde_json::to_value(MultiValues::Float64(vec![1.0, f64::NEG_INFINITY,])).is_err());
 }
 
 #[test]
