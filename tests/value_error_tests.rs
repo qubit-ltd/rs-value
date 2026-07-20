@@ -8,12 +8,7 @@
 
 use std::error::Error;
 
-use qubit_datatype::{
-    DataConversionError,
-    DataListConversionError,
-    DataType,
-    InvalidValueReason,
-};
+use qubit_datatype::{DataConversionError, DataListConversionError, DataType, InvalidValueReason};
 use qubit_value::ValueError;
 
 #[test]

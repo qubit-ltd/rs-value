@@ -8,16 +8,8 @@
 
 //! Serializable fixtures that report pathological compound length hints.
 
-use serde::ser::{
-    SerializeMap,
-    SerializeSeq,
-    SerializeStructVariant,
-    SerializeTupleVariant,
-};
-use serde::{
-    Serialize,
-    Serializer,
-};
+use serde::ser::{SerializeMap, SerializeSeq, SerializeStructVariant, SerializeTupleVariant};
+use serde::{Serialize, Serializer};
 
 /// Selects a compound Serde shape that declares an oversized length hint.
 pub(super) enum OversizedLengthHint {
@@ -40,21 +32,11 @@ impl Serialize for OversizedLengthHint {
         match self {
             Self::Sequence => serializer.serialize_seq(Some(usize::MAX))?.end(),
             Self::TupleVariant => serializer
-                .serialize_tuple_variant(
-                    "OversizedLengthHint",
-                    0,
-                    "Tuple",
-                    usize::MAX,
-                )?
+                .serialize_tuple_variant("OversizedLengthHint", 0, "Tuple", usize::MAX)?
                 .end(),
             Self::Map => serializer.serialize_map(Some(usize::MAX))?.end(),
             Self::StructVariant => serializer
-                .serialize_struct_variant(
-                    "OversizedLengthHint",
-                    1,
-                    "Struct",
-                    usize::MAX,
-                )?
+                .serialize_struct_variant("OversizedLengthHint", 1, "Struct", usize::MAX)?
                 .end(),
         }
     }
