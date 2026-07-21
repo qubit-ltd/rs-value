@@ -23,5 +23,6 @@ mod strict_json_tests;
 mod value;
 mod value_container_tests;
 mod value_error_tests;
+mod value_wire;
 mod value_wire_tests;
 mod wire;

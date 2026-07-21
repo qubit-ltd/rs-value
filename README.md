@@ -559,6 +559,21 @@ shapes and types, and mismatched runtime entry shapes.
 `Duration` uses `{"secs":u64,"nanos":u32}` and requires nanos below one
 second. Float payloads must be finite.
 
+Generic Serde deserialization does not impose an external message-size budget.
+For untrusted JSON, use `ValueWireV1::decode_json_slice()` to enforce the
+default one-mebibyte limit before parsing, or select a protocol-specific budget
+with `ValueWireLimits`:
+
+```rust
+use qubit_value::{ValueWireLimits, ValueWireV1};
+
+let input = br#"{"version":1,"value":{"scalar":{"int32":42}}}"#;
+let limits = ValueWireLimits::new(64 * 1024);
+let wire = ValueWireV1::decode_json_slice_with_limits(input, limits)?;
+assert!(wire.container().is_scalar());
+# Ok::<(), qubit_value::ValueWireDecodeError>(())
+```
+
 This type-preserving V1 wire is separate from `to_json_value()`, which emits
 natural JSON without runtime type tags and projects unset values to `null`.
 Duration projection is exact by default; use `to_json_value_with()` and lossy

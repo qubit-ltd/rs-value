@@ -521,6 +521,20 @@ serializer 使用，但这些格式各自的表示不属于 V1 稳定契约。
 `Duration` 使用 `{"secs":u64,"nanos":u32}`，且 nanos 必须小于一秒。浮点
 payload 必须是有限值。
 
+通用 Serde 反序列化不会自行施加外部消息大小预算。对于不可信 JSON，请使用
+`ValueWireV1::decode_json_slice()` 在解析前执行默认的一 MiB 限制，或通过
+`ValueWireLimits` 选择符合协议的预算：
+
+```rust
+use qubit_value::{ValueWireLimits, ValueWireV1};
+
+let input = br#"{"version":1,"value":{"scalar":{"int32":42}}}"#;
+let limits = ValueWireLimits::new(64 * 1024);
+let wire = ValueWireV1::decode_json_slice_with_limits(input, limits)?;
+assert!(wire.container().is_scalar());
+# Ok::<(), qubit_value::ValueWireDecodeError>(())
+```
+
 保留类型的 V1 wire 与 `to_json_value()` 的自然 JSON 投影是两个独立契约。
 自然 JSON 不包含运行时类型标签，未设置值投影为 `null`。
 Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍入时使用
