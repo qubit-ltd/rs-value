@@ -80,6 +80,23 @@ pub use value_wire_limits::ValueWireLimits;
 pub use value_wire_v1::ValueWireV1;
 
 /// Serializes a typed shape through the V1 envelope.
+///
+/// # Type Parameters
+///
+/// * `S` - Serde serializer receiving the V1 envelope.
+///
+/// # Parameters
+///
+/// * `value` - Borrowed runtime shape to encode.
+/// * `serializer` - Serde serializer receiving the envelope.
+///
+/// # Returns
+///
+/// The serializer output for the versioned wire envelope.
+///
+/// # Errors
+///
+/// Returns the error reported by `serializer`.
 fn serialize_wire<S>(
     value: WireShapeRef<'_>,
     serializer: S,
@@ -95,6 +112,23 @@ where
 }
 
 /// Deserializes and validates a V1 envelope.
+///
+/// # Type Parameters
+///
+/// * `D` - Serde deserializer supplying the encoded envelope.
+///
+/// # Parameters
+///
+/// * `deserializer` - Source of the V1 wire envelope.
+///
+/// # Returns
+///
+/// The decoded runtime container.
+///
+/// # Errors
+///
+/// Returns `D::Error` when the envelope cannot be decoded or declares an
+/// unsupported wire version.
 fn deserialize_wire<'de, D>(deserializer: D) -> Result<ValueContainer, D::Error>
 where
     D: Deserializer<'de>,

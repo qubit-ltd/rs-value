@@ -31,6 +31,19 @@ use crate::{
 };
 
 /// Converts a finite float to a JSON number.
+///
+/// # Parameters
+///
+/// * `value` - Finite floating-point value to convert.
+/// * `from` - Runtime type of `value` for conversion diagnostics.
+///
+/// # Returns
+///
+/// The corresponding JSON number.
+///
+/// # Errors
+///
+/// Returns [`DataConversionError`] when `value` is NaN or infinite.
 fn finite_float(
     value: f64,
     from: DataType,
@@ -90,6 +103,25 @@ macro_rules! value_to_json_match {
 }
 
 /// Projects a concrete vector according to the natural JSON cardinality rule.
+///
+/// # Type Parameters
+///
+/// * `T` - Runtime element type.
+/// * `F` - Projection from an element to a JSON value.
+///
+/// # Parameters
+///
+/// * `values` - Concrete values to project.
+/// * `project` - Element projection that can report conversion failures.
+///
+/// # Returns
+///
+/// A JSON array containing the projected values in their original order.
+///
+/// # Errors
+///
+/// Returns [`ValueError`] with a [`DataListConversionError`] identifying the
+/// first source index whose projection fails.
 fn collection_to_json<T, F>(
     values: &[T],
     mut project: F,

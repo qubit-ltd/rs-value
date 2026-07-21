@@ -92,8 +92,6 @@
 //! assert!(collection.is_collection());
 //! ```
 
-#![cfg_attr(docsrs, feature(doc_cfg))]
-
 // Sub-modules
 mod finite_float;
 mod identity;
