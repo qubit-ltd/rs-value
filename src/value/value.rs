@@ -531,6 +531,13 @@ impl Value {
     /// let empty = Value::Unset(DataType::String);
     /// assert_eq!(empty.data_type(), DataType::String);
     /// ```
+    ///
+    /// ```compile_fail
+    /// #![deny(unused_must_use)]
+    /// use qubit_value::Value;
+    ///
+    /// Value::new(42_i32).data_type();
+    /// ```
     #[inline(always)]
     pub fn data_type(&self) -> DataType {
         for_each_value_type!(value_data_type_match, self)

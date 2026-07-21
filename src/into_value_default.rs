@@ -25,6 +25,7 @@ pub trait IntoValueDefault<T> {
     /// # Returns
     ///
     /// The owned default value expected by the read API.
+    #[must_use]
     fn into_value_default(self) -> T;
 }
 
