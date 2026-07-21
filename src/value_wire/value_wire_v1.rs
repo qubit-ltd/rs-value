@@ -8,11 +8,25 @@
 
 //! Public DTO for the stable version-one JSON wire contract.
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    Deserialize,
+    Deserializer,
+    Serialize,
+    Serializer,
+};
 
-use crate::{MultiValues, Value, ValueContainer};
+use crate::{
+    MultiValues,
+    Value,
+    ValueContainer,
+};
 
 use super::VALUE_WIRE_V1_VERSION;
+#[cfg(feature = "json")]
+use super::{
+    ValueWireDecodeError,
+    ValueWireLimits,
+};
 
 /// Stable version-one JSON wire DTO for a scalar or homogeneous collection.
 ///
@@ -42,6 +56,64 @@ impl ValueWireV1 {
     #[inline(always)]
     pub const fn new(value: ValueContainer) -> Self {
         Self { value }
+    }
+
+    /// Decodes a V1 JSON wire value using the default input byte limit.
+    ///
+    /// The byte limit is checked before JSON parsing or wire payload
+    /// allocation. This method is suitable for untrusted input when the
+    /// one-mebibyte default in [`ValueWireLimits`] matches the surrounding
+    /// protocol.
+    ///
+    /// # Parameters
+    ///
+    /// * `input` - Complete UTF-8 JSON document to decode.
+    ///
+    /// # Returns
+    ///
+    /// The decoded V1 wire DTO.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireDecodeError::InputTooLarge`] when `input` exceeds
+    /// the default byte limit, or [`ValueWireDecodeError::InvalidJson`] when
+    /// the bounded input is not a valid V1 JSON wire value.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn decode_json_slice(
+        input: &[u8],
+    ) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, ValueWireLimits::default())
+    }
+
+    /// Decodes a V1 JSON wire value using explicit resource limits.
+    ///
+    /// The complete input length is checked before JSON parsing. This bounds
+    /// all collection storage and arbitrary-precision numeric text reachable
+    /// through the V1 wire payload.
+    ///
+    /// # Parameters
+    ///
+    /// * `input` - Complete UTF-8 JSON document to decode.
+    /// * `limits` - Resource limits checked before decoding begins.
+    ///
+    /// # Returns
+    ///
+    /// The decoded V1 wire DTO.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireDecodeError::InputTooLarge`] when `input` exceeds
+    /// `limits`, or [`ValueWireDecodeError::InvalidJson`] when the bounded
+    /// input is not a valid V1 JSON wire value.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn decode_json_slice_with_limits(
+        input: &[u8],
+        limits: ValueWireLimits,
+    ) -> Result<Self, ValueWireDecodeError> {
+        limits.check_json_bytes(input.len())?;
+        serde_json::from_slice(input).map_err(ValueWireDecodeError::from)
     }
 
     /// Returns the runtime container represented by this DTO.
