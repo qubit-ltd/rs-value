@@ -22,6 +22,24 @@ use internal::{
 };
 
 /// Parses and validates the unique textual form emitted by serialization.
+///
+/// # Type Parameters
+///
+/// * `T` - Integer type parsed from and rendered to canonical decimal text.
+/// * `E` - Deserializer error type used to report invalid input.
+///
+/// # Parameters
+///
+/// * `value` - Candidate decimal representation.
+///
+/// # Returns
+///
+/// The parsed integer when `value` is its unique canonical representation.
+///
+/// # Errors
+///
+/// Returns `E` when parsing fails or when rendering the parsed value does not
+/// reproduce `value` exactly.
 fn parse_canonical_integer<T, E>(value: &str) -> Result<T, E>
 where
     T: FromStr + fmt::Display,

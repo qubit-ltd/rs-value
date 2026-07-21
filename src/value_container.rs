@@ -606,6 +606,18 @@ impl ValueContainer {
         }
     }
 
+    /// Appends a concrete scalar, promoting scalar storage to a collection.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Concrete scalar to append.
+    /// * `data_type` - Shared runtime type of `self` and `value`.
+    ///
+    /// # Constraints
+    ///
+    /// Callers must ensure `value` is concrete and has `data_type`; the public
+    /// mutation entry points validate those invariants before calling this
+    /// helper.
     #[inline]
     fn add_scalar(&mut self, value: Value, data_type: DataType) {
         match self {
