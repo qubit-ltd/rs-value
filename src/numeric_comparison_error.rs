@@ -6,6 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+//! Errors that explain why runtime values cannot be numerically ordered.
+
 use qubit_datatype::DataType;
 use thiserror::Error;
 
