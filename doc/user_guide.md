@@ -46,7 +46,8 @@ needed to hold a concrete value of that type.
 `Value` accepts scalar only, `MultiValues` accepts collection only, and
 `ValueContainer` accepts either. The envelope requires numeric version `1` and
 rejects unknown fields, unknown types, wrong shapes, and all pre-0.10 payloads.
-Wide integers and big numbers use canonical decimal strings. `Duration` uses
+Wide integers use canonical decimal strings. `BigDecimal` uses an exact
+`{"coefficient":"...","scale":i64}` payload. `Duration` uses
 secs/nanos. Non-finite floats are rejected. `Json(null)` is concrete and
 distinct from `Unset(Json)`.
 
