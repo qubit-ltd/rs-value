@@ -8,4 +8,5 @@
 
 //! Tests for canonical wire payload adapters.
 
+mod decimal_tests;
 mod internal;

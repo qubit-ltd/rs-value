@@ -8,6 +8,7 @@
 
 //! Tests for public bounded wire-decoding types.
 
+mod internal;
 mod value_wire_decode_error_tests;
 mod value_wire_limits_tests;
 mod value_wire_v1_tests;
