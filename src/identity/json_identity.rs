@@ -23,6 +23,7 @@ use std::hash::{
 ///
 /// `true` when both trees are structurally equal. Object member order is not
 /// significant and array element order is significant.
+#[must_use]
 #[inline(always)]
 pub(crate) fn json_eq(
     left: &serde_json::Value,

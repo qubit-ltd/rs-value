@@ -45,6 +45,14 @@ impl ValueWireLimits {
     /// # Returns
     ///
     /// The complete JSON input byte budget.
+    ///
+    /// ```compile_fail
+    /// #![deny(unused_must_use)]
+    /// use qubit_value::ValueWireLimits;
+    ///
+    /// ValueWireLimits::default().max_json_bytes();
+    /// ```
+    #[must_use]
     #[inline(always)]
     pub const fn max_json_bytes(self) -> usize {
         self.max_json_bytes

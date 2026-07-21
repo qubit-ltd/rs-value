@@ -18,6 +18,7 @@ pub(in crate::finite_float) trait FiniteFloat:
     /// # Returns
     ///
     /// `true` for finite values; otherwise, `false`.
+    #[must_use]
     fn is_finite(self) -> bool;
 }
 

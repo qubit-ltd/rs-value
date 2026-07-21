@@ -17,6 +17,7 @@
 ///
 /// Positive-zero bits for either signed zero, one quiet-NaN representation for
 /// every NaN, and the original bits for every other value.
+#[must_use]
 #[inline]
 pub(crate) fn canonical_f32_bits(value: f32) -> u32 {
     if value == 0.0 {
@@ -38,6 +39,7 @@ pub(crate) fn canonical_f32_bits(value: f32) -> u32 {
 ///
 /// Positive-zero bits for either signed zero, one quiet-NaN representation for
 /// every NaN, and the original bits for every other value.
+#[must_use]
 #[inline]
 pub(crate) fn canonical_f64_bits(value: f64) -> u64 {
     if value == 0.0 {
