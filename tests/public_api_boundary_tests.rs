@@ -12,12 +12,23 @@
 
 use std::fs;
 use std::path::PathBuf;
-use std::process::{Command, Output};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::process::{
+    Command,
+    Output,
+};
+use std::sync::atomic::{
+    AtomicUsize,
+    Ordering,
+};
 
 use qubit_datatype::DataType;
 use qubit_value::{
-    MultiValues, StrictValueListRead, StrictValueRead, Value, ValueContainer, ValueError,
+    MultiValues,
+    StrictValueListRead,
+    StrictValueRead,
+    Value,
+    ValueContainer,
+    ValueError,
 };
 
 static NEXT_PROJECT_ID: AtomicUsize = AtomicUsize::new(0);
@@ -95,7 +106,8 @@ fn compile_all_features_consumer(source: &str) -> Output {
         .current_dir(&project_root)
         .output()
         .expect("temporary consumer should invoke Cargo");
-    fs::remove_dir_all(&project_root).expect("temporary consumer directory should be removed");
+    fs::remove_dir_all(&project_root)
+        .expect("temporary consumer directory should be removed");
     output
 }
 

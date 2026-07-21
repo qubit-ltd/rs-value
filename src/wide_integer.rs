@@ -15,7 +15,11 @@ use serde::de;
 
 mod internal;
 
-use internal::{DisplayInteger, IntegerVisitor, ParsedInteger};
+use internal::{
+    DisplayInteger,
+    IntegerVisitor,
+    ParsedInteger,
+};
 
 /// Parses and validates the unique textual form emitted by serialization.
 fn parse_canonical_integer<T, E>(value: &str) -> Result<T, E>
@@ -36,12 +40,22 @@ macro_rules! define_wide_integer_serde {
         pub(crate) mod $scalar_module {
             use std::marker::PhantomData;
 
-            use serde::{Deserializer, Serialize, Serializer};
+            use serde::{
+                Deserializer,
+                Serialize,
+                Serializer,
+            };
 
-            use super::{DisplayInteger, IntegerVisitor};
+            use super::{
+                DisplayInteger,
+                IntegerVisitor,
+            };
 
             /// Serializes a wide integer as a canonical decimal string.
-            pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(
+                value: &$type,
+                serializer: S,
+            ) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -49,7 +63,9 @@ macro_rules! define_wide_integer_serde {
             }
 
             /// Deserializes a wide integer from a canonical decimal string.
-            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
+            pub(crate) fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -58,12 +74,22 @@ macro_rules! define_wide_integer_serde {
         }
 
         pub(crate) mod $vector_module {
-            use serde::{Deserialize, Deserializer, Serializer};
+            use serde::{
+                Deserialize,
+                Deserializer,
+                Serializer,
+            };
 
-            use super::{DisplayInteger, ParsedInteger};
+            use super::{
+                DisplayInteger,
+                ParsedInteger,
+            };
 
             /// Serializes wide integers as canonical decimal strings.
-            pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(
+                values: &[$type],
+                serializer: S,
+            ) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -71,12 +97,15 @@ macro_rules! define_wide_integer_serde {
             }
 
             /// Deserializes wide integers from canonical decimal strings.
-            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<$type>, D::Error>
+            pub(crate) fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> Result<Vec<$type>, D::Error>
             where
                 D: Deserializer<'de>,
             {
-                Vec::<ParsedInteger<$type>>::deserialize(deserializer)
-                    .map(|values| values.into_iter().map(|value| value.0).collect())
+                Vec::<ParsedInteger<$type>>::deserialize(deserializer).map(
+                    |values| values.into_iter().map(|value| value.0).collect(),
+                )
             }
         }
     };

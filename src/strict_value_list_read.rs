@@ -8,7 +8,12 @@
 
 //! Public bound for strict list reads from either runtime value shape.
 
-use crate::{MultiValues, Value, ValueError, ValueResult};
+use crate::{
+    MultiValues,
+    Value,
+    ValueError,
+    ValueResult,
+};
 
 /// Marks element types that can be read strictly as a list from either shape.
 ///
