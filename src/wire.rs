@@ -8,8 +8,18 @@
 
 //! Canonical Serde payload adapters for value variants.
 
-pub(crate) use crate::finite_float::{float32, float32_vec, float64, float64_vec};
-pub(crate) use crate::wide_integer::{int128, int128_vec, uint128, uint128_vec};
+pub(crate) use crate::finite_float::{
+    float32,
+    float32_vec,
+    float64,
+    float64_vec,
+};
+pub(crate) use crate::wide_integer::{
+    int128,
+    int128_vec,
+    uint128,
+    uint128_vec,
+};
 
 #[cfg(feature = "big-integer")]
 mod decimal;
@@ -24,12 +34,18 @@ use internal::DurationPayload;
 macro_rules! define_decimal_serde {
     ($scalar_module:ident, $vector_module:ident, $type:ty) => {
         pub(crate) mod $scalar_module {
-            use serde::{Deserializer, Serializer};
+            use serde::{
+                Deserializer,
+                Serializer,
+            };
 
             use super::decimal;
 
             /// Serializes a decimal value as a canonical decimal string.
-            pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(
+                value: &$type,
+                serializer: S,
+            ) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -37,7 +53,9 @@ macro_rules! define_decimal_serde {
             }
 
             /// Deserializes a decimal value from a canonical decimal string.
-            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
+            pub(crate) fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -46,12 +64,18 @@ macro_rules! define_decimal_serde {
         }
 
         pub(crate) mod $vector_module {
-            use serde::{Deserializer, Serializer};
+            use serde::{
+                Deserializer,
+                Serializer,
+            };
 
             use super::decimal;
 
             /// Serializes decimal values as canonical decimal strings.
-            pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(
+                values: &[$type],
+                serializer: S,
+            ) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -59,7 +83,9 @@ macro_rules! define_decimal_serde {
             }
 
             /// Deserializes decimal values from canonical decimal strings.
-            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<$type>, D::Error>
+            pub(crate) fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> Result<Vec<$type>, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -77,12 +103,20 @@ define_decimal_serde!(big_integer, big_integer_vec, num_bigint::BigInt);
 pub(crate) mod big_decimal {
     use bigdecimal::BigDecimal;
     use serde::de::Error as _;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{
+        Deserialize,
+        Deserializer,
+        Serialize,
+        Serializer,
+    };
 
     use super::BigDecimalPayload;
 
     /// Serializes a decimal as an exact `{ coefficient, scale }` payload.
-    pub(crate) fn serialize<S>(value: &BigDecimal, serializer: S) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(
+        value: &BigDecimal,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -90,7 +124,9 @@ pub(crate) mod big_decimal {
     }
 
     /// Deserializes and validates an exact decimal payload.
-    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<BigDecimal, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -105,12 +141,19 @@ pub(crate) mod big_decimal {
 pub(crate) mod big_decimal_vec {
     use bigdecimal::BigDecimal;
     use serde::de::Error as _;
-    use serde::{Deserialize, Deserializer, Serializer};
+    use serde::{
+        Deserialize,
+        Deserializer,
+        Serializer,
+    };
 
     use super::BigDecimalPayload;
 
     /// Serializes decimals as exact `{ coefficient, scale }` payloads.
-    pub(crate) fn serialize<S>(values: &[BigDecimal], serializer: S) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(
+        values: &[BigDecimal],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -118,7 +161,9 @@ pub(crate) mod big_decimal_vec {
     }
 
     /// Deserializes and validates exact decimal payloads.
-    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<BigDecimal>, D::Error>
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Vec<BigDecimal>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -134,12 +179,20 @@ pub(crate) mod duration {
     use std::time::Duration;
 
     use serde::de::Error as _;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{
+        Deserialize,
+        Deserializer,
+        Serialize,
+        Serializer,
+    };
 
     use super::DurationPayload;
 
     /// Serializes a duration as `{ secs, nanos }`.
-    pub(crate) fn serialize<S>(value: &Duration, serializer: S) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(
+        value: &Duration,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -147,7 +200,9 @@ pub(crate) mod duration {
     }
 
     /// Deserializes and validates a `{ secs, nanos }` duration payload.
-    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Duration, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -162,12 +217,19 @@ pub(crate) mod duration_vec {
     use std::time::Duration;
 
     use serde::de::Error as _;
-    use serde::{Deserialize, Deserializer, Serializer};
+    use serde::{
+        Deserialize,
+        Deserializer,
+        Serializer,
+    };
 
     use super::DurationPayload;
 
     /// Serializes durations as a sequence of `{ secs, nanos }` payloads.
-    pub(crate) fn serialize<S>(values: &[Duration], serializer: S) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(
+        values: &[Duration],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -175,7 +237,9 @@ pub(crate) mod duration_vec {
     }
 
     /// Deserializes and validates a sequence of duration payloads.
-    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Duration>, D::Error>
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Vec<Duration>, D::Error>
     where
         D: Deserializer<'de>,
     {

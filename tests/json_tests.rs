@@ -6,25 +6,61 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{
+    BTreeMap,
+    HashMap,
+};
 use std::fmt;
 use std::str::FromStr;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{NaiveDate, TimeZone, Utc};
+use chrono::{
+    NaiveDate,
+    TimeZone,
+    Utc,
+};
 use num_bigint::BigInt;
-use qubit_datatype::{DataConversionError, DataConversionOptions, DataType, InvalidValueReason};
-use qubit_value::{MultiValues, Value, ValueContainer, ValueError};
+use qubit_datatype::{
+    DataConversionError,
+    DataConversionOptions,
+    DataType,
+    InvalidValueReason,
+};
+use qubit_value::{
+    MultiValues,
+    Value,
+    ValueContainer,
+    ValueError,
+};
 use serde::de::value::{
-    EnumAccessDeserializer, Error as DeError, MapDeserializer, SeqDeserializer, StrDeserializer,
+    EnumAccessDeserializer,
+    Error as DeError,
+    MapDeserializer,
+    SeqDeserializer,
+    StrDeserializer,
 };
-use serde::de::{self, DeserializeSeed, EnumAccess, IntoDeserializer, VariantAccess, Visitor};
+use serde::de::{
+    self,
+    DeserializeSeed,
+    EnumAccess,
+    IntoDeserializer,
+    VariantAccess,
+    Visitor,
+};
 use serde::ser::{
-    SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
-    SerializeTupleStruct, SerializeTupleVariant,
+    SerializeMap,
+    SerializeSeq,
+    SerializeStruct,
+    SerializeStructVariant,
+    SerializeTuple,
+    SerializeTupleStruct,
+    SerializeTupleVariant,
 };
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use serde_json::json;
 use url::Url;
 
@@ -424,14 +460,20 @@ impl Serialize for MapKeyKind {
             Self::Some => serializer.serialize_some(&1_u8),
             Self::Unit => serializer.serialize_unit(),
             Self::UnitStruct => serializer.serialize_unit_struct("Key"),
-            Self::UnitVariant => serializer.serialize_unit_variant("Key", 0, "Unit"),
-            Self::NewtypeStruct => serializer.serialize_newtype_struct("Key", &1_u8),
+            Self::UnitVariant => {
+                serializer.serialize_unit_variant("Key", 0, "Unit")
+            }
+            Self::NewtypeStruct => {
+                serializer.serialize_newtype_struct("Key", &1_u8)
+            }
             Self::NewtypeVariant => {
                 serializer.serialize_newtype_variant("Key", 0, "Newtype", &1_u8)
             }
             Self::Sequence => serializer.serialize_seq(Some(0))?.end(),
             Self::Tuple => serializer.serialize_tuple(0)?.end(),
-            Self::TupleStruct => serializer.serialize_tuple_struct("Key", 0)?.end(),
+            Self::TupleStruct => {
+                serializer.serialize_tuple_struct("Key", 0)?.end()
+            }
             Self::TupleVariant => serializer
                 .serialize_tuple_variant("Key", 0, "Tuple", 0)?
                 .end(),
@@ -483,11 +525,15 @@ where
     type Error = DeError;
     type Variant = TaggedVariant<V>;
 
-    fn variant_seed<S>(self, seed: S) -> Result<(S::Value, Self::Variant), Self::Error>
+    fn variant_seed<S>(
+        self,
+        seed: S,
+    ) -> Result<(S::Value, Self::Variant), Self::Error>
     where
         S: DeserializeSeed<'de>,
     {
-        let variant = seed.deserialize(StrDeserializer::<DeError>::new(self.variant))?;
+        let variant =
+            seed.deserialize(StrDeserializer::<DeError>::new(self.variant))?;
         Ok((variant, TaggedVariant(self.value)))
     }
 }
@@ -511,7 +557,11 @@ where
         seed.deserialize(self.0.into_deserializer())
     }
 
-    fn tuple_variant<T>(self, _len: usize, _visitor: T) -> Result<T::Value, Self::Error>
+    fn tuple_variant<T>(
+        self,
+        _len: usize,
+        _visitor: T,
+    ) -> Result<T::Value, Self::Error>
     where
         T: Visitor<'de>,
     {
@@ -562,8 +612,12 @@ where
 
     fn into_deserializer(self) -> Self::Deserializer {
         match self {
-            Self::Left(value) => EitherDeserializer::Left(value.into_deserializer()),
-            Self::Right(value) => EitherDeserializer::Right(value.into_deserializer()),
+            Self::Left(value) => {
+                EitherDeserializer::Left(value.into_deserializer())
+            }
+            Self::Right(value) => {
+                EitherDeserializer::Right(value.into_deserializer())
+            }
         }
     }
 }
@@ -783,8 +837,10 @@ fn test_strict_json_map_key_serializer_rejects_unsupported_key_shapes() {
 #[test]
 fn test_value_wire_v1_deserialization_rejects_non_finite_payloads() {
     for error in [
-        Value::deserialize(wire_payload("scalar", "float32", f32::NAN)).unwrap_err(),
-        Value::deserialize(wire_payload("scalar", "float64", f64::INFINITY)).unwrap_err(),
+        Value::deserialize(wire_payload("scalar", "float32", f32::NAN))
+            .unwrap_err(),
+        Value::deserialize(wire_payload("scalar", "float64", f64::INFINITY))
+            .unwrap_err(),
     ] {
         assert!(
             error
@@ -821,8 +877,14 @@ fn test_value_wire_v1_deserialization_rejects_non_finite_payloads() {
 
 #[test]
 fn test_value_wire_v1_float_deserialization_propagates_malformed_payloads() {
-    assert!(Value::deserialize(wire_payload("scalar", "float32", "not-a-float")).is_err(),);
-    assert!(Value::deserialize(wire_payload("scalar", "float64", "not-a-float")).is_err(),);
+    assert!(
+        Value::deserialize(wire_payload("scalar", "float32", "not-a-float"))
+            .is_err(),
+    );
+    assert!(
+        Value::deserialize(wire_payload("scalar", "float64", "not-a-float"))
+            .is_err(),
+    );
     assert!(
         MultiValues::deserialize(wire_payload(
             "collection",
