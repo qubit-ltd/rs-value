@@ -16,12 +16,9 @@ use std::process::{
     Command,
     Output,
 };
-use std::sync::atomic::{
-    AtomicUsize,
-    Ordering,
-};
 
 use qubit_datatype::DataType;
+use qubit_local_files::LocalTempDir;
 use qubit_value::{
     MultiValues,
     StrictValueListRead,
@@ -30,8 +27,6 @@ use qubit_value::{
     ValueContainer,
     ValueError,
 };
-
-static NEXT_PROJECT_ID: AtomicUsize = AtomicUsize::new(0);
 
 /// Reads one exact value through the public strict-read marker trait.
 ///
@@ -75,11 +70,10 @@ where
 
 /// Compiles a temporary external consumer with every crate feature enabled.
 fn compile_all_features_consumer(source: &str) -> Output {
-    let project_id = NEXT_PROJECT_ID.fetch_add(1, Ordering::Relaxed);
-    let project_root = std::env::temp_dir().join(format!(
-        "qubit-value-public-api-contract-{}-{project_id}",
-        std::process::id(),
-    ));
+    let project_dir =
+        LocalTempDir::with_prefix("qubit-value-public-api-contract-")
+            .expect("temporary consumer directory should be created");
+    let project_root = project_dir.path();
     let source_root = project_root.join("src");
     fs::create_dir_all(&source_root)
         .expect("temporary consumer source directory should be created");
@@ -99,16 +93,12 @@ fn compile_all_features_consumer(source: &str) -> Output {
         .expect("temporary consumer manifest should be written");
     fs::write(source_root.join("main.rs"), source)
         .expect("temporary consumer source should be written");
-
-    let output = Command::new("cargo")
+    Command::new("cargo")
         .args(["+1.94.0", "check", "--offline", "--quiet", "--target-dir"])
         .arg(project_root.join("target"))
-        .current_dir(&project_root)
+        .current_dir(project_root)
         .output()
-        .expect("temporary consumer should invoke Cargo");
-    fs::remove_dir_all(&project_root)
-        .expect("temporary consumer directory should be removed");
-    output
+        .expect("temporary consumer should invoke Cargo")
 }
 
 /// Formats all compiler output for an assertion diagnostic.
