@@ -105,6 +105,19 @@ The default feature set is empty. Enable only the required families, or use
 Natural JSON projection requires both `converter` and `json`. For example,
 use `features = ["converter", "json"]` without enabling other rich families.
 
+The basic examples below use only the default feature set. Conversion examples
+need `converter`; examples using `Url`, JSON, or Serde additionally need the
+owning crates as direct dependencies. For the complete extended example:
+
+```toml
+[dependencies]
+qubit-value = { version = "0.10", features = ["all"] }
+qubit-datatype = { version = "0.8", default-features = false }
+url = "2.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+```
+
 The feature set is part of the runtime value contract. A V1 wire envelope keeps
 its versioned object structure across builds, but a concrete rich-type payload
 such as `date`, `biginteger`, `bigdecimal`, `url`, or `json` can be read only by
@@ -119,11 +132,10 @@ without `chrono`.
 ### Single Value Operations
 
 ```rust
-use qubit_value::{Value, ValueError};
-use qubit_datatype::{DataConversionError, DataListConversionError, DataType};
-use num_bigint::BigInt;
-use bigdecimal::BigDecimal;
-use std::str::FromStr;
+use qubit_datatype::DataType;
+use qubit_value::Value;
+
+# fn main() -> Result<(), qubit_value::ValueError> {
 
 // Generic construction and type-inferred retrieval
 let v = Value::new(8080i32);
@@ -137,14 +149,6 @@ assert_eq!(v.get_int32()?, 8080);
 fn check_port(p: i32) -> bool { p > 1024 }
 assert!(check_port(v.get()?));  // Inferred as i32 from function signature
 
-// Cross-type conversion via to<T>()
-assert_eq!(v.to::<i64>()?, 8080i64);
-assert_eq!(v.to::<String>()?, "8080".to_string());
-
-// Big number with type inference
-let big_int = Value::new(BigInt::from(12345678901234567890i64));
-let num: BigInt = big_int.get()?;  // Type inference
-
 // Empty value and type management
 let mut any = Value::Int32(42);
 any.clear();
@@ -153,6 +157,8 @@ assert_eq!(any.data_type(), DataType::Int32);
 any.set_type(DataType::String);
 any.set("hello");
 assert_eq!(any.get_string()?, "hello");
+# Ok(())
+# }
 ```
 
 ### Extended Types
@@ -162,6 +168,8 @@ use qubit_value::Value;
 use std::time::Duration;
 use url::Url;
 use std::collections::HashMap;
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // Duration
 let v = Value::new(Duration::from_secs(30));
@@ -203,6 +211,8 @@ struct Config { host: String, port: u16 }
 let cfg = Config { host: "localhost".to_string(), port: 8080 };
 let v = Value::from_serializable(&cfg)?;
 let restored: Config = v.deserialize_json()?;
+# Ok(())
+# }
 ```
 
 ### Multi-Value Operations
@@ -578,6 +588,9 @@ This type-preserving V1 wire is separate from `to_json_value()`, which emits
 natural JSON without runtime type tags and projects unset values to `null`.
 Duration projection is exact by default; use `to_json_value_with()` and lossy
 conversion options when unit rounding is intentional.
+
+For the full wire-format rationale and feature-availability details, see the
+[user guide](doc/user_guide.md) and its [Chinese translation](doc/user_guide.zh_CN.md).
 
 ## Performance Notes
 

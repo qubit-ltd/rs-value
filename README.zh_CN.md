@@ -88,6 +88,18 @@ qubit-value = "0.10"
 自然 JSON 投影需要同时启用 `converter` 与 `json`；如不需要其他扩展类型族，
 可使用 `features = ["converter", "json"]`。
 
+下面的基础示例只使用默认 feature。转换示例需要 `converter`；使用 `Url`、JSON
+或 Serde 的示例还必须把其所属 crate 声明为直接依赖。完整扩展示例可使用：
+
+```toml
+[dependencies]
+qubit-value = { version = "0.10", features = ["all"] }
+qubit-datatype = { version = "0.8", default-features = false }
+url = "2.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+```
+
 feature 集也是运行时值契约的一部分。V1 wire 信封的版本化对象结构在不同构建
 之间保持不变，但 `date`、`biginteger`、`bigdecimal`、`url` 或 `json` 等具体
 扩展类型 payload，只有启用了对应 feature 的构建才能读取。交换这些 payload
@@ -100,11 +112,10 @@ feature 集也是运行时值契约的一部分。V1 wire 信封的版本化对�
 ### 单值操作
 
 ```rust
-use qubit_value::{Value, ValueError};
-use qubit_datatype::{DataConversionError, DataListConversionError, DataType};
-use num_bigint::BigInt;
-use bigdecimal::BigDecimal;
-use std::str::FromStr;
+use qubit_datatype::DataType;
+use qubit_value::Value;
+
+# fn main() -> Result<(), qubit_value::ValueError> {
 
 // 泛型构造与类型推断获取
 let v = Value::new(8080i32);
@@ -118,14 +129,6 @@ assert_eq!(v.get_int32()?, 8080);
 fn check_port(p: i32) -> bool { p > 1024 }
 assert!(check_port(v.get()?));  // 从函数签名推断为 i32
 
-// 通过 to<T>() 进行跨类型转换
-assert_eq!(v.to::<i64>()?, 8080i64);
-assert_eq!(v.to::<String>()?, "8080".to_string());
-
-// 大数类型与类型推断
-let big_int = Value::new(BigInt::from(12345678901234567890i64));
-let num: BigInt = big_int.get()?;  // 类型推断
-
 // 空值与类型管理
 let mut any = Value::Int32(42);
 any.clear();
@@ -134,6 +137,8 @@ assert_eq!(any.data_type(), DataType::Int32);
 any.set_type(DataType::String);
 any.set("hello");
 assert_eq!(any.get_string()?, "hello");
+# Ok(())
+# }
 ```
 
 ### 扩展类型
@@ -143,6 +148,8 @@ use qubit_value::Value;
 use std::time::Duration;
 use url::Url;
 use std::collections::HashMap;
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // Duration（时长）
 let v = Value::new(Duration::from_secs(30));
@@ -184,6 +191,8 @@ struct Config { host: String, port: u16 }
 let cfg = Config { host: "localhost".to_string(), port: 8080 };
 let v = Value::from_serializable(&cfg)?;
 let restored: Config = v.deserialize_json()?;
+# Ok(())
+# }
 ```
 
 ### 多值操作
@@ -539,6 +548,9 @@ assert!(wire.container().is_scalar());
 自然 JSON 不包含运行时类型标签，未设置值投影为 `null`。
 Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍入时使用
 `to_json_value_with()` 并传入有损转换选项。
+
+完整 wire 格式说明及 feature 可用性请参阅[用户指南](doc/user_guide.zh_CN.md)
+和[英文版](doc/user_guide.md)。
 
 ## 性能说明
 

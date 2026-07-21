@@ -40,7 +40,8 @@ tag 只有在接收方启用对应 feature 时才能反序列化：日期/时间
 
 `Value` 只接受 scalar，`MultiValues` 只接受 collection，`ValueContainer`
 接受两者。信封必须包含数字版本 `1`；未知字段、未知类型、错误 shape 和所有
-0.10 之前的 payload 都会被拒绝。宽整数和大数使用 canonical 十进制字符串；
+0.10 之前的 payload 都会被拒绝。宽整数使用 canonical 十进制字符串；
+`BigDecimal` 使用精确的 `{"coefficient":"...","scale":i64}` payload；
 `Duration` 使用 secs/nanos；非有限浮点会被拒绝。`Json(null)` 与
 `Unset(Json)` 不同。
 
