@@ -36,7 +36,7 @@ fn test_doc_example_single_value_operations() {
 #[test]
 fn test_doc_example_multi_value_operations() {
     let mut ports = MultiValues::new(vec![8080i32, 8081, 8082]);
-    assert_eq!(ports.count(), 3);
+    assert_eq!(ports.len(), 3);
     assert_eq!(ports.get_int32s().unwrap(), &[8080, 8081, 8082]);
 
     ports.add(8083).unwrap();

@@ -50,7 +50,7 @@ use super::named_value::NamedValue;
 /// );
 ///
 /// assert_eq!(named.name(), "ports");
-/// assert_eq!(named.values().count(), 3);
+/// assert_eq!(named.values().len(), 3);
 /// ```
 ///
 /// The wrapper intentionally does not forward [`MultiValues`] methods
@@ -60,7 +60,7 @@ use super::named_value::NamedValue;
 /// use qubit_value::{MultiValues, NamedMultiValues};
 ///
 /// let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080]));
-/// let _ = named.count();
+/// let _ = named.len();
 /// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

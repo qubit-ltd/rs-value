@@ -40,7 +40,7 @@ fn test_multi_values_duration_creation() {
         Duration::from_secs(2),
     ]);
     assert_eq!(mv.data_type(), DataType::Duration);
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
@@ -63,14 +63,14 @@ fn test_multi_values_duration_get_first() {
 fn test_multi_values_duration_add_single() {
     let mut mv = MultiValues::Duration(vec![Duration::from_secs(1)]);
     mv.add(Duration::from_secs(2)).unwrap();
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
 fn test_multi_values_duration_set_all() {
     let mut mv = MultiValues::Unset(DataType::Duration);
     mv.set(vec![Duration::from_secs(5), Duration::from_secs(10)]);
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
@@ -90,7 +90,7 @@ fn test_multi_values_duration_merge() {
     let mut a = MultiValues::Duration(vec![Duration::from_secs(1)]);
     let b = MultiValues::Duration(vec![Duration::from_secs(2)]);
     a.merge(&b).unwrap();
-    assert_eq!(a.count(), 2);
+    assert_eq!(a.len(), 2);
 }
 
 #[test]
@@ -100,7 +100,7 @@ fn test_multi_values_duration_clear() {
         Duration::from_secs(20),
     ]);
     mv.clear();
-    assert_eq!(mv.count(), 0);
+    assert_eq!(mv.len(), 0);
     assert_eq!(mv.data_type(), DataType::Duration);
 }
 
@@ -135,7 +135,7 @@ fn test_multi_values_url_creation() {
         Url::parse("http://localhost:8080").unwrap(),
     ]);
     assert_eq!(mv.data_type(), DataType::Url);
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
@@ -161,7 +161,7 @@ fn test_multi_values_url_get_first() {
 fn test_multi_values_url_add_single() {
     let mut mv = MultiValues::Url(vec![Url::parse("https://a.com").unwrap()]);
     mv.add(Url::parse("https://b.com").unwrap()).unwrap();
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
@@ -171,7 +171,7 @@ fn test_multi_values_url_set_all() {
         Url::parse("https://x.com").unwrap(),
         Url::parse("https://y.com").unwrap(),
     ]);
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
@@ -192,7 +192,7 @@ fn test_multi_values_url_clear() {
         Url::parse("https://b.com").unwrap(),
     ]);
     mv.clear();
-    assert_eq!(mv.count(), 0);
+    assert_eq!(mv.len(), 0);
     assert_eq!(mv.data_type(), DataType::Url);
 }
 
@@ -201,7 +201,7 @@ fn test_multi_values_url_merge() {
     let mut mv1 = MultiValues::Url(vec![Url::parse("https://a.com").unwrap()]);
     let mv2 = MultiValues::Url(vec![Url::parse("https://b.com").unwrap()]);
     mv1.merge(&mv2).unwrap();
-    assert_eq!(mv1.count(), 2);
+    assert_eq!(mv1.len(), 2);
     assert_eq!(mv1.get_urls().unwrap().len(), 2);
 }
 
@@ -236,7 +236,7 @@ fn test_multi_values_stringmap_creation() {
     let m2 = make_map(&[("k2", "v2")]);
     let mv = MultiValues::StringMap(vec![m1, m2]);
     assert_eq!(mv.data_type(), DataType::StringMap);
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
@@ -261,20 +261,20 @@ fn test_multi_values_stringmap_add_single() {
     let m2 = make_map(&[("y", "2")]);
     let mut mv = MultiValues::StringMap(vec![m1]);
     mv.add(m2).unwrap();
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
 fn test_multi_values_stringmap_set_all() {
     let mut mv = MultiValues::Unset(DataType::StringMap);
     mv.set(vec![make_map(&[("a", "1")]), make_map(&[("b", "2")])]);
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
 fn test_multi_values_stringmap_empty_map() {
     let mv = MultiValues::StringMap(vec![HashMap::new()]);
-    assert_eq!(mv.count(), 1);
+    assert_eq!(mv.len(), 1);
     assert_eq!(mv.get_first_string_map().unwrap().len(), 0);
 }
 
@@ -296,7 +296,7 @@ fn test_multi_values_stringmap_clear() {
         make_map(&[("b", "2")]),
     ]);
     mv.clear();
-    assert_eq!(mv.count(), 0);
+    assert_eq!(mv.len(), 0);
     assert_eq!(mv.data_type(), DataType::StringMap);
 }
 
@@ -305,7 +305,7 @@ fn test_multi_values_stringmap_merge() {
     let mut mv1 = MultiValues::StringMap(vec![make_map(&[("a", "1")])]);
     let mv2 = MultiValues::StringMap(vec![make_map(&[("b", "2")])]);
     mv1.merge(&mv2).unwrap();
-    assert_eq!(mv1.count(), 2);
+    assert_eq!(mv1.len(), 2);
 }
 
 #[test]
@@ -339,7 +339,7 @@ fn test_multi_values_json_creation() {
         serde_json::json!([1, 2, 3]),
     ]);
     assert_eq!(mv.data_type(), DataType::Json);
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
@@ -362,7 +362,7 @@ fn test_multi_values_json_get_first() {
 fn test_multi_values_json_add_single() {
     let mut mv = MultiValues::Json(vec![serde_json::json!(1)]);
     mv.add(serde_json::json!(2)).unwrap();
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
@@ -372,7 +372,7 @@ fn test_multi_values_json_set_all() {
         serde_json::json!("hello"),
         serde_json::json!({"key": "val"}),
     ]);
-    assert_eq!(mv.count(), 2);
+    assert_eq!(mv.len(), 2);
 }
 
 #[test]
@@ -394,7 +394,7 @@ fn test_multi_values_json_clear() {
         serde_json::json!(2),
     ]);
     mv.clear();
-    assert_eq!(mv.count(), 0);
+    assert_eq!(mv.len(), 0);
     assert_eq!(mv.data_type(), DataType::Json);
 }
 
@@ -424,7 +424,7 @@ fn test_multi_values_json_merge() {
     let mut a = MultiValues::Json(vec![serde_json::json!(1)]);
     let b = MultiValues::Json(vec![serde_json::json!(2), serde_json::json!(3)]);
     a.merge(&b).unwrap();
-    assert_eq!(a.count(), 3);
+    assert_eq!(a.len(), 3);
 }
 
 #[test]
@@ -432,7 +432,7 @@ fn test_multi_values_duration_generic_add_vec() {
     let mut mv = MultiValues::Duration(vec![Duration::from_secs(1)]);
     mv.add(vec![Duration::from_secs(2), Duration::from_secs(3)])
         .unwrap();
-    assert_eq!(mv.count(), 3);
+    assert_eq!(mv.len(), 3);
 }
 
 #[test]
@@ -440,6 +440,6 @@ fn test_multi_values_url_generic_set_single() {
     let u = Url::parse("https://example.com").unwrap();
     let mut mv = MultiValues::Url(vec![]);
     mv.set(u.clone());
-    assert_eq!(mv.count(), 1);
+    assert_eq!(mv.len(), 1);
     assert_eq!(mv.get_first_url().unwrap(), u);
 }

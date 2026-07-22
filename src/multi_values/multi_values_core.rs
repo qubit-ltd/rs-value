@@ -163,11 +163,11 @@ impl MultiValues {
     ///
     /// // Basic types
     /// let mv = MultiValues::new(vec![1, 2, 3]);
-    /// assert_eq!(mv.count(), 3);
+    /// assert_eq!(mv.len(), 3);
     ///
     /// // Strings
     /// let mv = MultiValues::new(vec!["a".to_string(), "b".to_string()]);
-    /// assert_eq!(mv.count(), 2);
+    /// assert_eq!(mv.len(), 2);
     /// ```
     #[inline(always)]
     pub fn new<S>(values: S) -> Self
@@ -464,7 +464,7 @@ impl MultiValues {
                 actual: other.data_type(),
             });
         }
-        if other.count() == 0 {
+        if other.is_empty() {
             return Ok(());
         }
 
@@ -493,11 +493,12 @@ impl MultiValues {
         for_each_value_type!(multi_values_data_type_match, self)
     }
 
-    /// Get the number of values
+    /// Returns the number of values.
     ///
     /// # Returns
     ///
-    /// Returns the number of values contained in these multiple values
+    /// The number of values contained in these multiple values. An unset
+    /// collection has length zero.
     ///
     /// # Example
     ///
@@ -506,15 +507,29 @@ impl MultiValues {
     /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Int32(vec![1, 2, 3]);
-    /// assert_eq!(values.count(), 3);
+    /// assert_eq!(values.len(), 3);
     ///
     /// let empty = MultiValues::Unset(DataType::String);
-    /// assert_eq!(empty.count(), 0);
+    /// assert_eq!(empty.len(), 0);
     /// ```
     #[inline(always)]
     #[must_use]
-    pub fn count(&self) -> usize {
+    pub fn len(&self) -> usize {
         for_each_value_type!(multi_values_count_match, self)
+    }
+
+    /// Tests whether this collection contains no values.
+    ///
+    /// Both an unset collection and a concrete empty vector are empty. Use
+    /// [`MultiValues::is_unset`] to distinguish those states.
+    ///
+    /// # Returns
+    ///
+    /// `true` when [`Self::len`] is zero; otherwise, `false`.
+    #[inline(always)]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Tests whether this container has no concrete vector.
@@ -572,7 +587,7 @@ impl MultiValues {
     ///
     /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
     /// values.clear();
-    /// assert_eq!(values.count(), 0);
+    /// assert_eq!(values.len(), 0);
     /// assert_eq!(values.data_type(), DataType::Int32);
     /// ```
     #[inline(always)]
@@ -652,7 +667,7 @@ impl MultiValues {
                 actual: other.data_type(),
             });
         }
-        if other.count() == 0 {
+        if other.is_empty() {
             return Ok(());
         }
         for_each_value_type!(multi_values_merge_match, self, other);

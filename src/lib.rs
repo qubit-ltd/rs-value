@@ -63,7 +63,7 @@
 //!
 //! // Create and access multiple values
 //! let mut values = MultiValues::Int32(vec![1, 2, 3]);
-//! assert_eq!(values.count(), 3);
+//! assert_eq!(values.len(), 3);
 //!
 //! // Add values
 //! values.add(4).unwrap();
@@ -100,7 +100,7 @@ mod into_value_default;
 mod value_type_table;
 #[cfg(all(feature = "converter", feature = "json"))]
 mod json;
-pub mod multi_values;
+mod multi_values;
 mod named_multi_values;
 mod named_value;
 mod numeric_comparison_error;

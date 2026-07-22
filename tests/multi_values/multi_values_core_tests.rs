@@ -13,14 +13,31 @@ use qubit_value::{
 };
 
 #[test]
-fn test_multi_values_core_tracks_count_and_type_changes() {
+fn test_multi_values_len_and_is_empty_distinguish_unset_from_concrete_empty_values()
+ {
+    let unset = MultiValues::Unset(DataType::Int32);
+    let empty = MultiValues::Int32(Vec::new());
+    let values = MultiValues::Int32(vec![1, 2]);
+
+    assert_eq!(unset.len(), 0);
+    assert!(unset.is_empty());
+    assert!(unset.is_unset());
+    assert_eq!(empty.len(), 0);
+    assert!(empty.is_empty());
+    assert!(!empty.is_unset());
+    assert_eq!(values.len(), 2);
+    assert!(!values.is_empty());
+}
+
+#[test]
+fn test_multi_values_core_tracks_len_and_type_changes() {
     let mut values = MultiValues::Int32(vec![1, 2, 3]);
-    assert_eq!(values.count(), 3);
+    assert_eq!(values.len(), 3);
     assert_eq!(values.data_type(), DataType::Int32);
 
     values.clear();
     assert!(!values.is_unset());
-    assert_eq!(values.count(), 0);
+    assert_eq!(values.len(), 0);
     assert_eq!(values.data_type(), DataType::Int32);
 
     values.set_type(DataType::String);
@@ -41,7 +58,7 @@ fn test_multi_values_core_unset_preserves_declared_type() {
 
     assert!(values.is_unset());
     assert_eq!(values.data_type(), DataType::Int32);
-    assert_eq!(values.count(), 0);
+    assert_eq!(values.len(), 0);
 }
 
 #[test]

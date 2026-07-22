@@ -18,7 +18,7 @@ fn test_multi_values_getters_return_slices_without_copying() {
         MultiValues::String(vec!["red".to_string(), "blue".to_string()]);
     let strings = values.get_strings().unwrap();
     assert_eq!(strings, &["red", "blue"]);
-    assert_eq!(strings.len(), values.count());
+    assert_eq!(strings.len(), values.len());
 }
 
 #[test]

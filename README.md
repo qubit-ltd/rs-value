@@ -223,7 +223,7 @@ use qubit_datatype::DataType;
 
 // Generic construction from a Vec<T>
 let mut ports = MultiValues::new(vec![8080i32, 8081, 8082]);
-assert_eq!(ports.count(), 3);
+assert_eq!(ports.len(), 3);
 assert_eq!(ports.get_int32s()?, &[8080, 8081, 8082]);
 
 // Direct arrays, slices, vectors, and borrowed vectors are accepted
@@ -472,7 +472,7 @@ number literals.
 - `set_type()` — change the type
 
 #### Multi-Value
-- `count()` — get element count
+- `len()` — get element count
 - `is_unset()` — distinguish unset from a concrete empty vector
 - `is_numeric()` — classify a concrete numeric collection
 - `unset()` — remove the concrete vector while preserving its declared type
