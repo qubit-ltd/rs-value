@@ -34,6 +34,10 @@ V1 compatibility covers this JSON object structure. Other Serde formats may
 work, but their format-specific representations are outside the stability
 contract.
 
+V1 is closed. Existing tags, shapes, and payload representations cannot
+change, and a future runtime data type requires a new wire version instead of
+extending V1.
+
 This structural guarantee does not make every concrete type available under
 every feature set. A concrete rich-type tag can be deserialized only when the
 receiving build enables its feature: `chrono` for date/time values,
@@ -54,6 +58,12 @@ distinct from `Unset(Json)`.
 Owned adapters are available through `From<Value>`, `From<MultiValues>`, and
 `From<ValueContainer>` for `ValueWireV1`, and `From<ValueWireV1>` for
 `ValueContainer`.
+
+`ValueWireV1::decode_json_slice()` and
+`ValueWireV1::decode_json_slice_with_limits()` accept complete top-level V1
+documents and enforce a byte budget before parsing. When a value is embedded
+in a larger JSON document, call `ValueWireLimits::check_json_bytes()` with the
+complete outer input length before invoking that document's Serde decoder.
 
 ## Natural JSON
 

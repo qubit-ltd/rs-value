@@ -551,6 +551,9 @@ Type-preserving Serde uses one strict versioned envelope:
 The V1 compatibility guarantee applies to this JSON object structure. The
 Serde implementations may be used with other serializers, but their
 format-specific representation is not part of the V1 stability contract.
+V1 is closed: its existing tags, shapes, and payload representations cannot
+change, and a future runtime data type requires a new wire version instead of
+extending V1.
 
 Collections use `collection` instead of `scalar`; an unset payload uses
 `{"unset":"int32"}`. `Value` accepts only scalar, `MultiValues` accepts only
@@ -583,6 +586,11 @@ let wire = ValueWireV1::decode_json_slice_with_limits(input, limits)?;
 assert!(wire.container().is_scalar());
 # Ok::<(), qubit_value::ValueWireDecodeError>(())
 ```
+
+These decode methods accept a complete top-level `ValueWireV1` document. When
+`Value`, `MultiValues`, or `ValueContainer` is embedded in an outer JSON
+document, call `ValueWireLimits::check_json_bytes()` with the complete outer
+input length before invoking that document's Serde decoder.
 
 This type-preserving V1 wire is separate from `to_json_value()`, which emits
 natural JSON without runtime type tags and projects unset values to `null`.

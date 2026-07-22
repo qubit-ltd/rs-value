@@ -58,8 +58,26 @@ impl ValueWireLimits {
         self.max_json_bytes
     }
 
-    /// Checks a JSON input length before decoding begins.
-    pub(super) const fn check_json_bytes(
+    /// Checks a complete JSON input length before decoding begins.
+    ///
+    /// This preflight check can be reused by protocols that embed
+    /// [`crate::Value`] inside a larger JSON document. Call it with the outer
+    /// document length before invoking that protocol's Serde decoder.
+    ///
+    /// # Parameters
+    ///
+    /// * `input_bytes` - Complete JSON document length in bytes.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when `input_bytes` does not exceed this limit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireDecodeError::InputTooLarge`] with the actual and
+    /// configured byte counts when the input exceeds this limit.
+    #[inline]
+    pub const fn check_json_bytes(
         self,
         input_bytes: usize,
     ) -> Result<(), ValueWireDecodeError> {
