@@ -203,7 +203,7 @@ use qubit_datatype::DataType;
 
 // 从 Vec<T> 泛型构造
 let mut ports = MultiValues::new(vec![8080i32, 8081, 8082]);
-assert_eq!(ports.count(), 3);
+assert_eq!(ports.len(), 3);
 assert_eq!(ports.get_int32s()?, &[8080, 8081, 8082]);
 
 // 可以直接传数组、切片、vector 和借用的 vector
@@ -442,7 +442,7 @@ JSON 边界都会拒绝 `NaN`、正无穷和负无穷，因为 JSON 没有这些
 - `set_type()` — 更改类型
 
 #### 多值
-- `count()` — 获取元素数量
+- `len()` — 获取元素数量
 - `is_unset()` — 区分未设置状态与具体空 vector
 - `is_numeric()` — 判断具体集合是否为数值类型
 - `unset()` — 移除具体 vector 并保留声明类型

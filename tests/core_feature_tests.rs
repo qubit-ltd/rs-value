@@ -127,10 +127,10 @@ fn test_value_container_preserves_explicit_shapes() {
 
     assert!(scalar.is_scalar());
     assert!(!scalar.is_collection());
-    assert_eq!(scalar.count(), 1);
+    assert_eq!(scalar.len(), 1);
     assert!(collection.is_collection());
     assert!(!collection.is_scalar());
-    assert_eq!(collection.count(), 1);
+    assert_eq!(collection.len(), 1);
 }
 
 #[test]

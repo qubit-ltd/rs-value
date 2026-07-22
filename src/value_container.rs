@@ -331,10 +331,10 @@ impl ValueContainer {
     /// The number of concrete values represented by this container.
     #[inline(always)]
     #[must_use]
-    pub fn count(&self) -> usize {
+    pub fn len(&self) -> usize {
         match self {
             Self::Scalar(value) => usize::from(!value.is_unset()),
-            Self::Collection(values) => values.count(),
+            Self::Collection(values) => values.len(),
         }
     }
 
@@ -346,11 +346,11 @@ impl ValueContainer {
     ///
     /// # Returns
     ///
-    /// `true` when [`Self::count`] is zero; otherwise, `false`.
+    /// `true` when [`Self::len`] is zero; otherwise, `false`.
     #[inline(always)]
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.count() == 0
+        self.len() == 0
     }
 
     /// Strictly reads a scalar or the first collection item as `T`.
@@ -450,7 +450,7 @@ impl ValueContainer {
         if expected != actual {
             return Err(ValueError::TypeMismatch { expected, actual });
         }
-        if other.count() == 0 {
+        if other.is_empty() {
             return Ok(());
         }
 

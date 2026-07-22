@@ -61,13 +61,34 @@ fn test_value_container_preserves_scalar_and_collection_shapes() {
     assert!(!scalar.is_collection());
     assert!(collection.is_collection());
     assert!(!collection.is_scalar());
-    assert_eq!(scalar.count(), 1);
-    assert_eq!(collection.count(), 1);
+    assert_eq!(scalar.len(), 1);
+    assert_eq!(collection.len(), 1);
     assert_eq!(scalar.to_json_value().expect("scalar JSON"), json!(42));
     assert_eq!(
         collection.to_json_value().expect("collection JSON"),
         json!([42])
     );
+}
+
+#[test]
+fn test_value_container_len_and_is_empty_preserve_shape_semantics() {
+    let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
+    let unset_collection =
+        ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let scalar = ValueContainer::from(42_i32);
+    let empty_collection = ValueContainer::from(Vec::<String>::new());
+    let collection = ValueContainer::from(vec!["alpha", "beta"]);
+
+    assert_eq!(unset_scalar.len(), 0);
+    assert!(unset_scalar.is_empty());
+    assert_eq!(unset_collection.len(), 0);
+    assert!(unset_collection.is_empty());
+    assert_eq!(scalar.len(), 1);
+    assert!(!scalar.is_empty());
+    assert_eq!(empty_collection.len(), 0);
+    assert!(empty_collection.is_empty());
+    assert_eq!(collection.len(), 2);
+    assert!(!collection.is_empty());
 }
 
 /// Verifies effective emptiness without treating concrete scalar payloads as
@@ -297,8 +318,8 @@ fn test_value_container_strict_access_mutation_and_state_cover_both_shapes() {
     collection.unset();
     assert!(scalar.is_unset());
     assert!(collection.is_unset());
-    assert_eq!(scalar.count(), 0);
-    assert_eq!(collection.count(), 0);
+    assert_eq!(scalar.len(), 0);
+    assert_eq!(collection.len(), 0);
 }
 
 #[test]

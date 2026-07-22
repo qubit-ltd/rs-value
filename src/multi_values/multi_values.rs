@@ -58,14 +58,14 @@ macro_rules! define_multi_values_enum {
         /// use qubit_value::MultiValues;
         ///
         /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
-        /// assert_eq!(values.count(), 3);
+        /// assert_eq!(values.len(), 3);
         /// assert_eq!(values.get_first_int32().unwrap(), 1);
         ///
         /// let all = values.get_int32s().unwrap();
         /// assert_eq!(all, &[1, 2, 3]);
         ///
         /// values.add(4).unwrap();
-        /// assert_eq!(values.count(), 4);
+        /// assert_eq!(values.len(), 4);
         /// ```
         #[must_use]
         #[non_exhaustive]

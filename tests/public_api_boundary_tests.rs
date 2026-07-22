@@ -288,3 +288,49 @@ fn main() {
     );
     assert_consumer_fails(&output);
 }
+
+#[test]
+fn test_external_consumer_uses_only_canonical_collection_api() {
+    let root_output = compile_all_features_consumer(
+        r#"
+use qubit_value::MultiValues;
+fn main() {
+    let values = MultiValues::Int32(vec![1, 2]);
+    assert_eq!(values.len(), 2);
+}
+"#,
+    );
+    assert_consumer_compiles(&root_output);
+
+    let nested_module_output = compile_all_features_consumer(
+        r#"
+use qubit_value::multi_values::MultiValues;
+fn main() {
+    let _ = MultiValues::Int32(vec![1]);
+}
+"#,
+    );
+    assert_consumer_fails(&nested_module_output);
+
+    let multi_values_count_output = compile_all_features_consumer(
+        r#"
+use qubit_value::MultiValues;
+fn main() {
+    let values = MultiValues::Int32(vec![1]);
+    let _ = values.count();
+}
+"#,
+    );
+    assert_consumer_fails(&multi_values_count_output);
+
+    let value_container_count_output = compile_all_features_consumer(
+        r#"
+use qubit_value::ValueContainer;
+fn main() {
+    let value = ValueContainer::from(1_i32);
+    let _ = value.count();
+}
+"#,
+    );
+    assert_consumer_fails(&value_container_count_output);
+}

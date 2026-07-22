@@ -41,7 +41,7 @@ fn test_named_multi_value_creation() {
     assert_eq!(nmv.values(), &MultiValues::Int32(vec![8080, 8081, 8082]));
 
     nmv.values_mut().add(8083).unwrap();
-    assert_eq!(nmv.values().count(), 4);
+    assert_eq!(nmv.values().len(), 4);
 
     nmv.set_values(MultiValues::Bool(vec![true]));
     assert_eq!(nmv.values(), &MultiValues::Bool(vec![true]));
@@ -64,7 +64,7 @@ fn test_named_multi_value_accessors() {
         MultiValues::String(vec!["s1".to_string()]),
     );
     assert_eq!(nmv.name(), "servers");
-    assert_eq!(nmv.values().count(), 1);
+    assert_eq!(nmv.values().len(), 1);
 
     nmv.set_name("new_servers");
     assert_eq!(nmv.name(), "new_servers");
@@ -73,7 +73,7 @@ fn test_named_multi_value_accessors() {
         "s2".to_string(),
         "s3".to_string(),
     ]));
-    assert_eq!(nmv.values().count(), 2);
+    assert_eq!(nmv.values().len(), 2);
 }
 
 #[test]
@@ -81,7 +81,7 @@ fn test_named_multi_value_mut() {
     let mut nmv =
         NamedMultiValues::new("numbers", MultiValues::Int32(vec![1, 2]));
     nmv.values_mut().add(3).unwrap();
-    assert_eq!(nmv.values().count(), 3);
+    assert_eq!(nmv.values().len(), 3);
     assert_eq!(nmv.values().get_int32s().unwrap(), &[1, 2, 3]);
 }
 
@@ -90,7 +90,7 @@ fn test_named_value_to_named_multi_value() {
     let nv = NamedValue::new("single", Value::Int32(99));
     let nmv: NamedMultiValues = nv.into();
     assert_eq!(nmv.name(), "single");
-    assert_eq!(nmv.values().count(), 1);
+    assert_eq!(nmv.values().len(), 1);
     assert_eq!(nmv.values().get_first_int32().unwrap(), 99);
 }
 
@@ -111,20 +111,20 @@ fn test_named_multi_value_struct_access() {
         MultiValues::String(vec!["a".to_string(), "b".to_string()]),
     );
     assert_eq!(nmv.name(), "items");
-    assert_eq!(nmv.values().count(), 2);
+    assert_eq!(nmv.values().len(), 2);
 }
 
 // ===================== Basic properties and common methods
 // =====================
 
 #[test]
-fn test_nmv_count_and_is_empty_and_clear() {
+fn test_nmv_len_and_is_empty_and_clear() {
     let mut nmv = NamedMultiValues::new("n", MultiValues::Int32(vec![1, 2, 3]));
-    assert_eq!(nmv.values().count(), 3);
-    assert_ne!(nmv.values().count(), 0);
+    assert_eq!(nmv.values().len(), 3);
+    assert_ne!(nmv.values().len(), 0);
     nmv.values_mut().clear();
-    assert_eq!(nmv.values().count(), 0);
-    assert_eq!(nmv.values().count(), 0);
+    assert_eq!(nmv.values().len(), 0);
+    assert_eq!(nmv.values().len(), 0);
 }
 
 #[test]
@@ -132,7 +132,7 @@ fn test_nmv_data_type_and_set_type() {
     let mut nmv = NamedMultiValues::new("n", MultiValues::Int32(vec![1]));
     assert_eq!(nmv.values().data_type(), DataType::Int32);
     nmv.values_mut().set_type(DataType::String);
-    assert_eq!(nmv.values().count(), 0);
+    assert_eq!(nmv.values().len(), 0);
     assert_eq!(nmv.values().data_type(), DataType::String);
 }
 
