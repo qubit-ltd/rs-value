@@ -97,6 +97,7 @@ pub use value_wire_v1::ValueWireV1;
 /// # Errors
 ///
 /// Returns the error reported by `serializer`.
+#[inline(always)]
 fn serialize_wire<S>(
     value: WireShapeRef<'_>,
     serializer: S,
@@ -129,6 +130,7 @@ where
 ///
 /// Returns `D::Error` when the envelope cannot be decoded or declares an
 /// unsupported wire version.
+#[inline]
 fn deserialize_wire<'de, D>(deserializer: D) -> Result<ValueContainer, D::Error>
 where
     D: Deserializer<'de>,
@@ -144,6 +146,7 @@ where
 }
 
 impl Serialize for Value {
+    #[inline(always)]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -153,6 +156,7 @@ impl Serialize for Value {
 }
 
 impl<'de> Deserialize<'de> for Value {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -167,6 +171,7 @@ impl<'de> Deserialize<'de> for Value {
 }
 
 impl Serialize for MultiValues {
+    #[inline(always)]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -176,6 +181,7 @@ impl Serialize for MultiValues {
 }
 
 impl<'de> Deserialize<'de> for MultiValues {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -190,6 +196,7 @@ impl<'de> Deserialize<'de> for MultiValues {
 }
 
 impl Serialize for ValueContainer {
+    #[inline(always)]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -199,6 +206,7 @@ impl Serialize for ValueContainer {
 }
 
 impl<'de> Deserialize<'de> for ValueContainer {
+    #[inline(always)]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
