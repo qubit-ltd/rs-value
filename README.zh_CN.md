@@ -515,6 +515,8 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 
 V1 的兼容性承诺仅覆盖这里展示的 JSON 对象结构。Serde 实现可以配合其他
 serializer 使用，但这些格式各自的表示不属于 V1 稳定契约。
+V1 是封闭格式：现有 tag、shape 和 payload 表示不得改变；未来新增运行时类型
+必须使用新的 wire 版本，而不能扩展 V1。
 
 集合使用 `collection` 而不是 `scalar`；未设置值使用 `{"unset":"int32"}`。
 `Value` 只接受 scalar，`MultiValues` 只接受 collection，`ValueContainer`
@@ -543,6 +545,11 @@ let wire = ValueWireV1::decode_json_slice_with_limits(input, limits)?;
 assert!(wire.container().is_scalar());
 # Ok::<(), qubit_value::ValueWireDecodeError>(())
 ```
+
+这些 decode 方法只接受完整的顶层 `ValueWireV1` 文档。当 `Value`、
+`MultiValues` 或 `ValueContainer` 嵌入外层 JSON 文档时，应先用完整外层输入
+长度调用 `ValueWireLimits::check_json_bytes()`，再执行该文档自己的 Serde
+decoder。
 
 保留类型的 V1 wire 与 `to_json_value()` 的自然 JSON 投影是两个独立契约。
 自然 JSON 不包含运行时类型标签，未设置值投影为 `null`。

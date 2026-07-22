@@ -32,7 +32,9 @@ use super::{
 ///
 /// The compatibility guarantee covers the documented JSON object structure.
 /// Other Serde formats may work, but their representation is not part of the
-/// V1 stability contract.
+/// V1 stability contract. V1 is closed: existing tags, shapes, and payload
+/// representations cannot change, and future runtime data types require a new
+/// wire version instead of extending V1.
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValueWireV1 {
@@ -63,7 +65,10 @@ impl ValueWireV1 {
     /// The byte limit is checked before JSON parsing or wire payload
     /// allocation. This method is suitable for untrusted input when the
     /// one-mebibyte default in [`ValueWireLimits`] matches the surrounding
-    /// protocol.
+    /// protocol. It accepts a complete top-level V1 document. When a
+    /// [`Value`] is embedded in a larger JSON document, the outer protocol
+    /// should call [`ValueWireLimits::check_json_bytes`] with the complete
+    /// document length before invoking its own Serde decoder.
     ///
     /// # Parameters
     ///
@@ -90,7 +95,10 @@ impl ValueWireV1 {
     ///
     /// The complete input length is checked before JSON parsing. This bounds
     /// all collection storage and arbitrary-precision numeric text reachable
-    /// through the V1 wire payload.
+    /// through the V1 wire payload. This method accepts a complete top-level
+    /// V1 document; embedded values require the outer protocol to preflight
+    /// its complete document length with
+    /// [`ValueWireLimits::check_json_bytes`].
     ///
     /// # Parameters
     ///

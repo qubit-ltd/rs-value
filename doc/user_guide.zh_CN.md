@@ -31,6 +31,9 @@ qubit-value = { version = "0.10", features = ["all"] }
 V1 的兼容性承诺覆盖上述 JSON 对象结构。其他 Serde 格式可以使用，但其
 格式相关表示不属于稳定契约。
 
+V1 是封闭格式。现有 tag、shape 和 payload 表示不得改变；未来新增运行时类型
+必须使用新的 wire 版本，而不能扩展 V1。
+
 这个结构性保证不意味着所有 feature 集都支持所有具体类型。具体扩展类型的
 tag 只有在接收方启用对应 feature 时才能反序列化：日期/时间使用 `chrono`，
 大数使用 `big-integer` 或 `big-decimal`，URL 使用 `url`，JSON 使用 `json`。
@@ -47,6 +50,12 @@ tag 只有在接收方启用对应 feature 时才能反序列化：日期/时间
 
 `Value`、`MultiValues`、`ValueContainer` 可通过 `From` 转成
 `ValueWireV1`；`ValueWireV1` 可转回 `ValueContainer`。
+
+`ValueWireV1::decode_json_slice()` 和
+`ValueWireV1::decode_json_slice_with_limits()` 只接受完整的顶层 V1 文档，并在
+解析前执行字节数限制。当 value 嵌入更大的 JSON 文档时，应先用完整外层输入
+长度调用 `ValueWireLimits::check_json_bytes()`，再执行该文档自己的 Serde
+decoder。
 
 ## 自然 JSON
 
