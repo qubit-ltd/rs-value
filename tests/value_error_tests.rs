@@ -49,3 +49,16 @@ fn test_value_error_variants_compare_by_payload() {
         Some(&list_source),
     );
 }
+
+#[test]
+fn test_value_error_clone_preserves_structured_source() {
+    let source = DataConversionError::invalid(
+        DataType::String,
+        DataType::Int32,
+        InvalidValueReason::OutOfRange,
+    );
+    let error =
+        ValueError::DataListConversion(DataListConversionError::new(3, source));
+
+    assert_eq!(error.clone(), error);
+}

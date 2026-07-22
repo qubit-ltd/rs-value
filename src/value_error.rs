@@ -40,7 +40,7 @@ use thiserror::Error;
 /// assert_eq!(error.to_string(), "No value");
 /// ```
 #[non_exhaustive]
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum ValueError {
     /// No value
     #[error("No value")]
