@@ -4,17 +4,52 @@
 
 ```toml
 qubit-value = { version = "0.10", features = ["all"] }
+qubit-redact = { version = "0.3", default-features = false }
 ```
 
 默认 feature 集为空。不需要全部类型族时，只启用 `chrono`、`big-integer`、
-`big-decimal`、`url`、`json` 或 `converter`。`big-number` 继续作为两个大数
-类型族的兼容别名。
+`big-decimal`、`url`、`json`、`converter` 或 `redact`。`big-number`
+继续作为两个大数类型族的兼容别名。
 
 ## 运行时形态
 
 `Value` 保存一个带类型标量，`MultiValues` 保存一个同类型集合。
 `ValueContainer` 显式保留 `Scalar` 或 `Collection`；单元素集合不会变成标量。
 `Unset(DataType)` 与具体值、具体空集合均不同。
+
+## 按策略脱敏
+
+`redact` feature 为 `Value` 实现 `qubit_redact::Redact`。调用方应从该 trait
+所属 crate 导入它，并显式格式化脱敏视图：
+
+```rust
+use std::collections::HashMap;
+
+use qubit_redact::{
+    Redact as _,
+    RedactionPolicy,
+    Sensitivity,
+};
+use qubit_value::Value;
+
+let value = Value::StringMap(HashMap::from([
+    ("api_key".to_owned(), "raw-secret".to_owned()),
+    ("label".to_owned(), "visible".to_owned()),
+]));
+let policy = RedactionPolicy::empty_builder()
+    .raise("api_key", Sensitivity::Secret)
+    .build()
+    .expect("redaction policy should build");
+let output = format!("{:?}", value.redacted_with(&policy));
+
+assert!(!output.contains("raw-secret"));
+assert!(output.contains("visible"));
+```
+
+字符串 map 会按每个 key 对对应 value 分类。同时启用 `redact` 和 `json` 后，
+JSON 对象和数组会被递归遍历；敏感 key 对应非字符串值时，整个值都会被替换。
+没有 key 上下文的标量仍保留普通 `Debug` 格式。普通 `Value` 格式化不会隐式
+脱敏，因此诊断输出必须显式使用脱敏视图。
 
 ## 保留类型的 Wire V1
 

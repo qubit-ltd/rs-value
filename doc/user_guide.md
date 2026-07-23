@@ -4,12 +4,13 @@
 
 ```toml
 qubit-value = { version = "0.10", features = ["all"] }
+qubit-redact = { version = "0.3", default-features = false }
 ```
 
 The default feature set is empty. Enable only `chrono`, `big-integer`,
-`big-decimal`, `url`, `json`, or `converter` when the application does not
-need all families. `big-number` remains a compatibility alias for both big
-number families.
+`big-decimal`, `url`, `json`, `converter`, or `redact` when the application
+does not need all families. `big-number` remains a compatibility alias for
+both big number families.
 
 ## Runtime shapes
 
@@ -17,6 +18,41 @@ number families.
 collection. `ValueContainer` preserves an explicit `Scalar` or `Collection`
 shape; a one-item collection never becomes a scalar. `Unset(DataType)` is
 different from a concrete value and from a concrete empty collection.
+
+## Policy-aware redaction
+
+The `redact` feature implements `qubit_redact::Redact` for `Value`. Import the
+trait from its owning crate and explicitly format a redacted view:
+
+```rust
+use std::collections::HashMap;
+
+use qubit_redact::{
+    Redact as _,
+    RedactionPolicy,
+    Sensitivity,
+};
+use qubit_value::Value;
+
+let value = Value::StringMap(HashMap::from([
+    ("api_key".to_owned(), "raw-secret".to_owned()),
+    ("label".to_owned(), "visible".to_owned()),
+]));
+let policy = RedactionPolicy::empty_builder()
+    .raise("api_key", Sensitivity::Secret)
+    .build()
+    .expect("redaction policy should build");
+let output = format!("{:?}", value.redacted_with(&policy));
+
+assert!(!output.contains("raw-secret"));
+assert!(output.contains("visible"));
+```
+
+String maps classify each value by its key. With both `redact` and `json`,
+JSON objects and arrays are traversed recursively; a sensitive key with a
+non-string value is replaced as a whole. Scalars without key context retain
+ordinary `Debug` formatting. Ordinary `Value` formatting is not implicitly
+redacted, so diagnostics must explicitly use a redacted view.
 
 ## Type-preserving Wire V1
 

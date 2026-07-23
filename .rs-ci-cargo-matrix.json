@@ -44,6 +44,12 @@
       "features": ["json"]
     },
     {
+      "name": "redact",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["redact"]
+    },
+    {
       "name": "converter",
       "commands": ["check", "test", "doc", "clippy"],
       "defaultFeatures": false,

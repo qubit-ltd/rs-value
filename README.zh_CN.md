@@ -88,7 +88,8 @@ qubit-value = "0.10"
 
 启用 `redact` 后，`value.redacted_with(&policy)` 会按 key 安全格式化
 `StringMap` 和 JSON 对象项；JSON 数组会递归处理其中的对象。没有 key 上下文的
-标量仍使用普通 `Debug` 格式，不会被猜测为秘密。
+标量仍使用普通 `Debug` 格式，不会被猜测为秘密。使用该视图的应用还必须直接
+依赖 `qubit-redact`，并导入其 `Redact` trait。
 
 自然 JSON 投影需要同时启用 `converter` 与 `json`；如不需要其他扩展类型族，
 可使用 `features = ["converter", "json"]`。
@@ -99,7 +100,8 @@ qubit-value = "0.10"
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-datatype = { version = "0.8", default-features = false }
+qubit-datatype = { version = "0.9", default-features = false }
+qubit-redact = { version = "0.3", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -577,7 +579,8 @@ Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍�
 
 ```toml
 [dependencies]
-qubit-datatype = { version = "0.8", default-features = false }
+qubit-datatype = { version = "0.9", default-features = false }
+qubit-redact = { version = "0.3", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 serde_json = { version = "1.0", optional = true }
