@@ -11,6 +11,11 @@
 //! types and standard conversion traits.
 
 use std::fs;
+use std::hash::{
+    DefaultHasher,
+    Hash,
+    Hasher,
+};
 use std::path::PathBuf;
 use std::process::{
     Command,
@@ -68,7 +73,8 @@ where
     value.get_list()
 }
 
-/// Compiles a temporary external consumer with every crate feature enabled.
+/// Compiles a temporary external consumer with every crate feature enabled,
+/// reusing one dependency cache across consumer fixtures.
 fn compile_all_features_consumer(source: &str) -> Output {
     let project_dir =
         LocalTempDir::with_prefix("qubit-value-public-api-contract-")
@@ -83,9 +89,16 @@ fn compile_all_features_consumer(source: &str) -> Output {
         .parent()
         .expect("qubit-value should have a parent directory")
         .join("rs-datatype");
+    let target_path = dependency_path.join("target/public-api-contract");
+    let mut source_hasher = DefaultHasher::new();
+    source.hash(&mut source_hasher);
+    let package_name = format!(
+        "qubit-value-public-api-consumer-{:016x}",
+        source_hasher.finish(),
+    );
     let manifest = format!(
         "[package]\n\
-         name = \"qubit-value-public-api-consumer\"\n\
+         name = \"{package_name}\"\n\
          version = \"0.0.0\"\n\
          edition = \"2024\"\n\n\
          [dependencies]\n\
@@ -102,7 +115,7 @@ fn compile_all_features_consumer(source: &str) -> Output {
         .expect("temporary consumer source should be written");
     Command::new("cargo")
         .args(["+1.94.0", "check", "--offline", "--quiet", "--target-dir"])
-        .arg(project_root.join("target"))
+        .arg(target_path)
         .current_dir(project_root)
         .output()
         .expect("temporary consumer should invoke Cargo")
