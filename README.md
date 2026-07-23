@@ -106,7 +106,8 @@ The default feature set is empty. Enable only the required families, or use
 With `redact`, `value.redacted_with(&policy)` safely formats `StringMap` and
 JSON object entries by key. JSON arrays recurse into object elements; scalars
 without a key context retain ordinary `Debug` formatting and are never guessed
-to be secrets.
+to be secrets. Applications using this view must also depend directly on
+`qubit-redact` and import its `Redact` trait.
 
 Natural JSON projection requires both `converter` and `json`. For example,
 use `features = ["converter", "json"]` without enabling other rich families.
@@ -118,7 +119,8 @@ owning crates as direct dependencies. For the complete extended example:
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-datatype = { version = "0.8", default-features = false }
+qubit-datatype = { version = "0.9", default-features = false }
+qubit-redact = { version = "0.3", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -620,7 +622,8 @@ For the full wire-format rationale and feature-availability details, see the
 
 ```toml
 [dependencies]
-qubit-datatype = { version = "0.8", default-features = false }
+qubit-datatype = { version = "0.9", default-features = false }
+qubit-redact = { version = "0.3", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 serde_json = { version = "1.0", optional = true }
