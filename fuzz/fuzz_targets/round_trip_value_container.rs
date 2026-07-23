@@ -12,7 +12,8 @@ use qubit_value::ValueContainer;
 
 fuzz_target!(|data: &[u8]| {
     if let Ok(value) = serde_json::from_slice::<ValueContainer>(data) {
-        let encoded = serde_json::to_vec(&value).expect("a valid ValueContainer must serialize");
+        let encoded = serde_json::to_vec(&value)
+            .expect("a valid ValueContainer must serialize");
         let decoded = serde_json::from_slice::<ValueContainer>(&encoded)
             .expect("serialized ValueContainer must deserialize");
         assert_eq!(decoded, value);
