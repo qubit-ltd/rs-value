@@ -87,3 +87,8 @@ serde_json = "1.0"
 [[bench]]
 name = "value_container_add_bench"
 harness = false
+
+[[bench]]
+name = "downstream_read_bench"
+harness = false
+required-features = ["converter", "json"]
