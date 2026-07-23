@@ -24,8 +24,6 @@ use qubit_datatype::{
     DataType,
     DataTypeOf,
 };
-#[cfg(feature = "converter")]
-use qubit_value::ValueContainer;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -34,10 +32,19 @@ use qubit_value::ValueContainer;
     feature = "url",
     feature = "json",
 ))]
-use qubit_value::{
-    MultiValues,
-    Value,
-};
+use qubit_value::MultiValues;
+#[cfg(any(
+    feature = "converter",
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json",
+    feature = "redact",
+))]
+use qubit_value::Value;
+#[cfg(feature = "converter")]
+use qubit_value::ValueContainer;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -58,6 +65,16 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 #[cfg(feature = "url")]
 use url::Url;
+
+#[cfg(feature = "redact")]
+use std::collections::HashMap;
+
+#[cfg(feature = "redact")]
+use qubit_redact::{
+    Redact as _,
+    RedactionPolicy,
+    Sensitivity,
+};
 
 #[cfg(any(
     feature = "converter",
@@ -205,6 +222,55 @@ fn json_feature_preserves_values_and_wire_payloads() {
     assert_eq!(collection.get_jsons().expect("read JSON values"), &[json]);
     assert_json_round_trip(&scalar);
     assert_json_round_trip(&collection);
+}
+
+#[cfg(feature = "redact")]
+#[test]
+fn redact_feature_masks_sensitive_string_map_entries() {
+    let value = Value::StringMap(HashMap::from([
+        ("api_key".to_owned(), "raw-secret".to_owned()),
+        ("label".to_owned(), "visible".to_owned()),
+    ]));
+    let policy = RedactionPolicy::empty_builder()
+        .raise("api_key", Sensitivity::Secret)
+        .build()
+        .expect("policy should build");
+
+    let output = format!("{:?}", value.redacted_with(&policy));
+
+    assert!(!output.contains("raw-secret"));
+    assert!(output.contains("visible"));
+}
+
+#[cfg(all(feature = "redact", feature = "json"))]
+#[test]
+fn redact_feature_recursively_masks_sensitive_json_object_entries() {
+    let value = Value::Json(serde_json::json!({
+        "profile": {
+            "api_key": "nested-secret",
+            "label": "visible"
+        },
+        "items": [
+            { "token": "array-secret" },
+            "unkeyed-value"
+        ]
+    }));
+    let policy = RedactionPolicy::empty_builder()
+        .raise("api_key", Sensitivity::Secret)
+        .raise("token", Sensitivity::Secret)
+        .build()
+        .expect("policy should build");
+
+    let debug = format!("{:#?}", value.redacted_with(&policy));
+    let display = format!("{}", value.redacted_with(&policy));
+
+    assert!(!debug.contains("nested-secret"));
+    assert!(!debug.contains("array-secret"));
+    assert!(debug.contains("visible"));
+    assert!(debug.contains("unkeyed-value"));
+    assert!(!display.contains("nested-secret"));
+    assert!(!display.contains("array-secret"));
+    assert!(!display.contains('\n'));
 }
 
 #[cfg(all(feature = "converter", feature = "chrono"))]
