@@ -156,7 +156,7 @@ impl MultiValues {
     ///
     /// Returns `MultiValues` wrapping the converted input values.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::MultiValues;
@@ -195,7 +195,7 @@ impl MultiValues {
     /// requested type, or [`ValueError::TypeMismatch`] when the stored type
     /// differs from `T`.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::MultiValues;
@@ -275,7 +275,7 @@ impl MultiValues {
     /// value is stored, or [`ValueError::TypeMismatch`] when the stored type
     /// differs from `T`.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::MultiValues;
@@ -368,7 +368,7 @@ impl MultiValues {
     /// Unsupported input types fail to compile because they do not implement
     /// `Into<MultiValues>`.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -433,7 +433,7 @@ impl MultiValues {
     /// Returns [`ValueError::TypeMismatch`] when the converted input data type
     /// differs from the current container data type.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -479,7 +479,7 @@ impl MultiValues {
     ///
     /// Returns the data type corresponding to these multiple values
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -500,7 +500,7 @@ impl MultiValues {
     /// The number of values contained in these multiple values. An unset
     /// collection has length zero.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -539,7 +539,7 @@ impl MultiValues {
     /// Returns `true` only for [`MultiValues::Unset`]. A concrete empty vector
     /// returns `false`.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -579,7 +579,7 @@ impl MultiValues {
 
     /// Clear all values while preserving the type
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -604,7 +604,7 @@ impl MultiValues {
     ///
     /// * `data_type` - The data type to set
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;

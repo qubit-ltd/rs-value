@@ -171,7 +171,7 @@ impl Value {
         ///
         /// If types match, returns the boolean value; see `# Errors`.
         ///
-        /// # Example
+        /// # Examples
         ///
         /// ```rust
         /// use qubit_value::Value;
@@ -189,7 +189,7 @@ impl Value {
         ///
         /// If types match, returns the character value; see `# Errors`.
         ///
-        /// # Example
+        /// # Examples
         ///
         /// ```rust
         /// use qubit_value::Value;
@@ -315,7 +315,7 @@ impl Value {
         ///
         /// If types match, returns a reference to the string; see `# Errors`.
         ///
-        /// # Example
+        /// # Examples
         ///
         /// ```rust
         /// use qubit_value::Value;
@@ -378,7 +378,7 @@ impl Value {
         ///
         /// If types match, returns the big integer value; see `# Errors`.
         ///
-        /// # Example
+        /// # Examples
         ///
         /// ```rust
         /// use qubit_value::Value;
@@ -402,7 +402,7 @@ impl Value {
         ///
         /// If types match, returns the big decimal value; see `# Errors`.
         ///
-        /// # Example
+        /// # Examples
         ///
         /// ```rust
         /// use std::str::FromStr;

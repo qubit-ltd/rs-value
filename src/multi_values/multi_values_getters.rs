@@ -47,7 +47,7 @@ impl MultiValues {
         ///
         /// If types match and a value exists, returns the first boolean value; see `# Errors`.
         ///
-        /// # Example
+        /// # Examples
         ///
         /// ```rust
         /// use qubit_value::MultiValues;
@@ -297,7 +297,7 @@ impl MultiValues {
         ///
         /// If types match, returns a reference to the boolean value array; see `# Errors`.
         ///
-        /// # Example
+        /// # Examples
         ///
         /// ```rust
         /// use qubit_value::MultiValues;
