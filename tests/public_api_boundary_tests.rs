@@ -12,20 +12,12 @@
 
 use std::fs;
 use std::path::PathBuf;
-use std::process::{
-    Command,
-    Output,
-};
+use std::process::{Command, Output};
 
 use qubit_datatype::DataType;
 use qubit_local_files::LocalTempDir;
 use qubit_value::{
-    MultiValues,
-    StrictValueListRead,
-    StrictValueRead,
-    Value,
-    ValueContainer,
-    ValueError,
+    MultiValues, StrictValueListRead, StrictValueRead, Value, ValueContainer, ValueError,
 };
 
 /// Reads one exact value through the public strict-read marker trait.
@@ -70,15 +62,18 @@ where
 
 /// Compiles a temporary external consumer with every crate feature enabled.
 fn compile_all_features_consumer(source: &str) -> Output {
-    let project_dir =
-        LocalTempDir::with_prefix("qubit-value-public-api-contract-")
-            .expect("temporary consumer directory should be created");
+    let project_dir = LocalTempDir::with_prefix("qubit-value-public-api-contract-")
+        .expect("temporary consumer directory should be created");
     let project_root = project_dir.path();
     let source_root = project_root.join("src");
     fs::create_dir_all(&source_root)
         .expect("temporary consumer source directory should be created");
 
     let dependency_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let datatype_path = dependency_path
+        .parent()
+        .expect("qubit-value should have a parent directory")
+        .join("rs-datatype");
     let manifest = format!(
         "[package]\n\
          name = \"qubit-value-public-api-consumer\"\n\
@@ -86,8 +81,11 @@ fn compile_all_features_consumer(source: &str) -> Output {
          edition = \"2024\"\n\n\
          [dependencies]\n\
          qubit-value = {{ path = \"{}\", default-features = false, features = [\"all\"] }}\n\n\
+         [patch.crates-io]\n\
+         qubit-datatype = {{ path = \"{}\" }}\n\n\
          [workspace]\n",
         dependency_path.display(),
+        datatype_path.display(),
     );
     fs::write(project_root.join("Cargo.toml"), manifest)
         .expect("temporary consumer manifest should be written");
