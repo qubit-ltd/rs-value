@@ -26,3 +26,10 @@ path = "fuzz_targets/round_trip_value_container.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "bounded_value_wire_v1"
+path = "fuzz_targets/bounded_value_wire_v1.rs"
+test = false
+doc = false
+bench = false
