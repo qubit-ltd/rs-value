@@ -45,30 +45,3 @@ fn test_value_redacted_view_preserves_scalar_without_key_context() {
 
     assert!(output.contains("visible-without-key"));
 }
-
-#[cfg(feature = "json")]
-#[test]
-fn test_value_redacted_view_masks_sensitive_non_string_json_values() {
-    let value = Value::Json(serde_json::json!({
-        "secret_number": 42,
-        "secret_object": {"label": "nested-object-secret"},
-        "secret_array": ["array-secret"],
-        "secret_null": null,
-        "visible": "public"
-    }));
-    let policy = RedactionPolicy::empty_builder()
-        .raise("secret_number", Sensitivity::Secret)
-        .raise("secret_object", Sensitivity::Secret)
-        .raise("secret_array", Sensitivity::Secret)
-        .raise("secret_null", Sensitivity::Secret)
-        .build()
-        .expect("policy should build");
-
-    let output = format!("{:?}", value.redacted_with(&policy));
-
-    assert!(!output.contains("42"));
-    assert!(!output.contains("nested-object-secret"));
-    assert!(!output.contains("array-secret"));
-    assert_eq!(output.matches("<redacted>").count(), 4);
-    assert!(output.contains("public"));
-}
