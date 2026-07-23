@@ -96,7 +96,7 @@ fn test_value_tagged_serde_rejects_non_finite_floats() {
     assert!(serde_json::to_value(Value::Float64(f64::NEG_INFINITY)).is_err());
 }
 #[test]
-fn test_value_default() {
+fn test_value_new_unset_preserves_declared_type() {
     let v = Value::new_unset(DataType::String);
     assert_eq!(v.data_type(), DataType::String);
     assert!(v.is_unset());
