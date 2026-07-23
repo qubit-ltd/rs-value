@@ -4,4 +4,6 @@ corpus/*
 !corpus/deserialize_value_container/**
 !corpus/round_trip_value_container/
 !corpus/round_trip_value_container/**
+!corpus/bounded_value_wire_v1/
+!corpus/bounded_value_wire_v1/**
 artifacts
