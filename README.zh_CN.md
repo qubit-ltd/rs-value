@@ -83,7 +83,12 @@ qubit-value = "0.10"
 | `url` | URL 变体 |
 | `json` | `serde_json::Value` 变体 |
 | `converter` | 核心转换 API，不隐式启用扩展类型族 |
-| `all` | `converter`、`chrono`、`big-number`、`url` 与 `json` |
+| `redact` | 为 `Value` 提供按策略脱敏视图 |
+| `all` | `converter`、`chrono`、`big-number`、`url`、`json` 与 `redact` |
+
+启用 `redact` 后，`value.redacted_with(&policy)` 会按 key 安全格式化
+`StringMap` 和 JSON 对象项；JSON 数组会递归处理其中的对象。没有 key 上下文的
+标量仍使用普通 `Debug` 格式，不会被猜测为秘密。
 
 自然 JSON 投影需要同时启用 `converter` 与 `json`；如不需要其他扩展类型族，
 可使用 `features = ["converter", "json"]`。

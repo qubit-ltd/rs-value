@@ -9,6 +9,7 @@
 //!
 //! Integration tests for `value` module.
 
+mod redaction_tests;
 mod value_accessors_tests;
 mod value_constructor_tests;
 mod value_converter_coverage_tests;

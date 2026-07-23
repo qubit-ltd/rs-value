@@ -100,7 +100,13 @@ The default feature set is empty. Enable only the required families, or use
 | `url` | URL variants |
 | `json` | `serde_json::Value` variants |
 | `converter` | Core conversion APIs without enabling rich type families |
-| `all` | `converter`, `chrono`, `big-number`, `url`, and `json` |
+| `redact` | Policy-aware redacted views for `Value` |
+| `all` | `converter`, `chrono`, `big-number`, `url`, `json`, and `redact` |
+
+With `redact`, `value.redacted_with(&policy)` safely formats `StringMap` and
+JSON object entries by key. JSON arrays recurse into object elements; scalars
+without a key context retain ordinary `Debug` formatting and are never guessed
+to be secrets.
 
 Natural JSON projection requires both `converter` and `json`. For example,
 use `features = ["converter", "json"]` without enabling other rich families.

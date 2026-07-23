@@ -64,7 +64,8 @@ big-number = ["big-integer", "big-decimal"]
 url = ["dep:url", "qubit-datatype/url"]
 json = ["dep:serde_json", "qubit-datatype/json"]
 converter = ["qubit-datatype/converter"]
-all = ["converter", "chrono", "big-number", "url", "json"]
+redact = ["dep:qubit-redact"]
+all = ["converter", "chrono", "big-number", "url", "json", "redact"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -75,7 +76,8 @@ url = { version = "2.5", features = ["serde"], optional = true }
 num-bigint = { version = "0.4", optional = true }
 bigdecimal = { version = "0.4", optional = true }
 
-qubit-datatype = { version = "0.9", default-features = false }
+qubit-datatype = { version = "0.9", path = "../rs-datatype", default-features = false }
+qubit-redact = { path = "../rs-redact", version = "0.3", default-features = false, optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false }

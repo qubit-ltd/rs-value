@@ -9,6 +9,8 @@
 //!
 //! Public entry for the single-value container implementation.
 
+#[cfg(feature = "redact")]
+mod redaction;
 #[allow(clippy::module_inception)]
 mod value;
 mod value_accessors;
