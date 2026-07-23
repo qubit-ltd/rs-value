@@ -62,7 +62,7 @@ macro_rules! define_value_enum {
         /// hash structurally. Standard hash output is suitable for in-memory keys but
         /// is not a stable persistent fingerprint.
         ///
-        /// # Example
+        /// # Examples
         ///
         /// ```rust
         /// use qubit_value::Value;
@@ -172,7 +172,7 @@ impl Value {
     ///
     /// Returns a `Value` wrapping the given value
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::Value;
@@ -237,7 +237,7 @@ impl Value {
     /// requested type, or [`ValueError::TypeMismatch`] when the stored type
     /// differs from `T`.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::Value;
@@ -323,7 +323,7 @@ impl Value {
     ///
     /// The converted value.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::Value;
@@ -484,7 +484,7 @@ impl Value {
     /// Unsupported input types fail to compile because they do not implement
     /// `Into<Value>`.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -519,7 +519,7 @@ impl Value {
     ///
     /// Returns the data type corresponding to this value
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -550,7 +550,7 @@ impl Value {
     /// Returns `true` only for [`Value::Unset`]. An empty string, map, or JSON
     /// container is still a concrete value and returns `false`.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -591,7 +591,7 @@ impl Value {
     ///
     /// Sets the current value to empty but retains its data type.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;
@@ -616,7 +616,7 @@ impl Value {
     ///
     /// * `data_type` - The data type to set
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_datatype::DataType;

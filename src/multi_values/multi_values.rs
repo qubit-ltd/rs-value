@@ -52,7 +52,7 @@ macro_rules! define_multi_values_enum {
         /// elements hash structurally. Standard hash output is suitable for in-memory
         /// keys but is not a stable persistent fingerprint.
         ///
-        /// # Example
+        /// # Examples
         ///
         /// ```rust
         /// use qubit_value::MultiValues;

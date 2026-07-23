@@ -38,7 +38,7 @@ use super::value::Value;
 /// - Named output of key values in logs/monitoring
 /// - Quick location by name in collections
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use qubit_value::{NamedValue, Value};
@@ -78,7 +78,7 @@ impl NamedValue {
     ///
     /// Returns a newly created [`NamedValue`] instance
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::{NamedValue, Value};
@@ -102,7 +102,7 @@ impl NamedValue {
     ///
     /// Returns a string slice `&str` of the name
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::{NamedValue, Value};
@@ -124,7 +124,7 @@ impl NamedValue {
     ///
     /// * `name` - The new name
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::{NamedValue, Value};

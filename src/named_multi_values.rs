@@ -38,7 +38,7 @@ use super::named_value::NamedValue;
 ///   fields
 /// - Outputting named multiple value lists in configurations/logs
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use qubit_value::{NamedMultiValues, MultiValues};
@@ -91,7 +91,7 @@ impl NamedMultiValues {
     ///
     /// Returns a newly created named multiple values
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::{NamedMultiValues, MultiValues};
@@ -116,7 +116,7 @@ impl NamedMultiValues {
     ///
     /// Returns a string slice of the name
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::{NamedMultiValues, MultiValues};
@@ -140,7 +140,7 @@ impl NamedMultiValues {
     ///
     /// No return value
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use qubit_value::{NamedMultiValues, MultiValues};

@@ -31,7 +31,7 @@ use thiserror::Error;
 /// - Structured list conversion errors, including the failing item index, when
 ///   `converter` is enabled
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use qubit_value::ValueError;
