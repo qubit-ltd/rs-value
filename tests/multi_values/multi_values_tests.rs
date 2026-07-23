@@ -201,7 +201,7 @@ fn test_multi_value_strings() {
 }
 
 #[test]
-fn test_multi_value_default() {
+fn test_multi_values_new_unset_preserves_type_and_empty_shape() {
     let mv = MultiValues::new_unset(DataType::String);
     assert_eq!(mv.data_type(), DataType::String);
     assert_eq!(mv.len(), 0);
