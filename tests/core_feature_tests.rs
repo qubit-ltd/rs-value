@@ -7,14 +7,7 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    Value,
-    ValueContainer,
-    ValueError,
-};
+use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value, ValueContainer, ValueError};
 
 #[test]
 fn unset_is_distinct_from_concrete_empty_values_without_optional_features() {
@@ -82,8 +75,7 @@ fn test_add_moves_owned_strings_when_promoting_scalar() {
         .add(appended)
         .expect("owned strings have the same data type");
 
-    let ValueContainer::Collection(MultiValues::String(values)) = container
-    else {
+    let ValueContainer::Collection(MultiValues::String(values)) = container else {
         panic!("expected a string collection");
     };
     assert_eq!(values[1].as_ptr(), appended_ptr);
@@ -99,8 +91,7 @@ fn test_add_moves_owned_strings_into_collection() {
         .add(appended)
         .expect("owned strings have the same data type");
 
-    let ValueContainer::Collection(MultiValues::String(values)) = container
-    else {
+    let ValueContainer::Collection(MultiValues::String(values)) = container else {
         panic!("expected a string collection");
     };
     assert_eq!(values[1].as_ptr(), appended_ptr);
@@ -140,10 +131,8 @@ fn test_value_container_generic_api_uses_public_bounds() {
 
     let scalar_value: i32 = scalar.get().expect("strict scalar access");
     let collection_first: i32 = collection.get().expect("strict first access");
-    let scalar_values: Vec<i32> =
-        scalar.get_list().expect("strict scalar list access");
-    let collection_values: Vec<i32> =
-        collection.get_list().expect("strict collection access");
+    let scalar_values: Vec<i32> = scalar.get_list().expect("strict scalar list access");
+    let collection_values: Vec<i32> = collection.get_list().expect("strict collection access");
 
     assert_eq!(scalar_value, 42);
     assert_eq!(collection_first, 43);
@@ -205,8 +194,7 @@ fn named_wrappers_retain_generic_core_access() {
     named.value_mut().set(9090_i32);
     assert_eq!(named.value().get_int32().unwrap(), 9090);
 
-    let mut named_values =
-        NamedMultiValues::new("ports", MultiValues::Int32(vec![8080]));
+    let mut named_values = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080]));
     named_values.values_mut().add(9090_i32).unwrap();
     assert_eq!(named_values.values().get_int32s().unwrap(), &[8080, 9090]);
 }

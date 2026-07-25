@@ -11,19 +11,9 @@
 use std::collections::HashSet;
 use std::hash::Hash;
 
-use qubit_datatype::{
-    CollectionConversionOptions,
-    DataConversionOptions,
-    DataType,
-};
+use qubit_datatype::{CollectionConversionOptions, DataConversionOptions, DataType};
 use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    Value,
-    ValueContainer,
-    ValueError,
-    ValueWireV1,
+    MultiValues, NamedMultiValues, NamedValue, Value, ValueContainer, ValueError, ValueWireV1,
 };
 use serde_json::json;
 
@@ -73,8 +63,7 @@ fn test_value_container_preserves_scalar_and_collection_shapes() {
 #[test]
 fn test_value_container_len_and_is_empty_preserve_shape_semantics() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
-    let unset_collection =
-        ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let unset_collection = ValueContainer::Collection(MultiValues::Unset(DataType::String));
     let scalar = ValueContainer::from(42_i32);
     let empty_collection = ValueContainer::from(Vec::<String>::new());
     let collection = ValueContainer::from(vec!["alpha", "beta"]);
@@ -96,8 +85,7 @@ fn test_value_container_len_and_is_empty_preserve_shape_semantics() {
 #[test]
 fn test_value_container_is_empty_distinguishes_concrete_scalars() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
-    let unset_collection =
-        ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let unset_collection = ValueContainer::Collection(MultiValues::Unset(DataType::String));
     let empty_collection = ValueContainer::from(Vec::<String>::new());
     let empty_string = ValueContainer::from("");
 
@@ -244,38 +232,23 @@ fn test_value_container_constructors_cover_borrowed_and_owned_collections() {
     let string_array = ["c", "d"];
     assert_eq!(
         ValueContainer::from(strings.clone()),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "a".into(),
-            "b".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
     );
     assert_eq!(
         ValueContainer::from(strings.as_slice()),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "a".into(),
-            "b".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
     );
     assert_eq!(
         ValueContainer::from(&strings),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "a".into(),
-            "b".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
     );
     assert_eq!(
         ValueContainer::from(string_array),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "c".into(),
-            "d".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["c".into(), "d".into()]))
     );
     assert_eq!(
         ValueContainer::from(&string_array),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "c".into(),
-            "d".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["c".into(), "d".into()]))
     );
 
     assert_eq!(

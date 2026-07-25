@@ -10,12 +10,7 @@
 
 use std::hint::black_box;
 
-use criterion::{
-    BatchSize,
-    Criterion,
-    criterion_group,
-    criterion_main,
-};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use qubit_value::ValueContainer;
 
 /// Benchmarks appending a scalar to a collection with spare capacity.

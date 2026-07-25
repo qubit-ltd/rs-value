@@ -17,11 +17,7 @@ use chrono::NaiveDate;
 use num_bigint::BigInt;
 #[cfg(feature = "converter")]
 use qubit_datatype::{
-    DataConversionError,
-    DataConversionOptions,
-    DataConversionTarget,
-    DataConverter,
-    DataType,
+    DataConversionError, DataConversionOptions, DataConversionTarget, DataConverter, DataType,
     DataTypeOf,
 };
 #[cfg(any(
@@ -70,11 +66,7 @@ use url::Url;
 use std::collections::HashMap;
 
 #[cfg(feature = "redact")]
-use qubit_redact::{
-    Redact as _,
-    RedactionPolicy,
-    Sensitivity,
-};
+use qubit_redact::{Redact as _, RedactionPolicy, Sensitivity};
 
 #[cfg(any(
     feature = "converter",

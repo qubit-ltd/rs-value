@@ -9,10 +9,7 @@
 
 use std::cmp::Ordering;
 
-use qubit_datatype::{
-    NumberRef,
-    NumericComparisonPolicy,
-};
+use qubit_datatype::{NumberRef, NumericComparisonPolicy};
 
 use super::Value;
 use crate::NumericComparisonError;
@@ -119,16 +116,17 @@ impl Value {
             });
         }
 
-        let left = self.as_number_ref().ok_or_else(|| {
-            NumericComparisonError::LeftNotNumeric {
+        let left = self
+            .as_number_ref()
+            .ok_or_else(|| NumericComparisonError::LeftNotNumeric {
                 actual: self.data_type(),
-            }
-        })?;
-        let right = other.as_number_ref().ok_or_else(|| {
-            NumericComparisonError::RightNotNumeric {
-                actual: other.data_type(),
-            }
-        })?;
+            })?;
+        let right =
+            other
+                .as_number_ref()
+                .ok_or_else(|| NumericComparisonError::RightNotNumeric {
+                    actual: other.data_type(),
+                })?;
 
         match (left.is_nan(), right.is_nan()) {
             (true, true) => return Err(NumericComparisonError::BothNaN),
@@ -137,12 +135,11 @@ impl Value {
             (false, false) => {}
         }
 
-        left.compare(right, policy).ok_or_else(|| {
-            NumericComparisonError::Indeterminate {
+        left.compare(right, policy)
+            .ok_or_else(|| NumericComparisonError::Indeterminate {
                 left: self.data_type(),
                 right: other.data_type(),
-            }
-        })
+            })
     }
 
     /// Borrows this value as a lower-level numeric representation.

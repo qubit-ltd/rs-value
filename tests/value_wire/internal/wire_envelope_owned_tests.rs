@@ -8,10 +8,7 @@
 
 //! Tests owned wire envelopes.
 
-use qubit_value::{
-    Value,
-    ValueWireV1,
-};
+use qubit_value::{Value, ValueWireV1};
 
 /// Verifies owned wire envelopes include the format version.
 #[test]

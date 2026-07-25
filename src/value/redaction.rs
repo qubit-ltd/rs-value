@@ -9,10 +9,7 @@
 
 use std::fmt;
 
-use qubit_redact::{
-    Redact,
-    RedactionPolicy,
-};
+use qubit_redact::{Redact, RedactionPolicy};
 
 use super::Value;
 #[cfg(feature = "json")]
@@ -34,10 +31,7 @@ impl Redact for Value {
                 let mut output = formatter.debug_map();
                 for (key, value) in values {
                     if let Some(sensitivity) = policy.sensitivity_for(key) {
-                        output.entry(
-                            &key,
-                            &policy.masking().mask(sensitivity, value),
-                        );
+                        output.entry(&key, &policy.masking().mask(sensitivity, value));
                     } else {
                         output.entry(&key, value);
                     }
@@ -45,9 +39,7 @@ impl Redact for Value {
                 output.finish()
             }
             #[cfg(feature = "json")]
-            Self::Json(value) => {
-                fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter)
-            }
+            Self::Json(value) => fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter),
             _ => fmt::Debug::fmt(self, formatter),
         }
     }

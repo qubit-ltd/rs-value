@@ -13,18 +13,9 @@
 //! format-specific representation is outside the V1 stability contract.
 
 use serde::de::Error as _;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
+use crate::{MultiValues, Value, ValueContainer};
 
 const VALUE_WIRE_V1_VERSION: u8 = 1;
 
@@ -68,11 +59,7 @@ mod value_wire_decode_error;
 mod value_wire_limits;
 mod value_wire_v1;
 
-use internal::{
-    WireEnvelopeOwned,
-    WireEnvelopeRef,
-    WireShapeRef,
-};
+use internal::{WireEnvelopeOwned, WireEnvelopeRef, WireShapeRef};
 #[cfg(feature = "json")]
 pub use value_wire_decode_error::ValueWireDecodeError;
 #[cfg(feature = "json")]
@@ -98,10 +85,7 @@ pub use value_wire_v1::ValueWireV1;
 ///
 /// Returns the error reported by `serializer`.
 #[inline(always)]
-fn serialize_wire<S>(
-    value: WireShapeRef<'_>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_wire<S>(value: WireShapeRef<'_>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {

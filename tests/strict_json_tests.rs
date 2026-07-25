@@ -14,8 +14,8 @@ use qubit_value::Value;
 #[test]
 fn test_from_serializable_preserves_large_sequences() {
     let source: Vec<_> = (0..2_048).collect();
-    let Value::Json(actual) = Value::from_serializable(&source)
-        .expect("large sequence must serialize")
+    let Value::Json(actual) =
+        Value::from_serializable(&source).expect("large sequence must serialize")
     else {
         panic!("serializable input must produce a JSON value");
     };
