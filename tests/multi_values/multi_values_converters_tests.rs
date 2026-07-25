@@ -6,16 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_datatype::{
-    DataConversionError,
-    DataType,
-    InvalidValueReason,
-};
-use qubit_value::{
-    MultiValues,
-    Value,
-    ValueError,
-};
+use qubit_datatype::{DataConversionError, DataType, InvalidValueReason};
+use qubit_value::{MultiValues, Value, ValueError};
 
 #[test]
 fn test_multi_values_converters_convert_first_list_and_value() {

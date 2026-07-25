@@ -11,10 +11,7 @@
 
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionError,
-    DataListConversionError,
-};
+use qubit_datatype::{DataConversionError, DataListConversionError};
 use thiserror::Error;
 
 /// Value processing error type

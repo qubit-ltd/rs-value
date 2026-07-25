@@ -34,10 +34,7 @@ impl<'a> RedactedJson<'a> {
     ///
     /// A formatter borrowing `value` and `policy`.
     #[inline(always)]
-    pub(in crate::value) const fn new(
-        value: &'a JsonValue,
-        policy: &'a RedactionPolicy,
-    ) -> Self {
+    pub(in crate::value) const fn new(value: &'a JsonValue, policy: &'a RedactionPolicy) -> Self {
         Self { value, policy }
     }
 }
@@ -56,17 +53,10 @@ impl fmt::Debug for RedactedJson<'_> {
             JsonValue::Object(values) => {
                 let mut output = formatter.debug_map();
                 for (key, value) in values {
-                    if let Some(sensitivity) = self.policy.sensitivity_for(key)
-                    {
+                    if let Some(sensitivity) = self.policy.sensitivity_for(key) {
                         match value {
                             JsonValue::String(text) => {
-                                output.entry(
-                                    &key,
-                                    &self
-                                        .policy
-                                        .masking()
-                                        .mask(sensitivity, text),
-                                );
+                                output.entry(&key, &self.policy.masking().mask(sensitivity, text));
                             }
                             _ => {
                                 output.entry(&key, &"<redacted>");

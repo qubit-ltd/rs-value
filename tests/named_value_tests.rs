@@ -10,17 +10,9 @@
 //! Tests various functionalities of the named single value container。
 
 use chrono::DateTime as UtcDateTime;
-use chrono::{
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use qubit_datatype::DataType;
-use qubit_value::{
-    NamedValue,
-    Value,
-};
+use qubit_value::{NamedValue, Value};
 
 #[test]
 fn test_named_value_identity_includes_name() {
@@ -353,10 +345,7 @@ fn test_named_value_set_get_date() {
 
 #[test]
 fn test_named_value_set_get_time() {
-    let mut nv = NamedValue::new(
-        "t",
-        Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
-    );
+    let mut nv = NamedValue::new("t", Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()));
     let time = NaiveTime::from_hms_milli_opt(13, 14, 15, 123).unwrap();
     nv.value_mut().set(time);
     let got: NaiveTime = nv.value().get().unwrap();

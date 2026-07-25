@@ -13,10 +13,7 @@
 //! Suitable for scenarios such as log annotation, configuration item
 //! encapsulation, and preserving strongly typed values in key-value pairs.
 
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use super::value::Value;
 
