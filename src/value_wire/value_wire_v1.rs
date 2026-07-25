@@ -8,25 +8,13 @@
 
 //! Public DTO for the stable version-one JSON wire contract.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
+use crate::{MultiValues, Value, ValueContainer};
 
-use super::VALUE_WIRE_V1_VERSION;
+use super::{deserialize_wire, serialize_wire, VALUE_WIRE_V1_VERSION};
 #[cfg(feature = "json")]
-use super::{
-    ValueWireDecodeError,
-    ValueWireLimits,
-};
+use super::{ValueWireDecodeError, ValueWireLimits};
 
 /// Stable version-one JSON wire DTO for a scalar or homogeneous collection.
 ///
@@ -85,9 +73,7 @@ impl ValueWireV1 {
     /// the bounded input is not a valid V1 JSON wire value.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, ValueWireLimits::default())
     }
 
@@ -184,7 +170,7 @@ impl Serialize for ValueWireV1 {
     where
         S: Serializer,
     {
-        self.value.serialize(serializer)
+        serialize_wire((&self.value).into(), serializer)
     }
 }
 
@@ -195,6 +181,6 @@ impl<'de> Deserialize<'de> for ValueWireV1 {
     where
         D: Deserializer<'de>,
     {
-        ValueContainer::deserialize(deserializer).map(Self::new)
+        deserialize_wire(deserializer).map(Self::new)
     }
 }
