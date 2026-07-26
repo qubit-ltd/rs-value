@@ -8,7 +8,10 @@
 
 //! Tests wire data type tags.
 
-use qubit_value::{Value, ValueWireV1};
+use qubit_value::{
+    Value,
+    ValueWireV1,
+};
 
 /// Verifies the wire format uses the expected data type tag.
 #[test]

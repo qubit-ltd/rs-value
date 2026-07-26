@@ -9,12 +9,20 @@
 
 use std::fmt;
 
-use qubit_redact::{Redact, RedactionPolicy};
+use qubit_redact::{
+    Redact,
+    RedactionPolicy,
+};
 
 use super::Value;
 #[cfg(feature = "json")]
 use super::internal::RedactedJson;
-use crate::{MultiValues, NamedMultiValues, NamedValue, ValueContainer};
+use crate::{
+    MultiValues,
+    NamedMultiValues,
+    NamedValue,
+    ValueContainer,
+};
 
 /// Formats a string map with sensitivity determined by each map key.
 struct RedactedStringMap<'a> {
@@ -30,7 +38,10 @@ impl fmt::Debug for RedactedStringMap<'_> {
         let mut output = formatter.debug_map();
         for (key, value) in self.values {
             if let Some(sensitivity) = self.policy.sensitivity_for(key) {
-                output.entry(&key, &self.policy.masking().mask(sensitivity, value));
+                output.entry(
+                    &key,
+                    &self.policy.masking().mask(sensitivity, value),
+                );
             } else {
                 output.entry(&key, value);
             }
@@ -51,11 +62,14 @@ impl Redact for Value {
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match self {
-            Self::StringMap(values) => {
-                fmt::Debug::fmt(&RedactedStringMap { values, policy }, formatter)
-            }
+            Self::StringMap(values) => fmt::Debug::fmt(
+                &RedactedStringMap { values, policy },
+                formatter,
+            ),
             #[cfg(feature = "json")]
-            Self::Json(value) => fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter),
+            Self::Json(value) => {
+                fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter)
+            }
             _ => fmt::Debug::fmt(self, formatter),
         }
     }
@@ -73,7 +87,10 @@ impl Redact for MultiValues {
             Self::StringMap(values) => {
                 let mut output = formatter.debug_list();
                 for value in values {
-                    output.entry(&RedactedStringMap { values: value, policy });
+                    output.entry(&RedactedStringMap {
+                        values: value,
+                        policy,
+                    });
                 }
                 output.finish()
             }
@@ -131,12 +148,20 @@ impl Redact for NamedValue {
         policy: &RedactionPolicy,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
-        fmt_named_value(self.name(), self.value(), "NamedValue", "value", policy, formatter)
+        fmt_named_value(
+            self.name(),
+            self.value(),
+            "NamedValue",
+            "value",
+            policy,
+            formatter,
+        )
     }
 }
 
 impl Redact for NamedMultiValues {
-    /// Uses the wrapper name to determine whether its complete collection is masked.
+    /// Uses the wrapper name to determine whether its complete collection is
+    /// masked.
     fn fmt_redacted(
         &self,
         policy: &RedactionPolicy,

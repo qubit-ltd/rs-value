@@ -12,7 +12,10 @@ use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 /// Exact wire representation of an arbitrary-precision decimal.
 #[derive(Serialize, Deserialize)]
@@ -41,8 +44,8 @@ impl TryFrom<BigDecimalPayload> for BigDecimal {
 
     /// Restores a decimal after validating the canonical coefficient.
     fn try_from(value: BigDecimalPayload) -> Result<Self, Self::Error> {
-        let coefficient =
-            BigInt::from_str(&value.coefficient).map_err(|_| "invalid decimal coefficient")?;
+        let coefficient = BigInt::from_str(&value.coefficient)
+            .map_err(|_| "invalid decimal coefficient")?;
         if coefficient.to_string() != value.coefficient {
             return Err("non-canonical decimal coefficient");
         }

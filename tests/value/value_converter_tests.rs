@@ -6,7 +6,10 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 
 #[test]
 fn test_value_converter_converts_and_reports_invalid_input() {

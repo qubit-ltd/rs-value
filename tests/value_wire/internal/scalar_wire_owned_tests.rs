@@ -8,7 +8,10 @@
 
 //! Tests owned scalar wire conversion.
 
-use qubit_value::{Value, ValueWireV1};
+use qubit_value::{
+    Value,
+    ValueWireV1,
+};
 
 /// Verifies owned scalars serialize through the versioned wire format.
 #[test]

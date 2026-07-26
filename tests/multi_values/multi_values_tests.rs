@@ -10,13 +10,26 @@
 //! Tests various functionalities of the multi values container。
 
 use bigdecimal::BigDecimal;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
+use chrono::{
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    TimeZone,
+    Utc,
+};
 use num_bigint::BigInt;
 use qubit_datatype::{
-    CollectionConversionOptions, DataConversionError, DataConversionErrorKind,
-    DataConversionOptions, DataType,
+    CollectionConversionOptions,
+    DataConversionError,
+    DataConversionErrorKind,
+    DataConversionOptions,
+    DataType,
 };
-use qubit_value::{MultiValues, Value, ValueError};
+use qubit_value::{
+    MultiValues,
+    Value,
+    ValueError,
+};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -177,7 +190,8 @@ fn test_multi_value_from_value() {
 
 #[test]
 fn test_multi_value_strings() {
-    let mv = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mv =
+        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     assert_eq!(mv.len(), 2);
     assert_eq!(mv.get_first_string().unwrap(), "hello");
     let all = mv.get_strings().unwrap();
@@ -261,7 +275,10 @@ fn test_multi_value_defaulted_reads_use_default_only_for_unset() {
     ));
     assert!(
         empty
-            .to_or_with::<String>("fallback", DataConversionOptions::default_ref())
+            .to_or_with::<String>(
+                "fallback",
+                DataConversionOptions::default_ref()
+            )
             .is_err()
     );
     assert_eq!(
@@ -270,7 +287,10 @@ fn test_multi_value_defaulted_reads_use_default_only_for_unset() {
     );
     assert_eq!(
         empty
-            .to_list_or_with::<String>(["fallback"], DataConversionOptions::default_ref())
+            .to_list_or_with::<String>(
+                ["fallback"],
+                DataConversionOptions::default_ref()
+            )
             .unwrap(),
         Vec::<String>::new()
     );
@@ -287,7 +307,10 @@ fn test_multi_value_defaulted_reads_use_default_only_for_unset() {
     assert_eq!(unset.to_or::<String>("fallback").unwrap(), "fallback");
     assert_eq!(
         unset
-            .to_or_with::<String>("fallback", DataConversionOptions::default_ref(),)
+            .to_or_with::<String>(
+                "fallback",
+                DataConversionOptions::default_ref(),
+            )
             .unwrap(),
         "fallback"
     );
@@ -297,7 +320,10 @@ fn test_multi_value_defaulted_reads_use_default_only_for_unset() {
     );
     assert_eq!(
         unset
-            .to_list_or_with::<String>(["fallback"], DataConversionOptions::default_ref(),)
+            .to_list_or_with::<String>(
+                ["fallback"],
+                DataConversionOptions::default_ref(),
+            )
             .unwrap(),
         vec!["fallback"]
     );
@@ -374,7 +400,8 @@ fn test_multi_value_generic_to_converts_first_value() {
 }
 
 #[test]
-fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string() {
+fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string()
+{
     let date = NaiveDate::from_ymd_opt(2026, 1, 2).unwrap();
     let time = NaiveTime::from_hms_opt(3, 4, 5).unwrap();
     let datetime = date.and_time(time);
@@ -402,7 +429,9 @@ fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string()
             "123".to_string(),
         ),
         (
-            MultiValues::BigDecimal(vec![BigDecimal::from_str("12.5").unwrap()]),
+            MultiValues::BigDecimal(vec![
+                BigDecimal::from_str("12.5").unwrap(),
+            ]),
             "12.5".to_string(),
         ),
         (
@@ -427,8 +456,10 @@ fn test_multi_value_generic_to_converts_first_value_for_all_variants_to_string()
 
     let mut map = HashMap::new();
     map.insert("key".to_string(), "value".to_string());
-    let map_text: String = MultiValues::StringMap(vec![map.clone()]).to().unwrap();
-    let parsed_map: serde_json::Value = serde_json::from_str(&map_text).unwrap();
+    let map_text: String =
+        MultiValues::StringMap(vec![map.clone()]).to().unwrap();
+    let parsed_map: serde_json::Value =
+        serde_json::from_str(&map_text).unwrap();
     assert_eq!(parsed_map["key"], serde_json::json!("value"));
 
     let json_value = serde_json::json!({"flag": true});
@@ -570,13 +601,15 @@ fn test_multi_value_generic_to_list_converts_all_variants_to_string() {
 
     let mut map = HashMap::new();
     map.insert("key".to_string(), "value".to_string());
-    let maps: Vec<String> = MultiValues::StringMap(vec![map.clone()]).to_list().unwrap();
+    let maps: Vec<String> =
+        MultiValues::StringMap(vec![map.clone()]).to_list().unwrap();
     assert_eq!(maps.len(), 1);
     let parsed_map: serde_json::Value = serde_json::from_str(&maps[0]).unwrap();
     assert_eq!(parsed_map["key"], serde_json::json!("value"));
 
     let json_value = serde_json::json!({"flag": true});
-    let jsons: Vec<String> = MultiValues::Json(vec![json_value]).to_list().unwrap();
+    let jsons: Vec<String> =
+        MultiValues::Json(vec![json_value]).to_list().unwrap();
     assert_eq!(jsons, vec![r#"{"flag":true}"#]);
 
     let empty = MultiValues::Unset(DataType::String).to_list::<String>();
@@ -610,7 +643,8 @@ fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
         Err(ValueError::DataListConversion(_))
     ));
 
-    let unsupported = MultiValues::Date(vec![NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()]);
+    let unsupported =
+        MultiValues::Date(vec![NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()]);
     assert!(matches!(
         unsupported.to::<bool>(),
         Err(ValueError::DataConversion(error))
@@ -633,7 +667,11 @@ fn test_multi_value_generic_to_reports_no_value_and_conversion_errors() {
 
 #[test]
 fn test_multi_value_generic_to_list_reports_failing_index() {
-    let invalid = MultiValues::String(vec!["1".to_string(), "bad".to_string(), "0".to_string()]);
+    let invalid = MultiValues::String(vec![
+        "1".to_string(),
+        "bad".to_string(),
+        "0".to_string(),
+    ]);
 
     match invalid.to_list::<bool>() {
         Err(ValueError::DataListConversion(error)) => {
@@ -667,7 +705,8 @@ fn test_multi_value_generic_get_first() {
     assert_eq!(first, 42);
 
     // Test strings type
-    let mv = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mv =
+        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     let first: String = mv.get_first().unwrap();
     assert_eq!(first, "hello");
 
@@ -1128,8 +1167,11 @@ fn test_multi_value_multi_add_all_types() {
 #[test]
 fn test_biginteger_multivalue() {
     // Test MultiValues BigInteger
-    let mut multi =
-        MultiValues::BigInteger(vec![BigInt::from(1), BigInt::from(2), BigInt::from(3)]);
+    let mut multi = MultiValues::BigInteger(vec![
+        BigInt::from(1),
+        BigInt::from(2),
+        BigInt::from(3),
+    ]);
 
     assert_eq!(multi.len(), 3);
     assert_eq!(multi.data_type(), DataType::BigInteger);
@@ -1279,7 +1321,8 @@ fn test_value_to_multivalue_conversion_bigint_bigdecimal() {
 #[test]
 fn test_biginteger_bigdecimal_merge() {
     // Test BigInteger merge
-    let mut mv1 = MultiValues::BigInteger(vec![BigInt::from(1), BigInt::from(2)]);
+    let mut mv1 =
+        MultiValues::BigInteger(vec![BigInt::from(1), BigInt::from(2)]);
     let mv2 = MultiValues::BigInteger(vec![BigInt::from(3), BigInt::from(4)]);
 
     mv1.merge(&mv2).unwrap();
@@ -1319,7 +1362,11 @@ fn test_biginteger_bigdecimal_merge() {
 
 #[test]
 fn test_multi_value_all_datetime_types() {
-    use chrono::{NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test Date multiple values
     let dates = vec![
@@ -1473,7 +1520,8 @@ fn test_multi_value_clear_all_types() {
     assert_eq!(mv.data_type(), DataType::Float64);
 
     // String type
-    let mut mv = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mut mv =
+        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     mv.clear();
     assert_eq!(mv.len(), 0);
     assert_eq!(mv.data_type(), DataType::String);
@@ -1511,7 +1559,10 @@ fn test_multi_value_clear_all_types() {
     assert_eq!(mv.data_type(), DataType::DateTime);
 
     // Instant type
-    use chrono::{DateTime, Utc};
+    use chrono::{
+        DateTime,
+        Utc,
+    };
     let instant1 = DateTime::parse_from_rfc3339("2023-01-01T10:00:00Z")
         .unwrap()
         .with_timezone(&Utc);
@@ -1601,7 +1652,12 @@ fn test_multi_value_merge_all_integer_types() {
 
 #[test]
 fn test_multi_value_merge_all_other_types() {
-    use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        DateTime,
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Bool type
     let mut mv1 = MultiValues::Bool(vec![true, false]);
@@ -1618,7 +1674,8 @@ fn test_multi_value_merge_all_other_types() {
     assert_eq!(mv1.get_chars().unwrap(), &['a', 'b', 'c', 'd']);
 
     // String type
-    let mut mv1 = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mut mv1 =
+        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     let mv2 = MultiValues::String(vec!["foo".to_string(), "bar".to_string()]);
     mv1.merge(&mv2).unwrap();
     assert_eq!(mv1.len(), 4);
@@ -1857,7 +1914,12 @@ fn test_multi_value_data_type_all_variants() {
 
 #[test]
 fn test_multi_value_from_value_all_types() {
-    use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+    use chrono::{
+        DateTime,
+        NaiveDate,
+        NaiveTime,
+        Utc,
+    };
 
     // Test conversion from Value to MultiValues
 
@@ -2021,7 +2083,8 @@ fn test_multi_value_from_value_all_types() {
     assert_eq!(mv.get_first_biginteger().unwrap(), big_int);
 
     // BigDecimal type
-    let big_dec = BigDecimal::from_str("123.456789012345678901234567890").unwrap();
+    let big_dec =
+        BigDecimal::from_str("123.456789012345678901234567890").unwrap();
     let v = Value::BigDecimal(big_dec.clone());
     let mv: MultiValues = v.into();
     assert_eq!(mv.data_type(), DataType::BigDecimal);
@@ -3144,7 +3207,8 @@ fn test_multi_values_core_get_first_non_empty_branch() {
     let result: i32 = mv.get_first().unwrap();
     assert_eq!(result, 42);
 
-    let mv = MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
+    let mv =
+        MultiValues::String(vec!["hello".to_string(), "world".to_string()]);
     let result: String = mv.get_first().unwrap();
     assert_eq!(result, "hello");
 
@@ -3288,7 +3352,8 @@ fn test_multi_values_set_with_str_vec() {
     assert_eq!(mv.get_strings().unwrap(), &["alpha", "beta", "gamma"]);
 
     // Test conversion of multiple elements
-    let mut mv = MultiValues::String(vec!["old1".to_string(), "old2".to_string()]);
+    let mut mv =
+        MultiValues::String(vec!["old1".to_string(), "old2".to_string()]);
     let str_vec: Vec<&str> = vec!["foo", "bar", "baz", "qux"];
     mv.set(str_vec);
     assert_eq!(mv.len(), 4);
@@ -3440,7 +3505,10 @@ fn test_multi_values_first_value_on_empty_preserves_type() {
 
 #[test]
 fn test_multi_values_first_value_extended_types() {
-    let duration = MultiValues::Duration(vec![Duration::from_secs(30), Duration::from_secs(45)]);
+    let duration = MultiValues::Duration(vec![
+        Duration::from_secs(30),
+        Duration::from_secs(45),
+    ]);
     assert_eq!(
         duration.first_value(),
         Value::Duration(Duration::from_secs(30))
@@ -3458,7 +3526,9 @@ fn test_multi_values_first_value_extended_types() {
     let string_maps = MultiValues::StringMap(vec![map.clone(), map2]);
     assert_eq!(string_maps.first_value(), Value::StringMap(map));
 
-    let json_value = JsonValue::Object(serde_json::json!({"a": 1}).as_object().unwrap().clone());
+    let json_value = JsonValue::Object(
+        serde_json::json!({"a": 1}).as_object().unwrap().clone(),
+    );
     let another_json = JsonValue::Bool(true);
     let jsons = MultiValues::Json(vec![json_value.clone(), another_json]);
     assert_eq!(jsons.first_value(), Value::Json(json_value));
@@ -3540,13 +3610,15 @@ fn test_multi_values_first_value_all_variants() {
 
     let big_int = BigInt::from_str("123456789012345678901234567890").unwrap();
     assert_eq!(
-        MultiValues::BigInteger(vec![big_int.clone(), BigInt::from(42)]).first_value(),
+        MultiValues::BigInteger(vec![big_int.clone(), BigInt::from(42)])
+            .first_value(),
         Value::BigInteger(big_int)
     );
 
     let big_decimal = BigDecimal::from_str("12.25").unwrap();
     assert_eq!(
-        MultiValues::BigDecimal(vec![big_decimal.clone(), BigDecimal::from(3)]).first_value(),
+        MultiValues::BigDecimal(vec![big_decimal.clone(), BigDecimal::from(3)])
+            .first_value(),
         Value::BigDecimal(big_decimal)
     );
 

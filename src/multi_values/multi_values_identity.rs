@@ -7,30 +7,38 @@
 // =============================================================================
 //! Equality and hashing for [`super::MultiValues`].
 
-use std::hash::{Hash, Hasher};
+use std::hash::{
+    Hash,
+    Hasher,
+};
 
 use super::MultiValues;
 #[cfg(feature = "big-decimal")]
 use crate::identity::hash_big_decimal;
-use crate::identity::{canonical_f32_bits, canonical_f64_bits, hash_string_map};
+use crate::identity::{
+    canonical_f32_bits,
+    canonical_f64_bits,
+    hash_string_map,
+};
 #[cfg(feature = "json")]
-use crate::identity::{hash_json, json_eq};
+use crate::identity::{
+    hash_json,
+    json_eq,
+};
 
 /// Compares ordered payloads using the identity rule for their element type.
 macro_rules! payloads_eq {
     (Float32, $left:expr, $right:expr) => {
         $left.len() == $right.len()
-            && $left
-                .iter()
-                .zip($right)
-                .all(|(left, right)| canonical_f32_bits(*left) == canonical_f32_bits(*right))
+            && $left.iter().zip($right).all(|(left, right)| {
+                canonical_f32_bits(*left) == canonical_f32_bits(*right)
+            })
     };
     (Float64, $left:expr, $right:expr) => {
         $left.len() == $right.len()
-            && $left
-                .iter()
-                .zip($right)
-                .all(|(left, right)| canonical_f64_bits(*left) == canonical_f64_bits(*right))
+            && $left.iter().zip($right).all(|(left, right)| {
+                canonical_f64_bits(*left) == canonical_f64_bits(*right)
+            })
     };
     (Json, $left:expr, $right:expr) => {
         $left.len() == $right.len()
