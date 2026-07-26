@@ -119,7 +119,7 @@ fn test_value_identity_covers_every_variant() {
         Value::DateTime(datetime),
         Value::Instant(DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc)),
         Value::Duration(Duration::new(8, 9)),
-        Value::Url(Url::parse("https://example.com/path").unwrap()),
+        Value::new(Url::parse("https://example.com/path").unwrap()),
         Value::StringMap(HashMap::from([("key".to_owned(), "value".to_owned())])),
         Value::Json(serde_json::json!({
             "items": [null, true, 42, "text", [], {}]

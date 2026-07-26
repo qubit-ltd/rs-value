@@ -421,7 +421,7 @@ impl Value {
         /// # Returns
         ///
         /// If types match, returns the URL value; see `# Errors`.
-        ref: get_url, Url, Url, DataType::Url, |v: &Url| v.clone()
+        ref: get_url, Url, Url, DataType::Url, Url::clone
     }
 
     impl_get_value! {
@@ -523,7 +523,7 @@ impl Value {
     #[inline(always)]
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match self {
-            Value::Url(v) => Ok(v),
+            Value::Url(v) => Ok(v.as_ref()),
             Value::Unset(dt) if *dt == DataType::Url => Err(ValueError::NoValue),
             Value::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Url,

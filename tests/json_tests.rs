@@ -80,7 +80,7 @@ fn test_value_natural_json_projection() {
     );
     let url = Url::parse("https://example.com/path").unwrap();
     assert_eq!(
-        Value::Url(url.clone()).to_json_value().unwrap(),
+        Value::new(url.clone()).to_json_value().unwrap(),
         json!(url.to_string())
     );
 

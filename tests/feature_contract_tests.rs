@@ -191,7 +191,7 @@ fn big_decimal_feature_preserves_values_and_wire_payloads() {
 #[test]
 fn url_feature_preserves_values_and_wire_payloads() {
     let url = Url::parse("https://example.com/path?q=1").expect("valid URL");
-    let scalar = Value::Url(url.clone());
+    let scalar = Value::new(url.clone());
     let collection = MultiValues::Url(vec![url.clone()]);
 
     assert_eq!(scalar.get::<Url>().expect("read URL"), url);

@@ -143,7 +143,7 @@ fn test_value_duration_serde_roundtrip() {
 #[test]
 fn test_value_url_creation() {
     let url = Url::parse("https://example.com").unwrap();
-    let v = Value::Url(url);
+    let v = Value::new(url);
     assert_eq!(v.data_type(), DataType::Url);
     assert!(!v.is_unset());
 }
@@ -151,7 +151,7 @@ fn test_value_url_creation() {
 #[test]
 fn test_value_url_get() {
     let url = Url::parse("https://example.com/path?q=1").unwrap();
-    let v = Value::Url(url.clone());
+    let v = Value::new(url.clone());
     assert_eq!(v.get_url().unwrap(), url);
 }
 
@@ -166,7 +166,7 @@ fn test_value_url_set() {
 #[test]
 fn test_value_url_type_mismatch() {
     let url = Url::parse("https://example.com").unwrap();
-    let v = Value::Url(url);
+    let v = Value::new(url);
     assert!(matches!(
         v.get_string(),
         Err(ValueError::TypeMismatch { .. })
@@ -191,7 +191,7 @@ fn test_value_url_generic_new() {
 fn test_value_url_generic_set() {
     let url1 = Url::parse("https://old.example.com").unwrap();
     let url2 = Url::parse("https://new.example.com").unwrap();
-    let mut v = Value::Url(url1);
+    let mut v = Value::new(url1);
     v.set(url2.clone());
     assert_eq!(v.get_url().unwrap(), url2);
 }
@@ -199,14 +199,14 @@ fn test_value_url_generic_set() {
 #[test]
 fn test_value_url_as_string() {
     let url = Url::parse("https://example.com/path").unwrap();
-    let v = Value::Url(url.clone());
+    let v = Value::new(url.clone());
     assert_eq!(v.to::<String>().unwrap(), url.to_string());
 }
 
 #[test]
 fn test_value_url_as_url_from_url() {
     let url = Url::parse("https://example.com/path").unwrap();
-    let v = Value::Url(url.clone());
+    let v = Value::new(url.clone());
     assert_eq!(v.to::<Url>().unwrap(), url);
 }
 
@@ -228,7 +228,7 @@ fn test_value_url_as_url_invalid_string() {
 
 #[test]
 fn test_value_url_clear() {
-    let mut v = Value::Url(Url::parse("https://example.com").unwrap());
+    let mut v = Value::new(Url::parse("https://example.com").unwrap());
     v.clear();
     assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::Url);
@@ -236,7 +236,7 @@ fn test_value_url_clear() {
 
 #[test]
 fn test_value_url_serde_roundtrip() {
-    let original = Value::Url(Url::parse("https://example.com/path?key=value#anchor").unwrap());
+    let original = Value::new(Url::parse("https://example.com/path?key=value#anchor").unwrap());
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);

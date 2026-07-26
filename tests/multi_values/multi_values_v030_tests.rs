@@ -198,7 +198,7 @@ fn test_multi_values_url_merge() {
 #[test]
 fn test_multi_values_url_from_value() {
     let u = Url::parse("https://example.com").unwrap();
-    let v = Value::Url(u.clone());
+    let v = Value::new(u.clone());
     let mv = MultiValues::from(v);
     assert_eq!(mv.data_type(), DataType::Url);
     assert_eq!(mv.get_first_url().unwrap(), u);

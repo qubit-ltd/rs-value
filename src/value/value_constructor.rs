@@ -32,7 +32,7 @@ macro_rules! impl_value_from_table {
             impl From<$type> for Value {
                 #[inline(always)]
                 fn from(value: $type) -> Self {
-                    Value::$variant(value)
+                    Value::$variant(value_storage_new!($variant, value))
                 }
             }
         )+

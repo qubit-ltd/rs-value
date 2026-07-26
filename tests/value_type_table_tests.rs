@@ -57,7 +57,7 @@ fn value_for_data_type(data_type: DataType) -> Value {
         DataType::BigInteger => Value::BigInteger(num_bigint::BigInt::from(0)),
         DataType::BigDecimal => Value::BigDecimal(bigdecimal::BigDecimal::from(0)),
         DataType::Duration => Value::Duration(std::time::Duration::ZERO),
-        DataType::Url => Value::Url(
+        DataType::Url => Value::new(
             url::Url::parse("https://example.com").expect("contract test URL should be valid"),
         ),
         DataType::StringMap => Value::StringMap(std::collections::HashMap::new()),
@@ -83,4 +83,12 @@ fn test_value_type_table_covers_all_data_types() {
         .collect::<Vec<_>>();
 
     assert_eq!(actual, DataType::ALL);
+}
+
+/// Verifies the scalar container stays compact when the URL family is enabled.
+#[cfg(feature = "all")]
+#[test]
+fn test_value_layout_with_all_features_is_compact() {
+    assert_eq!(std::mem::size_of::<Value>(), 64);
+    assert_eq!(std::mem::size_of::<qubit_value::ValueContainer>(), 64);
 }
