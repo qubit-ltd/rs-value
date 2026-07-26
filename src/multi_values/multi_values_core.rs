@@ -66,7 +66,7 @@ macro_rules! multi_values_first_value_match {
                 MultiValues::$variant(values) => values
                     .first()
                     .map(|value| materialize_stored!($materialization, value))
-                    .map(Value::$variant)
+                    .map(|value| Value::$variant(value_storage_new!($variant, value)))
                     .unwrap_or(Value::Unset($data_type)),
             )+
         }
@@ -82,7 +82,7 @@ macro_rules! multi_values_into_first_value_match {
                 MultiValues::$variant(values) => values
                     .into_iter()
                     .next()
-                    .map(Value::$variant)
+                    .map(|value| Value::$variant(value_storage_new!($variant, value)))
                     .unwrap_or(Value::Unset($data_type)),
             )+
         }
@@ -108,7 +108,9 @@ macro_rules! value_into_multi_values_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value {
             Value::Unset(data_type) => MultiValues::Unset(data_type),
-            $($(#[$cfg])* Value::$variant(value) => MultiValues::$variant(vec![value]),)+
+            $($(#[$cfg])* Value::$variant(value) => {
+                MultiValues::$variant(vec![value_storage_into_multi!($variant, value)])
+            },)+
         }
     };
 }

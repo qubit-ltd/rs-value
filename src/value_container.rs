@@ -56,7 +56,7 @@ macro_rules! impl_value_container_from_table {
             impl From<$type> for ValueContainer {
                 #[inline(always)]
                 fn from(value: $type) -> Self {
-                    Self::Scalar(Value::$variant(value))
+                    Self::Scalar(Value::$variant(value_storage_new!($variant, value)))
                 }
             }
 
@@ -112,13 +112,16 @@ macro_rules! value_container_pair_match {
             $(
                 $(#[$cfg])*
                 (Value::$variant(first), Value::$variant(second)) => {
-                    MultiValues::$variant(vec![first, second])
+                    MultiValues::$variant(vec![
+                        value_storage_into_multi!($variant, first),
+                        value_storage_into_multi!($variant, second),
+                    ])
                 }
             )+
             $(
                 $(#[$cfg])*
                 (Value::Unset(_), Value::$variant(second)) => {
-                    MultiValues::$variant(vec![second])
+                    MultiValues::$variant(vec![value_storage_into_multi!($variant, second)])
                 }
             )+
             _ => unreachable!(),
@@ -132,12 +135,14 @@ macro_rules! value_container_push_match {
         match ($collection, $value) {
             $(
                 $(#[$cfg])*
-                (MultiValues::$variant(values), Value::$variant(value)) => values.push(value),
+                (MultiValues::$variant(values), Value::$variant(value)) => {
+                    values.push(value_storage_into_multi!($variant, value))
+                },
             )+
             $(
                 $(#[$cfg])*
                 (slot @ MultiValues::Unset(_), Value::$variant(value)) => {
-                    *slot = MultiValues::$variant(vec![value]);
+                    *slot = MultiValues::$variant(vec![value_storage_into_multi!($variant, value)]);
                 }
             )+
             _ => unreachable!(),

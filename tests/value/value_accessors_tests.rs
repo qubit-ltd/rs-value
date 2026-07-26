@@ -480,7 +480,7 @@ fn test_value_borrowing_getters_for_non_copy_types() {
     use url::Url;
 
     let url = Url::parse("https://example.com").unwrap();
-    let url_value = Value::Url(url.clone());
+    let url_value = Value::new(url.clone());
     assert_eq!(url_value.get_url_ref().unwrap(), &url);
 
     let mut map = HashMap::new();

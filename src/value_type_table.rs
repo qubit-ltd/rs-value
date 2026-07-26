@@ -60,3 +60,53 @@ macro_rules! materialize_stored {
         $value.clone()
     };
 }
+
+/// Resolves the scalar enum storage type for a public value family.
+macro_rules! value_storage_type {
+    (Url, $type:ty) => {
+        Box<$type>
+    };
+    ($variant:ident, $type:ty) => {
+        $type
+    };
+}
+
+/// Moves a public payload into its scalar enum storage representation.
+macro_rules! value_storage_new {
+    (Url, $value:expr) => {
+        Box::new($value)
+    };
+    ($variant:ident, $value:expr) => {
+        $value
+    };
+}
+
+/// Borrows the public payload stored by a scalar enum variant.
+macro_rules! value_storage_ref {
+    (Url, $value:expr) => {
+        $value.as_ref()
+    };
+    ($variant:ident, $value:expr) => {
+        $value
+    };
+}
+
+/// Materializes an owned public payload from scalar enum storage.
+macro_rules! materialize_value_storage {
+    (Url, $materialization:ident, $value:expr) => {
+        $value.as_ref().clone()
+    };
+    ($variant:ident, $materialization:ident, $value:expr) => {
+        materialize_stored!($materialization, $value)
+    };
+}
+
+/// Moves scalar enum storage into a matching multi-value element.
+macro_rules! value_storage_into_multi {
+    (Url, $value:expr) => {
+        *$value
+    };
+    ($variant:ident, $value:expr) => {
+        $value
+    };
+}

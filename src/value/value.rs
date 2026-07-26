@@ -84,7 +84,7 @@ macro_rules! define_value_enum {
                 #[doc = $value_doc]
                 $variant(
                     #[doc = concat!("Stored ", $value_doc, " payload.")]
-                    $type,
+                    value_storage_type!($variant, $type),
                 ),
             )+
         }

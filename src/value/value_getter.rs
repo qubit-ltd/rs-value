@@ -37,7 +37,7 @@ macro_rules! impl_value_try_from_table {
                 fn try_from(value: &Value) -> ValueResult<$type> {
                     match value {
                         Value::$variant(value) => {
-                            Ok(materialize_stored!($materialization, value))
+                            Ok(materialize_value_storage!($variant, $materialization, value))
                         }
                         Value::Unset(actual) if *actual == $data_type => {
                             Err(ValueError::NoValue)

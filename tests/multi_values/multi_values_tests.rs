@@ -3449,7 +3449,7 @@ fn test_multi_values_first_value_extended_types() {
     let url = Url::parse("https://example.com/query?a=1").unwrap();
     let other_url = Url::parse("https://rust-lang.org/").unwrap();
     let urls = MultiValues::Url(vec![url.clone(), other_url]);
-    assert_eq!(urls.first_value(), Value::Url(url));
+    assert_eq!(urls.first_value(), Value::new(url));
 
     let mut map = HashMap::new();
     map.insert("k1".to_string(), "v1".to_string());
