@@ -10,7 +10,11 @@
 
 use std::fmt;
 
-use qubit_redact::RedactionPolicy;
+use qubit_redact::{
+    RedactValue as _,
+    RedactedValue,
+    RedactionPolicy,
+};
 use serde_json::Value as JsonValue;
 
 /// A JSON value rendered with key-aware recursive redaction.
@@ -60,16 +64,18 @@ impl fmt::Debug for RedactedJson<'_> {
                     {
                         match value {
                             JsonValue::String(text) => {
-                                output.entry(
-                                    &key,
-                                    &self
-                                        .policy
-                                        .masking()
-                                        .mask(sensitivity, text),
+                                let redacted = text.redact_value(
+                                    sensitivity,
+                                    self.policy.masking(),
                                 );
+                                output.entry(&key, &redacted);
                             }
                             _ => {
-                                output.entry(&key, &"<redacted>");
+                                let redacted = RedactedValue::opaque(
+                                    sensitivity,
+                                    self.policy.masking(),
+                                );
+                                output.entry(&key, &redacted);
                             }
                         };
                     } else {
