@@ -56,7 +56,9 @@ macro_rules! define_scalar_wire_ref {
                     Value::Unset(data_type) => Self::Unset((*data_type).into()),
                     $(
                         $(#[$cfg])*
-                        Value::$variant(value) => Self::$variant(value),
+                        Value::$variant(value) => {
+                            Self::$variant(value_storage_ref!($variant, value))
+                        },
                     )+
                 }
             }

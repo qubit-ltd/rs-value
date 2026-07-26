@@ -29,6 +29,15 @@ fn test_value_wire_v1_identity_preserves_shape() {
     assert_eq!(value, value);
 }
 
+/// Rejects URL spellings that parse successfully but are not canonical V1 payloads.
+#[cfg(feature = "url")]
+#[test]
+fn test_value_wire_v1_rejects_noncanonical_url_payload() {
+    let input = r#"{"version":1,"value":{"scalar":{"url":"HTTPS://example.com/"}}}"#;
+
+    assert!(serde_json::from_str::<ValueWireV1>(input).is_err());
+}
+
 #[derive(Debug)]
 struct ValueFixture {
     data_type: DataType,
@@ -197,7 +206,7 @@ fn value_fixtures() -> Vec<ValueFixture> {
         },
         ValueFixture {
             data_type: DataType::Url,
-            value: Value::Url(Url::parse("https://example.com/path").unwrap()),
+            value: Value::new(Url::parse("https://example.com/path").unwrap()),
             tag: "url",
             payload: json!("https://example.com/path"),
         },
