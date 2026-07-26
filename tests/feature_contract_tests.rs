@@ -246,7 +246,8 @@ fn redact_feature_masks_sensitive_string_map_entries() {
 #[cfg(feature = "redact")]
 #[test]
 fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
-    let value = qubit_value::NamedValue::new("secret_number", Value::Int32(12345));
+    let value =
+        qubit_value::NamedValue::new("secret_number", Value::Int32(12345));
     let policy = RedactionPolicy::empty_builder()
         .raise("secret_number", Sensitivity::Low)
         .mask(

@@ -9,6 +9,7 @@
 //! Tests recursive JSON redaction through the public `Value` API.
 
 use qubit_redact::{
+    MaskPolicy,
     Redact as _,
     RedactionPolicy,
     Sensitivity,
@@ -26,10 +27,14 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
         "visible": "public"
     }));
     let policy = RedactionPolicy::empty_builder()
-        .raise("secret_number", Sensitivity::Secret)
-        .raise("secret_object", Sensitivity::Secret)
-        .raise("secret_array", Sensitivity::Secret)
-        .raise("secret_null", Sensitivity::Secret)
+        .raise("secret_number", Sensitivity::Low)
+        .raise("secret_object", Sensitivity::Low)
+        .raise("secret_array", Sensitivity::Low)
+        .raise("secret_null", Sensitivity::Low)
+        .mask(
+            Sensitivity::Low,
+            MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
+        )
         .build()
         .expect("policy should build");
 
@@ -38,6 +43,6 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
     assert!(!output.contains("42"));
     assert!(!output.contains("nested-object-secret"));
     assert!(!output.contains("array-secret"));
-    assert_eq!(output.matches("<redacted>").count(), 4);
+    assert_eq!(output.matches("OPAQUE").count(), 4);
     assert!(output.contains("public"));
 }

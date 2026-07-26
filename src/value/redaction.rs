@@ -11,6 +11,10 @@ use std::fmt;
 
 use qubit_redact::{
     Redact,
+    RedactMapValue,
+    RedactValue,
+    RedactedMap,
+    RedactedValue,
     RedactionPolicy,
 };
 
@@ -24,29 +28,29 @@ use crate::{
     ValueContainer,
 };
 
-/// Formats a string map with sensitivity determined by each map key.
-struct RedactedStringMap<'a> {
-    /// Map whose entries are rendered through the policy.
-    values: &'a std::collections::HashMap<String, String>,
-    /// Policy that classifies map keys.
-    policy: &'a RedactionPolicy,
+impl RedactValue for Value {
+    /// Redacts string contents while replacing every other variant opaquely.
+    fn redact_value<'a>(
+        &'a self,
+        level: qubit_redact::Sensitivity,
+        masking: &'a qubit_redact::MaskingPolicy,
+    ) -> RedactedValue<'a> {
+        match self {
+            Self::String(value) => value.redact_value(level, masking),
+            _ => RedactedValue::opaque(level, masking),
+        }
+    }
 }
 
-impl fmt::Debug for RedactedStringMap<'_> {
-    /// Writes each map entry while masking values for sensitive keys.
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut output = formatter.debug_map();
-        for (key, value) in self.values {
-            if let Some(sensitivity) = self.policy.sensitivity_for(key) {
-                output.entry(
-                    &key,
-                    &self.policy.masking().mask(sensitivity, value),
-                );
-            } else {
-                output.entry(&key, value);
-            }
-        }
-        output.finish()
+impl RedactValue for MultiValues {
+    /// Replaces a sensitive collection without formatting its contents.
+    #[inline(always)]
+    fn redact_value<'a>(
+        &'a self,
+        level: qubit_redact::Sensitivity,
+        masking: &'a qubit_redact::MaskingPolicy,
+    ) -> RedactedValue<'a> {
+        RedactedValue::opaque(level, masking)
     }
 }
 
@@ -62,10 +66,9 @@ impl Redact for Value {
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match self {
-            Self::StringMap(values) => fmt::Debug::fmt(
-                &RedactedStringMap { values, policy },
-                formatter,
-            ),
+            Self::StringMap(values) => {
+                values.fmt_redacted_map(policy, formatter)
+            }
             #[cfg(feature = "json")]
             Self::Json(value) => {
                 fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter)
@@ -87,10 +90,7 @@ impl Redact for MultiValues {
             Self::StringMap(values) => {
                 let mut output = formatter.debug_list();
                 for value in values {
-                    output.entry(&RedactedStringMap {
-                        values: value,
-                        policy,
-                    });
+                    output.entry(&RedactedMap::new(value, policy.clone()));
                 }
                 output.finish()
             }
@@ -122,7 +122,7 @@ impl Redact for ValueContainer {
 }
 
 /// Formats a named value while applying its name as the policy lookup key.
-fn fmt_named_value<T: Redact + fmt::Debug>(
+fn fmt_named_value<T: Redact + RedactValue + fmt::Debug>(
     name: &str,
     value: &T,
     type_name: &str,
@@ -133,7 +133,8 @@ fn fmt_named_value<T: Redact + fmt::Debug>(
     let mut output = formatter.debug_struct(type_name);
     output.field("name", &name);
     if let Some(sensitivity) = policy.sensitivity_for(name) {
-        output.field(value_name, &policy.masking().mask_opaque(sensitivity));
+        let redacted = value.redact_value(sensitivity, policy.masking());
+        output.field(value_name, &redacted);
     } else {
         output.field(value_name, &value.redacted_with(policy));
     }
