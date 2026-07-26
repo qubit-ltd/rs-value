@@ -44,7 +44,7 @@ fn benchmark_config_conversions(c: &mut Criterion) {
     c.bench_function("downstream/config_scalar_string_to_u32", |bencher| {
         bencher.iter(|| {
             let value = scalar
-                .to_with::<u32>(black_box(&options))
+                .to_first_with::<u32>(black_box(&options))
                 .expect("numeric configuration text should convert");
             black_box(value)
         });
@@ -102,11 +102,12 @@ fn benchmark_natural_json_projection(c: &mut Criterion) {
 
 /// Benchmarks the V1 wire encoding and bounded decoding paths.
 fn benchmark_value_wire_v1(c: &mut Criterion) {
-    let wire = ValueWireV1::from(ValueContainer::from(vec![
+    let wire = ValueWireV1::try_from(ValueContainer::from(vec![
         "api".to_string(),
         "worker".to_string(),
         "scheduler".to_string(),
-    ]));
+    ]))
+    .expect("construct V1 wire");
     let encoded = serde_json::to_vec(&wire)
         .expect("benchmark wire value should serialize");
 

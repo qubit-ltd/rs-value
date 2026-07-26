@@ -44,7 +44,10 @@ use qubit_value::MultiValues;
 ))]
 use qubit_value::Value;
 #[cfg(feature = "converter")]
-use qubit_value::ValueContainer;
+use qubit_value::{
+    ValueContainer,
+    ValueWirePayloadV1,
+};
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -53,16 +56,6 @@ use qubit_value::ValueContainer;
     feature = "url",
     feature = "json",
 ))]
-use serde::Serialize;
-#[cfg(any(
-    feature = "converter",
-    feature = "chrono",
-    feature = "big-integer",
-    feature = "big-decimal",
-    feature = "url",
-    feature = "json",
-))]
-use serde::de::DeserializeOwned;
 #[cfg(feature = "url")]
 use url::Url;
 
@@ -85,13 +78,13 @@ use qubit_redact::{
     feature = "url",
     feature = "json",
 ))]
-fn assert_json_round_trip<T>(value: &T)
-where
-    T: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug,
-{
-    let encoded = serde_json::to_string(value).expect("serialize value");
-    let decoded: T = serde_json::from_str(&encoded).expect("deserialize value");
-    assert_eq!(&decoded, value);
+fn assert_json_round_trip(value: impl Into<ValueContainer>) {
+    let wire = ValueWirePayloadV1::try_from(value.into())
+        .expect("construct wire payload");
+    let encoded = serde_json::to_string(&wire).expect("serialize wire payload");
+    let decoded: ValueWirePayloadV1 =
+        serde_json::from_str(&encoded).expect("deserialize wire payload");
+    assert_eq!(decoded, wire);
 }
 
 #[cfg(feature = "converter")]
@@ -100,12 +93,12 @@ fn converter_feature_converts_core_values() {
     let scalar = ValueContainer::from(42_i32);
     let collection = ValueContainer::from(vec![43_i32, 44]);
 
-    assert_eq!(scalar.to::<i64>().expect("convert scalar"), 42);
+    assert_eq!(scalar.to_first::<i64>().expect("convert scalar"), 42);
     assert_eq!(
         collection.to_list::<i64>().expect("convert collection"),
         vec![43, 44]
     );
-    assert_json_round_trip(&collection);
+    assert_json_round_trip(collection);
 }
 
 /// A downstream conversion target used to validate rs-value's public bounds.
@@ -140,7 +133,7 @@ fn converter_feature_accepts_target_side_extension() {
         vec![Port(8080), Port(8081)]
     );
     assert_eq!(
-        ValueContainer::from("8082").to::<Port>().unwrap(),
+        ValueContainer::from("8082").to_first::<Port>().unwrap(),
         Port(8082)
     );
 }
@@ -154,8 +147,8 @@ fn chrono_feature_preserves_values_and_wire_payloads() {
 
     assert_eq!(scalar.get::<NaiveDate>().expect("read date"), date);
     assert_eq!(collection.get_dates().expect("read dates"), &[date]);
-    assert_json_round_trip(&scalar);
-    assert_json_round_trip(&collection);
+    assert_json_round_trip(scalar);
+    assert_json_round_trip(collection);
 }
 
 #[cfg(feature = "big-integer")]
@@ -173,8 +166,8 @@ fn big_integer_feature_preserves_values_and_wire_payloads() {
         integers.get_bigintegers().expect("read big integers"),
         &[integer]
     );
-    assert_json_round_trip(&integer_value);
-    assert_json_round_trip(&integers);
+    assert_json_round_trip(integer_value);
+    assert_json_round_trip(integers);
 }
 
 #[cfg(feature = "big-decimal")]
@@ -192,8 +185,8 @@ fn big_decimal_feature_preserves_values_and_wire_payloads() {
         decimals.get_bigdecimals().expect("read big decimals"),
         &[decimal]
     );
-    assert_json_round_trip(&decimal_value);
-    assert_json_round_trip(&decimals);
+    assert_json_round_trip(decimal_value);
+    assert_json_round_trip(decimals);
 }
 
 #[cfg(feature = "url")]
@@ -205,8 +198,8 @@ fn url_feature_preserves_values_and_wire_payloads() {
 
     assert_eq!(scalar.get::<Url>().expect("read URL"), url);
     assert_eq!(collection.get_urls().expect("read URLs"), &[url]);
-    assert_json_round_trip(&scalar);
-    assert_json_round_trip(&collection);
+    assert_json_round_trip(scalar);
+    assert_json_round_trip(collection);
 }
 
 #[cfg(feature = "json")]
@@ -221,8 +214,8 @@ fn json_feature_preserves_values_and_wire_payloads() {
         json
     );
     assert_eq!(collection.get_jsons().expect("read JSON values"), &[json]);
-    assert_json_round_trip(&scalar);
-    assert_json_round_trip(&collection);
+    assert_json_round_trip(scalar);
+    assert_json_round_trip(collection);
 }
 
 #[cfg(feature = "redact")]

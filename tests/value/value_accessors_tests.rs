@@ -111,6 +111,23 @@ fn test_value_get_or_rejects_empty_value_with_mismatched_type() {
         })
     ));
 }
+
+/// Verifies lazy defaults are not evaluated when a concrete value exists.
+#[test]
+fn test_value_get_or_else_defers_default_evaluation() {
+    let value = Value::String("configured".to_string());
+    let mut evaluated = false;
+
+    let actual = value
+        .get_or_else::<String>(|| {
+            evaluated = true;
+            "fallback".to_string()
+        })
+        .expect("concrete value should be read");
+
+    assert_eq!(actual, "configured");
+    assert!(!evaluated);
+}
 #[test]
 fn test_value_generic_get_type_mismatch() {
     let v = Value::Int32(42);

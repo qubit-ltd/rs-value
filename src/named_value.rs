@@ -15,8 +15,12 @@
 
 use serde::{
     Deserialize,
+    Deserializer,
     Serialize,
+    Serializer,
 };
+
+use crate::ValueWireV1;
 
 use super::value::Value;
 
@@ -56,13 +60,31 @@ use super::value::Value;
 /// let _ = named.get_bool();
 /// ```
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NamedValue {
     /// Name of the value
     name: String,
     /// Content of the value
     value: Value,
+}
+
+/// Borrowed wire representation of a named scalar value.
+#[derive(Serialize)]
+struct NamedValueWireRef<'a> {
+    /// Name associated with the scalar value.
+    name: &'a str,
+    /// Independently versioned scalar value.
+    value: ValueWireV1,
+}
+
+/// Owned wire representation of a named scalar value.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NamedValueWireOwned {
+    /// Name associated with the scalar value.
+    name: String,
+    /// Independently versioned scalar value.
+    value: ValueWireV1,
 }
 
 impl NamedValue {
@@ -180,5 +202,40 @@ impl NamedValue {
     #[must_use = "consuming NamedValue without using its parts loses both fields"]
     pub fn into_parts(self) -> (String, Value) {
         (self.name, self.value)
+    }
+}
+
+impl Serialize for NamedValue {
+    /// Serializes the name and its explicitly versioned scalar value.
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let value = ValueWireV1::try_from(self.value.clone())
+            .map_err(serde::ser::Error::custom)?;
+        NamedValueWireRef {
+            name: self.name(),
+            value,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for NamedValue {
+    /// Deserializes a named scalar value from the V1 wire contract.
+    #[inline]
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let NamedValueWireOwned { name, value } =
+            NamedValueWireOwned::deserialize(deserializer)?;
+        let value = value.into_container().into_scalar().map_err(|_| {
+            serde::de::Error::custom(
+                "named value wire payload must contain a scalar",
+            )
+        })?;
+        Ok(Self::new(name, value))
     }
 }

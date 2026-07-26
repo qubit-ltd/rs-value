@@ -255,6 +255,40 @@ impl MultiValues {
         }
     }
 
+    /// Strictly reads all values or calls `default` only when storage is unset.
+    ///
+    /// A concrete empty collection is returned unchanged and type mismatches
+    /// are preserved without invoking the callback.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element type.
+    /// * `F` - Deferred fallback producing the complete list.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Callback invoked only for unset storage.
+    ///
+    /// # Returns
+    ///
+    /// The stored list or the callback result.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::TypeMismatch`] for an incompatible concrete
+    /// collection without invoking the callback.
+    #[inline]
+    pub fn get_or_else<T, F>(&self, default: F) -> ValueResult<Vec<T>>
+    where
+        for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
+        F: FnOnce() -> Vec<T>,
+    {
+        match self.get() {
+            Err(ValueError::NoValue) if self.is_unset() => Ok(default()),
+            result => result,
+        }
+    }
+
     /// Generic getter method for the first value
     ///
     /// Reads the first stored value as `T`, performing strict type checking.
@@ -339,6 +373,37 @@ impl MultiValues {
             Err(ValueError::NoValue) if self.is_unset() => {
                 Ok(default.into_value_default())
             }
+            result => result,
+        }
+    }
+
+    /// Strictly reads the first value or calls `default` only when unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element type.
+    /// * `F` - Deferred fallback producing one element.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Callback invoked only for unset storage.
+    ///
+    /// # Returns
+    ///
+    /// The first stored item or the callback result.
+    ///
+    /// # Errors
+    ///
+    /// Preserves empty-collection and type-mismatch errors without invoking
+    /// the callback.
+    #[inline]
+    pub fn get_first_or_else<T, F>(&self, default: F) -> ValueResult<T>
+    where
+        for<'a> T: TryFrom<&'a Self, Error = ValueError>,
+        F: FnOnce() -> T,
+    {
+        match self.get_first() {
+            Err(ValueError::NoValue) if self.is_unset() => Ok(default()),
             result => result,
         }
     }

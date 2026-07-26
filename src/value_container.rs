@@ -373,7 +373,7 @@ impl ValueContainer {
     /// Returns [`ValueError::NoValue`] for unset or empty matching storage and
     /// [`ValueError::TypeMismatch`] when the stored data type differs.
     #[inline(always)]
-    pub fn get<T>(&self) -> ValueResult<T>
+    pub fn get_first<T>(&self) -> ValueResult<T>
     where
         T: StrictValueRead,
     {
@@ -512,11 +512,11 @@ impl ValueContainer {
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
-    pub fn to<T>(&self) -> ValueResult<T>
+    pub fn to_first<T>(&self) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
-        self.to_with(DataConversionOptions::default_ref())
+        self.to_first_with(DataConversionOptions::default_ref())
     }
 
     /// Converts a scalar or the first collection item using explicit options.
@@ -538,7 +538,10 @@ impl ValueContainer {
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
-    pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
+    pub fn to_first_with<T>(
+        &self,
+        options: &DataConversionOptions,
+    ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {

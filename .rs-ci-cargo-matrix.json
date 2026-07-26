@@ -56,6 +56,12 @@
       "features": ["converter"]
     },
     {
+      "name": "converter-redact",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["converter", "redact"]
+    },
+    {
       "name": "converter-chrono",
       "commands": ["check", "test", "doc"],
       "defaultFeatures": false,

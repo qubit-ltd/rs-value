@@ -8,9 +8,8 @@
 
 //! Versioned, type-preserving JSON wire representation for runtime values.
 //!
-//! V1 compatibility applies to the documented JSON object structure. The
-//! Serde implementations can be used with other serializers, but their
-//! format-specific representation is outside the V1 stability contract.
+//! Runtime value types do not implement Serde directly. Callers select a
+//! standalone [`ValueWireV1`] envelope or nested [`ValueWirePayloadV1`].
 
 use serde::de::Error as _;
 use serde::{
@@ -20,11 +19,7 @@ use serde::{
     Serializer,
 };
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
+use crate::ValueContainer;
 
 const VALUE_WIRE_V1_VERSION: u8 = 1;
 
@@ -64,19 +59,24 @@ macro_rules! for_each_wire_type {
 mod internal;
 #[cfg(feature = "json")]
 mod value_wire_decode_error;
+mod value_wire_encode_error;
 #[cfg(feature = "json")]
 mod value_wire_limits;
+mod value_wire_payload_v1;
 mod value_wire_v1;
 
 use internal::{
     WireEnvelopeOwned,
     WireEnvelopeRef,
+    WireShapeOwned,
     WireShapeRef,
 };
 #[cfg(feature = "json")]
 pub use value_wire_decode_error::ValueWireDecodeError;
+pub use value_wire_encode_error::ValueWireEncodeError;
 #[cfg(feature = "json")]
 pub use value_wire_limits::ValueWireLimits;
+pub use value_wire_payload_v1::ValueWirePayloadV1;
 pub use value_wire_v1::ValueWireV1;
 
 /// Serializes a typed shape through the V1 envelope.
@@ -143,74 +143,4 @@ where
         )));
     }
     Ok(envelope.value.into())
-}
-
-impl Serialize for Value {
-    #[inline(always)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serialize_wire(WireShapeRef::Scalar(self.into()), serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for Value {
-    #[inline]
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        match deserialize_wire(deserializer)? {
-            ValueContainer::Scalar(value) => Ok(value),
-            ValueContainer::Collection(_) => {
-                Err(D::Error::custom("expected scalar value wire shape"))
-            }
-        }
-    }
-}
-
-impl Serialize for MultiValues {
-    #[inline(always)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serialize_wire(WireShapeRef::Collection(self.into()), serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for MultiValues {
-    #[inline]
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        match deserialize_wire(deserializer)? {
-            ValueContainer::Collection(values) => Ok(values),
-            ValueContainer::Scalar(_) => {
-                Err(D::Error::custom("expected collection value wire shape"))
-            }
-        }
-    }
-}
-
-impl Serialize for ValueContainer {
-    #[inline(always)]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serialize_wire(self.into(), serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueContainer {
-    #[inline(always)]
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserialize_wire(deserializer)
-    }
 }

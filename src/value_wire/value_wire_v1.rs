@@ -23,6 +23,8 @@ use crate::{
 
 use super::{
     VALUE_WIRE_V1_VERSION,
+    ValueWireEncodeError,
+    ValueWirePayloadV1,
     deserialize_wire,
     serialize_wire,
 };
@@ -43,7 +45,7 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValueWireV1 {
     /// Explicit runtime shape and typed payload represented by this DTO.
-    value: ValueContainer,
+    value: ValueWirePayloadV1,
 }
 
 impl ValueWireV1 {
@@ -60,7 +62,7 @@ impl ValueWireV1 {
     ///
     /// A V1 DTO containing `value`.
     #[inline(always)]
-    pub const fn new(value: ValueContainer) -> Self {
+    pub const fn new(value: ValueWirePayloadV1) -> Self {
         Self { value }
     }
 
@@ -135,7 +137,7 @@ impl ValueWireV1 {
     /// A shared reference to the preserved runtime container.
     #[inline(always)]
     pub const fn container(&self) -> &ValueContainer {
-        &self.value
+        self.value.container()
     }
 
     /// Consumes the DTO and returns its runtime container.
@@ -145,31 +147,34 @@ impl ValueWireV1 {
     /// The preserved runtime container.
     #[inline(always)]
     pub fn into_container(self) -> ValueContainer {
-        self.value
+        self.value.into_container()
     }
 }
 
-impl From<Value> for ValueWireV1 {
+impl TryFrom<Value> for ValueWireV1 {
+    type Error = ValueWireEncodeError;
     /// Wraps a runtime scalar in a V1 DTO.
     #[inline(always)]
-    fn from(value: Value) -> Self {
-        Self::new(ValueContainer::Scalar(value))
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        ValueWirePayloadV1::try_from(value).map(Self::new)
     }
 }
 
-impl From<MultiValues> for ValueWireV1 {
+impl TryFrom<MultiValues> for ValueWireV1 {
+    type Error = ValueWireEncodeError;
     /// Wraps a runtime collection in a V1 DTO.
     #[inline(always)]
-    fn from(values: MultiValues) -> Self {
-        Self::new(ValueContainer::Collection(values))
+    fn try_from(values: MultiValues) -> Result<Self, Self::Error> {
+        ValueWirePayloadV1::try_from(values).map(Self::new)
     }
 }
 
-impl From<ValueContainer> for ValueWireV1 {
+impl TryFrom<ValueContainer> for ValueWireV1 {
+    type Error = ValueWireEncodeError;
     /// Wraps an explicit runtime shape in a V1 DTO.
     #[inline(always)]
-    fn from(value: ValueContainer) -> Self {
-        Self::new(value)
+    fn try_from(value: ValueContainer) -> Result<Self, Self::Error> {
+        ValueWirePayloadV1::try_from(value).map(Self::new)
     }
 }
 
@@ -188,7 +193,7 @@ impl Serialize for ValueWireV1 {
     where
         S: Serializer,
     {
-        serialize_wire((&self.value).into(), serializer)
+        serialize_wire(self.value.container().into(), serializer)
     }
 }
 
@@ -199,6 +204,8 @@ impl<'de> Deserialize<'de> for ValueWireV1 {
     where
         D: Deserializer<'de>,
     {
-        deserialize_wire(deserializer).map(Self::new)
+        deserialize_wire(deserializer)
+            .map(ValueWirePayloadV1::from_decoded)
+            .map(Self::new)
     }
 }

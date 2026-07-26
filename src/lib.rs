@@ -17,7 +17,7 @@
 //! - [`MultiValues`] stores one homogeneous typed collection.
 //! - [`ValueContainer`] preserves whether storage is scalar or collection.
 //! - [`NamedValue`] and [`NamedMultiValues`] provide name wrappers.
-//! - [`ValueWireV1`] names the versioned, type-preserving Serde contract.
+//! - [`ValueWireV1`] and [`ValueWirePayloadV1`] name explicit Serde DTOs.
 //!
 //! # Core behavior
 //!
@@ -129,9 +129,13 @@ pub use value_error::{
     ValueError,
     ValueResult,
 };
-pub use value_wire::ValueWireV1;
 #[cfg(feature = "json")]
 pub use value_wire::{
     ValueWireDecodeError,
     ValueWireLimits,
+};
+pub use value_wire::{
+    ValueWireEncodeError,
+    ValueWirePayloadV1,
+    ValueWireV1,
 };

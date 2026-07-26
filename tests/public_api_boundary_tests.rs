@@ -49,7 +49,7 @@ fn read_strict<T>(value: &ValueContainer) -> Result<T, ValueError>
 where
     T: StrictValueRead,
 {
-    value.get()
+    value.get_first()
 }
 
 /// Reads an exact list through the public strict-list marker trait.
