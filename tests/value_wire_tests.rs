@@ -27,6 +27,8 @@ use qubit_value::{
     NamedValue,
     Value,
     ValueContainer,
+    ValueWireEncodeError,
+    ValueWirePayloadV1,
     ValueWireV1,
 };
 use serde_json::{
@@ -44,6 +46,30 @@ fn test_value_wire_v1_identity_preserves_shape() {
     );
     let value = ValueWireV1::from(MultiValues::Float64(vec![f64::NAN]));
     assert_eq!(value, value);
+}
+
+/// Verifies the standalone V1 envelope wraps an unversioned V1 payload.
+#[test]
+fn test_value_wire_v1_wraps_unversioned_payload_and_rejects_non_finite_float() {
+    let payload = ValueWirePayloadV1::try_from(Value::Int32(7))
+        .expect("finite scalar should fit the V1 payload");
+    assert_eq!(
+        serde_json::to_value(payload).expect("payload should serialize"),
+        json!({"scalar": {"int32": 7}}),
+    );
+
+    let wire = ValueWireV1::try_from(Value::Int32(7))
+        .expect("finite scalar should fit the V1 envelope");
+    assert_eq!(
+        serde_json::to_value(wire).expect("envelope should serialize"),
+        json!({"version": 1, "value": {"scalar": {"int32": 7}}}),
+    );
+    assert!(matches!(
+        ValueWireV1::try_from(Value::Float64(f64::NAN)),
+        Err(ValueWireEncodeError::NonFiniteFloat {
+            data_type: DataType::Float64,
+        })
+    ));
 }
 
 /// Rejects URL spellings that parse successfully but are not canonical V1

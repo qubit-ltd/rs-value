@@ -23,6 +23,7 @@ use qubit_value::{
     Value,
     ValueContainer,
     ValueError,
+    ValueWirePayloadV1,
     ValueWireV1,
 };
 
@@ -227,12 +228,31 @@ fn test_value_container_tagged_wire_preserves_shape() {
     let collection = ValueContainer::from(vec![42_i32]);
 
     assert_eq!(
-        serde_json::to_value(&scalar).expect("serialize scalar"),
+        serde_json::to_value(
+            ValueWireV1::try_from(scalar).expect("scalar should fit V1"),
+        )
+        .expect("serialize scalar"),
         json!({"version": 1, "value": {"scalar": {"int32": 42}}})
     );
     assert_eq!(
-        serde_json::to_value(&collection).expect("serialize collection"),
+        serde_json::to_value(
+            ValueWireV1::try_from(collection)
+                .expect("collection should fit V1"),
+        )
+        .expect("serialize collection"),
         json!({"version": 1, "value": {"collection": {"int32": [42]}}})
+    );
+}
+
+/// Verifies V1 payloads preserve shape without adding an embedded version.
+#[test]
+fn test_value_wire_payload_v1_preserves_shape_without_version() {
+    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(42_i32))
+        .expect("scalar should fit V1 payload");
+
+    assert_eq!(
+        serde_json::to_value(payload).expect("serialize V1 payload"),
+        json!({"scalar": {"int32": 42}}),
     );
 }
 
@@ -314,8 +334,8 @@ fn test_value_container_strict_access_mutation_and_state_cover_both_shapes() {
     assert_eq!(collection.data_type(), DataType::Int32);
     assert!(!scalar.is_unset());
     assert!(!collection.is_unset());
-    assert_eq!(scalar.get::<i32>().unwrap(), 1);
-    assert_eq!(collection.get::<i32>().unwrap(), 2);
+    assert_eq!(scalar.get_first::<i32>().unwrap(), 1);
+    assert_eq!(collection.get_first::<i32>().unwrap(), 2);
     assert_eq!(scalar.get_list::<i32>().unwrap(), vec![1]);
     assert_eq!(collection.get_list::<i32>().unwrap(), vec![2, 3]);
 
@@ -345,9 +365,9 @@ fn test_value_container_conversion_covers_scalar_and_collection_dispatch() {
     let scalar = ValueContainer::from(42_i32);
     let collection = ValueContainer::from(vec![43_i32, 44]);
 
-    assert_eq!(scalar.to::<i64>().unwrap(), 42);
-    assert_eq!(scalar.to_with::<i64>(&options).unwrap(), 42);
-    assert_eq!(collection.to_with::<i64>(&options).unwrap(), 43);
+    assert_eq!(scalar.to_first::<i64>().unwrap(), 42);
+    assert_eq!(scalar.to_first_with::<i64>(&options).unwrap(), 42);
+    assert_eq!(collection.to_first_with::<i64>(&options).unwrap(), 43);
     assert_eq!(scalar.to_list::<i64>().unwrap(), vec![42]);
     assert_eq!(collection.to_list::<i64>().unwrap(), vec![43, 44]);
     assert_eq!(scalar.to_list_with::<i64>(&options).unwrap(), vec![42]);

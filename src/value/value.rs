@@ -302,6 +302,37 @@ impl Value {
         }
     }
 
+    /// Strictly reads this value or calls `default` only when it is unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target type for the strict read and fallback value.
+    /// * `F` - Deferred fallback producing `T`.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Callback invoked only when this value is unset.
+    ///
+    /// # Returns
+    ///
+    /// The stored value, or the callback result for an unset value.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
+    /// `T`; the callback is not invoked in that case.
+    #[inline]
+    pub fn get_or_else<T, F>(&self, default: F) -> ValueResult<T>
+    where
+        for<'a> T: TryFrom<&'a Self, Error = ValueError>,
+        F: FnOnce() -> T,
+    {
+        match self.get() {
+            Err(ValueError::NoValue) => Ok(default()),
+            result => result,
+        }
+    }
+
     /// Converts the stored value to another supported data type.
     ///
     /// This method delegates to the authoritative conversion contract in
@@ -375,6 +406,41 @@ impl Value {
         }
     }
 
+    /// Converts this value to `T`, or calls `default` only when it is unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    /// * `F` - Deferred fallback producing `T`.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Callback invoked only when conversion reports a missing
+    ///   value.
+    ///
+    /// # Returns
+    ///
+    /// The converted value, or the callback result for an unset value.
+    ///
+    /// # Errors
+    ///
+    /// Preserves conversion errors from concrete values without invoking the
+    /// callback.
+    #[inline]
+    #[cfg(feature = "converter")]
+    pub fn to_or_else<T, F>(&self, default: F) -> ValueResult<T>
+    where
+        T: DataConversionTarget,
+        F: FnOnce() -> T,
+    {
+        match self.to() {
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
+            }
+            result => result,
+        }
+    }
+
     /// Converts this value to `T` using the provided conversion options.
     ///
     /// This method uses the shared [`qubit_datatype`] conversion layer
@@ -442,6 +508,45 @@ impl Value {
         match self.to_with(options) {
             Err(ValueError::DataConversion(error)) if error.is_missing() => {
                 Ok(default.into_value_default())
+            }
+            result => result,
+        }
+    }
+
+    /// Converts this value with `options`, or calls `default` only when unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    /// * `F` - Deferred fallback producing `T`.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Callback invoked only for a missing source value.
+    /// * `options` - Conversion options forwarded to the shared converter.
+    ///
+    /// # Returns
+    ///
+    /// The converted value, or the callback result for an unset value.
+    ///
+    /// # Errors
+    ///
+    /// Preserves concrete-value conversion errors without invoking the
+    /// callback.
+    #[inline]
+    #[cfg(feature = "converter")]
+    pub fn to_or_else_with<T, F>(
+        &self,
+        default: F,
+        options: &DataConversionOptions,
+    ) -> ValueResult<T>
+    where
+        T: DataConversionTarget,
+        F: FnOnce() -> T,
+    {
+        match self.to_with(options) {
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
             }
             result => result,
         }

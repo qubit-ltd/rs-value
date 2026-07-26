@@ -190,6 +190,39 @@ impl MultiValues {
         }
     }
 
+    /// Converts the first value or calls `default` only when storage is unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    /// * `F` - Deferred fallback producing `T`.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Callback invoked only for unset storage.
+    ///
+    /// # Returns
+    ///
+    /// The converted first item or the callback result.
+    ///
+    /// # Errors
+    ///
+    /// Preserves empty-collection and concrete-value conversion errors without
+    /// invoking the callback.
+    #[inline]
+    pub fn to_or_else<T, F>(&self, default: F) -> ValueResult<T>
+    where
+        T: DataConversionTarget,
+        F: FnOnce() -> T,
+    {
+        match self.to() {
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
+            }
+            result => result,
+        }
+    }
+
     /// Converts the first stored value to `T` using conversion options.
     ///
     /// Stored strings are collection items and are never split again by scalar
@@ -256,6 +289,44 @@ impl MultiValues {
         }
     }
 
+    /// Converts the first value with `options`, or calls `default` when unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    /// * `F` - Deferred fallback producing `T`.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Callback invoked only for unset storage.
+    /// * `options` - Conversion options forwarded to the shared converter.
+    ///
+    /// # Returns
+    ///
+    /// The converted first item or the callback result.
+    ///
+    /// # Errors
+    ///
+    /// Preserves concrete-value conversion errors without invoking the
+    /// callback.
+    #[inline]
+    pub fn to_or_else_with<T, F>(
+        &self,
+        default: F,
+        options: &DataConversionOptions,
+    ) -> ValueResult<T>
+    where
+        T: DataConversionTarget,
+        F: FnOnce() -> T,
+    {
+        match self.to_with(options) {
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
+            }
+            result => result,
+        }
+    }
+
     /// Converts all stored values to `T`.
     ///
     /// Unlike [`Self::get`], this method uses shared `DataConverter` conversion
@@ -311,6 +382,39 @@ impl MultiValues {
         match self.to_list() {
             Err(ValueError::DataConversion(error)) if error.is_missing() => {
                 Ok(default.into_value_default())
+            }
+            result => result,
+        }
+    }
+
+    /// Converts all values or calls `default` only when storage is unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element conversion type.
+    /// * `F` - Deferred fallback producing the complete list.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Callback invoked only for unset storage.
+    ///
+    /// # Returns
+    ///
+    /// The converted list or the callback result.
+    ///
+    /// # Errors
+    ///
+    /// Preserves concrete-value conversion errors without invoking the
+    /// callback.
+    #[inline]
+    pub fn to_list_or_else<T, F>(&self, default: F) -> ValueResult<Vec<T>>
+    where
+        T: DataConversionTarget,
+        F: FnOnce() -> Vec<T>,
+    {
+        match self.to_list() {
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
             }
             result => result,
         }
@@ -378,6 +482,44 @@ impl MultiValues {
         match self.to_list_with(options) {
             Err(ValueError::DataConversion(error)) if error.is_missing() => {
                 Ok(default.into_value_default())
+            }
+            result => result,
+        }
+    }
+
+    /// Converts all values with `options`, or calls `default` when unset.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element conversion type.
+    /// * `F` - Deferred fallback producing the complete list.
+    ///
+    /// # Parameters
+    ///
+    /// * `default` - Callback invoked only for unset storage.
+    /// * `options` - Conversion options forwarded to the shared converter.
+    ///
+    /// # Returns
+    ///
+    /// The converted list or the callback result.
+    ///
+    /// # Errors
+    ///
+    /// Preserves concrete-value conversion errors without invoking the
+    /// callback.
+    #[inline]
+    pub fn to_list_or_else_with<T, F>(
+        &self,
+        default: F,
+        options: &DataConversionOptions,
+    ) -> ValueResult<Vec<T>>
+    where
+        T: DataConversionTarget,
+        F: FnOnce() -> Vec<T>,
+    {
+        match self.to_list_with(options) {
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
             }
             result => result,
         }
