@@ -14,7 +14,10 @@
 //! - `serde_json::Value` (Json escape hatch)
 
 use qubit_datatype::DataType;
-use qubit_value::{MultiValues, Value};
+use qubit_value::{
+    MultiValues,
+    Value,
+};
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
@@ -32,7 +35,10 @@ fn make_map(pairs: &[(&str, &str)]) -> HashMap<String, String> {
 
 #[test]
 fn test_multi_values_duration_creation() {
-    let mv = MultiValues::Duration(vec![Duration::from_secs(1), Duration::from_secs(2)]);
+    let mv = MultiValues::Duration(vec![
+        Duration::from_secs(1),
+        Duration::from_secs(2),
+    ]);
     assert_eq!(mv.data_type(), DataType::Duration);
     assert_eq!(mv.len(), 2);
 }
@@ -89,7 +95,10 @@ fn test_multi_values_duration_merge() {
 
 #[test]
 fn test_multi_values_duration_clear() {
-    let mut mv = MultiValues::Duration(vec![Duration::from_secs(10), Duration::from_secs(20)]);
+    let mut mv = MultiValues::Duration(vec![
+        Duration::from_secs(10),
+        Duration::from_secs(20),
+    ]);
     mv.clear();
     assert_eq!(mv.len(), 0);
     assert_eq!(mv.data_type(), DataType::Duration);
@@ -106,7 +115,8 @@ fn test_multi_values_duration_from_value() {
 
 #[test]
 fn test_multi_values_duration_generic() {
-    let mv = MultiValues::new(vec![Duration::from_secs(1), Duration::from_secs(2)]);
+    let mv =
+        MultiValues::new(vec![Duration::from_secs(1), Duration::from_secs(2)]);
     assert_eq!(mv.data_type(), DataType::Duration);
     let got: Vec<Duration> = mv.get().unwrap();
     assert_eq!(got.len(), 2);
@@ -281,7 +291,10 @@ fn test_multi_values_stringmap_serde_roundtrip() {
 
 #[test]
 fn test_multi_values_stringmap_clear() {
-    let mut mv = MultiValues::StringMap(vec![make_map(&[("a", "1")]), make_map(&[("b", "2")])]);
+    let mut mv = MultiValues::StringMap(vec![
+        make_map(&[("a", "1")]),
+        make_map(&[("b", "2")]),
+    ]);
     mv.clear();
     assert_eq!(mv.len(), 0);
     assert_eq!(mv.data_type(), DataType::StringMap);
@@ -376,7 +389,10 @@ fn test_multi_values_json_serde_roundtrip() {
 
 #[test]
 fn test_multi_values_json_clear() {
-    let mut mv = MultiValues::Json(vec![serde_json::json!({"a": 1}), serde_json::json!(2)]);
+    let mut mv = MultiValues::Json(vec![
+        serde_json::json!({"a": 1}),
+        serde_json::json!(2),
+    ]);
     mv.clear();
     assert_eq!(mv.len(), 0);
     assert_eq!(mv.data_type(), DataType::Json);

@@ -7,7 +7,10 @@
 // =============================================================================
 //! Structural equality and hashing for JSON payloads.
 
-use std::hash::{Hash, Hasher};
+use std::hash::{
+    Hash,
+    Hasher,
+};
 
 /// Compares two JSON trees using structural JSON semantics.
 ///
@@ -22,7 +25,10 @@ use std::hash::{Hash, Hasher};
 /// significant and array element order is significant.
 #[must_use]
 #[inline(always)]
-pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bool {
+pub(crate) fn json_eq(
+    left: &serde_json::Value,
+    right: &serde_json::Value,
+) -> bool {
     left == right
 }
 

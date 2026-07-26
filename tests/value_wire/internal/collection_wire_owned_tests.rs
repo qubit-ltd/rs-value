@@ -8,7 +8,10 @@
 
 //! Tests owned collection wire conversion.
 
-use qubit_value::{MultiValues, ValueWireV1};
+use qubit_value::{
+    MultiValues,
+    ValueWireV1,
+};
 
 /// Verifies owned collections serialize through the versioned wire format.
 #[test]

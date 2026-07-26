@@ -8,7 +8,10 @@
 
 //! Tests owned wire shapes.
 
-use qubit_value::{Value, ValueWireV1};
+use qubit_value::{
+    Value,
+    ValueWireV1,
+};
 
 /// Verifies owned scalar wire values use the scalar shape.
 #[test]

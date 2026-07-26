@@ -77,7 +77,10 @@ impl ValueWireLimits {
     /// Returns [`ValueWireDecodeError::InputTooLarge`] with the actual and
     /// configured byte counts when the input exceeds this limit.
     #[inline]
-    pub const fn check_json_bytes(self, input_bytes: usize) -> Result<(), ValueWireDecodeError> {
+    pub const fn check_json_bytes(
+        self,
+        input_bytes: usize,
+    ) -> Result<(), ValueWireDecodeError> {
         if input_bytes > self.max_json_bytes {
             Err(ValueWireDecodeError::InputTooLarge {
                 input_bytes,

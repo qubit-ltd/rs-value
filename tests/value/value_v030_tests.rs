@@ -14,10 +14,19 @@
 //! - `serde_json::Value` (Json escape hatch)
 
 use qubit_datatype::{
-    DataConversionOptions, DataType, DurationConversionOptions, DurationRoundingPolicy,
+    DataConversionOptions,
+    DataType,
+    DurationConversionOptions,
+    DurationRoundingPolicy,
 };
-use qubit_value::{Value, ValueError};
-use serde::{Deserialize, Serialize};
+use qubit_value::{
+    Value,
+    ValueError,
+};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
@@ -236,7 +245,9 @@ fn test_value_url_clear() {
 
 #[test]
 fn test_value_url_serde_roundtrip() {
-    let original = Value::new(Url::parse("https://example.com/path?key=value#anchor").unwrap());
+    let original = Value::new(
+        Url::parse("https://example.com/path?key=value#anchor").unwrap(),
+    );
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
@@ -481,7 +492,8 @@ fn test_value_to_json() {
 fn test_value_to_string() {
     let v = Value::Duration(Duration::from_nanos(7));
     let options = DataConversionOptions::default().with_duration_options(
-        DurationConversionOptions::default().with_rounding_policy(DurationRoundingPolicy::HalfUp),
+        DurationConversionOptions::default()
+            .with_rounding_policy(DurationRoundingPolicy::HalfUp),
     );
     let got: String = v.to_with(&options).unwrap();
     assert_eq!(got, "0ms");
@@ -497,7 +509,8 @@ fn test_value_json_clear() {
 
 #[test]
 fn test_value_json_serde_roundtrip() {
-    let original = Value::Json(serde_json::json!({"nested": {"arr": [1, 2, 3]}}));
+    let original =
+        Value::Json(serde_json::json!({"nested": {"arr": [1, 2, 3]}}));
     let json = serde_json::to_string(&original).unwrap();
     let restored: Value = serde_json::from_str(&json).unwrap();
     assert_eq!(original, restored);
