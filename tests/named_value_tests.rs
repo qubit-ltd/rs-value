@@ -14,6 +14,14 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use qubit_datatype::DataType;
 use qubit_value::{NamedValue, Value};
 
+/// Rejects schema fields outside the stable named-value wrapper contract.
+#[test]
+fn test_named_value_rejects_unknown_fields() {
+    let input = r#"{\"name\":\"port\",\"value\":{\"version\":1,\"value\":{\"shape\":\"scalar\",\"data_type\":\"int32\",\"payload\":42}},\"extra\":true}"#;
+
+    assert!(serde_json::from_str::<NamedValue>(input).is_err());
+}
+
 #[test]
 fn test_named_value_identity_includes_name() {
     assert_ne!(

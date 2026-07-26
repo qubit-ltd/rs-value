@@ -61,6 +61,7 @@ use super::named_value::NamedValue;
 /// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct NamedMultiValues {
     /// Name of the values
     name: String,

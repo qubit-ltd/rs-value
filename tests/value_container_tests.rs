@@ -15,6 +15,22 @@ use qubit_datatype::{CollectionConversionOptions, DataConversionOptions, DataTyp
 use qubit_value::{
     MultiValues, NamedMultiValues, NamedValue, Value, ValueContainer, ValueError, ValueWireV1,
 };
+
+#[cfg(feature = "redact")]
+use qubit_redact::Redact;
+
+/// Proves every public value wrapper can be rendered through a redaction policy.
+#[cfg(feature = "redact")]
+#[test]
+fn test_public_value_wrappers_implement_redact() {
+    fn assert_redact<T: Redact>() {}
+
+    assert_redact::<Value>();
+    assert_redact::<MultiValues>();
+    assert_redact::<ValueContainer>();
+    assert_redact::<qubit_value::NamedValue>();
+    assert_redact::<qubit_value::NamedMultiValues>();
+}
 use serde_json::json;
 
 /// Requires a type to satisfy the complete hash-key contract.
