@@ -56,7 +56,9 @@ macro_rules! define_scalar_wire_owned {
                     ScalarWireOwned::Unset(data_type) => Self::Unset(data_type.into()),
                     $(
                         $(#[$cfg])*
-                        ScalarWireOwned::$variant(value) => Self::$variant(value),
+                        ScalarWireOwned::$variant(value) => {
+                            Self::$variant(value_storage_new!($variant, value))
+                        },
                     )+
                 }
             }
