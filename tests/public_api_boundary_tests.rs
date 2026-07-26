@@ -11,14 +11,25 @@
 //! types and standard conversion traits.
 
 use std::fs;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::hash::{
+    DefaultHasher,
+    Hash,
+    Hasher,
+};
 use std::path::PathBuf;
-use std::process::{Command, Output};
+use std::process::{
+    Command,
+    Output,
+};
 
 use qubit_datatype::DataType;
-use qubit_local_files::LocalTempDir;
 use qubit_value::{
-    MultiValues, StrictValueListRead, StrictValueRead, Value, ValueContainer, ValueError,
+    MultiValues,
+    StrictValueListRead,
+    StrictValueRead,
+    Value,
+    ValueContainer,
+    ValueError,
 };
 
 /// Reads one exact value through the public strict-read marker trait.
@@ -64,7 +75,9 @@ where
 /// Compiles a temporary external consumer with every crate feature enabled,
 /// reusing one dependency cache across consumer fixtures.
 fn compile_all_features_consumer(source: &str) -> Output {
-    let project_dir = LocalTempDir::with_prefix("qubit-value-public-api-contract-")
+    let project_dir = tempfile::Builder::new()
+        .prefix("qubit-value-public-api-contract-")
+        .tempdir()
         .expect("temporary consumer directory should be created");
     let project_root = project_dir.path();
     let source_root = project_root.join("src");
