@@ -71,6 +71,7 @@ use std::collections::HashMap;
 
 #[cfg(feature = "redact")]
 use qubit_redact::{
+    MaskPolicy,
     Redact as _,
     RedactionPolicy,
     Sensitivity,
@@ -240,6 +241,25 @@ fn redact_feature_masks_sensitive_string_map_entries() {
 
     assert!(!output.contains("raw-secret"));
     assert!(output.contains("visible"));
+}
+
+#[cfg(feature = "redact")]
+#[test]
+fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
+    let value = qubit_value::NamedValue::new("secret_number", Value::Int32(12345));
+    let policy = RedactionPolicy::empty_builder()
+        .raise("secret_number", Sensitivity::Low)
+        .mask(
+            Sensitivity::Low,
+            MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
+        )
+        .build()
+        .expect("policy should build");
+
+    let output = format!("{:?}", value.redacted_with(&policy));
+
+    assert!(!output.contains("12345"), "{output}");
+    assert!(output.contains("OPAQUE"), "{output}");
 }
 
 #[cfg(all(feature = "redact", feature = "json"))]

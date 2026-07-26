@@ -133,8 +133,7 @@ fn fmt_named_value<T: Redact + fmt::Debug>(
     let mut output = formatter.debug_struct(type_name);
     output.field("name", &name);
     if let Some(sensitivity) = policy.sensitivity_for(name) {
-        let value = format!("{value:?}");
-        output.field(value_name, &policy.masking().mask(sensitivity, &value));
+        output.field(value_name, &policy.masking().mask_opaque(sensitivity));
     } else {
         output.field(value_name, &value.redacted_with(policy));
     }
