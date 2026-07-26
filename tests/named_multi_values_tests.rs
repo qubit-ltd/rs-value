@@ -14,6 +14,14 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use qubit_datatype::DataType;
 use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
 
+/// Rejects schema fields outside the stable named-collection wrapper contract.
+#[test]
+fn test_named_multi_values_rejects_unknown_fields() {
+    let input = r#"{\"name\":\"ports\",\"value\":{\"version\":1,\"value\":{\"shape\":\"collection\",\"data_type\":\"int32\",\"payload\":[42]}},\"extra\":true}"#;
+
+    assert!(serde_json::from_str::<NamedMultiValues>(input).is_err());
+}
+
 #[test]
 fn test_named_multi_values_identity_is_reflexive_with_nan() {
     let values = NamedMultiValues::new("samples", MultiValues::Float32(vec![f32::NAN]));

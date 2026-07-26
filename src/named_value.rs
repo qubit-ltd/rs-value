@@ -54,6 +54,7 @@ use super::value::Value;
 /// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct NamedValue {
     /// Name of the value
     name: String,
