@@ -86,6 +86,7 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 qubit-value = "0.10"
+qubit-datatype = { version = "0.9", default-features = false }
 ```
 
 The default feature set is empty. Enable only the required families, or use
@@ -545,10 +546,10 @@ not break source compatibility.
 
 ## Serialization Contracts
 
-Enabled types implement `Serialize`/`Deserialize`:
-
-- `Value`, `MultiValues`, `ValueContainer`, `NamedValue`, `NamedMultiValues`
-- `ValueWireV1`, the public version-one wire DTO
+Runtime values do not implement Serde directly. Convert owned values through
+`TryFrom` into `ValueWireV1` or `ValueWirePayloadV1`, or serialize borrowed
+values through `ValueWireRefV1` or `ValueWirePayloadRefV1`. `NamedValue` and
+`NamedMultiValues` serialize their embedded values through `ValueWireV1`.
 
 Type-preserving Serde uses one strict versioned envelope:
 
@@ -576,7 +577,8 @@ rejects missing or unknown fields, versions other than numeric `1`, unknown
 shapes and types, and mismatched runtime entry shapes.
 
 `Int128`, `UInt128`, and `BigInteger` payloads use canonical decimal strings.
-`BigDecimal` uses an exact `{"coefficient":"...","scale":i64}` payload.
+`BigDecimal` uses an exact `{"coefficient":"...","scale":i64}` payload;
+V1 rejects scales whose absolute value exceeds 150,000.
 `Duration` uses `{"secs":u64,"nanos":u32}` and requires nanos below one
 second. Float payloads must be finite.
 

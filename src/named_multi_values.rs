@@ -11,14 +11,9 @@
 //! collections, facilitating human-readable identification of groups of values
 //! in configurations, serialization, logging, and other scenarios.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::ValueWireV1;
+use crate::{ValueWireRefV1, ValueWireV1};
 
 use super::multi_values::MultiValues;
 use super::named_value::NamedValue;
@@ -81,7 +76,7 @@ struct NamedMultiValuesWireRef<'a> {
     /// Name associated with the collection.
     name: &'a str,
     /// Independently versioned collection.
-    value: ValueWireV1,
+    value: ValueWireRefV1<'a>,
 }
 
 /// Owned wire representation of a named collection.
@@ -270,8 +265,7 @@ impl Serialize for NamedMultiValues {
     where
         S: Serializer,
     {
-        let value = ValueWireV1::try_from(self.value.clone())
-            .map_err(serde::ser::Error::custom)?;
+        let value = ValueWireRefV1::try_from(self.values()).map_err(serde::ser::Error::custom)?;
         NamedMultiValuesWireRef {
             name: self.name(),
             value,
@@ -290,9 +284,7 @@ impl<'de> Deserialize<'de> for NamedMultiValues {
         let NamedMultiValuesWireOwned { name, value } =
             NamedMultiValuesWireOwned::deserialize(deserializer)?;
         let value = value.into_container().into_collection().map_err(|_| {
-            serde::de::Error::custom(
-                "named multi-values wire payload must contain a collection",
-            )
+            serde::de::Error::custom("named multi-values wire payload must contain a collection")
         })?;
         Ok(Self::new(name, value))
     }

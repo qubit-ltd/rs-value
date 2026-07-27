@@ -12,10 +12,9 @@ use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
+
+use crate::wire::is_valid_big_decimal_scale;
 
 /// Exact wire representation of an arbitrary-precision decimal.
 #[derive(Serialize, Deserialize)]
@@ -27,15 +26,20 @@ pub(in crate::wire) struct BigDecimalPayload {
     pub(in crate::wire) scale: i64,
 }
 
-impl From<&BigDecimal> for BigDecimalPayload {
+impl TryFrom<&BigDecimal> for BigDecimalPayload {
+    type Error = &'static str;
+
     /// Creates an exact payload without formatting the decimal value.
     #[inline]
-    fn from(value: &BigDecimal) -> Self {
+    fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
         let (coefficient, scale) = value.as_bigint_and_exponent();
-        Self {
+        if !is_valid_big_decimal_scale(scale) {
+            return Err("decimal scale exceeds the V1 maximum absolute scale");
+        }
+        Ok(Self {
             coefficient: coefficient.to_string(),
             scale,
-        }
+        })
     }
 }
 
@@ -44,8 +48,11 @@ impl TryFrom<BigDecimalPayload> for BigDecimal {
 
     /// Restores a decimal after validating the canonical coefficient.
     fn try_from(value: BigDecimalPayload) -> Result<Self, Self::Error> {
-        let coefficient = BigInt::from_str(&value.coefficient)
-            .map_err(|_| "invalid decimal coefficient")?;
+        if !is_valid_big_decimal_scale(value.scale) {
+            return Err("decimal scale exceeds the V1 maximum absolute scale");
+        }
+        let coefficient =
+            BigInt::from_str(&value.coefficient).map_err(|_| "invalid decimal coefficient")?;
         if coefficient.to_string() != value.coefficient {
             return Err("non-canonical decimal coefficient");
         }

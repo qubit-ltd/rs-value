@@ -10,6 +10,8 @@
 
 use serde::{Serialize, Serializer};
 
+#[cfg(feature = "big-decimal")]
+use crate::wire::{MAX_BIG_DECIMAL_ABSOLUTE_SCALE, is_valid_big_decimal_scale};
 use crate::{MultiValues, Value, ValueContainer};
 
 use super::{ValueWireEncodeError, WireShapeRef};
@@ -58,49 +60,86 @@ impl<'a> ValueWirePayloadRefV1<'a> {
 }
 
 /// Validates one scalar against V1's JSON finite-float invariant.
-fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
+pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
+    #[cfg(feature = "big-decimal")]
+    if let Value::BigDecimal(value) = value {
+        validate_big_decimal_scale(value.as_bigint_and_exponent().1)?;
+    }
     let non_finite = matches!(value, Value::Float32(value) if !value.is_finite())
         || matches!(value, Value::Float64(value) if !value.is_finite());
     if non_finite {
-        return Err(ValueWireEncodeError::NonFiniteFloat { data_type: value.data_type() });
+        return Err(ValueWireEncodeError::NonFiniteFloat {
+            data_type: value.data_type(),
+        });
     }
     Ok(())
 }
 
 /// Validates one collection against V1's JSON finite-float invariant.
-fn validate_values(values: &MultiValues) -> Result<(), ValueWireEncodeError> {
+pub(in crate::value_wire) fn validate_values(
+    values: &MultiValues,
+) -> Result<(), ValueWireEncodeError> {
+    #[cfg(feature = "big-decimal")]
+    if let MultiValues::BigDecimal(values) = values {
+        for value in values {
+            validate_big_decimal_scale(value.as_bigint_and_exponent().1)?;
+        }
+    }
     let non_finite = match values {
         MultiValues::Float32(values) => values.iter().any(|value| !value.is_finite()),
         MultiValues::Float64(values) => values.iter().any(|value| !value.is_finite()),
         _ => false,
     };
     if non_finite {
-        return Err(ValueWireEncodeError::NonFiniteFloat { data_type: values.data_type() });
+        return Err(ValueWireEncodeError::NonFiniteFloat {
+            data_type: values.data_type(),
+        });
     }
     Ok(())
+}
+
+/// Validates the decimal exponent accepted by V1's bounded payload format.
+#[cfg(feature = "big-decimal")]
+fn validate_big_decimal_scale(scale: i64) -> Result<(), ValueWireEncodeError> {
+    if is_valid_big_decimal_scale(scale) {
+        return Ok(());
+    }
+    Err(ValueWireEncodeError::BigDecimalScaleTooLarge {
+        scale,
+        maximum_absolute_scale: MAX_BIG_DECIMAL_ABSOLUTE_SCALE,
+    })
 }
 
 impl<'a> TryFrom<&'a Value> for ValueWirePayloadRefV1<'a> {
     type Error = ValueWireEncodeError;
     /// Borrows and validates a scalar.
-    fn try_from(value: &'a Value) -> Result<Self, Self::Error> { Self::from_value(value) }
+    fn try_from(value: &'a Value) -> Result<Self, Self::Error> {
+        Self::from_value(value)
+    }
 }
 
 impl<'a> TryFrom<&'a MultiValues> for ValueWirePayloadRefV1<'a> {
     type Error = ValueWireEncodeError;
     /// Borrows and validates a collection.
-    fn try_from(values: &'a MultiValues) -> Result<Self, Self::Error> { Self::from_values(values) }
+    fn try_from(values: &'a MultiValues) -> Result<Self, Self::Error> {
+        Self::from_values(values)
+    }
 }
 
 impl<'a> TryFrom<&'a ValueContainer> for ValueWirePayloadRefV1<'a> {
     type Error = ValueWireEncodeError;
     /// Borrows and validates an explicit shape.
-    fn try_from(value: &'a ValueContainer) -> Result<Self, Self::Error> { Self::from_container(value) }
+    fn try_from(value: &'a ValueContainer) -> Result<Self, Self::Error> {
+        Self::from_container(value)
+    }
 }
 
 impl Serialize for ValueWirePayloadRefV1<'_> {
     /// Serializes the borrowed unversioned V1 shape.
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         self.shape().serialize(serializer)
     }
 }

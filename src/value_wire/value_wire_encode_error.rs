@@ -21,4 +21,14 @@ pub enum ValueWireEncodeError {
         /// Runtime data type of the rejected value.
         data_type: DataType,
     },
+    /// A V1 decimal exponent must stay within the bounded wire range.
+    #[error(
+        "V1 JSON wire cannot represent decimal scale {scale}; maximum absolute scale is {maximum_absolute_scale}"
+    )]
+    BigDecimalScaleTooLarge {
+        /// Rejected decimal exponent.
+        scale: i64,
+        /// Inclusive exponent magnitude limit for V1.
+        maximum_absolute_scale: i64,
+    },
 }

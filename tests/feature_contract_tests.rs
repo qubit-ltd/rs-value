@@ -17,11 +17,7 @@ use chrono::NaiveDate;
 use num_bigint::BigInt;
 #[cfg(feature = "converter")]
 use qubit_datatype::{
-    DataConversionError,
-    DataConversionOptions,
-    DataConversionTarget,
-    DataConverter,
-    DataType,
+    DataConversionError, DataConversionOptions, DataConversionTarget, DataConverter, DataType,
     DataTypeOf,
 };
 #[cfg(any(
@@ -43,11 +39,15 @@ use qubit_value::MultiValues;
     feature = "redact",
 ))]
 use qubit_value::Value;
-#[cfg(feature = "converter")]
-use qubit_value::{
-    ValueContainer,
-    ValueWirePayloadV1,
-};
+#[cfg(any(
+    feature = "converter",
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
+use qubit_value::{ValueContainer, ValueWirePayloadV1};
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -63,12 +63,7 @@ use url::Url;
 use std::collections::HashMap;
 
 #[cfg(feature = "redact")]
-use qubit_redact::{
-    MaskPolicy,
-    Redact as _,
-    RedactionPolicy,
-    Sensitivity,
-};
+use qubit_redact::{MaskPolicy, Redact as _, RedactionPolicy, Sensitivity};
 
 #[cfg(any(
     feature = "converter",
@@ -79,8 +74,7 @@ use qubit_redact::{
     feature = "json",
 ))]
 fn assert_json_round_trip(value: impl Into<ValueContainer>) {
-    let wire = ValueWirePayloadV1::try_from(value.into())
-        .expect("construct wire payload");
+    let wire = ValueWirePayloadV1::try_from(value.into()).expect("construct wire payload");
     let encoded = serde_json::to_string(&wire).expect("serialize wire payload");
     let decoded: ValueWirePayloadV1 =
         serde_json::from_str(&encoded).expect("deserialize wire payload");
@@ -239,8 +233,7 @@ fn redact_feature_masks_sensitive_string_map_entries() {
 #[cfg(feature = "redact")]
 #[test]
 fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
-    let value =
-        qubit_value::NamedValue::new("secret_number", Value::Int32(12345));
+    let value = qubit_value::NamedValue::new("secret_number", Value::Int32(12345));
     let policy = RedactionPolicy::empty_builder()
         .raise("secret_number", Sensitivity::Low)
         .mask(

@@ -70,6 +70,7 @@ hasher、Rust 版本、crate 版本、启用的 feature、平台或实现变化�
 ```toml
 [dependencies]
 qubit-value = "0.10"
+qubit-datatype = { version = "0.9", default-features = false }
 ```
 
 默认 feature 集为空。可按需启用类型族，也可使用 `all` 这一便捷 feature：
@@ -509,10 +510,10 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 
 ## 序列化契约
 
-启用的类型均实现 `Serialize`/`Deserialize`：
-
-- `Value`、`MultiValues`、`ValueContainer`、`NamedValue`、`NamedMultiValues`
-- 公开的第一版 wire DTO `ValueWireV1`
+运行时值类型不直接实现 Serde。拥有所有权的值可通过 `TryFrom` 转换为
+`ValueWireV1` 或 `ValueWirePayloadV1`；借用的值可通过 `ValueWireRefV1` 或
+`ValueWirePayloadRefV1` 序列化。`NamedValue` 和 `NamedMultiValues` 会将内嵌值
+通过 `ValueWireV1` 序列化。
 
 保留类型信息的 Serde 统一使用严格的版本化信封：
 
@@ -535,7 +536,8 @@ V1 是封闭格式：现有 tag、shape 和 payload 表示不得改变；未来�
 数字 `1` 的版本、未知 shape/类型，以及与运行时入口不匹配的 shape 同样会拒绝。
 
 `Int128`、`UInt128` 与 `BigInteger` 使用 canonical 十进制字符串。
-`BigDecimal` 使用精确的 `{"coefficient":"...","scale":i64}` payload。
+`BigDecimal` 使用精确的 `{"coefficient":"...","scale":i64}` payload；V1
+拒绝绝对值大于 150,000 的 scale。
 `Duration` 使用 `{"secs":u64,"nanos":u32}`，且 nanos 必须小于一秒。浮点
 payload 必须是有限值。
 

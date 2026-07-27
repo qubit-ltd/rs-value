@@ -9,13 +9,32 @@
 //!
 //! Provides integration tests for the value processing framework.
 mod doc_examples_tests;
+mod finite_float_tests;
+mod finite_float {
+    mod internal {
+        mod finite_float_tests;
+    }
+}
 mod identity;
 mod into_value_default_tests;
+mod json_tests;
 mod multi_values;
 mod named_multi_values_tests;
 mod named_value_tests;
 mod numeric_comparison_error_tests;
 mod public_api_boundary_tests;
+mod strict_json_tests;
+mod strict_json {
+    mod internal {
+        mod map_key_serializer_tests;
+        mod object_serializer_tests;
+        mod sequence_serializer_tests;
+        mod strict_json_error_tests;
+        mod strict_json_serializer_tests;
+        mod struct_variant_serializer_tests;
+        mod tuple_variant_serializer_tests;
+    }
+}
 mod strict_value_list_read_tests;
 mod strict_value_read_tests;
 mod value;
@@ -26,4 +45,26 @@ mod value_wire;
 mod value_wire_encode_error_tests;
 mod value_wire_payload_v1_tests;
 mod value_wire_tests;
+mod wide_integer_tests;
+mod wide_integer {
+    mod internal {
+        mod display_integer_tests;
+        mod integer_visitor_tests;
+        mod parsed_integer_tests;
+    }
+}
+mod wire {
+    mod decimal {
+        mod internal {
+            mod decimal_visitor_tests;
+            mod display_decimal_tests;
+            mod parsed_decimal_tests;
+        }
+        mod decimal_tests;
+    }
+    mod internal {
+        mod big_decimal_payload_tests;
+        mod duration_payload_tests;
+    }
+}
 mod wire_tests;
