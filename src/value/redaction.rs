@@ -10,23 +10,14 @@
 use std::fmt;
 
 use qubit_redact::{
-    Redact,
-    RedactMapValue,
-    RedactValue,
-    RedactedMap,
-    RedactedValue,
+    Redact, RedactMapValue, RedactValue, RedactedKeyedValue, RedactedMap, RedactedValue,
     RedactionPolicy,
 };
 
 use super::Value;
 #[cfg(feature = "json")]
 use super::internal::RedactedJson;
-use crate::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    ValueContainer,
-};
+use crate::{MultiValues, NamedMultiValues, NamedValue, ValueContainer};
 
 impl RedactValue for Value {
     /// Redacts string contents while replacing every other variant opaquely.
@@ -66,13 +57,9 @@ impl Redact for Value {
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match self {
-            Self::StringMap(values) => {
-                values.fmt_redacted_map(policy, formatter)
-            }
+            Self::StringMap(values) => values.fmt_redacted_map(policy, formatter),
             #[cfg(feature = "json")]
-            Self::Json(value) => {
-                fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter)
-            }
+            Self::Json(value) => fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter),
             _ => fmt::Debug::fmt(self, formatter),
         }
     }
@@ -122,7 +109,7 @@ impl Redact for ValueContainer {
 }
 
 /// Formats a named value while applying its name as the policy lookup key.
-fn fmt_named_value<T: Redact + RedactValue + fmt::Debug>(
+fn fmt_named_value<T: Redact + RedactValue>(
     name: &str,
     value: &T,
     type_name: &str,
@@ -132,12 +119,10 @@ fn fmt_named_value<T: Redact + RedactValue + fmt::Debug>(
 ) -> fmt::Result {
     let mut output = formatter.debug_struct(type_name);
     output.field("name", &name);
-    if let Some(sensitivity) = policy.sensitivity_for(name) {
-        let redacted = value.redact_value(sensitivity, policy.masking());
-        output.field(value_name, &redacted);
-    } else {
-        output.field(value_name, &value.redacted_with(policy));
-    }
+    output.field(
+        value_name,
+        &RedactedKeyedValue::new(name, value, policy.clone()),
+    );
     output.finish()
 }
 
