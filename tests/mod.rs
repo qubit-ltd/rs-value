@@ -20,7 +20,19 @@ mod into_value_default_tests;
 mod json_tests;
 mod multi_values;
 mod named_multi_values_tests;
+mod named_multi_values {
+    mod internal {
+        mod named_multi_values_wire_owned_tests;
+        mod named_multi_values_wire_ref_tests;
+    }
+}
 mod named_value_tests;
+mod named_value {
+    mod internal {
+        mod named_value_wire_owned_tests;
+        mod named_value_wire_ref_tests;
+    }
+}
 mod numeric_comparison_error_tests;
 mod public_api_boundary_tests;
 mod strict_json_tests;
