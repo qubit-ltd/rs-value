@@ -4,6 +4,7 @@ version = "0.10.0"
 edition = "2024"
 rust-version = "1.94"
 autotests = false
+publish = false
 authors = ["Haixing Hu <starfish.hu@gmail.com>"]
 license = "Apache-2.0"
 repository = "https://github.com/qubit-ltd/rs-value"
