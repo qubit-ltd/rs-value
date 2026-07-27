@@ -18,6 +18,7 @@
 //! - [`ValueContainer`] preserves whether storage is scalar or collection.
 //! - [`NamedValue`] and [`NamedMultiValues`] provide name wrappers.
 //! - [`ValueWireV1`] and [`ValueWirePayloadV1`] name explicit Serde DTOs.
+//! - [`ValueWireRefV1`] and [`ValueWirePayloadRefV1`] serialize borrowed values.
 //!
 //! # Core behavior
 //!
@@ -137,5 +138,7 @@ pub use value_wire::{
 pub use value_wire::{
     ValueWireEncodeError,
     ValueWirePayloadV1,
+    ValueWirePayloadRefV1,
     ValueWireV1,
+    ValueWireRefV1,
 };
