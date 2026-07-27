@@ -10,8 +10,14 @@
 
 use qubit_datatype::DataType;
 
-use crate::value_error::{ValueError, ValueResult};
-use crate::{IntoValueDefault, Value};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
+use crate::{
+    IntoValueDefault,
+    Value,
+};
 
 use super::multi_values::MultiValues;
 
@@ -236,7 +242,10 @@ impl MultiValues {
     /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
     /// `T`.
     #[inline]
-    pub fn get_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
+    pub fn get_or<T>(
+        &self,
+        default: impl IntoValueDefault<Vec<T>>,
+    ) -> ValueResult<Vec<T>>
     where
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
@@ -353,12 +362,17 @@ impl MultiValues {
     /// Returns [`ValueError::NoValue`] for a concrete empty collection or
     /// [`ValueError::TypeMismatch`] when the stored type differs from `T`.
     #[inline]
-    pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
+    pub fn get_first_or<T>(
+        &self,
+        default: impl IntoValueDefault<T>,
+    ) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get_first() {
-            Err(ValueError::NoValue) if self.is_unset() => Ok(default.into_value_default()),
+            Err(ValueError::NoValue) if self.is_unset() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }

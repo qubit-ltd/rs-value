@@ -43,7 +43,8 @@ fn value_for_data_type(data_type: DataType) -> Value {
                 .expect("contract test date should be valid"),
         ),
         DataType::Time => Value::Time(
-            chrono::NaiveTime::from_hms_opt(0, 0, 0).expect("contract test time should be valid"),
+            chrono::NaiveTime::from_hms_opt(0, 0, 0)
+                .expect("contract test time should be valid"),
         ),
         DataType::DateTime => Value::DateTime(
             chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
@@ -52,15 +53,21 @@ fn value_for_data_type(data_type: DataType) -> Value {
                 .expect("contract test datetime should be valid"),
         ),
         DataType::Instant => Value::Instant(
-            chrono::DateTime::from_timestamp(0, 0).expect("contract test instant should be valid"),
+            chrono::DateTime::from_timestamp(0, 0)
+                .expect("contract test instant should be valid"),
         ),
         DataType::BigInteger => Value::BigInteger(num_bigint::BigInt::from(0)),
-        DataType::BigDecimal => Value::BigDecimal(bigdecimal::BigDecimal::from(0)),
+        DataType::BigDecimal => {
+            Value::BigDecimal(bigdecimal::BigDecimal::from(0))
+        }
         DataType::Duration => Value::Duration(std::time::Duration::ZERO),
         DataType::Url => Value::new(
-            url::Url::parse("https://example.com").expect("contract test URL should be valid"),
+            url::Url::parse("https://example.com")
+                .expect("contract test URL should be valid"),
         ),
-        DataType::StringMap => Value::StringMap(std::collections::HashMap::new()),
+        DataType::StringMap => {
+            Value::StringMap(std::collections::HashMap::new())
+        }
         DataType::Json => Value::Json(serde_json::Value::Null),
     }
 }

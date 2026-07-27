@@ -9,10 +9,20 @@
 //! Serializer for JSON map and struct values.
 
 use serde::Serialize;
-use serde::ser::{SerializeMap, SerializeStruct};
-use serde_json::{Map, Value};
+use serde::ser::{
+    SerializeMap,
+    SerializeStruct,
+};
+use serde_json::{
+    Map,
+    Value,
+};
 
-use crate::strict_json::{Result, StrictJsonError, to_value};
+use crate::strict_json::{
+    Result,
+    StrictJsonError,
+    to_value,
+};
 
 use super::MapKeySerializer;
 

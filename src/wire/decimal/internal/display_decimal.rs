@@ -10,7 +10,10 @@
 
 use std::fmt;
 
-use serde::{Serialize, Serializer};
+use serde::{
+    Serialize,
+    Serializer,
+};
 
 /// Serializes a decimal value through its stable textual form.
 pub(in crate::wire::decimal) struct DisplayDecimal<'a, T>(

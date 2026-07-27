@@ -1,8 +1,19 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
+
 //! V1 type-tag behavior.
 
 #[test]
 fn test_wire_type_tag_is_decoded() {
-    use qubit_value::{Value, ValueWireV1};
+    use qubit_value::{
+        Value,
+        ValueWireV1,
+    };
 
     let wire: ValueWireV1 = serde_json::from_value(
         serde_json::json!({"version": 1, "value": {"scalar": {"int32": 1}}}),

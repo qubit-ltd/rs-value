@@ -1,3 +1,11 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
+
 //! Strict JSON scalar serializer behavior.
 
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -5,11 +13,19 @@ use std::fmt;
 
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde::ser::{
-    SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
-    SerializeTupleStruct, SerializeTupleVariant,
+    SerializeMap,
+    SerializeSeq,
+    SerializeStruct,
+    SerializeStructVariant,
+    SerializeTuple,
+    SerializeTupleStruct,
+    SerializeTupleVariant,
 };
 #[cfg(all(feature = "converter", feature = "json"))]
-use serde::{Serialize, Serializer};
+use serde::{
+    Serialize,
+    Serializer,
+};
 
 #[cfg(all(feature = "converter", feature = "json"))]
 struct ScalarProbe(u8);
@@ -43,7 +59,9 @@ impl Serialize for ScalarProbe {
             19 => serializer.serialize_unit_struct("Unit"),
             20 => serializer.serialize_unit_variant("Enum", 0, "Unit"),
             21 => serializer.serialize_newtype_struct("New", &1_i32),
-            22 => serializer.serialize_newtype_variant("Enum", 0, "New", &1_i32),
+            22 => {
+                serializer.serialize_newtype_variant("Enum", 0, "New", &1_i32)
+            }
             23 => {
                 let mut seq = serializer.serialize_seq(Some(1))?;
                 seq.serialize_element(&1_i32)?;
@@ -55,12 +73,14 @@ impl Serialize for ScalarProbe {
                 tuple.end()
             }
             25 => {
-                let mut tuple = serializer.serialize_tuple_struct("Tuple", 1)?;
+                let mut tuple =
+                    serializer.serialize_tuple_struct("Tuple", 1)?;
                 tuple.serialize_field(&1_i32)?;
                 tuple.end()
             }
             26 => {
-                let mut tuple = serializer.serialize_tuple_variant("Enum", 0, "Tuple", 1)?;
+                let mut tuple = serializer
+                    .serialize_tuple_variant("Enum", 0, "Tuple", 1)?;
                 tuple.serialize_field(&1_i32)?;
                 tuple.end()
             }
@@ -75,7 +95,8 @@ impl Serialize for ScalarProbe {
                 object.end()
             }
             29 => {
-                let mut object = serializer.serialize_struct_variant("Enum", 0, "Object", 1)?;
+                let mut object = serializer
+                    .serialize_struct_variant("Enum", 0, "Object", 1)?;
                 object.serialize_field("key", &1_i32)?;
                 object.end()
             }
@@ -115,6 +136,7 @@ fn test_strict_json_serializer_covers_serde_entry_points() {
     use qubit_value::Value;
 
     for index in 0..=30 {
-        let _ = Value::from_serializable(&ScalarProbe(index)).expect("probe should serialize");
+        let _ = Value::from_serializable(&ScalarProbe(index))
+            .expect("probe should serialize");
     }
 }
