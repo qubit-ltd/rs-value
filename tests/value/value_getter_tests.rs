@@ -7,10 +7,7 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_value::{Value, ValueError};
 
 #[test]
 fn test_value_getter_is_strict_and_default_is_empty_only() {

@@ -10,11 +10,7 @@
 
 use std::fmt;
 
-use qubit_redact::{
-    RedactValue as _,
-    RedactedValue,
-    RedactionPolicy,
-};
+use qubit_redact::{RedactValue as _, RedactedValue, RedactionPolicy};
 use serde_json::Value as JsonValue;
 
 /// A JSON value rendered with key-aware recursive redaction.
@@ -38,10 +34,7 @@ impl<'a> RedactedJson<'a> {
     ///
     /// A formatter borrowing `value` and `policy`.
     #[inline(always)]
-    pub(in crate::value) const fn new(
-        value: &'a JsonValue,
-        policy: &'a RedactionPolicy,
-    ) -> Self {
+    pub(in crate::value) const fn new(value: &'a JsonValue, policy: &'a RedactionPolicy) -> Self {
         Self { value, policy }
     }
 }
@@ -60,21 +53,16 @@ impl fmt::Debug for RedactedJson<'_> {
             JsonValue::Object(values) => {
                 let mut output = formatter.debug_map();
                 for (key, value) in values {
-                    if let Some(sensitivity) = self.policy.sensitivity_for(key)
-                    {
+                    if let Some(sensitivity) = self.policy.sensitivity_for(key) {
                         match value {
                             JsonValue::String(text) => {
-                                let redacted = text.redact_value(
-                                    sensitivity,
-                                    self.policy.masking(),
-                                );
+                                let redacted =
+                                    text.redact_value(sensitivity, self.policy.masking());
                                 output.entry(&key, &redacted);
                             }
                             _ => {
-                                let redacted = RedactedValue::opaque(
-                                    sensitivity,
-                                    self.policy.masking(),
-                                );
+                                let redacted =
+                                    RedactedValue::opaque(sensitivity, self.policy.masking());
                                 output.entry(&key, &redacted);
                             }
                         };

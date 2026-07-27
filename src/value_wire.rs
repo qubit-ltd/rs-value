@@ -13,12 +13,7 @@
 //! Borrowed values can use [`ValueWireRefV1`] or [`ValueWirePayloadRefV1`].
 
 use serde::de::Error as _;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::ValueContainer;
 
@@ -63,26 +58,21 @@ mod value_wire_decode_error;
 mod value_wire_encode_error;
 #[cfg(feature = "json")]
 mod value_wire_limits;
-mod value_wire_payload_v1;
 mod value_wire_payload_ref_v1;
-mod value_wire_v1;
+mod value_wire_payload_v1;
 mod value_wire_ref_v1;
+mod value_wire_v1;
 
-use internal::{
-    WireEnvelopeOwned,
-    WireEnvelopeRef,
-    WireShapeOwned,
-    WireShapeRef,
-};
+use internal::{WireEnvelopeOwned, WireEnvelopeRef, WireShapeOwned, WireShapeRef};
 #[cfg(feature = "json")]
 pub use value_wire_decode_error::ValueWireDecodeError;
 pub use value_wire_encode_error::ValueWireEncodeError;
 #[cfg(feature = "json")]
 pub use value_wire_limits::ValueWireLimits;
-pub use value_wire_payload_v1::ValueWirePayloadV1;
 pub use value_wire_payload_ref_v1::ValueWirePayloadRefV1;
-pub use value_wire_v1::ValueWireV1;
+pub use value_wire_payload_v1::ValueWirePayloadV1;
 pub use value_wire_ref_v1::ValueWireRefV1;
+pub use value_wire_v1::ValueWireV1;
 
 /// Serializes a typed shape through the V1 envelope.
 ///
@@ -103,10 +93,7 @@ pub use value_wire_ref_v1::ValueWireRefV1;
 ///
 /// Returns the error reported by `serializer`.
 #[inline(always)]
-fn serialize_wire<S>(
-    value: WireShapeRef<'_>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_wire<S>(value: WireShapeRef<'_>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {

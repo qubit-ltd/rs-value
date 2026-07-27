@@ -8,12 +8,7 @@
 
 use std::error::Error;
 
-use qubit_datatype::{
-    DataConversionError,
-    DataListConversionError,
-    DataType,
-    InvalidValueReason,
-};
+use qubit_datatype::{DataConversionError, DataListConversionError, DataType, InvalidValueReason};
 use qubit_value::ValueError;
 
 #[test]
@@ -57,8 +52,7 @@ fn test_value_error_clone_preserves_structured_source() {
         DataType::Int32,
         InvalidValueReason::OutOfRange,
     );
-    let error =
-        ValueError::DataListConversion(DataListConversionError::new(3, source));
+    let error = ValueError::DataListConversion(DataListConversionError::new(3, source));
 
     assert_eq!(error.clone(), error);
 }
