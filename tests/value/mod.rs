@@ -23,4 +23,3 @@ mod value_identity_tests;
 mod value_numeric_comparison_tests;
 mod value_setter_tests;
 mod value_tests;
-mod value_v030_tests;

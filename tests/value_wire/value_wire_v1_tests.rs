@@ -20,16 +20,17 @@ fn test_value_wire_v1_serde_uses_version_pinned_codec() {
     const SOURCE: &str = include_str!("../../src/value_wire/value_wire_v1.rs");
 
     assert!(
-        SOURCE.contains("serialize_wire((&self.value).into(), serializer)")
+        SOURCE.contains("serialize_wire(self.value.container().into(), serializer)")
     );
-    assert!(SOURCE.contains("deserialize_wire(deserializer).map(Self::new)"));
+    assert!(SOURCE.contains("ValueWirePayloadV1::from_decoded"));
     assert!(!SOURCE.contains("self.value.serialize(serializer)"));
     assert!(!SOURCE.contains("ValueContainer::deserialize(deserializer)"));
 }
 
 #[test]
 fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {
-    let expected = ValueWireV1::from(ValueContainer::from(vec![1_i32, 2, 3]));
+    let expected = ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2, 3]))
+        .expect("construct V1 wire");
     let input =
         serde_json::to_vec(&expected).expect("wire value should serialize");
 
@@ -41,7 +42,8 @@ fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {
 
 #[test]
 fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
-    let expected = ValueWireV1::from(ValueContainer::from(42_i32));
+    let expected = ValueWireV1::try_from(ValueContainer::from(42_i32))
+        .expect("construct V1 wire");
     let input =
         serde_json::to_vec(&expected).expect("wire value should serialize");
     let limits = ValueWireLimits::new(input.len());

@@ -9,12 +9,21 @@
 //!
 //! Provides integration tests for the value processing framework.
 mod doc_examples_tests;
+mod identity;
 mod into_value_default_tests;
+mod multi_values;
+mod named_multi_values_tests;
+mod named_value_tests;
 mod numeric_comparison_error_tests;
 mod public_api_boundary_tests;
 mod strict_value_list_read_tests;
 mod strict_value_read_tests;
+mod value;
+mod value_container_tests;
 mod value_error_tests;
+mod value_type_table_tests;
+mod value_wire;
 mod value_wire_encode_error_tests;
 mod value_wire_payload_v1_tests;
+mod value_wire_tests;
 mod wire_tests;
