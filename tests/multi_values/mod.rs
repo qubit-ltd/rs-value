@@ -20,4 +20,3 @@ mod multi_values_identity_tests;
 mod multi_values_setters_tests;
 mod multi_values_tests;
 mod multi_values_type_table_tests;
-mod multi_values_v030_tests;

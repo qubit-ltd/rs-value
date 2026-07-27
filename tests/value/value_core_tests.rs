@@ -15,6 +15,8 @@ use qubit_datatype::DataType;
 use qubit_value::{
     Value,
     ValueError,
+    ValueWireEncodeError,
+    ValueWireV1,
 };
 use std::str::FromStr;
 
@@ -86,14 +88,25 @@ fn test_value_is_numeric_is_state_aware() {
 }
 
 #[test]
-fn test_value_tagged_serde_rejects_non_finite_floats() {
+fn test_value_wire_rejects_non_finite_floats() {
     let finite = Value::Float64(1.25);
-    let json = serde_json::to_string(&finite).unwrap();
-    assert_eq!(serde_json::from_str::<Value>(&json).unwrap(), finite);
+    let wire = ValueWireV1::try_from(finite.clone())
+        .expect("finite value should fit the V1 wire contract");
+    let json = serde_json::to_string(&wire).expect("serialize V1 wire");
+    let decoded: ValueWireV1 = serde_json::from_str(&json)
+        .expect("deserialize V1 wire");
+    assert_eq!(decoded.into_container(), finite.into());
 
-    assert!(serde_json::to_value(Value::Float32(f32::NAN)).is_err());
-    assert!(serde_json::to_value(Value::Float64(f64::INFINITY)).is_err());
-    assert!(serde_json::to_value(Value::Float64(f64::NEG_INFINITY)).is_err());
+    for value in [
+        Value::Float32(f32::NAN),
+        Value::Float64(f64::INFINITY),
+        Value::Float64(f64::NEG_INFINITY),
+    ] {
+        assert!(matches!(
+            ValueWireV1::try_from(value),
+            Err(ValueWireEncodeError::NonFiniteFloat { .. })
+        ));
+    }
 }
 #[test]
 fn test_value_new_unset_preserves_declared_type() {

@@ -118,8 +118,8 @@ fn test_value_get_or_else_defers_default_evaluation() {
     let value = Value::String("configured".to_string());
     let mut evaluated = false;
 
-    let actual = value
-        .get_or_else::<String>(|| {
+    let actual: String = value
+        .get_or_else(|| {
             evaluated = true;
             "fallback".to_string()
         })

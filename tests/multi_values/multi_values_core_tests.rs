@@ -10,6 +10,8 @@ use qubit_datatype::DataType;
 use qubit_value::{
     MultiValues,
     ValueError,
+    ValueWireEncodeError,
+    ValueWireV1,
 };
 
 #[test]
@@ -71,29 +73,33 @@ fn test_multi_values_is_numeric_is_state_aware() {
 }
 
 #[test]
-fn test_multi_values_tagged_serde_rejects_non_finite_floats() {
+fn test_multi_values_wire_rejects_non_finite_floats() {
     for finite in [
         MultiValues::Float32(vec![1.0, 2.5]),
         MultiValues::Float64(vec![1.0, 2.5]),
     ] {
-        let json = serde_json::to_string(&finite).unwrap();
-        assert_eq!(serde_json::from_str::<MultiValues>(&json).unwrap(), finite);
+        let wire = ValueWireV1::try_from(finite.clone())
+            .expect("finite collection should fit the V1 wire contract");
+        let json = serde_json::to_string(&wire).expect("serialize V1 wire");
+        let decoded: ValueWireV1 = serde_json::from_str(&json)
+            .expect("deserialize V1 wire");
+        assert_eq!(decoded.into_container(), finite.into());
     }
 
-    assert!(
-        serde_json::to_value(MultiValues::Float32(vec![
+    assert!(matches!(
+        ValueWireV1::try_from(MultiValues::Float32(vec![
             1.0,
             f32::NEG_INFINITY,
-        ]))
-        .is_err()
-    );
-    assert!(
-        serde_json::to_value(MultiValues::Float64(vec![
+        ])),
+        Err(ValueWireEncodeError::NonFiniteFloat { .. })
+    ));
+    assert!(matches!(
+        ValueWireV1::try_from(MultiValues::Float64(vec![
             1.0,
             f64::NEG_INFINITY,
-        ]))
-        .is_err()
-    );
+        ])),
+        Err(ValueWireEncodeError::NonFiniteFloat { .. })
+    ));
 }
 
 #[test]
