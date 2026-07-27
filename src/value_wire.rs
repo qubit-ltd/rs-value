@@ -10,6 +10,7 @@
 //!
 //! Runtime value types do not implement Serde directly. Callers select a
 //! standalone [`ValueWireV1`] envelope or nested [`ValueWirePayloadV1`].
+//! Borrowed values can use [`ValueWireRefV1`] or [`ValueWirePayloadRefV1`].
 
 use serde::de::Error as _;
 use serde::{
@@ -63,7 +64,9 @@ mod value_wire_encode_error;
 #[cfg(feature = "json")]
 mod value_wire_limits;
 mod value_wire_payload_v1;
+mod value_wire_payload_ref_v1;
 mod value_wire_v1;
+mod value_wire_ref_v1;
 
 use internal::{
     WireEnvelopeOwned,
@@ -77,7 +80,9 @@ pub use value_wire_encode_error::ValueWireEncodeError;
 #[cfg(feature = "json")]
 pub use value_wire_limits::ValueWireLimits;
 pub use value_wire_payload_v1::ValueWirePayloadV1;
+pub use value_wire_payload_ref_v1::ValueWirePayloadRefV1;
 pub use value_wire_v1::ValueWireV1;
+pub use value_wire_ref_v1::ValueWireRefV1;
 
 /// Serializes a typed shape through the V1 envelope.
 ///
