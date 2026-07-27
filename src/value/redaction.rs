@@ -119,10 +119,7 @@ fn fmt_named_value<T: Redact + RedactValue>(
 ) -> fmt::Result {
     let mut output = formatter.debug_struct(type_name);
     output.field("name", &name);
-    output.field(
-        value_name,
-        &RedactedKeyedValue::new(name, value, policy),
-    );
+    output.field(value_name, &RedactedKeyedValue::new(name, value, policy));
     output.finish()
 }
 

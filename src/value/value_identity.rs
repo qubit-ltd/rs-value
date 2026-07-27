@@ -7,24 +7,14 @@
 // =============================================================================
 //! Equality and hashing for [`super::Value`].
 
-use std::hash::{
-    Hash,
-    Hasher,
-};
+use std::hash::{Hash, Hasher};
 
 use super::Value;
 #[cfg(feature = "big-decimal")]
 use crate::identity::hash_big_decimal;
-use crate::identity::{
-    canonical_f32_bits,
-    canonical_f64_bits,
-    hash_string_map,
-};
+use crate::identity::{canonical_f32_bits, canonical_f64_bits, hash_string_map};
 #[cfg(feature = "json")]
-use crate::identity::{
-    hash_json,
-    json_eq,
-};
+use crate::identity::{hash_json, json_eq};
 
 macro_rules! payload_eq {
     (Float32, $left:expr, $right:expr) => {

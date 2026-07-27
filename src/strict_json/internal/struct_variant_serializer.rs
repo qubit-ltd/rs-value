@@ -10,16 +10,9 @@
 
 use serde::Serialize;
 use serde::ser::SerializeStructVariant;
-use serde_json::{
-    Map,
-    Value,
-};
+use serde_json::{Map, Value};
 
-use crate::strict_json::{
-    Result,
-    StrictJsonError,
-    to_value,
-};
+use crate::strict_json::{Result, StrictJsonError, to_value};
 
 /// Accumulates a struct variant into a nested single-key JSON object.
 pub(in crate::strict_json) struct StructVariantSerializer {
