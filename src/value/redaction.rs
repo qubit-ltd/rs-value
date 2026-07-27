@@ -121,7 +121,7 @@ fn fmt_named_value<T: Redact + RedactValue>(
     output.field("name", &name);
     output.field(
         value_name,
-        &RedactedKeyedValue::new(name, value, policy.clone()),
+        &RedactedKeyedValue::new(name, value, policy),
     );
     output.finish()
 }
