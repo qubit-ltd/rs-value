@@ -18,7 +18,8 @@
 //! - [`ValueContainer`] preserves whether storage is scalar or collection.
 //! - [`NamedValue`] and [`NamedMultiValues`] provide name wrappers.
 //! - [`ValueWireV1`] and [`ValueWirePayloadV1`] name explicit Serde DTOs.
-//! - [`ValueWireRefV1`] and [`ValueWirePayloadRefV1`] serialize borrowed values.
+//! - [`ValueWireRefV1`] and [`ValueWirePayloadRefV1`] serialize borrowed
+//!   values.
 //!
 //! # Core behavior
 //!
@@ -126,9 +127,19 @@ pub use strict_value_list_read::StrictValueListRead;
 pub use strict_value_read::StrictValueRead;
 pub use value::Value;
 pub use value_container::ValueContainer;
-pub use value_error::{ValueError, ValueResult};
+pub use value_error::{
+    ValueError,
+    ValueResult,
+};
 #[cfg(feature = "json")]
-pub use value_wire::{ValueWireDecodeError, ValueWireLimits};
 pub use value_wire::{
-    ValueWireEncodeError, ValueWirePayloadRefV1, ValueWirePayloadV1, ValueWireRefV1, ValueWireV1,
+    ValueWireDecodeError,
+    ValueWireLimits,
+};
+pub use value_wire::{
+    ValueWireEncodeError,
+    ValueWirePayloadRefV1,
+    ValueWirePayloadV1,
+    ValueWireRefV1,
+    ValueWireV1,
 };

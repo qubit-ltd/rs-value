@@ -7,7 +7,10 @@
 // =============================================================================
 //! Canonical hashing for [`bigdecimal::BigDecimal`].
 
-use std::hash::{Hash, Hasher};
+use std::hash::{
+    Hash,
+    Hasher,
+};
 
 use bigdecimal::BigDecimal;
 use num_bigint::Sign;

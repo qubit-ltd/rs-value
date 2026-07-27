@@ -7,7 +7,10 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 
 #[test]
 fn test_value_preserves_type_when_cleared() {

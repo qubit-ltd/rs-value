@@ -7,11 +7,15 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{MultiValues, ValueError};
+use qubit_value::{
+    MultiValues,
+    ValueError,
+};
 
 #[test]
 fn test_multi_values_getters_return_slices_without_copying() {
-    let values = MultiValues::String(vec!["red".to_string(), "blue".to_string()]);
+    let values =
+        MultiValues::String(vec!["red".to_string(), "blue".to_string()]);
     let strings = values.get_strings().unwrap();
     assert_eq!(strings, &["red", "blue"]);
     assert_eq!(strings.len(), values.len());
