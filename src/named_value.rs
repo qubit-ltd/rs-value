@@ -13,14 +13,9 @@
 //! Suitable for scenarios such as log annotation, configuration item
 //! encapsulation, and preserving strongly typed values in key-value pairs.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::ValueWireV1;
+use crate::{ValueWireRefV1, ValueWireV1};
 
 use super::value::Value;
 
@@ -74,7 +69,7 @@ struct NamedValueWireRef<'a> {
     /// Name associated with the scalar value.
     name: &'a str,
     /// Independently versioned scalar value.
-    value: ValueWireV1,
+    value: ValueWireRefV1<'a>,
 }
 
 /// Owned wire representation of a named scalar value.
@@ -212,8 +207,7 @@ impl Serialize for NamedValue {
     where
         S: Serializer,
     {
-        let value = ValueWireV1::try_from(self.value.clone())
-            .map_err(serde::ser::Error::custom)?;
+        let value = ValueWireRefV1::try_from(self.value()).map_err(serde::ser::Error::custom)?;
         NamedValueWireRef {
             name: self.name(),
             value,
@@ -229,12 +223,9 @@ impl<'de> Deserialize<'de> for NamedValue {
     where
         D: Deserializer<'de>,
     {
-        let NamedValueWireOwned { name, value } =
-            NamedValueWireOwned::deserialize(deserializer)?;
+        let NamedValueWireOwned { name, value } = NamedValueWireOwned::deserialize(deserializer)?;
         let value = value.into_container().into_scalar().map_err(|_| {
-            serde::de::Error::custom(
-                "named value wire payload must contain a scalar",
-            )
+            serde::de::Error::custom("named value wire payload must contain a scalar")
         })?;
         Ok(Self::new(name, value))
     }
