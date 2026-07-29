@@ -9,8 +9,6 @@
 //!
 //! Public entry for the single-value container implementation.
 
-#[cfg(all(feature = "redact", feature = "json"))]
-mod internal;
 #[cfg(feature = "redact")]
 mod redaction;
 #[allow(clippy::module_inception)]

@@ -18,10 +18,10 @@ use qubit_redact::{
     RedactedValue,
     RedactionPolicy,
 };
+#[cfg(feature = "json")]
+use qubit_redact::RedactedJson;
 
 use super::Value;
-#[cfg(feature = "json")]
-use super::internal::RedactedJson;
 use crate::{
     MultiValues,
     NamedMultiValues,
