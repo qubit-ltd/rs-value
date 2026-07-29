@@ -38,7 +38,7 @@ let value = Value::StringMap(HashMap::from([
     ("api_key".to_owned(), "raw-secret".to_owned()),
     ("label".to_owned(), "visible".to_owned()),
 ]));
-let policy = RedactionPolicy::empty_builder()
+let policy = RedactionPolicy::builder()
     .raise("api_key", Sensitivity::Secret)
     .build()
     .expect("redaction policy should build");
