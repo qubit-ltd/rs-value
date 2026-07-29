@@ -75,7 +75,7 @@ fn test_value_redact_value_masks_non_strings_with_configured_opaque_value() {
 fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
     let value =
         NamedValue::new("token", Value::String("secret-token".to_owned()));
-    let policy = RedactionPolicy::empty_builder()
+    let policy = RedactionPolicy::builder()
         .raise("token", Sensitivity::Low)
         .mask(
             Sensitivity::Low,
