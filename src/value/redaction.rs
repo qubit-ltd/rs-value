@@ -9,6 +9,8 @@
 
 use std::fmt;
 
+#[cfg(feature = "json")]
+use qubit_redact::RedactedJson;
 use qubit_redact::{
     Redact,
     RedactMapValue,
@@ -18,8 +20,6 @@ use qubit_redact::{
     RedactedValue,
     RedactionPolicy,
 };
-#[cfg(feature = "json")]
-use qubit_redact::RedactedJson;
 
 use super::Value;
 use crate::{
