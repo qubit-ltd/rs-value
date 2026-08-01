@@ -8,11 +8,7 @@
 
 //! Public bound for strict reads from either runtime value shape.
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueError,
-};
+use crate::{MultiValues, Value, ValueError};
 
 /// Marks target types that can be read strictly from a scalar or collection.
 ///
@@ -26,7 +22,7 @@ pub trait StrictValueRead:
 }
 
 impl<T> StrictValueRead for T where
-    for<'a> T: TryFrom<&'a Value, Error = ValueError>
-        + TryFrom<&'a MultiValues, Error = ValueError>
+    for<'a> T:
+        TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>
 {
 }

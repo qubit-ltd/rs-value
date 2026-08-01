@@ -8,11 +8,7 @@
 
 //! Public finite-float wire behavior.
 
-use qubit_value::{
-    Value,
-    ValueWireEncodeError,
-    ValueWireV1,
-};
+use qubit_value::{Value, ValueWireEncodeError, ValueWireV1};
 
 #[test]
 fn test_finite_float_wire_contract() {

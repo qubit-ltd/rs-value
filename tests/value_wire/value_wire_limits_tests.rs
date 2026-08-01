@@ -8,10 +8,7 @@
 
 //! Tests for `ValueWireLimits`.
 
-use qubit_value::{
-    ValueWireDecodeError,
-    ValueWireLimits,
-};
+use qubit_value::{ValueWireDecodeError, ValueWireLimits};
 
 #[test]
 fn test_value_wire_limits_default_uses_documented_byte_budget() {

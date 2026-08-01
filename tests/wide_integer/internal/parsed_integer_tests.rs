@@ -10,10 +10,7 @@
 
 #[test]
 fn test_wide_integer_wire_parses_canonical_string() {
-    use qubit_value::{
-        Value,
-        ValueWireV1,
-    };
+    use qubit_value::{Value, ValueWireV1};
 
     assert_eq!(
         serde_json::from_value::<ValueWireV1>(
