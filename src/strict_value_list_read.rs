@@ -10,11 +10,24 @@
 
 use crate::{MultiValues, Value, ValueError, ValueResult};
 
+mod sealed {
+    use super::{MultiValues, Value, ValueError};
+
+    pub trait Sealed {}
+
+    impl<T> Sealed for T
+    where
+        for<'a> T: TryFrom<&'a Value, Error = ValueError>,
+        for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
+    {
+    }
+}
+
 /// Marks element types that can be read strictly as a list from either shape.
 ///
 /// Scalars produce one-item lists, while collections preserve all items. Both
 /// paths retain exact stored-type checks and never perform data conversion.
-pub trait StrictValueListRead: Sized {
+pub trait StrictValueListRead: Sized + sealed::Sealed {
     /// Strictly reads one scalar as a one-item list.
     ///
     /// # Parameters
