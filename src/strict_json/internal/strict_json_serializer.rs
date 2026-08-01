@@ -12,23 +12,13 @@ use std::fmt::Display;
 
 use serde::Serialize;
 use serde::ser::Serializer;
-use serde_json::{
-    Map,
-    Number,
-    Value,
-};
+use serde_json::{Map, Number, Value};
 use std::str::FromStr;
 
-use crate::strict_json::{
-    Result,
-    StrictJsonError,
-};
+use crate::strict_json::{Result, StrictJsonError};
 
 use super::{
-    ObjectSerializer,
-    SequenceSerializer,
-    StructVariantSerializer,
-    TupleVariantSerializer,
+    ObjectSerializer, SequenceSerializer, StructVariantSerializer, TupleVariantSerializer,
 };
 
 /// Maximum number of compound items reserved from a Serde length hint.
@@ -143,6 +133,9 @@ impl Serializer for StrictJsonSerializer {
     /// Serializes a finite 32-bit floating-point value.
     #[inline(always)]
     fn serialize_f32(self, value: f32) -> Result<Value> {
+        // Preserve f32 display semantics instead of delegating through f64.
+        // Converting to f64 first can expand the textual form and change JSON
+        // byte output for the same runtime value.
         Number::from_str(&value.to_string())
             .map(Value::Number)
             .ok_or(StrictJsonError::NonFinite)
@@ -217,11 +210,7 @@ impl Serializer for StrictJsonSerializer {
 
     /// Delegates a newtype struct to its wrapped value.
     #[inline(always)]
-    fn serialize_newtype_struct<T>(
-        self,
-        _name: &'static str,
-        value: &T,
-    ) -> Result<Value>
+    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<Value>
     where
         T: ?Sized + Serialize,
     {
@@ -291,11 +280,7 @@ impl Serializer for StrictJsonSerializer {
 
     /// Creates a struct serializer with the declared capacity.
     #[inline(always)]
-    fn serialize_struct(
-        self,
-        _name: &'static str,
-        len: usize,
-    ) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(self, _name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
         self.serialize_map(Some(len))
     }
 
