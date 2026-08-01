@@ -129,6 +129,21 @@ fn test_strict_json_serializes_scalar_variants() {
     );
 }
 
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_strict_json_serializer_preserves_float32_text() {
+    use qubit_value::strict_json::to_value;
+    use serde_json::to_string;
+
+    let value = 1.2_f32;
+
+    assert_eq!(
+        to_string(&to_value(&value).expect("serialize float"))
+            .expect("serialize json"),
+        value.to_string(),
+    );
+}
+
 /// Exercises every scalar and compound entry point of the strict serializer.
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]

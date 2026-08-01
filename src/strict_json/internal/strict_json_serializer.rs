@@ -17,6 +17,7 @@ use serde_json::{
     Number,
     Value,
 };
+use std::str::FromStr;
 
 use crate::strict_json::{
     Result,
@@ -142,7 +143,9 @@ impl Serializer for StrictJsonSerializer {
     /// Serializes a finite 32-bit floating-point value.
     #[inline(always)]
     fn serialize_f32(self, value: f32) -> Result<Value> {
-        self.serialize_f64(value.into())
+        Number::from_str(&value.to_string())
+            .map(Value::Number)
+            .ok_or(StrictJsonError::NonFinite)
     }
 
     /// Serializes a finite 64-bit floating-point value.

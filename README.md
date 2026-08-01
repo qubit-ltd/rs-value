@@ -86,7 +86,7 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 qubit-value = "0.10"
-qubit-datatype = { version = "0.9", default-features = false }
+qubit-datatype = { version = "0.10", default-features = false }
 ```
 
 The default feature set is empty. Enable only the required families, or use
@@ -120,7 +120,7 @@ owning crates as direct dependencies. For the complete extended example:
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-datatype = { version = "0.9", default-features = false }
+qubit-datatype = { version = "0.10", default-features = false }
 qubit-redact = { version = "0.3", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
@@ -624,7 +624,7 @@ For the full wire-format rationale and feature-availability details, see the
 
 ```toml
 [dependencies]
-qubit-datatype = { version = "0.9", default-features = false }
+qubit-datatype = { version = "0.10", default-features = false }
 qubit-redact = { version = "0.3", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"

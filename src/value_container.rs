@@ -221,6 +221,34 @@ impl ValueContainer {
         }
     }
 
+    /// Creates an unset scalar container for a declared data type.
+    ///
+    /// # Parameters
+    ///
+    /// * `data_type` - Declared scalar type while no value is set.
+    ///
+    /// # Returns
+    ///
+    /// A scalar `ValueContainer` with explicit unset storage.
+    #[inline(always)]
+    pub const fn new_unset_scalar(data_type: DataType) -> Self {
+        Self::Scalar(Value::new_unset(data_type))
+    }
+
+    /// Creates an unset collection container for a declared element type.
+    ///
+    /// # Parameters
+    ///
+    /// * `data_type` - Declared element type while no values are set.
+    ///
+    /// # Returns
+    ///
+    /// A collection `ValueContainer` with explicit unset storage.
+    #[inline(always)]
+    pub const fn new_unset_collection(data_type: DataType) -> Self {
+        Self::Collection(MultiValues::new_unset(data_type))
+    }
+
     /// Returns whether this container has scalar shape.
     ///
     /// # Returns

@@ -21,6 +21,7 @@ use serde_json::{
     Number,
     Value as JsonValue,
 };
+use std::str::FromStr;
 
 use crate::{
     MultiValues,
@@ -44,7 +45,7 @@ use crate::{
 /// # Errors
 ///
 /// Returns [`DataConversionError`] when `value` is NaN or infinite.
-fn finite_float(
+fn finite_float64(
     value: f64,
     from: DataType,
 ) -> Result<JsonValue, DataConversionError> {
@@ -57,6 +58,19 @@ fn finite_float(
     )
 }
 
+fn finite_float32(
+    value: f32,
+    from: DataType,
+) -> Result<JsonValue, DataConversionError> {
+    Number::from_str(&value.to_string())
+        .map(JsonValue::Number)
+        .ok_or(DataConversionError::invalid(
+            from,
+            DataType::Json,
+            InvalidValueReason::NonFinite,
+        ))
+}
+
 macro_rules! scalar_to_json {
     (json_bool, $value:expr, $from:expr, $options:expr) => {
         Ok(JsonValue::Bool(*$value))
@@ -64,8 +78,11 @@ macro_rules! scalar_to_json {
     (json_number, $value:expr, $from:expr, $options:expr) => {
         Ok(JsonValue::from(*$value))
     };
-    (json_float, $value:expr, $from:expr, $options:expr) => {
-        finite_float(*$value as f64, $from)
+    (json_float32, $value:expr, $from:expr, $options:expr) => {
+        finite_float32(*$value, $from)
+    };
+    (json_float64, $value:expr, $from:expr, $options:expr) => {
+        finite_float64(*$value as f64, $from)
     };
     (json_string, $value:expr, $from:expr, $options:expr) => {
         Ok(JsonValue::String($value.to_string()))

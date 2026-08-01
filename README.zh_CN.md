@@ -70,7 +70,7 @@ hasher、Rust 版本、crate 版本、启用的 feature、平台或实现变化�
 ```toml
 [dependencies]
 qubit-value = "0.10"
-qubit-datatype = { version = "0.9", default-features = false }
+qubit-datatype = { version = "0.10", default-features = false }
 ```
 
 默认 feature 集为空。可按需启用类型族，也可使用 `all` 这一便捷 feature：
@@ -101,7 +101,7 @@ qubit-datatype = { version = "0.9", default-features = false }
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-datatype = { version = "0.9", default-features = false }
+qubit-datatype = { version = "0.10", default-features = false }
 qubit-redact = { version = "0.3", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
@@ -581,7 +581,7 @@ Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍�
 
 ```toml
 [dependencies]
-qubit-datatype = { version = "0.9", default-features = false }
+qubit-datatype = { version = "0.10", default-features = false }
 qubit-redact = { version = "0.3", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
