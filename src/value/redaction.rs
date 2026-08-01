@@ -12,22 +12,13 @@ use std::fmt;
 #[cfg(feature = "json")]
 use qubit_redact::RedactedJson;
 use qubit_redact::{
-    Redact,
-    RedactMapValue,
-    RedactValue,
-    RedactedKeyedValue,
-    RedactedMap,
-    RedactedValue,
+    Redact, RedactMapValue, RedactValue, RedactedKeyedValue, RedactedMap, RedactedValue,
     RedactionPolicy,
 };
 
-use super::Value;
-use crate::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    ValueContainer,
-};
+use super::{Value, ValueRepr};
+use crate::multi_values::MultiValuesRepr;
+use crate::{MultiValues, NamedMultiValues, NamedValue, ValueContainer};
 
 impl RedactValue for Value {
     /// Redacts string contents while replacing every other variant opaquely.
@@ -36,8 +27,8 @@ impl RedactValue for Value {
         level: qubit_redact::Sensitivity,
         masking: &'a qubit_redact::MaskingPolicy,
     ) -> RedactedValue<'a> {
-        match self {
-            Self::String(value) => value.redact_value(level, masking),
+        match &self.repr {
+            ValueRepr::String(value) => value.redact_value(level, masking),
             _ => RedactedValue::opaque(level, masking),
         }
     }
@@ -66,14 +57,10 @@ impl Redact for Value {
         policy: &RedactionPolicy,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
-        match self {
-            Self::StringMap(values) => {
-                values.fmt_redacted_map(policy, formatter)
-            }
+        match &self.repr {
+            ValueRepr::StringMap(values) => values.fmt_redacted_map(policy, formatter),
             #[cfg(feature = "json")]
-            Self::Json(value) => {
-                fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter)
-            }
+            ValueRepr::Json(value) => fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter),
             _ => fmt::Debug::fmt(self, formatter),
         }
     }
@@ -87,8 +74,8 @@ impl Redact for MultiValues {
         policy: &RedactionPolicy,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
-        match self {
-            Self::StringMap(values) => {
+        match &self.repr {
+            MultiValuesRepr::StringMap(values) => {
                 let mut output = formatter.debug_list();
                 for value in values {
                     output.entry(&RedactedMap::new(value, policy.clone()));
@@ -96,7 +83,7 @@ impl Redact for MultiValues {
                 output.finish()
             }
             #[cfg(feature = "json")]
-            Self::Json(values) => {
+            MultiValuesRepr::Json(values) => {
                 let mut output = formatter.debug_list();
                 for value in values {
                     output.entry(&RedactedJson::new(value, policy));

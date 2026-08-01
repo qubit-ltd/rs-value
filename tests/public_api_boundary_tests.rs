@@ -11,25 +11,13 @@
 //! types and standard conversion traits.
 
 use std::fs;
-use std::hash::{
-    DefaultHasher,
-    Hash,
-    Hasher,
-};
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
-use std::process::{
-    Command,
-    Output,
-};
+use std::process::{Command, Output};
 
 use qubit_datatype::DataType;
 use qubit_value::{
-    MultiValues,
-    StrictValueListRead,
-    StrictValueRead,
-    Value,
-    ValueContainer,
-    ValueError,
+    MultiValues, StrictValueListRead, StrictValueRead, Value, ValueContainer, ValueError,
 };
 
 /// Reads one exact value through the public strict-read marker trait.
@@ -141,6 +129,18 @@ fn assert_non_exhaustive_match_failure(output: &Output) {
     );
 }
 
+/// Verifies that an external consumer cannot match the private runtime
+/// representation of an opaque value wrapper.
+fn assert_opaque_match_failure(output: &Output) {
+    let diagnostics = cargo_diagnostics(output);
+    assert!(!output.status.success(), "{diagnostics}");
+    assert!(
+        diagnostics.contains("expected tuple struct or tuple variant")
+            || diagnostics.contains("no associated item named"),
+        "{diagnostics}",
+    );
+}
+
 /// Verifies that an external consumer compilation succeeds.
 fn assert_consumer_compiles(output: &Output) {
     let diagnostics = cargo_diagnostics(output);
@@ -169,13 +169,24 @@ fn test_value_generic_api_uses_public_bounds() {
     assert_eq!(text.get_string().unwrap(), "hello");
 }
 
+#[test]
+fn test_public_semantic_views_expose_values_without_storage_layout() {
+    let value = Value::Int32(42);
+    assert!(matches!(value.view(), qubit_value::ValueRef::Int32(42)));
+
+    let values = MultiValues::String(vec!["a".to_string(), "b".to_string()]);
+    let qubit_value::MultiValuesRef::String(values) = values.view() else {
+        panic!("expected string collection view");
+    };
+    assert_eq!(values, &[String::from("a"), String::from("b")]);
+}
+
 /// Accepts unsized serializable inputs for JSON escape-hatch conversion.
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_value_from_serializable_accepts_unsized_slice() {
     let values: &[i32] = &[1, 2, 3];
-    let value = Value::from_serializable(values)
-        .expect("slice should serialize as JSON");
+    let value = Value::from_serializable(values).expect("slice should serialize as JSON");
 
     assert_eq!(
         value.to_json_value().expect("JSON value should project"),
@@ -238,7 +249,7 @@ fn classify(value: Value) -> usize {
 fn main() { let _ = classify; }
 "#,
     );
-    assert_non_exhaustive_match_failure(&output);
+    assert_opaque_match_failure(&output);
 }
 
 #[test]
@@ -266,7 +277,7 @@ fn classify(value: MultiValues) -> usize {
 fn main() { let _ = classify; }
 "#,
     );
-    assert_non_exhaustive_match_failure(&output);
+    assert_opaque_match_failure(&output);
 }
 
 #[test]

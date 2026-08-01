@@ -8,21 +8,14 @@
 
 //! Explicit scalar-or-collection value storage.
 
-use crate::{
-    MultiValues,
-    StrictValueListRead,
-    StrictValueRead,
-    Value,
-    ValueError,
-    ValueResult,
-};
+use crate::multi_values::MultiValuesRepr;
+use crate::value::ValueRepr;
+#[cfg(feature = "converter")]
+use crate::value::ValueRef;
+use crate::{MultiValues, StrictValueListRead, StrictValueRead, Value, ValueError, ValueResult};
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionOptions,
-    DataConversionTarget,
-    ScalarStringDataConverters,
-};
+use qubit_datatype::{DataConversionOptions, DataConversionTarget, ScalarStringDataConverters};
 
 /// A typed value whose scalar or collection shape is explicit.
 ///
@@ -67,7 +60,7 @@ macro_rules! impl_value_container_from_table {
             impl From<$type> for ValueContainer {
                 #[inline(always)]
                 fn from(value: $type) -> Self {
-                    Self::Scalar(Value::$variant(value_storage_new!($variant, value)))
+                    Self::Scalar(Value::$variant(value))
                 }
             }
 
@@ -119,10 +112,10 @@ for_each_value_type!(impl_value_container_from_table);
 /// Builds a typed collection from one or two same-typed scalar values.
 macro_rules! value_container_pair_match {
     ($first:expr, $second:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
-        match ($first, $second) {
+        match ($first.repr, $second.repr) {
             $(
                 $(#[$cfg])*
-                (Value::$variant(first), Value::$variant(second)) => {
+                (ValueRepr::$variant(first), ValueRepr::$variant(second)) => {
                     MultiValues::$variant(vec![
                         value_storage_into_multi!($variant, first),
                         value_storage_into_multi!($variant, second),
@@ -131,7 +124,7 @@ macro_rules! value_container_pair_match {
             )+
             $(
                 $(#[$cfg])*
-                (Value::Unset(_), Value::$variant(second)) => {
+                (ValueRepr::Unset(_), ValueRepr::$variant(second)) => {
                     MultiValues::$variant(vec![value_storage_into_multi!($variant, second)])
                 }
             )+
@@ -143,17 +136,17 @@ macro_rules! value_container_pair_match {
 /// Pushes a same-typed scalar directly into collection storage.
 macro_rules! value_container_push_match {
     ($collection:expr, $value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
-        match ($collection, $value) {
+        match (&mut $collection.repr, $value.repr) {
             $(
                 $(#[$cfg])*
-                (MultiValues::$variant(values), Value::$variant(value)) => {
+                (MultiValuesRepr::$variant(values), ValueRepr::$variant(value)) => {
                     values.push(value_storage_into_multi!($variant, value))
                 },
             )+
             $(
                 $(#[$cfg])*
-                (slot @ MultiValues::Unset(_), Value::$variant(value)) => {
-                    *slot = MultiValues::$variant(vec![value_storage_into_multi!($variant, value)]);
+                (slot @ MultiValuesRepr::Unset(_), ValueRepr::$variant(value)) => {
+                    *slot = MultiValuesRepr::$variant(vec![value_storage_into_multi!($variant, value)]);
                 }
             )+
             _ => unreachable!(),
@@ -372,6 +365,13 @@ impl ValueContainer {
         }
     }
 
+    /// Tests whether this container represents no concrete values.
+    #[inline(always)]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Strictly reads a scalar or the first collection item as `T`.
     ///
     /// # Type Parameters
@@ -469,7 +469,7 @@ impl ValueContainer {
         if expected != actual {
             return Err(ValueError::TypeMismatch { expected, actual });
         }
-        if other.len() == 0 {
+        if other.is_empty() {
             return Ok(());
         }
 
@@ -480,8 +480,7 @@ impl ValueContainer {
             }
             Self::Collection(other) => match self {
                 Self::Scalar(value) => {
-                    let value =
-                        std::mem::replace(value, Value::Unset(expected));
+                    let value = std::mem::replace(value, Value::new_unset(expected));
                     let mut collection = MultiValues::from(value);
                     collection.add(other)?;
                     *self = Self::Collection(collection);
@@ -542,10 +541,7 @@ impl ValueContainer {
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
-    pub fn to_first_with<T>(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<T>
+    pub fn to_first_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -598,22 +594,17 @@ impl ValueContainer {
     ///
     /// Returns the mapped single-value or indexed list conversion error.
     #[cfg(feature = "converter")]
-    pub fn to_list_with<T>(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(&self, options: &DataConversionOptions) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
         match self {
-            Self::Scalar(Value::String(value)) => {
-                ScalarStringDataConverters::from(value.as_str())
+            Self::Scalar(value) => match value.view() {
+                ValueRef::String(value) => ScalarStringDataConverters::from(value)
                     .to_vec_with(options)
-                    .map_err(ValueError::from)
-            }
-            Self::Scalar(value) => {
-                value.to_with(options).map(|value| vec![value])
-            }
+                    .map_err(ValueError::from),
+                _ => value.to_with(options).map(|value| vec![value]),
+            },
             Self::Collection(values) => values.to_list_with(options),
         }
     }
@@ -634,21 +625,12 @@ impl ValueContainer {
     fn add_scalar(&mut self, value: Value, data_type: DataType) {
         match self {
             Self::Scalar(current) => {
-                let current =
-                    std::mem::replace(current, Value::Unset(data_type));
-                let collection = for_each_value_type!(
-                    value_container_pair_match,
-                    current,
-                    value
-                );
+                let current = std::mem::replace(current, Value::new_unset(data_type));
+                let collection = for_each_value_type!(value_container_pair_match, current, value);
                 *self = Self::Collection(collection);
             }
             Self::Collection(collection) => {
-                for_each_value_type!(
-                    value_container_push_match,
-                    collection,
-                    value
-                );
+                for_each_value_type!(value_container_push_match, collection, value);
             }
         }
     }

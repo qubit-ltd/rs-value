@@ -53,7 +53,7 @@ macro_rules! define_collection_wire_owned {
             /// Restores the exact runtime collection variant.
             fn from(values: CollectionWireOwned) -> Self {
                 match values {
-                    CollectionWireOwned::Unset(data_type) => Self::Unset(data_type.into()),
+                    CollectionWireOwned::Unset(data_type) => Self::new_unset(data_type.into()),
                     $(
                         $(#[$cfg])*
                         CollectionWireOwned::$variant(values) => Self::$variant(values),
