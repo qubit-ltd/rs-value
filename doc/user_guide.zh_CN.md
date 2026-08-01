@@ -4,7 +4,7 @@
 
 ```toml
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-redact = { version = "0.3", default-features = false }
+qubit-redact = { version = "0.4", default-features = false }
 ```
 
 默认 feature 集为空。不需要全部类型族时，只启用 `chrono`、`big-integer`、
@@ -82,6 +82,11 @@ tag 只有在接收方启用对应 feature 时才能反序列化：日期/时间
 `BigDecimal` 使用精确的 `{"coefficient":"...","scale":i64}` payload；
 `Duration` 使用 secs/nanos；非有限浮点会被拒绝。`Json(null)` 与
 `Unset(Json)` 不同。
+
+借用 payload 必须通过 `ValueWirePayloadRefV1::from_value`、`from_values`、
+`from_container` 或 `TryFrom` 创建。这些可失败构造器会在序列化前校验有限浮点
+和有界的 BigDecimal scale；payload 内部表示是私有的，因此调用方无法构造未经
+校验的 wire shape。
 
 `Value`、`MultiValues`、`ValueContainer` 可通过 `From` 转成
 `ValueWireV1`；`ValueWireV1` 可转回 `ValueContainer`。

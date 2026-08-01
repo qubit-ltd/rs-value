@@ -102,7 +102,7 @@ qubit-datatype = { version = "0.10", default-features = false }
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.3", default-features = false }
+qubit-redact = { version = "0.4", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -541,6 +541,11 @@ V1 是封闭格式：现有 tag、shape 和 payload 表示不得改变；未来�
 `Duration` 使用 `{"secs":u64,"nanos":u32}`，且 nanos 必须小于一秒。浮点
 payload 必须是有限值。
 
+借用 payload 应通过 `ValueWirePayloadRefV1::from_value`、`from_values`、
+`from_container` 或对应的 `TryFrom` 实现创建。这些构造器会校验 V1 的有限浮点
+和 BigDecimal scale 不变量；payload 的内部表示保持私有，调用方无法直接构造
+未经校验的 shape 来绕过这些检查。
+
 通用 Serde 反序列化不会自行施加外部消息大小预算。对于不可信 JSON，请使用
 `ValueWireV1::decode_json_slice()` 在解析前执行默认的一 MiB 限制，或通过
 `ValueWireLimits` 选择符合协议的预算：
@@ -582,7 +587,7 @@ Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍�
 ```toml
 [dependencies]
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.3", default-features = false, optional = true }
+qubit-redact = { version = "0.4", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 serde_json = { version = "1.0", optional = true }
