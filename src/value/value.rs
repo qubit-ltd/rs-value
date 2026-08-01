@@ -54,6 +54,9 @@ macro_rules! define_value_enum {
         /// - Provides strict getters and, with `converter`, option-controlled
         ///   conversion methods.
         /// - Distinguishes an unset container from concrete inner values.
+        /// - The URL variant uses boxed storage internally to keep the enum
+        ///   compact; use [`Value::new`] and typed getters instead of relying
+        ///   on the storage representation of individual variants.
         ///
         /// # Equality and hashing
         ///
