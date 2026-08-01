@@ -102,7 +102,7 @@ qubit-datatype = { version = "0.10", default-features = false }
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.5", default-features = false }
+qubit-redact = { version = "0.4", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -590,11 +590,11 @@ Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍�
 ```toml
 [dependencies]
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.5", default-features = false, optional = true }
+qubit-redact = { version = "0.4", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
-serde_json = { version = "1.0", optional = true }
-chrono = { version = "0.4", features = ["serde"], optional = true }
+serde_json = { version = "1.0", features = ["arbitrary_precision"], optional = true }
+chrono = { version = "0.4", default-features = false, features = ["std", "serde"], optional = true }
 url = { version = "2.5", features = ["serde"], optional = true }
 num-bigint = { version = "0.4", optional = true }
 bigdecimal = { version = "0.4", optional = true }
