@@ -4,7 +4,7 @@
 
 ```toml
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-redact = { version = "0.4", default-features = false }
+qubit-redact = { version = "0.5", default-features = false }
 ```
 
 The default feature set is empty. Enable only `chrono`, `big-integer`,
@@ -38,7 +38,7 @@ let value = Value::StringMap(HashMap::from([
     ("api_key".to_owned(), "raw-secret".to_owned()),
     ("label".to_owned(), "visible".to_owned()),
 ]));
-let policy = RedactionPolicy::builder()
+let policy = RedactionPolicy::builder_from_default()
     .raise("api_key", Sensitivity::Secret)
     .build()
     .expect("redaction policy should build");
@@ -66,9 +66,9 @@ Direct Serde uses `ValueWireV1`:
 {"version":1,"value":{"collection":{"unset":"int32"}}}
 ```
 
-V1 compatibility covers this JSON object structure. Other Serde formats may
-work, but their format-specific representations are outside the stability
-contract.
+For a given serializer and value, the V1 output is byte-stable. Object keys are
+emitted in lexicographic (dictionary) order, recursively for nested JSON
+objects and for `StringMap`; this ordering is the default contract.
 
 V1 is closed. Existing tags, shapes, and payload representations cannot
 change, and a future runtime data type requires a new wire version instead of
@@ -110,5 +110,5 @@ complete outer input length before invoking that document's Serde decoder.
 ## Natural JSON
 
 With both `converter` and `json`, `to_json_value()` emits ordinary application
-JSON without runtime type tags. Use Wire V1 whenever the receiver must
-reconstruct the exact runtime type and shape.
+JSON without runtime type tags and recursively orders object keys. Use Wire V1
+whenever the receiver must reconstruct the exact runtime type and shape.

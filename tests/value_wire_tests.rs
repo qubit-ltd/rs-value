@@ -30,6 +30,23 @@ fn test_value_wire_v1_identity_preserves_shape() {
     );
 }
 
+#[test]
+fn test_value_wire_v1_serializes_string_map_keys_in_dictionary_order() {
+    let map = (0..128)
+        .map(|index| (format!("key-{index:03}"), index.to_string()))
+        .collect::<HashMap<_, _>>();
+    let wire = ValueWireV1::try_from(Value::StringMap(map)).expect("construct string map wire");
+    let encoded = serde_json::to_string(&wire).expect("serialize string map wire");
+
+    let expected_entries = (0..128)
+        .map(|index| format!(r#""key-{index:03}":"{index}""#))
+        .collect::<Vec<_>>()
+        .join(",");
+    let expected =
+        format!(r#"{{"version":1,"value":{{"scalar":{{"stringmap":{{{expected_entries}}}}}}}}}"#,);
+    assert_eq!(encoded, expected);
+}
+
 /// Verifies the standalone V1 envelope wraps an unversioned V1 payload.
 #[test]
 fn test_value_wire_v1_wraps_unversioned_payload_and_rejects_non_finite_float() {
