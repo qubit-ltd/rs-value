@@ -219,7 +219,7 @@ fn redact_feature_masks_sensitive_string_map_entries() {
         ("api_key".to_owned(), "raw-secret".to_owned()),
         ("label".to_owned(), "visible".to_owned()),
     ]));
-    let policy = RedactionPolicy::builder()
+    let policy = RedactionPolicy::empty_builder()
         .raise("api_key", Sensitivity::Secret)
         .build()
         .expect("policy should build");
@@ -234,7 +234,7 @@ fn redact_feature_masks_sensitive_string_map_entries() {
 #[test]
 fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
     let value = qubit_value::NamedValue::new("secret_number", Value::Int32(12345));
-    let policy = RedactionPolicy::builder()
+    let policy = RedactionPolicy::empty_builder()
         .raise("secret_number", Sensitivity::Low)
         .mask(
             Sensitivity::Low,
@@ -262,7 +262,7 @@ fn redact_feature_recursively_masks_sensitive_json_object_entries() {
             "unkeyed-value"
         ]
     }));
-    let policy = RedactionPolicy::builder()
+    let policy = RedactionPolicy::empty_builder()
         .raise("api_key", Sensitivity::Secret)
         .raise("token", Sensitivity::Secret)
         .build()

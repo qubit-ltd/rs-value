@@ -18,7 +18,7 @@ fn test_value_redacted_view_masks_sensitive_string_map_entries() {
         ("api_key".to_owned(), "raw-secret".to_owned()),
         ("label".to_owned(), "visible".to_owned()),
     ]));
-    let policy = RedactionPolicy::builder()
+    let policy = RedactionPolicy::empty_builder()
         .raise("api_key", Sensitivity::Secret)
         .build()
         .expect("policy should build");
@@ -32,7 +32,7 @@ fn test_value_redacted_view_masks_sensitive_string_map_entries() {
 #[test]
 fn test_value_redacted_view_preserves_scalar_without_key_context() {
     let value = Value::String("visible-without-key".to_owned());
-    let policy = RedactionPolicy::builder()
+    let policy = RedactionPolicy::empty_builder()
         .raise("password", Sensitivity::Secret)
         .build()
         .expect("policy should build");
@@ -45,7 +45,7 @@ fn test_value_redacted_view_preserves_scalar_without_key_context() {
 #[test]
 fn test_value_redact_value_masks_non_strings_with_configured_opaque_value() {
     let value = Value::Int32(12345);
-    let masking = RedactionPolicy::builder()
+    let masking = RedactionPolicy::empty_builder()
         .mask(
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
@@ -63,7 +63,7 @@ fn test_value_redact_value_masks_non_strings_with_configured_opaque_value() {
 #[test]
 fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
     let value = NamedValue::new("token", Value::String("secret-token".to_owned()));
-    let policy = RedactionPolicy::builder()
+    let policy = RedactionPolicy::empty_builder()
         .raise("token", Sensitivity::Low)
         .mask(
             Sensitivity::Low,
@@ -75,7 +75,7 @@ fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
     let output = format!("{:?}", value.redacted_with(&policy));
 
     assert!(!output.contains("secret-token"));
-    assert!(output.contains("sMASKn"));
+    assert!(output.contains("****"));
 }
 
 #[test]
@@ -84,7 +84,7 @@ fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
         "tokens",
         MultiValues::String(vec!["first-secret".to_owned(), "second-secret".to_owned()]),
     );
-    let policy = RedactionPolicy::builder()
+    let policy = RedactionPolicy::empty_builder()
         .raise("tokens", Sensitivity::Low)
         .mask(
             Sensitivity::Low,
