@@ -8,80 +8,60 @@
 
 //! Borrowed V1 payload serialization.
 
-use serde::{
-    Serialize,
-    Serializer,
-};
+use serde::{Serialize, Serializer};
 
 #[cfg(feature = "big-decimal")]
-use crate::wire::{
-    MAX_BIG_DECIMAL_ABSOLUTE_SCALE,
-    is_valid_big_decimal_scale,
-};
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
+use crate::wire::{MAX_BIG_DECIMAL_ABSOLUTE_SCALE, is_valid_big_decimal_scale};
+use crate::{MultiValues, Value, ValueContainer};
 
-use super::{
-    ValueWireEncodeError,
-    WireShapeRef,
-};
+use super::{ValueWireEncodeError, WireShapeRef};
 
 /// Borrowed unversioned V1 payload for serialization without cloning.
+///
+/// Use one of the fallible constructors or the corresponding `TryFrom` impl
+/// to create a payload. The private representation prevents callers from
+/// bypassing V1 validation by constructing an unchecked shape directly.
 #[must_use]
-pub enum ValueWirePayloadRefV1<'a> {
-    /// A scalar value.
-    Scalar(&'a Value),
-    /// A homogeneous collection.
-    Collection(&'a MultiValues),
-    /// A value with an explicit scalar-or-collection shape.
-    Container(&'a ValueContainer),
+pub struct ValueWirePayloadRefV1<'a> {
+    shape: WireShapeRef<'a>,
 }
 
 impl<'a> ValueWirePayloadRefV1<'a> {
     /// Borrows a scalar after validating V1's finite-float invariant.
     pub fn from_value(value: &'a Value) -> Result<Self, ValueWireEncodeError> {
         validate_value(value)?;
-        Ok(Self::Scalar(value))
+        Ok(Self {
+            shape: WireShapeRef::Scalar(value.into()),
+        })
     }
 
     /// Borrows a collection after validating V1's finite-float invariant.
-    pub fn from_values(
-        values: &'a MultiValues,
-    ) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
         validate_values(values)?;
-        Ok(Self::Collection(values))
+        Ok(Self {
+            shape: WireShapeRef::Collection(values.into()),
+        })
     }
 
     /// Borrows an explicit shape after validating V1's finite-float invariant.
-    pub fn from_container(
-        value: &'a ValueContainer,
-    ) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
         match value {
             ValueContainer::Scalar(value) => validate_value(value)?,
             ValueContainer::Collection(values) => validate_values(values)?,
         }
-        Ok(Self::Container(value))
+        Ok(Self {
+            shape: value.into(),
+        })
     }
 
     /// Returns the borrowed internal shape used by V1 serialization.
     pub(in crate::value_wire) fn shape(&self) -> WireShapeRef<'a> {
-        match self {
-            Self::Scalar(value) => WireShapeRef::Scalar((*value).into()),
-            Self::Collection(values) => {
-                WireShapeRef::Collection((*values).into())
-            }
-            Self::Container(value) => (*value).into(),
-        }
+        self.shape
     }
 }
 
 /// Validates one scalar against V1's JSON finite-float invariant.
-pub(in crate::value_wire) fn validate_value(
-    value: &Value,
-) -> Result<(), ValueWireEncodeError> {
+pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "big-decimal")]
     if let Value::BigDecimal(value) = value {
         validate_big_decimal_scale(value.as_bigint_and_exponent().1)?;
@@ -107,12 +87,8 @@ pub(in crate::value_wire) fn validate_values(
         }
     }
     let non_finite = match values {
-        MultiValues::Float32(values) => {
-            values.iter().any(|value| !value.is_finite())
-        }
-        MultiValues::Float64(values) => {
-            values.iter().any(|value| !value.is_finite())
-        }
+        MultiValues::Float32(values) => values.iter().any(|value| !value.is_finite()),
+        MultiValues::Float64(values) => values.iter().any(|value| !value.is_finite()),
         _ => false,
     };
     if non_finite {

@@ -29,7 +29,7 @@ macro_rules! define_scalar_wire_ref {
         ),+ $(,)?
     ) => {
         /// Borrowed payload for one typed scalar.
-        #[derive(Serialize)]
+        #[derive(Clone, Copy, Serialize)]
         pub(in crate::value_wire) enum ScalarWireRef<'a> {
             /// Unset scalar and its declared data type.
             #[serde(rename = "unset")]
