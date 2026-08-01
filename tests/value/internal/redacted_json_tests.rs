@@ -21,7 +21,7 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
         "secret_null": null,
         "visible": "public"
     }));
-    let policy = RedactionPolicy::builder()
+    let policy = RedactionPolicy::empty_builder()
         .raise("secret_number", Sensitivity::Low)
         .raise("secret_object", Sensitivity::Low)
         .raise("secret_array", Sensitivity::Low)
