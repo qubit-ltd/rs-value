@@ -538,16 +538,13 @@ impl ValueContainer {
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
-    pub fn to_first_with<T>(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<T>
+    pub fn to_first_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
         match self {
             Self::Scalar(value) => value.to_with(options),
-            Self::Collection(values) => values.to_with(options),
+            Self::Collection(values) => values.to_first_with(options),
         }
     }
 
