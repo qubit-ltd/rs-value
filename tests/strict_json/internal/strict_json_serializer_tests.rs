@@ -161,3 +161,36 @@ fn test_strict_json_serializer_covers_serde_entry_points() {
         let _ = Value::from_serializable(&ScalarProbe(index)).expect("probe should serialize");
     }
 }
+
+/// Preserves arbitrary-precision numbers emitted by `serde_json::Value`.
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_strict_json_preserves_arbitrary_precision_number() {
+    use qubit_value::Value;
+
+    let source = serde_json::from_str::<serde_json::Value>(
+        "123456789012345678901234567890.123456789",
+    )
+    .expect("number should parse");
+    let value = Value::from_serializable(&source).expect("number should serialize");
+
+    assert_eq!(
+        value.to_json_value().expect("project JSON").to_string(),
+        source.to_string(),
+    );
+}
+
+/// Preserves arbitrary-precision numbers nested in JSON arrays and objects.
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_strict_json_preserves_nested_arbitrary_precision_number() {
+    use qubit_value::Value;
+
+    let source = serde_json::from_str::<serde_json::Value>(
+        r#"{"outer":[0.000000000000000000000000000000000001,{"inner":999999999999999999999999999999}]}"#,
+    )
+    .expect("nested value should parse");
+    let value = Value::from_serializable(&source).expect("nested value should serialize");
+
+    assert_eq!(value.to_json_value().expect("project JSON"), source);
+}
