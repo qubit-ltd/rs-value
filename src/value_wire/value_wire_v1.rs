@@ -19,13 +19,13 @@ use super::{
 #[cfg(feature = "json")]
 use super::{ValueWireDecodeError, ValueWireLimits};
 
-/// Stable version-one JSON wire DTO for a scalar or homogeneous collection.
+/// Stable version-one wire DTO for a scalar or homogeneous collection.
 ///
-/// The compatibility guarantee covers the documented JSON object structure.
-/// Other Serde formats may work, but their representation is not part of the
-/// V1 stability contract. V1 is closed: existing tags, shapes, and payload
-/// representations cannot change, and future runtime data types require a new
-/// wire version instead of extending V1.
+/// For a given serializer and value, output is byte-stable with canonical field
+/// and object-key order, including recursively nested JSON objects. V1 is
+/// closed: existing tags, shapes, and payload representations cannot change,
+/// and future runtime data types require a new wire version instead of
+/// extending V1.
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValueWireV1 {

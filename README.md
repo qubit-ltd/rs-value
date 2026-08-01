@@ -121,7 +121,7 @@ owning crates as direct dependencies. For the complete extended example:
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.4", default-features = false }
+qubit-redact = { version = "0.5", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -465,7 +465,8 @@ conversion, unset error mapping, and indexed list errors.
 Tagged Serde and natural JSON are separate contracts. Tagged Serde preserves
 the variant name, while natural JSON maps unset to `null`; every concrete
 collection remains an array, including one-item collections. Natural JSON
-represents 128-bit and big numbers as strings.
+represents 128-bit and big numbers as strings, and recursively emits object
+keys in dictionary order.
 Non-finite floats may be stored in memory, but both JSON-facing contracts reject
 `NaN`, positive infinity, and negative infinity because JSON defines no such
 number literals.
@@ -557,9 +558,10 @@ Type-preserving Serde uses one strict versioned envelope:
 {"version":1,"value":{"scalar":{"int32":42}}}
 ```
 
-The V1 compatibility guarantee applies to this JSON object structure. The
-Serde implementations may be used with other serializers, but their
-format-specific representation is not part of the V1 stability contract.
+For a given serializer and value, the V1 output is byte-stable. Object keys are
+emitted in lexicographic (dictionary) order, recursively for nested JSON
+objects and for `StringMap`; this ordering is part of the default contract, not
+an opt-in API.
 V1 is closed: its existing tags, shapes, and payload representations cannot
 change, and a future runtime data type requires a new wire version instead of
 extending V1.
@@ -631,7 +633,7 @@ For the full wire-format rationale and feature-availability details, see the
 ```toml
 [dependencies]
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.4", default-features = false, optional = true }
+qubit-redact = { version = "0.5", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 serde_json = { version = "1.0", optional = true }

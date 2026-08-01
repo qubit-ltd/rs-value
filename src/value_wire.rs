@@ -46,8 +46,8 @@ macro_rules! for_each_wire_type {
             ([cfg(feature = "chrono")], [serde(with = "crate::wire::instant")], [serde(with = "crate::wire::instant_vec")], Instant, chrono::DateTime<chrono::Utc>, "instant"),
             ([], [serde(with = "crate::wire::duration")], [serde(with = "crate::wire::duration_vec")], Duration, std::time::Duration, "duration"),
             ([cfg(feature = "url")], [serde(with = "crate::wire::url")], [serde(with = "crate::wire::url_vec")], Url, url::Url, "url"),
-            ([], [], [], StringMap, std::collections::HashMap<String, String>, "stringmap"),
-            ([cfg(feature = "json")], [], [], Json, serde_json::Value, "json"),
+            ([], [serde(with = "crate::wire::string_map")], [serde(with = "crate::wire::string_map_vec")], StringMap, std::collections::HashMap<String, String>, "stringmap"),
+            ([cfg(feature = "json")], [serde(with = "crate::wire::json")], [serde(with = "crate::wire::json_vec")], Json, serde_json::Value, "json"),
         }
     };
 }

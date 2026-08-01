@@ -4,7 +4,7 @@
 
 ```toml
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-redact = { version = "0.4", default-features = false }
+qubit-redact = { version = "0.5", default-features = false }
 ```
 
 默认 feature 集为空。不需要全部类型族时，只启用 `chrono`、`big-integer`、
@@ -36,7 +36,7 @@ let value = Value::StringMap(HashMap::from([
     ("api_key".to_owned(), "raw-secret".to_owned()),
     ("label".to_owned(), "visible".to_owned()),
 ]));
-let policy = RedactionPolicy::builder()
+let policy = RedactionPolicy::builder_from_default()
     .raise("api_key", Sensitivity::Secret)
     .build()
     .expect("redaction policy should build");
@@ -63,8 +63,8 @@ JSON 对象和数组会被递归遍历；敏感 key 对应非字符串值时，�
 {"version":1,"value":{"collection":{"unset":"int32"}}}
 ```
 
-V1 的兼容性承诺覆盖上述 JSON 对象结构。其他 Serde 格式可以使用，但其
-格式相关表示不属于稳定契约。
+对于给定的序列化器和 value，V1 输出是字节稳定的。对象键（包括嵌套 JSON
+对象和 `StringMap`）都会递归地按字典序输出；这是默认契约，不需要额外 API。
 
 V1 是封闭格式。现有 tag、shape 和 payload 表示不得改变；未来新增运行时类型
 必须使用新的 wire 版本，而不能扩展 V1。
@@ -100,4 +100,5 @@ decoder。
 ## 自然 JSON
 
 同时启用 `converter` 与 `json` 后，`to_json_value()` 生成不含运行时类型标签
-的普通业务 JSON。如果接收方必须恢复精确的数据类型和形态，应使用 Wire V1。
+的普通业务 JSON，并递归地按字典序输出对象键。如果接收方必须恢复精确的
+数据类型和形态，应使用 Wire V1。

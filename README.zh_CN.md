@@ -102,7 +102,7 @@ qubit-datatype = { version = "0.10", default-features = false }
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.4", default-features = false }
+qubit-redact = { version = "0.5", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -436,7 +436,7 @@ assert_eq!(val, 8080);
 
 带类型标签的 Serde 与自然 JSON 是两个独立契约。前者保留变体名称；后者把未设置值
 映射为 `null`；所有具体集合（包括单元素集合）始终映射为数组。自然 JSON 用字符串表示
-128 位整数和大数。内存中可以保存非有限浮点数，但两个
+128 位整数和大数，并递归地按字典序输出对象键。内存中可以保存非有限浮点数，但两个
 JSON 边界都会拒绝 `NaN`、正无穷和负无穷，因为 JSON 没有这些数值字面量。
 
 ### 工具方法
@@ -521,8 +521,8 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 {"version":1,"value":{"scalar":{"int32":42}}}
 ```
 
-V1 的兼容性承诺仅覆盖这里展示的 JSON 对象结构。Serde 实现可以配合其他
-serializer 使用，但这些格式各自的表示不属于 V1 稳定契约。
+对于给定的序列化器和 value，V1 输出是字节稳定的。对象键（包括嵌套 JSON
+对象和 `StringMap`）递归地按字典序输出；这是默认契约，不需要额外 API。
 V1 是封闭格式：现有 tag、shape 和 payload 表示不得改变；未来新增运行时类型
 必须使用新的 wire 版本，而不能扩展 V1。
 
@@ -587,7 +587,7 @@ Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍�
 ```toml
 [dependencies]
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.4", default-features = false, optional = true }
+qubit-redact = { version = "0.5", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 serde_json = { version = "1.0", optional = true }

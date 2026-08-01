@@ -12,7 +12,7 @@ use qubit_datatype::{
     DataConversionError, DataConversionOptions, DataConverter, DataListConversionError, DataType,
     InvalidValueReason,
 };
-use serde_json::{Map, Number, Value as JsonValue};
+use serde_json::{Number, Value as JsonValue};
 use std::str::FromStr;
 
 use crate::{MultiValues, Value, ValueContainer, ValueError, ValueResult};
@@ -73,16 +73,17 @@ macro_rules! scalar_to_json {
             .to_with::<String>($options)
             .map(JsonValue::String)
     };
-    (json_object, $value:expr, $from:expr, $options:expr) => {
-        Ok(JsonValue::Object(
-            $value
-                .iter()
-                .map(|(key, value)| (key.clone(), JsonValue::String(value.clone())))
-                .collect::<Map<String, JsonValue>>(),
-        ))
-    };
+    (json_object, $value:expr, $from:expr, $options:expr) => {{
+        let mut entries: Vec<_> = $value.iter().collect();
+        entries.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
+        let mut object = serde_json::Map::with_capacity(entries.len());
+        for (key, value) in entries {
+            object.insert(key.clone(), JsonValue::String(value.clone()));
+        }
+        Ok(JsonValue::Object(object))
+    }};
     (json_identity, $value:expr, $from:expr, $options:expr) => {
-        Ok($value.clone())
+        Ok(crate::wire::json::canonicalize_json_value($value))
     };
 }
 
