@@ -4,7 +4,7 @@
 
 ```toml
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-redact = { version = "0.4", default-features = false }
+qubit-redact = { version = "0.5", default-features = false }
 ```
 
 The default feature set is empty. Enable only `chrono`, `big-integer`,
@@ -38,7 +38,7 @@ let value = Value::StringMap(HashMap::from([
     ("api_key".to_owned(), "raw-secret".to_owned()),
     ("label".to_owned(), "visible".to_owned()),
 ]));
-let policy = RedactionPolicy::builder_from_default()
+let policy = RedactionPolicy::default().to_builder()
     .raise("api_key", Sensitivity::Secret)
     .build()
     .expect("redaction policy should build");
