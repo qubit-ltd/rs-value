@@ -30,8 +30,11 @@
 //! - Optional type families and conversion methods are available only when the
 //!   corresponding crate features are enabled; all-features documentation shows
 //!   the superset of those APIs.
-//! - [`Value::is_unset`] and [`MultiValues::is_unset`] distinguish an unset
-//!   container from a concrete value or concrete empty collection.
+//! - [`Value::is_unset`] and [`ValueContainer::is_unset`] indicate that no
+//!   concrete value is stored.
+//! - [`MultiValues::is_unset`] distinguishes no collection from a concrete
+//!   collection; [`MultiValues::is_empty`] reports only that its length is
+//!   zero.
 //! - Generic `set` replaces a value infallibly; [`MultiValues::add`] remains
 //!   fallible because appended values must have the same data type.
 //! - Serde uses the strict, type-preserving [`ValueWireV1`] envelope. Its

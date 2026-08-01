@@ -99,10 +99,10 @@ impl Value {
     /// [`NumericComparisonError::LeftNaN`],
     /// [`NumericComparisonError::RightNaN`], or
     /// [`NumericComparisonError::BothNaN`] according to the position of NaN
-    /// operands. Returns [`NumericComparisonError::Indeterminate`] if the
-    /// lower-level comparator cannot order the validated numeric operands.
-    /// Missing operands are checked left-to-right, then concrete operand types
-    /// are checked left-to-right, and finally NaN positions are classified.
+    /// operands. Missing operands are checked left-to-right, then concrete
+    /// operand types are checked left-to-right, and finally NaN positions are
+    /// classified. After these checks the lower-level comparator must be able
+    /// to order the remaining numeric operands.
     pub fn numeric_cmp(
         &self,
         other: &Self,
@@ -137,12 +137,12 @@ impl Value {
             (false, false) => {}
         }
 
-        left.compare(right, policy).ok_or_else(|| {
-            NumericComparisonError::Indeterminate {
-                left: self.data_type(),
-                right: other.data_type(),
-            }
-        })
+        match left.compare(right, policy) {
+            Some(ordering) => Ok(ordering),
+            None => unreachable!(
+                "validated non-NaN numeric values must be orderable"
+            ),
+        }
     }
 
     /// Borrows this value as a lower-level numeric representation.

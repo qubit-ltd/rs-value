@@ -587,8 +587,9 @@ impl MultiValues {
 
     /// Tests whether this collection contains no values.
     ///
-    /// Both an unset collection and a concrete empty vector are empty. Use
-    /// [`MultiValues::is_unset`] to distinguish those states.
+    /// An unset collection and a concrete empty vector both have length zero.
+    /// Use [`MultiValues::is_unset`] when the distinction between no collection
+    /// and a concrete empty collection matters.
     ///
     /// # Returns
     ///
@@ -644,7 +645,9 @@ impl MultiValues {
         *self = MultiValues::Unset(self.data_type());
     }
 
-    /// Clear all values while preserving the type
+    /// Clears all values while preserving a concrete collection and its type.
+    /// An unset collection remains unset because it has no concrete vector to
+    /// clear.
     ///
     /// # Examples
     ///
