@@ -17,7 +17,7 @@ use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::{
     MultiValues, NamedMultiValues, NamedValue, Value, ValueContainer, ValueWireEncodeError,
-    ValueWirePayloadV1, ValueWireV1,
+    ValueWirePayloadRefV1, ValueWirePayloadV1, ValueWireV1,
 };
 use serde_json::{Map, Value as JsonValue, json};
 use url::Url;
@@ -45,6 +45,40 @@ fn test_value_wire_v1_serializes_string_map_keys_in_dictionary_order() {
     let expected =
         format!(r#"{{"version":1,"value":{{"scalar":{{"stringmap":{{{expected_entries}}}}}}}}}"#,);
     assert_eq!(encoded, expected);
+}
+
+/// Serializes a string-map collection with dictionary-ordered keys.
+#[test]
+fn test_value_wire_v1_serializes_string_map_collection_keys_in_dictionary_order() {
+    let map = HashMap::from([
+        ("z".to_owned(), "26".to_owned()),
+        ("a".to_owned(), "1".to_owned()),
+        ("m".to_owned(), "13".to_owned()),
+    ]);
+    let wire = ValueWireV1::try_from(MultiValues::StringMap(vec![map]))
+        .expect("construct string-map collection wire");
+
+    assert_eq!(
+        serde_json::to_string(&wire).expect("serialize string-map collection wire"),
+        r#"{"version":1,"value":{"collection":{"stringmap":[{"a":"1","m":"13","z":"26"}]}}}"#,
+    );
+}
+
+/// Serializes a borrowed string-map payload with dictionary-ordered keys.
+#[test]
+fn test_value_wire_v1_borrowed_string_map_keys_in_dictionary_order() {
+    let value = Value::StringMap(HashMap::from([
+        ("z".to_owned(), "26".to_owned()),
+        ("a".to_owned(), "1".to_owned()),
+        ("m".to_owned(), "13".to_owned()),
+    ]));
+    let payload = ValueWirePayloadRefV1::try_from(&value)
+        .expect("construct borrowed string-map payload");
+
+    assert_eq!(
+        serde_json::to_string(&payload).expect("serialize borrowed string-map payload"),
+        r#"{"scalar":{"stringmap":{"a":"1","m":"13","z":"26"}}}"#,
+    );
 }
 
 /// Verifies the standalone V1 envelope wraps an unversioned V1 payload.

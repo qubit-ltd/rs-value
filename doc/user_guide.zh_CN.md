@@ -63,8 +63,10 @@ JSON 对象和数组会被递归遍历；敏感 key 对应非字符串值时，�
 {"version":1,"value":{"collection":{"unset":"int32"}}}
 ```
 
-对于给定的序列化器和 value，V1 输出是字节稳定的。对象键（包括嵌套 JSON
-对象和 `StringMap`）都会递归地按字典序输出；这是默认契约，不需要额外 API。
+规范化 JSON V1 表示在受支持的 `serde_json` 版本和配置下，对同一个 value
+始终产生相同字节。所有 Serde serializer 接收到的 `StringMap` 条目都会按
+key 的字典序从小到大排列；嵌套 JSON 对象的 key 也递归遵循这一顺序。其他
+Serde 格式不属于 V1 的字节级稳定性承诺。
 
 V1 是封闭格式。现有 tag、shape 和 payload 表示不得改变；未来新增运行时类型
 必须使用新的 wire 版本，而不能扩展 V1。

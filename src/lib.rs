@@ -34,11 +34,13 @@
 //!   container from a concrete value or concrete empty collection.
 //! - Generic `set` replaces a value infallibly; [`MultiValues::add`] remains
 //!   fallible because appended values must have the same data type.
-//! - Serde uses the strict, type-preserving [`ValueWireV1`] envelope. For a
-//!   given serializer and value, output is byte-stable; object keys are emitted
-//!   in lexicographic order, including nested JSON objects. With both
-//!   `converter` and `json`, `to_json_value` provides a separate natural JSON
-//!   projection with the same canonical object ordering.
+//! - Serde uses the strict, type-preserving [`ValueWireV1`] envelope. Its
+//!   canonical JSON representation is byte-stable for the same value under the
+//!   supported `serde_json` version and configuration. String-map keys and
+//!   nested JSON object keys are emitted in lexicographic order. Other Serde
+//!   formats are supported as representations, but are outside this byte-level
+//!   stability contract. With both `converter` and `json`, `to_json_value`
+//!   provides a separate natural JSON projection with the same ordering.
 //! - Version one rejects the pre-0.10 externally tagged representation.
 //! - Non-finite floats may exist in memory, but V1 Serde and natural JSON
 //!   reject them because JSON has no `NaN` or infinity number literals.

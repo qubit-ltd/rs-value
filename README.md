@@ -558,10 +558,13 @@ Type-preserving Serde uses one strict versioned envelope:
 {"version":1,"value":{"scalar":{"int32":42}}}
 ```
 
-For a given serializer and value, the V1 output is byte-stable. Object keys are
-emitted in lexicographic (dictionary) order, recursively for nested JSON
-objects and for `StringMap`; this ordering is part of the default contract, not
-an opt-in API.
+The canonical JSON V1 representation is byte-stable for the same value under
+the supported `serde_json` version and configuration. Every Serde serializer
+receives `StringMap` entries in ascending lexicographic (dictionary) key order;
+nested JSON object keys are ordered the same way. This ordering is part of the
+default contract for scalar, collection, and borrowed Wire payloads. Other
+Serde formats are supported, but their byte-level representations are outside
+the V1 stability contract.
 V1 is closed: its existing tags, shapes, and payload representations cannot
 change, and a future runtime data type requires a new wire version instead of
 extending V1.
