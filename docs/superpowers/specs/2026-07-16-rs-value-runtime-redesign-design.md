@@ -128,7 +128,7 @@ The following `rs-value` methods replace their HRTB bounds with
 `T: DataConversionTarget`:
 
 - `Value::{to,to_with,to_or,to_or_with}`
-- `MultiValues::{to,to_with,to_or,to_or_with}`
+- `MultiValues::{to_first,to_first_with,to_first_or,to_first_or_with}`
 - `MultiValues::{to_list,to_list_with,to_list_or,to_list_or_with}`
 - `ValueContainer::{to,to_with,to_list,to_list_with}`
 

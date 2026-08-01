@@ -251,7 +251,7 @@ Remove explicit `T: DataTypeOf` bounds wherever `T: DataConversionTarget` is
 already present in `rs-value`, including:
 
 - internal batch conversion helpers;
-- all `MultiValues::{to,to_with,to_or,to_or_with}` methods;
+- all `MultiValues::{to_first,to_first_with,to_first_or,to_first_or_with}` methods;
 - all `MultiValues::{to_list,to_list_with,to_list_or,to_list_or_with}` methods;
 - all `ValueContainer::{to,to_with,to_list,to_list_with}` methods.
 

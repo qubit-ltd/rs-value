@@ -303,7 +303,7 @@ assert_eq!(paths, vec!["cache".to_string(), "tmp".to_string()]);
 
 // First-value conversion with a scalar default
 let values = MultiValues::Unset(DataType::UInt16);
-let port: u16 = values.to_or(8080u16)?;
+let port: u16 = values.to_first_or(8080u16)?;
 assert_eq!(port, 8080);
 
 // List conversion with array or slice defaults
@@ -417,11 +417,11 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
   or returns the default when the value is unset.
 - **`Value::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   same fallback behavior while using explicit conversion options.
-- **`MultiValues::to<T>(&self) -> ValueResult<T>`** — converts the first stored
+- **`MultiValues::to_first<T>(&self) -> ValueResult<T>`** — converts the first stored
   value.
-- **`MultiValues::to_or<T>(&self, default) -> ValueResult<T>`** — converts the
+- **`MultiValues::to_first_or<T>(&self, default) -> ValueResult<T>`** — converts the
   first stored value, or returns the default only when the container is unset.
-- **`MultiValues::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
+- **`MultiValues::to_first_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   same fallback behavior while using explicit conversion options.
 - **`MultiValues::to_list<T>(&self) -> ValueResult<Vec<T>>`** — converts all
   stored values.
