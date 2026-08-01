@@ -12,12 +12,22 @@ use std::fmt;
 #[cfg(feature = "json")]
 use qubit_redact::RedactedJson;
 use qubit_redact::{
-    Redact, RedactMapValue, RedactValue, RedactedKeyedValue, RedactedMap, RedactedValue,
+    Redact,
+    RedactMapValue,
+    RedactValue,
+    RedactedKeyedValue,
+    RedactedMap,
+    RedactedValue,
     RedactionPolicy,
 };
 
 use super::Value;
-use crate::{MultiValues, NamedMultiValues, NamedValue, ValueContainer};
+use crate::{
+    MultiValues,
+    NamedMultiValues,
+    NamedValue,
+    ValueContainer,
+};
 
 impl RedactValue for Value {
     /// Redacts string contents while replacing every other variant opaquely.
@@ -57,9 +67,13 @@ impl Redact for Value {
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match self {
-            Self::StringMap(values) => values.fmt_redacted_map(policy, formatter),
+            Self::StringMap(values) => {
+                values.fmt_redacted_map(policy, formatter)
+            }
             #[cfg(feature = "json")]
-            Self::Json(value) => fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter),
+            Self::Json(value) => {
+                fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter)
+            }
             _ => fmt::Debug::fmt(self, formatter),
         }
     }

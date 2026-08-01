@@ -11,13 +11,25 @@
 //! types and standard conversion traits.
 
 use std::fs;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::hash::{
+    DefaultHasher,
+    Hash,
+    Hasher,
+};
 use std::path::PathBuf;
-use std::process::{Command, Output};
+use std::process::{
+    Command,
+    Output,
+};
 
 use qubit_datatype::DataType;
 use qubit_value::{
-    MultiValues, StrictValueListRead, StrictValueRead, Value, ValueContainer, ValueError,
+    MultiValues,
+    StrictValueListRead,
+    StrictValueRead,
+    Value,
+    ValueContainer,
+    ValueError,
 };
 
 /// Reads one exact value through the public strict-read marker trait.
@@ -162,7 +174,8 @@ fn test_value_generic_api_uses_public_bounds() {
 #[test]
 fn test_value_from_serializable_accepts_unsized_slice() {
     let values: &[i32] = &[1, 2, 3];
-    let value = Value::from_serializable(values).expect("slice should serialize as JSON");
+    let value = Value::from_serializable(values)
+        .expect("slice should serialize as JSON");
 
     assert_eq!(
         value.to_json_value().expect("JSON value should project"),

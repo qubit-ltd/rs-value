@@ -12,7 +12,10 @@ use serde::Serialize;
 
 use crate::ValueContainer;
 
-use super::{CollectionWireRef, ScalarWireRef};
+use super::{
+    CollectionWireRef,
+    ScalarWireRef,
+};
 
 /// Borrowed scalar-or-collection shape used during serialization.
 #[derive(Clone, Copy, Serialize)]
@@ -37,7 +40,9 @@ impl<'a> From<&'a ValueContainer> for WireShapeRef<'a> {
     fn from(value: &'a ValueContainer) -> Self {
         match value {
             ValueContainer::Scalar(value) => Self::Scalar(value.into()),
-            ValueContainer::Collection(values) => Self::Collection(values.into()),
+            ValueContainer::Collection(values) => {
+                Self::Collection(values.into())
+            }
         }
     }
 }

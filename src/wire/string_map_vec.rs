@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+// qubit-style: allow source-test-pair
 //! Canonical Serde adapter for collections of string maps.
 
 use std::collections::HashMap;

@@ -1,0 +1,1 @@
+multiple-public-types | src/strict_value_list_read.rs | The sealed helper trait and its public read contract are intentionally co-located.

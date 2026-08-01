@@ -11,7 +11,12 @@
 //! collections, facilitating human-readable identification of groups of values
 //! in configurations, serialization, logging, and other scenarios.
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    Deserialize,
+    Deserializer,
+    Serialize,
+    Serializer,
+};
 
 use crate::ValueWireRefV1;
 
@@ -20,7 +25,10 @@ use super::named_value::NamedValue;
 
 mod internal;
 
-use internal::{NamedMultiValuesWireOwned, NamedMultiValuesWireRef};
+use internal::{
+    NamedMultiValuesWireOwned,
+    NamedMultiValuesWireRef,
+};
 
 /// Named multiple values
 ///
@@ -250,7 +258,8 @@ impl Serialize for NamedMultiValues {
     where
         S: Serializer,
     {
-        let value = ValueWireRefV1::try_from(self.values()).map_err(serde::ser::Error::custom)?;
+        let value = ValueWireRefV1::try_from(self.values())
+            .map_err(serde::ser::Error::custom)?;
         NamedMultiValuesWireRef {
             name: self.name(),
             value,
@@ -269,7 +278,9 @@ impl<'de> Deserialize<'de> for NamedMultiValues {
         let NamedMultiValuesWireOwned { name, value } =
             NamedMultiValuesWireOwned::deserialize(deserializer)?;
         let value = value.into_container().into_collection().map_err(|_| {
-            serde::de::Error::custom("named multi-values wire payload must contain a collection")
+            serde::de::Error::custom(
+                "named multi-values wire payload must contain a collection",
+            )
         })?;
         Ok(Self::new(name, value))
     }

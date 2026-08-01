@@ -11,9 +11,15 @@
 use std::fmt::Display;
 
 use serde::Serialize;
-use serde::ser::{Impossible, Serializer};
+use serde::ser::{
+    Impossible,
+    Serializer,
+};
 
-use crate::strict_json::{Result, StrictJsonError};
+use crate::strict_json::{
+    Result,
+    StrictJsonError,
+};
 
 /// Converts supported scalar map keys to JSON object key strings.
 #[derive(Clone, Copy)]
@@ -126,7 +132,11 @@ impl Serializer for MapKeySerializer {
     }
 
     /// Delegates a newtype-struct key to its wrapped value.
-    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<String>
+    fn serialize_newtype_struct<T>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<String>
     where
         T: ?Sized + Serialize,
     {
@@ -183,7 +193,11 @@ impl Serializer for MapKeySerializer {
     }
 
     /// Rejects struct keys.
-    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStruct> {
         Err(StrictJsonError::Serialization)
     }
 

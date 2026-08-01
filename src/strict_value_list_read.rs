@@ -6,12 +6,22 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+// qubit-style: allow multiple-public-types
 //! Public bound for strict list reads from either runtime value shape.
 
-use crate::{MultiValues, Value, ValueError, ValueResult};
+use crate::{
+    MultiValues,
+    Value,
+    ValueError,
+    ValueResult,
+};
 
 mod sealed {
-    use super::{MultiValues, Value, ValueError};
+    use super::{
+        MultiValues,
+        Value,
+        ValueError,
+    };
 
     pub trait Sealed {}
 
