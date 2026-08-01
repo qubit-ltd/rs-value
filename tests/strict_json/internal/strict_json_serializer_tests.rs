@@ -13,19 +13,11 @@ use std::fmt;
 
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde::ser::{
-    SerializeMap,
-    SerializeSeq,
-    SerializeStruct,
-    SerializeStructVariant,
-    SerializeTuple,
-    SerializeTupleStruct,
-    SerializeTupleVariant,
+    SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
+    SerializeTupleStruct, SerializeTupleVariant,
 };
 #[cfg(all(feature = "converter", feature = "json"))]
-use serde::{
-    Serialize,
-    Serializer,
-};
+use serde::{Serialize, Serializer};
 
 #[cfg(all(feature = "converter", feature = "json"))]
 struct ScalarProbe(u8);
@@ -59,9 +51,7 @@ impl Serialize for ScalarProbe {
             19 => serializer.serialize_unit_struct("Unit"),
             20 => serializer.serialize_unit_variant("Enum", 0, "Unit"),
             21 => serializer.serialize_newtype_struct("New", &1_i32),
-            22 => {
-                serializer.serialize_newtype_variant("Enum", 0, "New", &1_i32)
-            }
+            22 => serializer.serialize_newtype_variant("Enum", 0, "New", &1_i32),
             23 => {
                 let mut seq = serializer.serialize_seq(Some(1))?;
                 seq.serialize_element(&1_i32)?;
@@ -73,14 +63,12 @@ impl Serialize for ScalarProbe {
                 tuple.end()
             }
             25 => {
-                let mut tuple =
-                    serializer.serialize_tuple_struct("Tuple", 1)?;
+                let mut tuple = serializer.serialize_tuple_struct("Tuple", 1)?;
                 tuple.serialize_field(&1_i32)?;
                 tuple.end()
             }
             26 => {
-                let mut tuple = serializer
-                    .serialize_tuple_variant("Enum", 0, "Tuple", 1)?;
+                let mut tuple = serializer.serialize_tuple_variant("Enum", 0, "Tuple", 1)?;
                 tuple.serialize_field(&1_i32)?;
                 tuple.end()
             }
@@ -95,8 +83,7 @@ impl Serialize for ScalarProbe {
                 object.end()
             }
             29 => {
-                let mut object = serializer
-                    .serialize_struct_variant("Enum", 0, "Object", 1)?;
+                let mut object = serializer.serialize_struct_variant("Enum", 0, "Object", 1)?;
                 object.serialize_field("key", &1_i32)?;
                 object.end()
             }
@@ -133,15 +120,34 @@ fn test_strict_json_serializes_scalar_variants() {
 #[test]
 fn test_strict_json_serializer_preserves_float32_text() {
     use qubit_value::strict_json::to_value;
+    use serde_json::Number;
     use serde_json::to_string;
 
-    let value = 1.2_f32;
+    for bits in [
+        0xC65B_9806_u32, // -14054.006
+        0x4823_0AF3_u32, // 166955.8
+        0x9CA9_7CE0_u32, // 0.000000000000000000000000000004358592
+        0x4078_7ACD_u32, // 3.8824952
+        0x2696_F5F4_u32, // 0.000000000000001047500658
+    ] {
+        let f32_value = f32::from_bits(bits);
+        let value = to_value(&f32_value).expect("serialize float");
+        let projected = to_string(&value).expect("serialize json");
+        let legacy_text = serde_json::to_string(&serde_json::Value::Number(Number::from_f64(
+            f64::from(f32_value),
+        )))
+        .expect("legacy serialize json");
 
-    assert_eq!(
-        to_string(&to_value(&value).expect("serialize float"))
-            .expect("serialize json"),
-        value.to_string(),
-    );
+        assert_eq!(
+            projected,
+            f32_value.to_string(),
+            "strict json should preserve f32 display text",
+        );
+        assert_ne!(
+            projected, legacy_text,
+            "this sample should differ from f32->f64 cast path",
+        );
+    }
 }
 
 /// Exercises every scalar and compound entry point of the strict serializer.
@@ -151,7 +157,6 @@ fn test_strict_json_serializer_covers_serde_entry_points() {
     use qubit_value::Value;
 
     for index in 0..=30 {
-        let _ = Value::from_serializable(&ScalarProbe(index))
-            .expect("probe should serialize");
+        let _ = Value::from_serializable(&ScalarProbe(index)).expect("probe should serialize");
     }
 }
