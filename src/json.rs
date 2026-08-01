@@ -47,11 +47,9 @@ fn finite_float32(value: f32, from: DataType) -> Result<JsonValue, DataConversio
     // representation, which changes natural JSON bytes for the same `f32` value.
     Number::from_str(&value.to_string())
         .map(JsonValue::Number)
-        .ok_or(DataConversionError::invalid(
-            from,
-            DataType::Json,
-            InvalidValueReason::NonFinite,
-        ))
+        .map_err(|_| {
+            DataConversionError::invalid(from, DataType::Json, InvalidValueReason::NonFinite)
+        })
 }
 
 macro_rules! scalar_to_json {

@@ -119,7 +119,7 @@ fn test_strict_json_serializes_scalar_variants() {
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_strict_json_serializer_preserves_float32_text() {
-    use qubit_value::strict_json::to_value;
+    use qubit_value::Value;
     use serde_json::Number;
     use serde_json::to_string;
 
@@ -131,11 +131,12 @@ fn test_strict_json_serializer_preserves_float32_text() {
         0x2696_F5F4_u32, // 0.000000000000001047500658
     ] {
         let f32_value = f32::from_bits(bits);
-        let value = to_value(&f32_value).expect("serialize float");
-        let projected = to_string(&value).expect("serialize json");
-        let legacy_text = serde_json::to_string(&serde_json::Value::Number(Number::from_f64(
-            f64::from(f32_value),
-        )))
+        let value = Value::from_serializable(&f32_value).expect("serialize float");
+        let projected = to_string(&value.to_json_value().expect("project strict JSON value"))
+            .expect("serialize json");
+        let legacy_text = serde_json::to_string(&serde_json::Value::Number(
+            Number::from_f64(f64::from(f32_value)).expect("finite f64"),
+        ))
         .expect("legacy serialize json");
 
         assert_eq!(

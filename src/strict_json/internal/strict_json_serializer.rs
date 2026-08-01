@@ -138,7 +138,7 @@ impl Serializer for StrictJsonSerializer {
         // byte output for the same runtime value.
         Number::from_str(&value.to_string())
             .map(Value::Number)
-            .ok_or(StrictJsonError::NonFinite)
+            .map_err(|_| StrictJsonError::NonFinite)
     }
 
     /// Serializes a finite 64-bit floating-point value.
