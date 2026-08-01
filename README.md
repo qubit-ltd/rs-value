@@ -121,7 +121,7 @@ owning crates as direct dependencies. For the complete extended example:
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.3", default-features = false }
+qubit-redact = { version = "0.4", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -582,6 +582,12 @@ V1 rejects scales whose absolute value exceeds 150,000.
 `Duration` uses `{"secs":u64,"nanos":u32}` and requires nanos below one
 second. Float payloads must be finite.
 
+Borrowed payloads are created through `ValueWirePayloadRefV1::from_value`,
+`from_values`, `from_container`, or their `TryFrom` implementations. These
+constructors validate the V1 finite-float and big-decimal-scale invariants;
+the payload representation is private so callers cannot bypass that
+validation by constructing an unchecked shape.
+
 Generic Serde deserialization does not impose an external message-size budget.
 For untrusted JSON, use `ValueWireV1::decode_json_slice()` to enforce the
 default one-mebibyte limit before parsing, or select a protocol-specific budget
@@ -625,7 +631,7 @@ For the full wire-format rationale and feature-availability details, see the
 ```toml
 [dependencies]
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.3", default-features = false, optional = true }
+qubit-redact = { version = "0.4", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 serde_json = { version = "1.0", optional = true }

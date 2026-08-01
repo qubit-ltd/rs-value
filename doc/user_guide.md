@@ -4,7 +4,7 @@
 
 ```toml
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-redact = { version = "0.3", default-features = false }
+qubit-redact = { version = "0.4", default-features = false }
 ```
 
 The default feature set is empty. Enable only `chrono`, `big-integer`,
@@ -90,6 +90,12 @@ Wide integers use canonical decimal strings. `BigDecimal` uses an exact
 `{"coefficient":"...","scale":i64}` payload. `Duration` uses
 secs/nanos. Non-finite floats are rejected. `Json(null)` is concrete and
 distinct from `Unset(Json)`.
+
+Borrowed payloads must be created with `ValueWirePayloadRefV1::from_value`,
+`from_values`, `from_container`, or `TryFrom`. These fallible constructors
+validate finite floats and bounded `BigDecimal` scales before serialization;
+the internal payload representation is private, so an unchecked wire shape
+cannot be constructed by callers.
 
 Owned adapters are available through `From<Value>`, `From<MultiValues>`, and
 `From<ValueContainer>` for `ValueWireV1`, and `From<ValueWireV1>` for
