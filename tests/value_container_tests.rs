@@ -109,6 +109,21 @@ fn test_value_container_len_and_is_empty_preserve_shape_semantics() {
     assert!(!collection.is_empty());
 }
 
+#[test]
+fn test_value_container_new_unset_constructors_are_shape_specific() {
+    let scalar = ValueContainer::new_unset_scalar(DataType::String);
+    let collection = ValueContainer::new_unset_collection(DataType::Int32);
+
+    assert!(scalar.is_scalar());
+    assert!(collection.is_collection());
+    assert!(scalar.is_unset());
+    assert!(collection.is_unset());
+    assert_eq!(scalar.len(), 0);
+    assert_eq!(collection.len(), 0);
+    assert_eq!(scalar.data_type(), DataType::String);
+    assert_eq!(collection.data_type(), DataType::Int32);
+}
+
 /// Verifies effective emptiness without treating concrete scalar payloads as
 /// empty.
 #[test]

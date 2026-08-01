@@ -18,3 +18,19 @@ fn test_natural_json_projects_scalar() {
         serde_json::json!(42),
     );
 }
+
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_natural_json_projects_float32_with_display_roundtrip() {
+    use qubit_value::Value;
+
+    let value = 1.2_f32;
+    let projected = Value::Float32(value)
+        .to_json_value()
+        .expect("project float32");
+
+    assert_eq!(
+        serde_json::to_string(&projected).expect("serialize json"),
+        value.to_string(),
+    );
+}
