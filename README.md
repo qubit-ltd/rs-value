@@ -483,15 +483,40 @@ number literals.
 
 #### Multi-Value
 - `len()` — get element count
-- `is_unset()` — distinguish unset from a concrete empty vector
+- `is_unset()` — check whether the collection is not concrete
+- `is_empty()` — check whether the element count is zero; use `is_unset()` to
+  distinguish an unset collection from a concrete empty vector
 - `is_numeric()` — classify a concrete numeric collection
 - `unset()` — remove the concrete vector while preserving its declared type
 - `clear()` — clear a concrete vector while preserving its concrete state;
-  unset remains unset
+  an unset collection remains unset
 - `set_type()` — change the type
 - `merge()` — merge with another multi-value (types must match)
 - `first_value()` / `into_first_value()` — convert the first element to a
   single value
+
+#### Scalar/Collection Container
+`ValueContainer` preserves whether a value came from scalar or collection
+input. Its `is_unset()` method means that the selected shape stores no concrete
+value. It intentionally has no `is_empty()` or `clear()` method: use
+`MultiValues::is_empty()` and `MultiValues::clear()` only after accessing the
+collection shape.
+
+```rust
+use qubit_datatype::DataType;
+use qubit_value::{MultiValues, ValueContainer};
+
+let unset = ValueContainer::new_unset_collection(DataType::Int32);
+assert!(unset.is_unset());
+
+let mut values = ValueContainer::Collection(MultiValues::Int32(vec![1, 2]));
+assert!(!values.is_unset());
+if let Some(collection) = values.as_collection() {
+    assert!(!collection.is_empty());
+}
+values.unset();
+assert!(values.is_unset());
+```
 
 ## Error Types
 

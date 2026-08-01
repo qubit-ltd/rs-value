@@ -89,7 +89,7 @@ fn test_value_container_preserves_scalar_and_collection_shapes() {
 }
 
 #[test]
-fn test_value_container_len_and_is_empty_preserve_shape_semantics() {
+fn test_value_container_len_and_is_unset_preserve_shape_semantics() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
     let unset_collection =
         ValueContainer::Collection(MultiValues::Unset(DataType::String));
@@ -98,15 +98,15 @@ fn test_value_container_len_and_is_empty_preserve_shape_semantics() {
     let collection = ValueContainer::from(vec!["alpha", "beta"]);
 
     assert_eq!(unset_scalar.len(), 0);
-    assert!(unset_scalar.is_empty());
+    assert!(unset_scalar.is_unset());
     assert_eq!(unset_collection.len(), 0);
-    assert!(unset_collection.is_empty());
+    assert!(unset_collection.is_unset());
     assert_eq!(scalar.len(), 1);
-    assert!(!scalar.is_empty());
+    assert!(!scalar.is_unset());
     assert_eq!(empty_collection.len(), 0);
-    assert!(empty_collection.is_empty());
+    assert!(!empty_collection.is_unset());
     assert_eq!(collection.len(), 2);
-    assert!(!collection.is_empty());
+    assert!(!collection.is_unset());
 }
 
 #[test]
@@ -127,17 +127,17 @@ fn test_value_container_new_unset_constructors_are_shape_specific() {
 /// Verifies effective emptiness without treating concrete scalar payloads as
 /// empty.
 #[test]
-fn test_value_container_is_empty_distinguishes_concrete_scalars() {
+fn test_value_container_is_unset_distinguishes_concrete_scalars() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
     let unset_collection =
         ValueContainer::Collection(MultiValues::Unset(DataType::String));
     let empty_collection = ValueContainer::from(Vec::<String>::new());
     let empty_string = ValueContainer::from("");
 
-    assert!(unset_scalar.is_empty());
-    assert!(unset_collection.is_empty());
-    assert!(empty_collection.is_empty());
-    assert!(!empty_string.is_empty());
+    assert!(unset_scalar.is_unset());
+    assert!(unset_collection.is_unset());
+    assert!(!empty_collection.is_unset());
+    assert!(!empty_string.is_unset());
 }
 
 #[test]
@@ -216,20 +216,15 @@ fn test_value_container_add_initializes_typed_unset_scalar() {
 }
 
 #[test]
-fn test_value_container_clear_and_unset_preserve_shape() {
+fn test_value_container_unset_preserves_shape() {
     let mut scalar = ValueContainer::from(42_i32);
-    scalar.clear();
+    scalar.unset();
     assert_eq!(
         scalar,
         ValueContainer::Scalar(Value::Unset(DataType::Int32))
     );
 
     let mut collection = ValueContainer::from(vec![42_i32]);
-    collection.clear();
-    assert_eq!(
-        collection,
-        ValueContainer::Collection(MultiValues::Int32(vec![]))
-    );
     collection.unset();
     assert_eq!(
         collection,

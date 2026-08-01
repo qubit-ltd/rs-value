@@ -451,13 +451,36 @@ JSON 边界都会拒绝 `NaN`、正无穷和负无穷，因为 JSON 没有这些
 
 #### 多值
 - `len()` — 获取元素数量
-- `is_unset()` — 区分未设置状态与具体空 vector
+- `is_unset()` — 检查集合是否没有具体值
+- `is_empty()` — 检查元素数量是否为 0；需要区分未设置集合与具体空集合时，使用
+  `is_unset()`
 - `is_numeric()` — 判断具体集合是否为数值类型
 - `unset()` — 移除具体 vector 并保留声明类型
-- `clear()` — 清空具体 vector 并保持具体状态；未设置值仍保持未设置
+- `clear()` — 清空具体 vector 并保持具体状态；未设置集合仍保持未设置
 - `set_type()` — 更改类型
 - `merge()` — 与另一个多值合并（类型需一致）
 - `first_value()` / `into_first_value()` — 将首元素转换为单值
+
+#### 标量/集合容器
+`ValueContainer` 保留输入是标量还是集合。它的 `is_unset()` 表示当前形状没有具体值。
+它不提供 `is_empty()` 或 `clear()`：只有访问到集合形状后，才能使用
+`MultiValues::is_empty()` 和 `MultiValues::clear()`。
+
+```rust
+use qubit_datatype::DataType;
+use qubit_value::{MultiValues, ValueContainer};
+
+let unset = ValueContainer::new_unset_collection(DataType::Int32);
+assert!(unset.is_unset());
+
+let mut values = ValueContainer::Collection(MultiValues::Int32(vec![1, 2]));
+assert!(!values.is_unset());
+if let Some(collection) = values.as_collection() {
+    assert!(!collection.is_empty());
+}
+values.unset();
+assert!(values.is_unset());
+```
 
 ## 错误类型
 

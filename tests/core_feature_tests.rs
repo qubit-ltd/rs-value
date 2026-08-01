@@ -179,7 +179,7 @@ fn test_value_container_mutation_preserves_shape() {
         ValueContainer::Collection(MultiValues::Int32(vec![43, 44]))
     );
 
-    scalar.clear();
+    scalar.unset();
     collection.unset();
     assert_eq!(
         scalar,
