@@ -257,6 +257,19 @@ fn main() { let _ = classify; }
 }
 
 #[test]
+fn test_external_consumer_cannot_construct_wire_payload_directly() {
+    let output = compile_all_features_consumer(
+        r#"
+use qubit_value::{Value, ValueWirePayloadRefV1};
+fn main() {
+    let _payload = ValueWirePayloadRefV1::Scalar(&Value::Int32(1));
+}
+"#,
+    );
+    assert_consumer_fails(&output);
+}
+
+#[test]
 fn test_external_consumer_cannot_exhaustively_match_value_error() {
     let output = compile_all_features_consumer(
         r#"

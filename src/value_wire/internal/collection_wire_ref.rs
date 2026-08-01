@@ -29,7 +29,7 @@ macro_rules! define_collection_wire_ref {
         ),+ $(,)?
     ) => {
         /// Borrowed payload for one homogeneous typed collection.
-        #[derive(Serialize)]
+        #[derive(Clone, Copy, Serialize)]
         pub(in crate::value_wire) enum CollectionWireRef<'a> {
             /// Unset collection and its declared element data type.
             #[serde(rename = "unset")]
