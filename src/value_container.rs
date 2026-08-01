@@ -8,10 +8,21 @@
 
 //! Explicit scalar-or-collection value storage.
 
-use crate::{MultiValues, StrictValueListRead, StrictValueRead, Value, ValueError, ValueResult};
+use crate::{
+    MultiValues,
+    StrictValueListRead,
+    StrictValueRead,
+    Value,
+    ValueError,
+    ValueResult,
+};
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{DataConversionOptions, DataConversionTarget, ScalarStringDataConverters};
+use qubit_datatype::{
+    DataConversionOptions,
+    DataConversionTarget,
+    ScalarStringDataConverters,
+};
 
 /// A typed value whose scalar or collection shape is explicit.
 ///
@@ -483,7 +494,8 @@ impl ValueContainer {
             }
             Self::Collection(other) => match self {
                 Self::Scalar(value) => {
-                    let value = std::mem::replace(value, Value::Unset(expected));
+                    let value =
+                        std::mem::replace(value, Value::Unset(expected));
                     let mut collection = MultiValues::from(value);
                     collection.add(other)?;
                     *self = Self::Collection(collection);
@@ -554,7 +566,10 @@ impl ValueContainer {
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
-    pub fn to_first_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
+    pub fn to_first_with<T>(
+        &self,
+        options: &DataConversionOptions,
+    ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -607,15 +622,22 @@ impl ValueContainer {
     ///
     /// Returns the mapped single-value or indexed list conversion error.
     #[cfg(feature = "converter")]
-    pub fn to_list_with<T>(&self, options: &DataConversionOptions) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(
+        &self,
+        options: &DataConversionOptions,
+    ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
         match self {
-            Self::Scalar(Value::String(value)) => ScalarStringDataConverters::from(value.as_str())
-                .to_vec_with(options)
-                .map_err(ValueError::from),
-            Self::Scalar(value) => value.to_with(options).map(|value| vec![value]),
+            Self::Scalar(Value::String(value)) => {
+                ScalarStringDataConverters::from(value.as_str())
+                    .to_vec_with(options)
+                    .map_err(ValueError::from)
+            }
+            Self::Scalar(value) => {
+                value.to_with(options).map(|value| vec![value])
+            }
             Self::Collection(values) => values.to_list_with(options),
         }
     }
@@ -636,12 +658,21 @@ impl ValueContainer {
     fn add_scalar(&mut self, value: Value, data_type: DataType) {
         match self {
             Self::Scalar(current) => {
-                let current = std::mem::replace(current, Value::Unset(data_type));
-                let collection = for_each_value_type!(value_container_pair_match, current, value);
+                let current =
+                    std::mem::replace(current, Value::Unset(data_type));
+                let collection = for_each_value_type!(
+                    value_container_pair_match,
+                    current,
+                    value
+                );
                 *self = Self::Collection(collection);
             }
             Self::Collection(collection) => {
-                for_each_value_type!(value_container_push_match, collection, value);
+                for_each_value_type!(
+                    value_container_push_match,
+                    collection,
+                    value
+                );
             }
         }
     }

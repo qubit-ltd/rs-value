@@ -16,7 +16,13 @@ mod string_map_hash;
 
 #[cfg(feature = "big-decimal")]
 pub(crate) use big_decimal_hash::hash_big_decimal;
-pub(crate) use float_identity::{canonical_f32_bits, canonical_f64_bits};
+pub(crate) use float_identity::{
+    canonical_f32_bits,
+    canonical_f64_bits,
+};
 #[cfg(feature = "json")]
-pub(crate) use json_identity::{hash_json, json_eq};
+pub(crate) use json_identity::{
+    hash_json,
+    json_eq,
+};
 pub(crate) use string_map_hash::hash_string_map;

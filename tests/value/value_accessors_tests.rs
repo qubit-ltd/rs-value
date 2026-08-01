@@ -12,7 +12,10 @@
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
-use qubit_value::{Value, ValueError};
+use qubit_value::{
+    Value,
+    ValueError,
+};
 use std::str::FromStr;
 
 #[test]
@@ -54,14 +57,18 @@ fn test_value_generic_get() {
 
 #[test]
 fn test_value_defaulted_reads_use_default_only_for_empty() {
-    use qubit_datatype::{DataConversionOptions, StringConversionOptions};
+    use qubit_datatype::{
+        DataConversionOptions,
+        StringConversionOptions,
+    };
 
     let empty = Value::new_unset(DataType::String);
     assert_eq!(empty.get_or::<String>("fallback").unwrap(), "fallback");
     assert_eq!(empty.to_or::<u16>(8080).unwrap(), 8080);
 
-    let options = DataConversionOptions::default()
-        .with_string_options(StringConversionOptions::default().with_trim(true));
+    let options = DataConversionOptions::default().with_string_options(
+        StringConversionOptions::default().with_trim(true),
+    );
     assert_eq!(
         empty.to_or_with::<String>(" fallback ", &options).unwrap(),
         " fallback "

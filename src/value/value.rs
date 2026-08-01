@@ -11,10 +11,16 @@
 
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{DataConversionOptions, DataConversionTarget};
+use qubit_datatype::{
+    DataConversionOptions,
+    DataConversionTarget,
+};
 
 use crate::value_error::ValueResult;
-use crate::{IntoValueDefault, ValueError};
+use crate::{
+    IntoValueDefault,
+    ValueError,
+};
 
 /// Defines the public single-value container from the shared value-type table.
 macro_rules! define_value_enum {
@@ -428,7 +434,9 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
+            }
             result => result,
         }
     }
@@ -537,7 +545,9 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
+            }
             result => result,
         }
     }
