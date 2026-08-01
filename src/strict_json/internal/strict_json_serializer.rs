@@ -18,7 +18,8 @@ use std::str::FromStr;
 use crate::strict_json::{Result, StrictJsonError};
 
 use super::{
-    ObjectSerializer, SequenceSerializer, StructVariantSerializer, TupleVariantSerializer,
+    ObjectSerializer, SequenceSerializer, StructSerializer, StructVariantSerializer,
+    TupleVariantSerializer,
 };
 
 /// Maximum number of compound items reserved from a Serde length hint.
@@ -55,7 +56,7 @@ impl Serializer for StrictJsonSerializer {
     type SerializeTupleStruct = SequenceSerializer;
     type SerializeTupleVariant = TupleVariantSerializer;
     type SerializeMap = ObjectSerializer;
-    type SerializeStruct = ObjectSerializer;
+    type SerializeStruct = StructSerializer;
     type SerializeStructVariant = StructVariantSerializer;
 
     /// Serializes a Boolean JSON value.
@@ -280,8 +281,14 @@ impl Serializer for StrictJsonSerializer {
 
     /// Creates a struct serializer with the declared capacity.
     #[inline(always)]
-    fn serialize_struct(self, _name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
-        self.serialize_map(Some(len))
+    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
+        if name == super::json_number_serializer::NUMBER_TOKEN {
+            return Ok(StructSerializer::Number(None));
+        }
+        Ok(StructSerializer::Object(ObjectSerializer {
+            values: Map::with_capacity(preallocated_capacity(Some(len))),
+            next_key: None,
+        }))
     }
 
     /// Creates a struct-variant serializer with the declared capacity.
