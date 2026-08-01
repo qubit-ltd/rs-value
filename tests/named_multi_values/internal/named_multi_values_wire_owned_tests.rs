@@ -7,10 +7,7 @@
 // =============================================================================
 //! Verifies named collection deserialization through the owned wire DTO.
 
-use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-};
+use qubit_value::{MultiValues, NamedMultiValues};
 
 /// Deserializes a named collection from the V1 envelope.
 #[test]

@@ -20,10 +20,7 @@
 //! - `f32` 的全部转换分支
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_value::{Value, ValueError};
 use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
@@ -963,13 +960,10 @@ fn test_to_f32_wrong_type() {
 #[test]
 fn test_to_f64_from_biginteger_normal() {
     use num_bigint::BigInt;
-    use qubit_datatype::{
-        DataConversionOptions,
-        NumericConversionOptions,
-    };
+    use qubit_datatype::{DataConversionOptions, NumericConversionOptions};
     let big = BigInt::from(i64::MAX);
-    let options = DataConversionOptions::default()
-        .with_numeric_options(NumericConversionOptions::lossy());
+    let options =
+        DataConversionOptions::default().with_numeric_options(NumericConversionOptions::lossy());
     let result = Value::BigInteger(big).to_with::<f64>(&options).unwrap();
     assert!((result - i64::MAX as f64).abs() < 1.0);
 }

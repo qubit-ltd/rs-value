@@ -12,10 +12,7 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
-use serde::de::{
-    self,
-    Visitor,
-};
+use serde::de::{self, Visitor};
 
 use crate::wide_integer::parse_canonical_integer;
 

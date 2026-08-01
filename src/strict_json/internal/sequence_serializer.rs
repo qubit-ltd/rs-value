@@ -9,18 +9,10 @@
 //! Serializer for JSON array-like compound values.
 
 use serde::Serialize;
-use serde::ser::{
-    SerializeSeq,
-    SerializeTuple,
-    SerializeTupleStruct,
-};
+use serde::ser::{SerializeSeq, SerializeTuple, SerializeTupleStruct};
 use serde_json::Value;
 
-use crate::strict_json::{
-    Result,
-    StrictJsonError,
-    to_value,
-};
+use crate::strict_json::{Result, StrictJsonError, to_value};
 
 /// Accumulates sequence and tuple elements into one JSON array.
 pub(in crate::strict_json) struct SequenceSerializer {

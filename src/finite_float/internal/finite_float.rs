@@ -9,9 +9,7 @@
 //! Shared finite-value predicate for supported floating-point widths.
 
 /// Provides a width-independent finiteness check for float adapters.
-pub(in crate::finite_float) trait FiniteFloat:
-    Copy
-{
+pub(in crate::finite_float) trait FiniteFloat: Copy {
     /// Reports whether this value is neither NaN nor positive or negative
     /// infinity.
     ///
