@@ -368,3 +368,27 @@ fn main() {
     );
     assert_consumer_fails(&value_container_count_output);
 }
+
+#[test]
+fn test_external_consumer_cannot_implement_strict_value_list_read() {
+    let output = compile_all_features_consumer(
+        r#"
+use qubit_value::{MultiValues, StrictValueListRead, Value, ValueError};
+
+struct Custom;
+
+impl StrictValueListRead for Custom {
+    fn read_scalar_list(_: &Value) -> Result<Vec<Self>, ValueError> {
+        Ok(Vec::new())
+    }
+
+    fn read_collection_list(_: &MultiValues) -> Result<Vec<Self>, ValueError> {
+        Ok(Vec::new())
+    }
+}
+
+fn main() {}
+"#,
+    );
+    assert_consumer_fails(&output);
+}
