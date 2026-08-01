@@ -10,6 +10,7 @@
 
 use serde::Serialize;
 
+use crate::multi_values::MultiValuesRepr;
 use crate::MultiValues;
 
 use super::WireDataTypeV1;
@@ -52,11 +53,11 @@ macro_rules! define_collection_wire_ref {
         impl<'a> From<&'a MultiValues> for CollectionWireRef<'a> {
             /// Borrows the exact runtime collection variant for V1 serialization.
             fn from(values: &'a MultiValues) -> Self {
-                match values {
-                    MultiValues::Unset(data_type) => Self::Unset((*data_type).into()),
+                match &values.repr {
+                    MultiValuesRepr::Unset(data_type) => Self::Unset((*data_type).into()),
                     $(
                         $(#[$cfg])*
-                        MultiValues::$variant(values) => Self::$variant(values),
+                        MultiValuesRepr::$variant(values) => Self::$variant(values),
                     )+
                 }
             }

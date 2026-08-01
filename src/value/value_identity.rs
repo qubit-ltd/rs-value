@@ -7,24 +7,14 @@
 // =============================================================================
 //! Equality and hashing for [`super::Value`].
 
-use std::hash::{
-    Hash,
-    Hasher,
-};
+use std::hash::{Hash, Hasher};
 
-use super::Value;
+use super::{Value, ValueRepr};
 #[cfg(feature = "big-decimal")]
 use crate::identity::hash_big_decimal;
-use crate::identity::{
-    canonical_f32_bits,
-    canonical_f64_bits,
-    hash_string_map,
-};
+use crate::identity::{canonical_f32_bits, canonical_f64_bits, hash_string_map};
 #[cfg(feature = "json")]
-use crate::identity::{
-    hash_json,
-    json_eq,
-};
+use crate::identity::{hash_json, json_eq};
 
 macro_rules! payload_eq {
     (Float32, $left:expr, $right:expr) => {
@@ -69,10 +59,10 @@ macro_rules! impl_value_identity {
     ) => {
         impl PartialEq for Value {
             fn eq(&self, other: &Self) -> bool {
-                match (self, other) {
-                    (Self::Unset(left), Self::Unset(right)) => left == right,
+                match (&self.repr, &other.repr) {
+                    (ValueRepr::Unset(left), ValueRepr::Unset(right)) => left == right,
                     $($(#[$cfg])*
-                    (Self::$variant(left), Self::$variant(right)) => {
+                    (ValueRepr::$variant(left), ValueRepr::$variant(right)) => {
                         payload_eq!($variant, left, right)
                     },)+
                     _ => false,
@@ -84,11 +74,11 @@ macro_rules! impl_value_identity {
 
         impl Hash for Value {
             fn hash<H: Hasher>(&self, state: &mut H) {
-                std::mem::discriminant(self).hash(state);
-                match self {
-                    Self::Unset(data_type) => data_type.hash(state),
+                std::mem::discriminant(&self.repr).hash(state);
+                match &self.repr {
+                    ValueRepr::Unset(data_type) => data_type.hash(state),
                     $($(#[$cfg])*
-                    Self::$variant(value) => hash_payload!($variant, value, state),)+
+                    ValueRepr::$variant(value) => hash_payload!($variant, value, state),)+
                 }
             }
         }

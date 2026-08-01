@@ -10,6 +10,7 @@
 
 use serde::Serialize;
 
+use crate::value::ValueRepr;
 use crate::Value;
 
 use super::WireDataTypeV1;
@@ -52,11 +53,11 @@ macro_rules! define_scalar_wire_ref {
         impl<'a> From<&'a Value> for ScalarWireRef<'a> {
             /// Borrows the exact runtime variant for V1 serialization.
             fn from(value: &'a Value) -> Self {
-                match value {
-                    Value::Unset(data_type) => Self::Unset((*data_type).into()),
+                match &value.repr {
+                    ValueRepr::Unset(data_type) => Self::Unset((*data_type).into()),
                     $(
                         $(#[$cfg])*
-                        Value::$variant(value) => {
+                        ValueRepr::$variant(value) => {
                             Self::$variant(value_storage_ref!($variant, value))
                         },
                     )+

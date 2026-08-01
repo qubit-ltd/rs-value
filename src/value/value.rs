@@ -10,17 +10,12 @@
 //! Provides type-safe storage and access functionality for single values.
 
 use qubit_datatype::DataType;
+use std::fmt;
 #[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionOptions,
-    DataConversionTarget,
-};
+use qubit_datatype::{DataConversionOptions, DataConversionTarget};
 
 use crate::value_error::ValueResult;
-use crate::{
-    IntoValueDefault,
-    ValueError,
-};
+use crate::{IntoValueDefault, ValueError};
 
 /// Defines the public single-value container from the shared value-type table.
 macro_rules! define_value_enum {
@@ -40,7 +35,7 @@ macro_rules! define_value_enum {
             )
         ),+ $(,)?
     ) => {
-        /// Single value container.
+        /// Internal single-value representation.
         ///
         /// Uses an enum to represent different types of values, providing
         /// type-safe value storage and access.
@@ -79,10 +74,8 @@ macro_rules! define_value_enum {
         /// let text = Value::String("hello".to_string());
         /// assert_eq!(text.get_string().unwrap(), "hello");
         /// ```
-        #[must_use]
-        #[non_exhaustive]
         #[derive(Debug, Clone)]
-        pub enum Value {
+        pub(crate) enum ValueRepr {
             /// Unset value with a declared data type.
             Unset(
                 /// Declared data type retained while the value is unset.
@@ -102,11 +95,184 @@ macro_rules! define_value_enum {
 
 for_each_value_type!(define_value_enum);
 
+/// Single typed runtime value with private storage representation.
+///
+/// Construction and access are expressed through methods and conversions. The
+/// concrete enum representation is private so storage optimizations do not
+/// become part of the public API.
+#[must_use]
+#[derive(Clone)]
+pub struct Value {
+    pub(crate) repr: ValueRepr,
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.view().fmt(formatter)
+    }
+}
+
+/// Borrowed semantic view of a [`Value`].
+#[must_use]
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy)]
+pub enum ValueRef<'a> {
+    /// An unset value retaining its declared type.
+    Unset(DataType),
+    /// A boolean value.
+    Bool(bool),
+    /// A character value.
+    Char(char),
+    /// A signed integer value.
+    Int8(i8),
+    /// A signed integer value.
+    Int16(i16),
+    /// A signed integer value.
+    Int32(i32),
+    /// A signed integer value.
+    Int64(i64),
+    /// A signed integer value.
+    Int128(i128),
+    /// An unsigned integer value.
+    UInt8(u8),
+    /// An unsigned integer value.
+    UInt16(u16),
+    /// An unsigned integer value.
+    UInt32(u32),
+    /// An unsigned integer value.
+    UInt64(u64),
+    /// An unsigned integer value.
+    UInt128(u128),
+    /// A 32-bit floating-point value.
+    Float32(f32),
+    /// A 64-bit floating-point value.
+    Float64(f64),
+    /// An arbitrary-precision integer.
+    #[cfg(feature = "big-integer")]
+    BigInteger(&'a num_bigint::BigInt),
+    /// An arbitrary-precision decimal.
+    #[cfg(feature = "big-decimal")]
+    BigDecimal(&'a bigdecimal::BigDecimal),
+    /// A string value.
+    String(&'a str),
+    /// A calendar date.
+    #[cfg(feature = "chrono")]
+    Date(&'a chrono::NaiveDate),
+    /// A time-of-day value.
+    #[cfg(feature = "chrono")]
+    Time(&'a chrono::NaiveTime),
+    /// A date-and-time value.
+    #[cfg(feature = "chrono")]
+    DateTime(&'a chrono::NaiveDateTime),
+    /// A UTC instant.
+    #[cfg(feature = "chrono")]
+    Instant(&'a chrono::DateTime<chrono::Utc>),
+    /// A duration value.
+    Duration(&'a std::time::Duration),
+    /// A URL value.
+    #[cfg(feature = "url")]
+    Url(&'a url::Url),
+    /// A map with string keys and values.
+    StringMap(&'a std::collections::HashMap<String, String>),
+    /// A JSON value.
+    #[cfg(feature = "json")]
+    Json(&'a serde_json::Value),
+}
+
+macro_rules! impl_value_constructors {
+    (
+        ;
+        $(
+            (
+                [$($cfg:meta),*],
+                $variant:ident,
+                $type:ty,
+                $data_type:expr,
+                $materialization:ident,
+                $json_class:ident,
+                $number_projection:ident,
+                $value_doc:literal,
+                $multi_doc:literal
+            )
+        ),+ $(,)?
+    ) => {
+        impl Value {
+            /// Creates an unset value with an explicit declared type.
+            #[allow(non_snake_case)]
+            #[inline(always)]
+            pub const fn Unset(data_type: DataType) -> Self {
+                Self::new_unset(data_type)
+            }
+
+            /// Creates an unset value with an explicit declared type.
+            #[inline(always)]
+            pub const fn new_unset(data_type: DataType) -> Self {
+                Self { repr: ValueRepr::Unset(data_type) }
+            }
+
+            $(
+                $(#[$cfg])*
+                #[allow(non_snake_case)]
+                #[doc = concat!("Creates a ", $value_doc, ".")]
+                #[inline(always)]
+                pub fn $variant(value: $type) -> Self {
+                    Self { repr: ValueRepr::$variant(value_storage_new!($variant, value)) }
+                }
+            )+
+        }
+    };
+}
+
+for_each_value_type!(impl_value_constructors);
+
+impl Value {
+    /// Borrows the stable semantic view of this value.
+    #[inline(always)]
+    pub fn view(&self) -> ValueRef<'_> {
+        match &self.repr {
+            ValueRepr::Unset(data_type) => ValueRef::Unset(*data_type),
+            ValueRepr::Bool(value) => ValueRef::Bool(*value),
+            ValueRepr::Char(value) => ValueRef::Char(*value),
+            ValueRepr::Int8(value) => ValueRef::Int8(*value),
+            ValueRepr::Int16(value) => ValueRef::Int16(*value),
+            ValueRepr::Int32(value) => ValueRef::Int32(*value),
+            ValueRepr::Int64(value) => ValueRef::Int64(*value),
+            ValueRepr::Int128(value) => ValueRef::Int128(*value),
+            ValueRepr::UInt8(value) => ValueRef::UInt8(*value),
+            ValueRepr::UInt16(value) => ValueRef::UInt16(*value),
+            ValueRepr::UInt32(value) => ValueRef::UInt32(*value),
+            ValueRepr::UInt64(value) => ValueRef::UInt64(*value),
+            ValueRepr::UInt128(value) => ValueRef::UInt128(*value),
+            ValueRepr::Float32(value) => ValueRef::Float32(*value),
+            ValueRepr::Float64(value) => ValueRef::Float64(*value),
+            #[cfg(feature = "big-integer")]
+            ValueRepr::BigInteger(value) => ValueRef::BigInteger(value),
+            #[cfg(feature = "big-decimal")]
+            ValueRepr::BigDecimal(value) => ValueRef::BigDecimal(value),
+            ValueRepr::String(value) => ValueRef::String(value),
+            #[cfg(feature = "chrono")]
+            ValueRepr::Date(value) => ValueRef::Date(value),
+            #[cfg(feature = "chrono")]
+            ValueRepr::Time(value) => ValueRef::Time(value),
+            #[cfg(feature = "chrono")]
+            ValueRepr::DateTime(value) => ValueRef::DateTime(value),
+            #[cfg(feature = "chrono")]
+            ValueRepr::Instant(value) => ValueRef::Instant(value),
+            ValueRepr::Duration(value) => ValueRef::Duration(value),
+            #[cfg(feature = "url")]
+            ValueRepr::Url(value) => ValueRef::Url(value.as_ref()),
+            ValueRepr::StringMap(value) => ValueRef::StringMap(value),
+            #[cfg(feature = "json")]
+            ValueRepr::Json(value) => ValueRef::Json(value),
+        }
+    }
+}
+
 macro_rules! value_data_type_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
-        match $value {
-            Value::Unset(data_type) => *data_type,
-            $($(#[$cfg])* Value::$variant(_) => $data_type,)+
+        match &$value.repr {
+            ValueRepr::Unset(data_type) => *data_type,
+            $($(#[$cfg])* ValueRepr::$variant(_) => $data_type,)+
         }
     };
 }
@@ -127,20 +293,6 @@ macro_rules! value_data_type_match {
 /// The macro automatically extracts preceding documentation comments, so
 /// you can add `///` comments before macro invocations.
 impl Value {
-    /// Creates an unset scalar with an explicit declared type.
-    ///
-    /// # Parameters
-    ///
-    /// * `data_type` - Declared type retained while no concrete value exists.
-    ///
-    /// # Returns
-    ///
-    /// An unset scalar carrying `data_type`.
-    #[inline(always)]
-    pub const fn new_unset(data_type: DataType) -> Self {
-        Self::Unset(data_type)
-    }
-
     /// Generic constructor method
     ///
     /// Creates a `Value` from any supported type, avoiding direct use of
@@ -437,9 +589,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }
@@ -548,9 +698,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }
@@ -673,7 +821,7 @@ impl Value {
     #[inline(always)]
     #[must_use]
     pub fn is_unset(&self) -> bool {
-        matches!(self, Value::Unset(_))
+        matches!(self.repr, ValueRepr::Unset(_))
     }
 
     /// Tests whether a concrete value belongs to the numeric type family.
@@ -692,7 +840,7 @@ impl Value {
     /// Removes the concrete value while preserving its declared data type.
     #[inline(always)]
     pub fn unset(&mut self) {
-        *self = Value::Unset(self.data_type());
+        *self = Value::new_unset(self.data_type());
     }
 
     /// Set the data type
@@ -718,7 +866,7 @@ impl Value {
     #[inline]
     pub fn set_type(&mut self, data_type: DataType) {
         if self.data_type() != data_type {
-            *self = Value::Unset(data_type);
+            *self = Value::new_unset(data_type);
         }
     }
 }

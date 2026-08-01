@@ -9,12 +9,9 @@
 
 use std::cmp::Ordering;
 
-use qubit_datatype::{
-    NumberRef,
-    NumericComparisonPolicy,
-};
+use qubit_datatype::{NumberRef, NumericComparisonPolicy};
 
-use super::Value;
+use super::{Value, ValueRepr};
 use crate::NumericComparisonError;
 
 /// Projects one stored value according to its type-table numeric strategy.
@@ -34,11 +31,11 @@ macro_rules! project_number_ref {
 /// Generates the exhaustive numeric projection from the value type table.
 macro_rules! value_number_ref_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
-        match $value {
-            Value::Unset(_) => None,
+        match &$value.repr {
+            ValueRepr::Unset(_) => None,
             $(
                 $(#[$cfg])*
-                Value::$variant(value) => {
+                ValueRepr::$variant(value) => {
                     project_number_ref!($number_projection, value)
                 }
             )+
@@ -108,27 +105,28 @@ impl Value {
         other: &Self,
         policy: NumericComparisonPolicy,
     ) -> Result<Ordering, NumericComparisonError> {
-        if let Self::Unset(declared) = self {
+        if let ValueRepr::Unset(declared) = &self.repr {
             return Err(NumericComparisonError::LeftMissing {
                 declared: *declared,
             });
         }
-        if let Self::Unset(declared) = other {
+        if let ValueRepr::Unset(declared) = &other.repr {
             return Err(NumericComparisonError::RightMissing {
                 declared: *declared,
             });
         }
 
-        let left = self.as_number_ref().ok_or_else(|| {
-            NumericComparisonError::LeftNotNumeric {
+        let left = self
+            .as_number_ref()
+            .ok_or_else(|| NumericComparisonError::LeftNotNumeric {
                 actual: self.data_type(),
-            }
-        })?;
-        let right = other.as_number_ref().ok_or_else(|| {
-            NumericComparisonError::RightNotNumeric {
-                actual: other.data_type(),
-            }
-        })?;
+            })?;
+        let right =
+            other
+                .as_number_ref()
+                .ok_or_else(|| NumericComparisonError::RightNotNumeric {
+                    actual: other.data_type(),
+                })?;
 
         match (left.is_nan(), right.is_nan()) {
             (true, true) => return Err(NumericComparisonError::BothNaN),
@@ -139,9 +137,7 @@ impl Value {
 
         match left.compare(right, policy) {
             Some(ordering) => Ok(ordering),
-            None => unreachable!(
-                "validated non-NaN numeric values must be orderable"
-            ),
+            None => unreachable!("validated non-NaN numeric values must be orderable"),
         }
     }
 

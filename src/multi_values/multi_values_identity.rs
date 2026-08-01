@@ -7,38 +7,30 @@
 // =============================================================================
 //! Equality and hashing for [`super::MultiValues`].
 
-use std::hash::{
-    Hash,
-    Hasher,
-};
+use std::hash::{Hash, Hasher};
 
-use super::MultiValues;
+use super::multi_values::{MultiValues, MultiValuesRepr};
 #[cfg(feature = "big-decimal")]
 use crate::identity::hash_big_decimal;
-use crate::identity::{
-    canonical_f32_bits,
-    canonical_f64_bits,
-    hash_string_map,
-};
+use crate::identity::{canonical_f32_bits, canonical_f64_bits, hash_string_map};
 #[cfg(feature = "json")]
-use crate::identity::{
-    hash_json,
-    json_eq,
-};
+use crate::identity::{hash_json, json_eq};
 
 /// Compares ordered payloads using the identity rule for their element type.
 macro_rules! payloads_eq {
     (Float32, $left:expr, $right:expr) => {
         $left.len() == $right.len()
-            && $left.iter().zip($right).all(|(left, right)| {
-                canonical_f32_bits(*left) == canonical_f32_bits(*right)
-            })
+            && $left
+                .iter()
+                .zip($right)
+                .all(|(left, right)| canonical_f32_bits(*left) == canonical_f32_bits(*right))
     };
     (Float64, $left:expr, $right:expr) => {
         $left.len() == $right.len()
-            && $left.iter().zip($right).all(|(left, right)| {
-                canonical_f64_bits(*left) == canonical_f64_bits(*right)
-            })
+            && $left
+                .iter()
+                .zip($right)
+                .all(|(left, right)| canonical_f64_bits(*left) == canonical_f64_bits(*right))
     };
     (Json, $left:expr, $right:expr) => {
         $left.len() == $right.len()
@@ -97,10 +89,10 @@ macro_rules! impl_multi_values_identity {
     ) => {
         impl PartialEq for MultiValues {
             fn eq(&self, other: &Self) -> bool {
-                match (self, other) {
-                    (Self::Unset(left), Self::Unset(right)) => left == right,
+                match (&self.repr, &other.repr) {
+                    (MultiValuesRepr::Unset(left), MultiValuesRepr::Unset(right)) => left == right,
                     $($(#[$cfg])*
-                    (Self::$variant(left), Self::$variant(right)) => {
+                    (MultiValuesRepr::$variant(left), MultiValuesRepr::$variant(right)) => {
                         payloads_eq!($variant, left, right)
                     },)+
                     _ => false,
@@ -112,11 +104,11 @@ macro_rules! impl_multi_values_identity {
 
         impl Hash for MultiValues {
             fn hash<H: Hasher>(&self, state: &mut H) {
-                std::mem::discriminant(self).hash(state);
-                match self {
-                    Self::Unset(data_type) => data_type.hash(state),
+                std::mem::discriminant(&self.repr).hash(state);
+                match &self.repr {
+                    MultiValuesRepr::Unset(data_type) => data_type.hash(state),
                     $($(#[$cfg])*
-                    Self::$variant(values) => {
+                    MultiValuesRepr::$variant(values) => {
                         hash_payloads!($variant, values, state)
                     },)+
                 }

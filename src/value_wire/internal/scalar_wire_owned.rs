@@ -53,11 +53,11 @@ macro_rules! define_scalar_wire_owned {
             /// Restores the exact runtime scalar variant.
             fn from(value: ScalarWireOwned) -> Self {
                 match value {
-                    ScalarWireOwned::Unset(data_type) => Self::Unset(data_type.into()),
+                    ScalarWireOwned::Unset(data_type) => Self::new_unset(data_type.into()),
                     $(
                         $(#[$cfg])*
                         ScalarWireOwned::$variant(value) => {
-                            Self::$variant(value_storage_new!($variant, value))
+                            Self::$variant(value)
                         },
                     )+
                 }
