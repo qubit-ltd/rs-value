@@ -521,8 +521,11 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 {"version":1,"value":{"scalar":{"int32":42}}}
 ```
 
-对于给定的序列化器和 value，V1 输出是字节稳定的。对象键（包括嵌套 JSON
-对象和 `StringMap`）递归地按字典序输出；这是默认契约，不需要额外 API。
+规范化 JSON V1 表示在受支持的 `serde_json` 版本和配置下，对同一个 value
+始终产生相同字节。所有 Serde serializer 接收到的 `StringMap` 条目都会按
+key 的字典序从小到大排列；嵌套 JSON 对象的 key 也递归遵循这一顺序。这一
+顺序对标量、集合和借用 Wire payload 都是默认契约。其他 Serde 格式仍可使用，
+但其字节级表示不属于 V1 稳定性承诺。
 V1 是封闭格式：现有 tag、shape 和 payload 表示不得改变；未来新增运行时类型
 必须使用新的 wire 版本，而不能扩展 V1。
 

@@ -10,8 +10,14 @@
 
 #[cfg(feature = "big-decimal")]
 mod big_decimal_payload;
+#[cfg(feature = "json")]
+mod canonical_json;
+mod canonical_string_map;
 mod duration_payload;
 
 #[cfg(feature = "big-decimal")]
 pub(in crate::wire) use big_decimal_payload::BigDecimalPayload;
+#[cfg(feature = "json")]
+pub(in crate::wire) use canonical_json::CanonicalJson;
+pub(in crate::wire) use canonical_string_map::CanonicalStringMap;
 pub(in crate::wire) use duration_payload::DurationPayload;
