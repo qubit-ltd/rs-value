@@ -11,16 +11,10 @@
 
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionOptions,
-    DataConversionTarget,
-};
+use qubit_datatype::{DataConversionOptions, DataConversionTarget};
 
 use crate::value_error::ValueResult;
-use crate::{
-    IntoValueDefault,
-    ValueError,
-};
+use crate::{IntoValueDefault, ValueError};
 
 /// Defines the public single-value container from the shared value-type table.
 macro_rules! define_value_enum {
@@ -434,9 +428,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }
@@ -545,9 +537,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }
@@ -690,26 +680,6 @@ impl Value {
     #[inline(always)]
     pub fn unset(&mut self) {
         *self = Value::Unset(self.data_type());
-    }
-
-    /// Clear the value while preserving the type
-    ///
-    /// Sets the current value to empty but retains its data type.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use qubit_datatype::DataType;
-    /// use qubit_value::Value;
-    ///
-    /// let mut value = Value::Int32(42);
-    /// value.clear();
-    /// assert!(value.is_unset());
-    /// assert_eq!(value.data_type(), DataType::Int32);
-    /// ```
-    #[inline(always)]
-    pub fn clear(&mut self) {
-        self.unset();
     }
 
     /// Set the data type

@@ -160,7 +160,7 @@ assert!(check_port(v.get()?));  // Inferred as i32 from function signature
 
 // Empty value and type management
 let mut any = Value::Int32(42);
-any.clear();
+any.unset();
 assert!(any.is_unset());
 assert_eq!(any.data_type(), DataType::Int32);
 any.set_type(DataType::String);
@@ -477,7 +477,7 @@ number literals.
 - `is_unset()` — check whether no concrete value is stored
 - `is_numeric()` — classify a concrete numeric value
 - `is_nan()` — test whether the concrete value is a floating-point NaN
-- `unset()` / `clear()` — remove the value while preserving its declared type
+- `unset()` — remove the value while preserving its declared type
 - `set_type()` — change the type
 
 #### Multi-Value
