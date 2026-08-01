@@ -7,15 +7,12 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_value::{Value, ValueError};
 
 #[test]
-fn test_value_preserves_type_when_cleared() {
+fn test_value_preserves_type_when_unset() {
     let mut value = Value::String("abc".to_string());
-    value.clear();
+    value.unset();
 
     assert!(value.is_unset());
     assert_eq!(value.data_type(), DataType::String);

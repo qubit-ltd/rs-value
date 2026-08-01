@@ -139,7 +139,7 @@ assert!(check_port(v.get()?));  // 从函数签名推断为 i32
 
 // 空值与类型管理
 let mut any = Value::Int32(42);
-any.clear();
+any.unset();
 assert!(any.is_unset());
 assert_eq!(any.data_type(), DataType::Int32);
 any.set_type(DataType::String);
@@ -281,7 +281,7 @@ assert_eq!(paths, vec!["cache".to_string(), "tmp".to_string()]);
 
 // 首元素转换，并使用标量默认值
 let values = MultiValues::Unset(DataType::UInt16);
-let port: u16 = values.to_or(8080u16)?;
+let port: u16 = values.to_first_or(8080u16)?;
 assert_eq!(port, 8080);
 
 // 列表转换，并使用数组或切片默认值
@@ -393,10 +393,10 @@ assert_eq!(val, 8080);
   如果值未设置则返回默认值。
 - **`Value::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   使用显式转换选项，并保持相同的默认值语义。
-- **`MultiValues::to<T>(&self) -> ValueResult<T>`** — 转换第一个存储值。
-- **`MultiValues::to_or<T>(&self, default) -> ValueResult<T>`** —
+- **`MultiValues::to_first<T>(&self) -> ValueResult<T>`** — 转换第一个存储值。
+- **`MultiValues::to_first_or<T>(&self, default) -> ValueResult<T>`** —
   转换第一个存储值，仅当容器为 `Unset` 时返回默认值。
-- **`MultiValues::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
+- **`MultiValues::to_first_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   使用显式转换选项，并保持相同的默认值语义。
 - **`MultiValues::to_list<T>(&self) -> ValueResult<Vec<T>>`** —
   转换所有存储值。
@@ -446,7 +446,7 @@ JSON 边界都会拒绝 `NaN`、正无穷和负无穷，因为 JSON 没有这些
 - `is_unset()` — 检查是否没有存储具体值
 - `is_numeric()` — 判断具体值是否为数值类型
 - `is_nan()` — 判断具体值是否为浮点 NaN
-- `unset()` / `clear()` — 移除值并保留声明类型
+- `unset()` — 移除值并保留声明类型
 - `set_type()` — 更改类型
 
 #### 多值
