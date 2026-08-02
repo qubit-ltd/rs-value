@@ -29,10 +29,11 @@ and conversion while maintaining Rust's safety guarantees.
 ## Features
 
 ### 🎯 **Core Design**
-- **Enum-Based Architecture**: Uses `Value`/`MultiValues` enums to represent all
-  supported data types
-- **Type Safety**: Enum variants carry static types; failures are expressed
-  through `Result<T, ValueError>`
+- **Tagged Representation**: Opaque `Value`/`MultiValues` containers expose
+  typed constructors and semantic `ValueRef`/`MultiValuesRef` views while
+  keeping storage details private
+- **Type Safety**: Typed constructors and accessors preserve the declared data
+  type; failures are expressed through `Result<T, ValueError>`
 - **Borrowed Access**: Typed getters return references where the stored type is
   not `Copy`
 - **Named Values**: `NamedValue`/`NamedMultiValues` provide name binding for
@@ -49,10 +50,12 @@ and conversion while maintaining Rust's safety guarantees.
   `HashMap<String, String>`, and `serde_json::Value`
 
 ### 📦 **Core Types**
-- **`Value`**: Single value container with `Unset(DataType)` and up to 25
-  platform-independent concrete variants, depending on enabled features
-- **`MultiValues`**: Multi-value container corresponding to `Vec<T>` enum
-  variants, with `Unset(DataType)`
+- **`Value`**: Opaque single-value container with typed constructors such as
+  `Value::Unset(DataType)`, `Value::Int32`, and `Value::String`; its storage
+  representation is private
+- **`MultiValues`**: Opaque homogeneous collection container with typed
+  constructors such as `MultiValues::Unset(DataType)` and
+  `MultiValues::Int32`; its storage representation is private
 - **`ValueContainer`**: Explicit `Scalar(Value)` or
   `Collection(MultiValues)` shape without length-based inference
 - **`NamedValue`**: Name-bound `Value` with explicit `value()` and
@@ -540,9 +543,11 @@ documented lossy behavior is intentional, or replace only the required
 configurable through `NumericConversionLimits`. Text is not trimmed unless
 enabled in `StringConversionOptions`.
 
-`Value`, `MultiValues`, and `ValueError` are non-exhaustive public enums.
-Downstream `match` expressions must keep a wildcard arm so future variants do
-not break source compatibility.
+`Value` and `MultiValues` are structs with private storage, so downstream code
+should use their constructors, accessors, and semantic `view()` methods rather
+than matching representation details. `ValueRef`, `MultiValuesRef`, and
+`ValueError` are non-exhaustive public enums; downstream matches on them must
+keep a wildcard arm so future variants do not break source compatibility.
 
 ## Supported Data Types
 
