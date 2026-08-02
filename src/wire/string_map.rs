@@ -12,11 +12,7 @@
 use std::collections::HashMap;
 
 use serde::ser::SerializeMap;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serializer};
 
 /// Serializes one string map with lexicographically ordered keys.
 pub(crate) fn serialize<S>(
@@ -37,9 +33,7 @@ where
 }
 
 /// Deserializes one string map from any Serde map representation.
-pub(crate) fn deserialize<'de, D>(
-    deserializer: D,
-) -> Result<HashMap<String, String>, D::Error>
+pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
 where
     D: Deserializer<'de>,
 {

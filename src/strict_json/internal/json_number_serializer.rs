@@ -11,19 +11,12 @@
 use std::str::FromStr;
 
 use serde::Serialize;
-use serde_json::{
-    Number,
-    Value,
-};
+use serde_json::{Number, Value};
 
-use crate::strict_json::{
-    Result,
-    StrictJsonError,
-};
+use crate::strict_json::{Result, StrictJsonError};
 
 /// Private struct name emitted by `serde_json` with `arbitrary_precision`.
-pub(in crate::strict_json) const NUMBER_TOKEN: &str =
-    "$serde_json::private::Number";
+pub(in crate::strict_json) const NUMBER_TOKEN: &str = "$serde_json::private::Number";
 
 /// Converts the string field of a `serde_json` number token into a JSON number.
 ///

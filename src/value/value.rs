@@ -11,17 +11,11 @@
 
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionOptions,
-    DataConversionTarget,
-};
+use qubit_datatype::{DataConversionOptions, DataConversionTarget};
 use std::fmt;
 
 use crate::value_error::ValueResult;
-use crate::{
-    IntoValueDefault,
-    ValueError,
-};
+use crate::{IntoValueDefault, ValueError};
 
 /// Defines the private storage representation for the public single-value
 /// container from the shared value-type table.
@@ -460,7 +454,9 @@ impl Value {
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::NoValue) => Ok(default.into_value_default()),
+            Err(ValueError::NoValue(absence)) if absence.is_unset() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -491,7 +487,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.get() {
-            Err(ValueError::NoValue) => Ok(default()),
+            Err(ValueError::NoValue(absence)) if absence.is_unset() => Ok(default()),
             result => result,
         }
     }
@@ -597,9 +593,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }
@@ -708,9 +702,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }

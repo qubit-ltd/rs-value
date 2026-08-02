@@ -8,21 +8,13 @@
 
 //! Canonical Serde adapter for JSON values.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
 use super::internal::CanonicalJson;
 
 /// Serializes one JSON value with recursively ordered object keys.
-pub(crate) fn serialize<S>(
-    value: &Value,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+pub(crate) fn serialize<S>(value: &Value, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -40,12 +32,8 @@ where
 /// Returns a recursively canonical JSON value for natural projections.
 pub(crate) fn canonicalize_json_value(value: &Value) -> Value {
     match value {
-        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => {
-            value.clone()
-        }
-        Value::Array(values) => {
-            Value::Array(values.iter().map(canonicalize_json_value).collect())
-        }
+        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => value.clone(),
+        Value::Array(values) => Value::Array(values.iter().map(canonicalize_json_value).collect()),
         Value::Object(values) => {
             let mut entries: Vec<_> = values.iter().collect();
             entries.sort_unstable_by_key(|(left, _)| *left);

@@ -222,9 +222,7 @@ impl MultiValues {
     #[inline(always)]
     pub fn view(&self) -> MultiValuesRef<'_> {
         match &self.repr {
-            MultiValuesRepr::Unset(data_type) => {
-                MultiValuesRef::Unset(*data_type)
-            }
+            MultiValuesRepr::Unset(data_type) => MultiValuesRef::Unset(*data_type),
             MultiValuesRepr::Bool(values) => MultiValuesRef::Bool(values),
             MultiValuesRepr::Char(values) => MultiValuesRef::Char(values),
             MultiValuesRepr::Int8(values) => MultiValuesRef::Int8(values),
@@ -240,32 +238,22 @@ impl MultiValues {
             MultiValuesRepr::Float32(values) => MultiValuesRef::Float32(values),
             MultiValuesRepr::Float64(values) => MultiValuesRef::Float64(values),
             #[cfg(feature = "big-integer")]
-            MultiValuesRepr::BigInteger(values) => {
-                MultiValuesRef::BigInteger(values)
-            }
+            MultiValuesRepr::BigInteger(values) => MultiValuesRef::BigInteger(values),
             #[cfg(feature = "big-decimal")]
-            MultiValuesRepr::BigDecimal(values) => {
-                MultiValuesRef::BigDecimal(values)
-            }
+            MultiValuesRepr::BigDecimal(values) => MultiValuesRef::BigDecimal(values),
             MultiValuesRepr::String(values) => MultiValuesRef::String(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Date(values) => MultiValuesRef::Date(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Time(values) => MultiValuesRef::Time(values),
             #[cfg(feature = "chrono")]
-            MultiValuesRepr::DateTime(values) => {
-                MultiValuesRef::DateTime(values)
-            }
+            MultiValuesRepr::DateTime(values) => MultiValuesRef::DateTime(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Instant(values) => MultiValuesRef::Instant(values),
-            MultiValuesRepr::Duration(values) => {
-                MultiValuesRef::Duration(values)
-            }
+            MultiValuesRepr::Duration(values) => MultiValuesRef::Duration(values),
             #[cfg(feature = "url")]
             MultiValuesRepr::Url(values) => MultiValuesRef::Url(values),
-            MultiValuesRepr::StringMap(values) => {
-                MultiValuesRef::StringMap(values)
-            }
+            MultiValuesRepr::StringMap(values) => MultiValuesRef::StringMap(values),
             #[cfg(feature = "json")]
             MultiValuesRepr::Json(values) => MultiValuesRef::Json(values),
         }
@@ -300,7 +288,11 @@ macro_rules! impl_get_multi_values {
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match &self.repr {
                 MultiValuesRepr::$variant(v) => Ok(v),
-                MultiValuesRepr::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                MultiValuesRepr::Unset(dt) if *dt == $data_type => {
+                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetCollection {
+                        data_type: *dt,
+                    }))
+                }
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -323,7 +315,11 @@ macro_rules! impl_get_multi_values {
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match &self.repr {
                 MultiValuesRepr::$variant(v) => Ok(v.as_slice()),
-                MultiValuesRepr::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                MultiValuesRepr::Unset(dt) if *dt == $data_type => {
+                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetCollection {
+                        data_type: *dt,
+                    }))
+                }
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -356,8 +352,16 @@ macro_rules! impl_get_first_value {
         pub fn $method(&self) -> ValueResult<$type> {
             match &self.repr {
                 MultiValuesRepr::$variant(v) if !v.is_empty() => Ok(v[0]),
-                MultiValuesRepr::$variant(_) => Err(ValueError::NoValue),
-                MultiValuesRepr::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                MultiValuesRepr::$variant(_) => {
+                    Err(ValueError::NoValue($crate::ValueAbsence::EmptyCollection {
+                        data_type: $data_type,
+                    }))
+                }
+                MultiValuesRepr::Unset(dt) if *dt == $data_type => {
+                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetCollection {
+                        data_type: *dt,
+                    }))
+                }
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),
@@ -382,8 +386,16 @@ macro_rules! impl_get_first_value {
                     let conv_fn: fn(&_) -> $ret_type = $conversion;
                     Ok(conv_fn(&v[0]))
                 },
-                MultiValuesRepr::$variant(_) => Err(ValueError::NoValue),
-                MultiValuesRepr::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                MultiValuesRepr::$variant(_) => {
+                    Err(ValueError::NoValue($crate::ValueAbsence::EmptyCollection {
+                        data_type: $data_type,
+                    }))
+                }
+                MultiValuesRepr::Unset(dt) if *dt == $data_type => {
+                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetCollection {
+                        data_type: *dt,
+                    }))
+                }
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: self.data_type(),

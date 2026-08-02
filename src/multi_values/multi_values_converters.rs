@@ -11,23 +11,13 @@
 //! This module keeps generic conversion logic (`to_first` and `to_list`).
 
 use qubit_datatype::{
-    DataConversionError,
-    DataConversionOptions,
-    DataConversionTarget,
-    DataConverter,
-    DataConverters,
+    DataConversionError, DataConversionOptions, DataConversionTarget, DataConverter, DataConverters,
 };
 
 use crate::IntoValueDefault;
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
+use crate::value_error::{ValueError, ValueResult};
 
-use super::multi_values::{
-    MultiValues,
-    MultiValuesRepr,
-};
+use super::multi_values::{MultiValues, MultiValuesRepr};
 
 macro_rules! multi_values_convert_first_match {
     ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
@@ -181,10 +171,7 @@ impl MultiValues {
     /// Returns an empty-collection error for a concrete empty vector, or a
     /// conversion error when the first value cannot be converted to `T`.
     #[inline]
-    pub fn to_first_or<T>(
-        &self,
-        default: impl IntoValueDefault<T>,
-    ) -> ValueResult<T>
+    pub fn to_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -222,9 +209,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }
@@ -251,10 +236,7 @@ impl MultiValues {
     /// Returns a structured missing-value conversion error when the container
     /// is unset, an empty-collection error for a concrete empty vector, or a
     /// conversion error when the first value cannot be converted to `T`.
-    pub fn to_first_with<T>(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<T>
+    pub fn to_first_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -329,9 +311,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }
@@ -381,10 +361,7 @@ impl MultiValues {
     ///
     /// Returns the first item conversion error for concrete storage.
     #[inline]
-    pub fn to_list_or<T>(
-        &self,
-        default: impl IntoValueDefault<Vec<T>>,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
@@ -422,9 +399,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }
@@ -450,10 +425,7 @@ impl MultiValues {
     ///
     /// Returns the first conversion error encountered while converting an
     /// element.
-    pub fn to_list_with<T>(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(&self, options: &DataConversionOptions) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
@@ -527,9 +499,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
-                Ok(default())
-            }
+            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
             result => result,
         }
     }

@@ -12,15 +12,9 @@ use serde::Serialize;
 use serde::ser::SerializeStruct;
 use serde_json::Value;
 
-use crate::strict_json::{
-    Result,
-    StrictJsonError,
-};
+use crate::strict_json::{Result, StrictJsonError};
 
-use super::{
-    ObjectSerializer,
-    json_number_serializer,
-};
+use super::{ObjectSerializer, json_number_serializer};
 
 /// Collects either an ordinary JSON object or one arbitrary-precision number.
 pub(in crate::strict_json) enum StructSerializer {
@@ -42,13 +36,10 @@ impl SerializeStruct for StructSerializer {
         match self {
             Self::Object(serializer) => serializer.serialize_field(key, value),
             Self::Number(output) => {
-                if key != json_number_serializer::NUMBER_TOKEN
-                    || output.is_some()
-                {
+                if key != json_number_serializer::NUMBER_TOKEN || output.is_some() {
                     return Err(StrictJsonError::Serialization);
                 }
-                *output =
-                    Some(json_number_serializer::serialize_number(value)?);
+                *output = Some(json_number_serializer::serialize_number(value)?);
                 Ok(())
             }
         }

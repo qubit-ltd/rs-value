@@ -11,10 +11,7 @@
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_decodes_canonical_string() {
-    use qubit_value::{
-        Value,
-        ValueWireV1,
-    };
+    use qubit_value::{Value, ValueWireV1};
 
     assert_eq!(
         serde_json::from_value::<ValueWireV1>(

@@ -8,28 +8,14 @@
 
 //! Unversioned V1 payload for use inside an already-versioned protocol.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
+use crate::{MultiValues, Value, ValueContainer};
+#[cfg(feature = "json")]
+use crate::{ValueWireDecodeError, ValueWireLimits};
 
-use super::value_wire_payload_ref_v1::{
-    validate_value,
-    validate_values,
-};
-use super::{
-    ValueWireEncodeError,
-    WireShapeOwned,
-    WireShapeRef,
-};
+use super::value_wire_payload_ref_v1::{validate_value, validate_values};
+use super::{ValueWireEncodeError, WireShapeOwned, WireShapeRef};
 
 /// Typed V1 scalar-or-collection payload without an enclosing version field.
 #[must_use]
@@ -40,6 +26,40 @@ pub struct ValueWirePayloadV1 {
 }
 
 impl ValueWirePayloadV1 {
+    /// Decodes a complete V1 JSON payload using default resource limits.
+    ///
+    /// Prefer this entry point when the payload itself is the complete
+    /// untrusted document. For embedded payloads, the outer protocol must
+    /// enforce a limit on its complete document before deserializing fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireDecodeError::InputTooLarge`] when the input exceeds
+    /// the default byte limit, or [`ValueWireDecodeError::InvalidJson`] when
+    /// the bounded input is not a valid V1 payload.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, ValueWireLimits::default())
+    }
+
+    /// Decodes a complete V1 JSON payload using explicit resource limits.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireDecodeError::InputTooLarge`] when the input exceeds
+    /// `limits`, or [`ValueWireDecodeError::InvalidJson`] when the bounded
+    /// input is not a valid V1 payload.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn decode_json_slice_with_limits(
+        input: &[u8],
+        limits: ValueWireLimits,
+    ) -> Result<Self, ValueWireDecodeError> {
+        limits.check_json_bytes(input.len())?;
+        serde_json::from_slice(input).map_err(ValueWireDecodeError::from)
+    }
+
     /// Borrows the preserved runtime value.
     #[inline(always)]
     pub const fn container(&self) -> &ValueContainer {
@@ -62,9 +82,7 @@ impl ValueWirePayloadV1 {
     }
 
     /// Wraps a payload decoded through V1's finite-number Serde adapters.
-    pub(in crate::value_wire) const fn from_decoded(
-        value: ValueContainer,
-    ) -> Self {
+    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
         Self { value }
     }
 }
