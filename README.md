@@ -670,7 +670,7 @@ qubit-datatype = { version = "0.10", default-features = false }
 qubit-redact = { version = "0.5", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
-serde_json = { version = "1.0", features = ["arbitrary_precision"], optional = true }
+serde_json = { version = "1.0", features = ["arbitrary_precision", "float_roundtrip"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["std", "serde"], optional = true }
 url = { version = "2.5", features = ["serde"], optional = true }
 num-bigint = { version = "0.4", optional = true }
