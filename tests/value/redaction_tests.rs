@@ -9,8 +9,19 @@
 
 use std::collections::HashMap;
 
-use qubit_redact::{MaskPolicy, Redact as _, RedactValue as _, RedactionPolicy, Sensitivity};
-use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
+use qubit_redact::{
+    MaskPolicy,
+    Redact as _,
+    RedactValue as _,
+    RedactionPolicy,
+    Sensitivity,
+};
+use qubit_value::{
+    MultiValues,
+    NamedMultiValues,
+    NamedValue,
+    Value,
+};
 
 #[test]
 fn test_value_redacted_view_masks_sensitive_string_map_entries() {
@@ -20,6 +31,7 @@ fn test_value_redacted_view_masks_sensitive_string_map_entries() {
     ]));
     let policy = RedactionPolicy::builder()
         .raise("api_key", Sensitivity::Secret)
+        .expect("the test builder input should be valid")
         .build()
         .expect("policy should build");
 
@@ -34,6 +46,7 @@ fn test_value_redacted_view_preserves_scalar_without_key_context() {
     let value = Value::String("visible-without-key".to_owned());
     let policy = RedactionPolicy::builder()
         .raise("password", Sensitivity::Secret)
+        .expect("the test builder input should be valid")
         .build()
         .expect("policy should build");
 
@@ -50,6 +63,7 @@ fn test_value_redact_value_masks_non_strings_with_configured_opaque_value() {
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
         )
+        .expect("the test mask policy should be valid")
         .build()
         .expect("policy should build")
         .masking()
@@ -62,13 +76,16 @@ fn test_value_redact_value_masks_non_strings_with_configured_opaque_value() {
 
 #[test]
 fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
-    let value = NamedValue::new("token", Value::String("secret-token".to_owned()));
+    let value =
+        NamedValue::new("token", Value::String("secret-token".to_owned()));
     let policy = RedactionPolicy::builder()
         .raise("token", Sensitivity::Low)
+        .expect("the test builder input should be valid")
         .mask(
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "MASK", 0),
         )
+        .expect("the test mask policy should be valid")
         .build()
         .expect("policy should build");
 
@@ -82,14 +99,19 @@ fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
 fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
     let value = NamedMultiValues::new(
         "tokens",
-        MultiValues::String(vec!["first-secret".to_owned(), "second-secret".to_owned()]),
+        MultiValues::String(vec![
+            "first-secret".to_owned(),
+            "second-secret".to_owned(),
+        ]),
     );
     let policy = RedactionPolicy::builder()
         .raise("tokens", Sensitivity::Low)
+        .expect("the test builder input should be valid")
         .mask(
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
         )
+        .expect("the test mask policy should be valid")
         .build()
         .expect("policy should build");
 

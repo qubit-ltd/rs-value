@@ -7,7 +7,10 @@
 // =============================================================================
 //! Verifies named scalar deserialization through the owned wire DTO.
 
-use qubit_value::{NamedValue, Value};
+use qubit_value::{
+    NamedValue,
+    Value,
+};
 
 /// Deserializes a named scalar from the V1 envelope.
 #[test]

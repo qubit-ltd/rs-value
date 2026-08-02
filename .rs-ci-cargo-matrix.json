@@ -98,6 +98,18 @@
       "features": ["converter", "json"]
     },
     {
+      "name": "downstream-rs-config",
+      "commands": ["check", "test"],
+      "defaultFeatures": false,
+      "features": ["converter", "json"]
+    },
+    {
+      "name": "downstream-rs-metadata",
+      "commands": ["check", "test"],
+      "defaultFeatures": false,
+      "features": ["converter", "redact"]
+    },
+    {
       "name": "all",
       "commands": ["check", "test", "doc", "clippy"],
       "defaultFeatures": false,

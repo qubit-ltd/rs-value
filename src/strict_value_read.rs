@@ -7,18 +7,28 @@
 // =============================================================================
 
 //! Sealed public bound for strict reads from runtime value storage.
+// qubit-style: allow multiple-public-types
 
-use crate::{MultiValues, Value, ValueError, ValueResult};
+use crate::{
+    MultiValues,
+    Value,
+    ValueError,
+    ValueResult,
+};
 
 mod sealed {
-    use super::{MultiValues, Value, ValueError};
+    use super::{
+        MultiValues,
+        Value,
+        ValueError,
+    };
 
     pub trait Sealed {}
 
     impl<T> Sealed for T
     where
-        for<'a> T:
-            TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
+        for<'a> T: TryFrom<&'a Value, Error = ValueError>
+            + TryFrom<&'a MultiValues, Error = ValueError>,
         for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
     {
     }
@@ -27,8 +37,8 @@ mod sealed {
 /// Marks target types supported by exact, non-converting reads.
 ///
 /// This trait is sealed because supported types are determined by the closed
-/// runtime [`crate::DataType`] family. Domain conversions belong in explicit
-/// conversion boundaries, rather than changing strict-read semantics.
+/// runtime [`qubit_datatype::DataType`] family. Domain conversions belong in
+/// explicit conversion boundaries, rather than changing strict-read semantics.
 pub trait StrictValueRead: Sized + sealed::Sealed {
     /// Strictly reads a scalar runtime value.
     #[doc(hidden)]
@@ -45,8 +55,8 @@ pub trait StrictValueRead: Sized + sealed::Sealed {
 
 impl<T> StrictValueRead for T
 where
-    for<'a> T:
-        TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
+    for<'a> T: TryFrom<&'a Value, Error = ValueError>
+        + TryFrom<&'a MultiValues, Error = ValueError>,
     for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
 {
     #[inline(always)]
