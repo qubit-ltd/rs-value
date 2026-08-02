@@ -6,6 +6,10 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Structured reason why a runtime value has no concrete item to read.
+// qubit-style: allow source-test-pair
+// Tests are intentionally distributed across value_error_tests.rs and
+// behavior-specific files under tests/value/ rather than collected in
+// value_absence_tests.rs.
 
 use std::fmt;
 
@@ -74,10 +78,16 @@ impl fmt::Display for ValueAbsence {
                 write!(formatter, "unset scalar with declared type {data_type}")
             }
             Self::UnsetCollection { data_type } => {
-                write!(formatter, "unset collection with declared type {data_type}")
+                write!(
+                    formatter,
+                    "unset collection with declared type {data_type}"
+                )
             }
             Self::EmptyCollection { data_type } => {
-                write!(formatter, "empty collection with element type {data_type}")
+                write!(
+                    formatter,
+                    "empty collection with element type {data_type}"
+                )
             }
         }
     }

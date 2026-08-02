@@ -8,7 +8,12 @@
 
 //! Tests recursive JSON redaction through the public `Value` API.
 
-use qubit_redact::{MaskPolicy, Redact as _, RedactionPolicy, Sensitivity};
+use qubit_redact::{
+    MaskPolicy,
+    Redact as _,
+    RedactionPolicy,
+    Sensitivity,
+};
 use qubit_value::Value;
 
 /// Verifies sensitive JSON containers are masked without exposing their data.
@@ -23,13 +28,18 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
     }));
     let policy = RedactionPolicy::builder()
         .raise("secret_number", Sensitivity::Low)
+        .expect("the test builder input should be valid")
         .raise("secret_object", Sensitivity::Low)
+        .expect("the test builder input should be valid")
         .raise("secret_array", Sensitivity::Low)
+        .expect("the test builder input should be valid")
         .raise("secret_null", Sensitivity::Low)
+        .expect("the test builder input should be valid")
         .mask(
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
         )
+        .expect("the test mask policy should be valid")
         .build()
         .expect("policy should build");
 

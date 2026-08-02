@@ -19,6 +19,8 @@ mod multi_values_core;
 mod multi_values_getter;
 mod multi_values_getters;
 mod multi_values_identity;
+mod multi_values_ref;
 
+pub use multi_values::MultiValues;
 pub(crate) use multi_values::MultiValuesRepr;
-pub use multi_values::{MultiValues, MultiValuesRef};
+pub use multi_values_ref::MultiValuesRef;

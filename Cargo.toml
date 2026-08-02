@@ -48,6 +48,16 @@ path = "tests/core_feature_tests.rs"
 name = "feature_contract_tests"
 path = "tests/feature_contract_tests.rs"
 
+[[test]]
+name = "downstream_rs_config_tests"
+path = "tests/downstream_rs_config_tests.rs"
+required-features = ["converter", "json"]
+
+[[test]]
+name = "downstream_rs_metadata_tests"
+path = "tests/downstream_rs_metadata_tests.rs"
+required-features = ["converter", "redact"]
+
 [features]
 default = []
 chrono = ["dep:chrono", "qubit-datatype/chrono"]

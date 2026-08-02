@@ -8,14 +8,23 @@
 //! # Single Value Container
 //!
 //! Provides type-safe storage and access functionality for single values.
+// qubit-style: allow multiple-public-types
 
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{DataConversionOptions, DataConversionTarget};
+use qubit_datatype::{
+    DataConversionOptions,
+    DataConversionTarget,
+};
 use std::fmt;
 
 use crate::value_error::ValueResult;
-use crate::{IntoValueDefault, ValueError};
+use crate::{
+    IntoValueDefault,
+    ValueError,
+};
+
+use super::value_ref::ValueRef;
 
 /// Defines the private storage representation for the public single-value
 /// container from the shared value-type table.
@@ -112,73 +121,6 @@ impl fmt::Debug for Value {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.view().fmt(formatter)
     }
-}
-
-/// Borrowed semantic view of a [`Value`].
-#[must_use]
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy)]
-pub enum ValueRef<'a> {
-    /// An unset value retaining its declared type.
-    Unset(DataType),
-    /// A boolean value.
-    Bool(bool),
-    /// A character value.
-    Char(char),
-    /// A signed integer value.
-    Int8(i8),
-    /// A signed integer value.
-    Int16(i16),
-    /// A signed integer value.
-    Int32(i32),
-    /// A signed integer value.
-    Int64(i64),
-    /// A signed integer value.
-    Int128(i128),
-    /// An unsigned integer value.
-    UInt8(u8),
-    /// An unsigned integer value.
-    UInt16(u16),
-    /// An unsigned integer value.
-    UInt32(u32),
-    /// An unsigned integer value.
-    UInt64(u64),
-    /// An unsigned integer value.
-    UInt128(u128),
-    /// A 32-bit floating-point value.
-    Float32(f32),
-    /// A 64-bit floating-point value.
-    Float64(f64),
-    /// An arbitrary-precision integer.
-    #[cfg(feature = "big-integer")]
-    BigInteger(&'a num_bigint::BigInt),
-    /// An arbitrary-precision decimal.
-    #[cfg(feature = "big-decimal")]
-    BigDecimal(&'a bigdecimal::BigDecimal),
-    /// A string value.
-    String(&'a str),
-    /// A calendar date.
-    #[cfg(feature = "chrono")]
-    Date(&'a chrono::NaiveDate),
-    /// A time-of-day value.
-    #[cfg(feature = "chrono")]
-    Time(&'a chrono::NaiveTime),
-    /// A date-and-time value.
-    #[cfg(feature = "chrono")]
-    DateTime(&'a chrono::NaiveDateTime),
-    /// A UTC instant.
-    #[cfg(feature = "chrono")]
-    Instant(&'a chrono::DateTime<chrono::Utc>),
-    /// A duration value.
-    Duration(&'a std::time::Duration),
-    /// A URL value.
-    #[cfg(feature = "url")]
-    Url(&'a url::Url),
-    /// A map with string keys and values.
-    StringMap(&'a std::collections::HashMap<String, String>),
-    /// A JSON value.
-    #[cfg(feature = "json")]
-    Json(&'a serde_json::Value),
 }
 
 macro_rules! impl_value_constructors {
@@ -487,7 +429,9 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.get() {
-            Err(ValueError::NoValue(absence)) if absence.is_unset() => Ok(default()),
+            Err(ValueError::NoValue(absence)) if absence.is_unset() => {
+                Ok(default())
+            }
             result => result,
         }
     }
@@ -593,7 +537,9 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
+            }
             result => result,
         }
     }
@@ -702,7 +648,9 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
+            }
             result => result,
         }
     }

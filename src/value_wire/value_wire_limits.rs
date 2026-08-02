@@ -6,19 +6,20 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-//! Resource limits for decoding untrusted JSON wire input.
+//! Input-size limits for decoding untrusted JSON wire input.
 
 use super::ValueWireDecodeError;
 
-/// Resource limits applied before decoding a V1 JSON wire value.
+/// Input-size limits applied before decoding a V1 JSON wire value.
 ///
-/// The total byte limit bounds all payload text and collection data presented
-/// to Serde. Callers can choose a smaller budget when their protocol has a
-/// tighter message-size contract.
+/// The limit is a preflight bound on the complete encoded JSON document. It
+/// does not cap allocations made while parsing, the number of collection
+/// elements, string lengths after decoding, or JSON nesting depth. Callers
+/// that need those guarantees must enforce them in the surrounding protocol.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ValueWireLimits {
-    /// Maximum accepted JSON input length in bytes.
+    /// Maximum accepted complete JSON input length in bytes.
     max_json_bytes: usize,
 }
 
@@ -26,7 +27,7 @@ impl ValueWireLimits {
     /// Default maximum JSON input length: one mebibyte.
     pub const DEFAULT_MAX_JSON_BYTES: usize = 1_048_576;
 
-    /// Creates resource limits with the specified JSON input byte budget.
+    /// Creates input-size limits with the specified JSON byte budget.
     ///
     /// # Parameters
     ///
@@ -34,7 +35,7 @@ impl ValueWireLimits {
     ///
     /// # Returns
     ///
-    /// Resource limits using `max_json_bytes` as the complete input budget.
+    /// Input-size limits using `max_json_bytes` as the complete input budget.
     #[inline(always)]
     pub const fn new(max_json_bytes: usize) -> Self {
         Self { max_json_bytes }
@@ -70,14 +71,17 @@ impl ValueWireLimits {
     ///
     /// # Returns
     ///
-    /// `Ok(())` when `input_bytes` does not exceed this limit.
+    /// `Ok(())` when `input_bytes` does not exceed this input-size limit.
     ///
     /// # Errors
     ///
     /// Returns [`ValueWireDecodeError::InputTooLarge`] with the actual and
     /// configured byte counts when the input exceeds this limit.
     #[inline]
-    pub const fn check_json_bytes(self, input_bytes: usize) -> Result<(), ValueWireDecodeError> {
+    pub const fn check_json_bytes(
+        self,
+        input_bytes: usize,
+    ) -> Result<(), ValueWireDecodeError> {
         if input_bytes > self.max_json_bytes {
             Err(ValueWireDecodeError::InputTooLarge {
                 input_bytes,
