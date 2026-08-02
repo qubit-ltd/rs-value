@@ -9,9 +9,15 @@
 
 use std::cmp::Ordering;
 
-use qubit_datatype::{NumberRef, NumericComparisonPolicy};
+use qubit_datatype::{
+    NumberRef,
+    NumericComparisonPolicy,
+};
 
-use super::{Value, ValueRepr};
+use super::{
+    Value,
+    ValueRepr,
+};
 use crate::NumericComparisonError;
 
 /// Projects one stored value according to its type-table numeric strategy.
@@ -116,17 +122,16 @@ impl Value {
             });
         }
 
-        let left = self
-            .as_number_ref()
-            .ok_or_else(|| NumericComparisonError::LeftNotNumeric {
+        let left = self.as_number_ref().ok_or_else(|| {
+            NumericComparisonError::LeftNotNumeric {
                 actual: self.data_type(),
-            })?;
-        let right =
-            other
-                .as_number_ref()
-                .ok_or_else(|| NumericComparisonError::RightNotNumeric {
-                    actual: other.data_type(),
-                })?;
+            }
+        })?;
+        let right = other.as_number_ref().ok_or_else(|| {
+            NumericComparisonError::RightNotNumeric {
+                actual: other.data_type(),
+            }
+        })?;
 
         match (left.is_nan(), right.is_nan()) {
             (true, true) => return Err(NumericComparisonError::BothNaN),
@@ -137,7 +142,9 @@ impl Value {
 
         match left.compare(right, policy) {
             Some(ordering) => Ok(ordering),
-            None => unreachable!("validated non-NaN numeric values must be orderable"),
+            None => unreachable!(
+                "validated non-NaN numeric values must be orderable"
+            ),
         }
     }
 

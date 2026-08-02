@@ -8,9 +8,15 @@
 
 //! `TryFrom<&MultiValues>` implementations for strict typed reads.
 
-use super::multi_values::{MultiValues, MultiValuesRepr};
+use super::multi_values::{
+    MultiValues,
+    MultiValuesRepr,
+};
 use crate::ValueAbsence;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 macro_rules! impl_multi_values_try_from_table {
     (

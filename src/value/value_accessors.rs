@@ -7,6 +7,9 @@
 // =============================================================================
 
 //! Strict typed accessors for scalar runtime values.
+// qubit-style: allow source-test-pair
+// Tests are intentionally distributed across behavior-specific files under
+// tests/value/ rather than collected in value_accessors_tests.rs.
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -14,7 +17,13 @@ use std::time::Duration;
 #[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "chrono")]
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{
+    DateTime,
+    NaiveDate,
+    NaiveDateTime,
+    NaiveTime,
+    Utc,
+};
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -26,11 +35,21 @@ use url::Url;
 
 use qubit_datatype::DataType;
 #[cfg(all(feature = "converter", feature = "json"))]
-use qubit_datatype::{DataConversionError, DataFormat, InvalidValueReason};
+use qubit_datatype::{
+    DataConversionError,
+    DataFormat,
+    InvalidValueReason,
+};
 
-use super::value::{Value, ValueRepr};
+use super::value::{
+    Value,
+    ValueRepr,
+};
 use crate::ValueAbsence;
-use crate::value_error::{ValueError, ValueResult};
+use crate::value_error::{
+    ValueError,
+    ValueResult,
+};
 
 macro_rules! impl_get_value {
     // Copy type: directly dereference and return
@@ -135,10 +154,14 @@ impl Value {
     /// or [`InvalidValueReason::Serialization`] when Serde cannot represent
     /// the input as JSON.
     #[cfg(all(feature = "converter", feature = "json"))]
-    pub fn from_serializable<T: ?Sized + Serialize>(value: &T) -> ValueResult<Self> {
+    pub fn from_serializable<T: ?Sized + Serialize>(
+        value: &T,
+    ) -> ValueResult<Self> {
         let json = crate::strict_json::to_value(value).map_err(|error| {
             let reason = match error {
-                crate::strict_json::StrictJsonError::NonFinite => InvalidValueReason::NonFinite,
+                crate::strict_json::StrictJsonError::NonFinite => {
+                    InvalidValueReason::NonFinite
+                }
                 crate::strict_json::StrictJsonError::Serialization => {
                     InvalidValueReason::Serialization {
                         format: DataFormat::Json,
@@ -641,15 +664,17 @@ impl Value {
     #[cfg(all(feature = "converter", feature = "json"))]
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match &self.repr {
-            ValueRepr::Json(v) => serde::Deserialize::deserialize(v).map_err(|_| {
-                ValueError::from(DataConversionError::invalid(
-                    DataType::Json,
-                    DataType::Json,
-                    InvalidValueReason::Deserialization {
-                        format: DataFormat::Json,
-                    },
-                ))
-            }),
+            ValueRepr::Json(v) => {
+                serde::Deserialize::deserialize(v).map_err(|_| {
+                    ValueError::from(DataConversionError::invalid(
+                        DataType::Json,
+                        DataType::Json,
+                        InvalidValueReason::Deserialization {
+                            format: DataFormat::Json,
+                        },
+                    ))
+                })
+            }
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
                 Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
                     data_type: *dt,
