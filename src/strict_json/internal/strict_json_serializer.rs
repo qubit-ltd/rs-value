@@ -12,13 +12,23 @@ use std::fmt::Display;
 
 use serde::Serialize;
 use serde::ser::Serializer;
-use serde_json::{Map, Number, Value};
+use serde_json::{
+    Map,
+    Number,
+    Value,
+};
 use std::str::FromStr;
 
-use crate::strict_json::{Result, StrictJsonError};
+use crate::strict_json::{
+    Result,
+    StrictJsonError,
+};
 
 use super::{
-    ObjectSerializer, SequenceSerializer, StructSerializer, StructVariantSerializer,
+    ObjectSerializer,
+    SequenceSerializer,
+    StructSerializer,
+    StructVariantSerializer,
     TupleVariantSerializer,
 };
 
@@ -211,7 +221,11 @@ impl Serializer for StrictJsonSerializer {
 
     /// Delegates a newtype struct to its wrapped value.
     #[inline(always)]
-    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<Value>
+    fn serialize_newtype_struct<T>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<Value>
     where
         T: ?Sized + Serialize,
     {
@@ -281,7 +295,11 @@ impl Serializer for StrictJsonSerializer {
 
     /// Creates a struct serializer with the declared capacity.
     #[inline(always)]
-    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(
+        self,
+        name: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeStruct> {
         if name == super::json_number_serializer::NUMBER_TOKEN {
             return Ok(StructSerializer::Number(None));
         }

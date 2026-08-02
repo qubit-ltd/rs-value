@@ -36,7 +36,8 @@ fn test_natural_json_projects_float32_with_display_roundtrip() {
         let projected = Value::Float32(value)
             .to_json_value()
             .expect("project float32");
-        let projected_text = serde_json::to_string(&projected).expect("serialize json");
+        let projected_text =
+            serde_json::to_string(&projected).expect("serialize json");
 
         let legacy_text = serde_json::to_string(&serde_json::Value::Number(
             Number::from_f64(f64::from(value)).expect("finite f64"),
@@ -83,7 +84,8 @@ fn test_natural_json_canonicalizes_nested_json_object_keys() {
     use qubit_value::Value;
 
     let value = Value::Json(
-        serde_json::from_str(r#"{"z":{"b":1,"a":2},"a":0}"#).expect("parse JSON value"),
+        serde_json::from_str(r#"{"z":{"b":1,"a":2},"a":0}"#)
+            .expect("parse JSON value"),
     );
     let projected = value.to_json_value().expect("project JSON value");
 

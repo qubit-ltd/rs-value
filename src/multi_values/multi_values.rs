@@ -8,9 +8,14 @@
 //! # Multiple Values Container
 //!
 //! Provides type-safe storage and access functionality for multiple values.
-
+// qubit-style: allow source-test-pair
+// Tests are intentionally distributed across behavior-specific files under
+// tests/multi_values/ rather than collected in multi_values_tests.rs.
+// qubit-style: allow multiple-public-types
 use qubit_datatype::DataType;
 use std::fmt;
+
+use super::multi_values_ref::MultiValuesRef;
 
 /// Defines the private storage representation for the public multi-value
 /// container from the shared value-type table.
@@ -104,73 +109,6 @@ impl fmt::Debug for MultiValues {
     }
 }
 
-/// Borrowed semantic view of a [`MultiValues`] value.
-#[must_use]
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy)]
-pub enum MultiValuesRef<'a> {
-    /// An unset collection retaining its declared element type.
-    Unset(DataType),
-    /// A borrowed homogeneous collection.
-    Bool(&'a [bool]),
-    /// A borrowed homogeneous collection.
-    Char(&'a [char]),
-    /// A borrowed homogeneous collection.
-    Int8(&'a [i8]),
-    /// A borrowed homogeneous collection.
-    Int16(&'a [i16]),
-    /// A borrowed homogeneous collection.
-    Int32(&'a [i32]),
-    /// A borrowed homogeneous collection.
-    Int64(&'a [i64]),
-    /// A borrowed homogeneous collection.
-    Int128(&'a [i128]),
-    /// A borrowed homogeneous collection.
-    UInt8(&'a [u8]),
-    /// A borrowed homogeneous collection.
-    UInt16(&'a [u16]),
-    /// A borrowed homogeneous collection.
-    UInt32(&'a [u32]),
-    /// A borrowed homogeneous collection.
-    UInt64(&'a [u64]),
-    /// A borrowed homogeneous collection.
-    UInt128(&'a [u128]),
-    /// A borrowed homogeneous collection.
-    Float32(&'a [f32]),
-    /// A borrowed homogeneous collection.
-    Float64(&'a [f64]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "big-integer")]
-    BigInteger(&'a [num_bigint::BigInt]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "big-decimal")]
-    BigDecimal(&'a [bigdecimal::BigDecimal]),
-    /// A borrowed homogeneous collection.
-    String(&'a [String]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "chrono")]
-    Date(&'a [chrono::NaiveDate]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "chrono")]
-    Time(&'a [chrono::NaiveTime]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "chrono")]
-    DateTime(&'a [chrono::NaiveDateTime]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "chrono")]
-    Instant(&'a [chrono::DateTime<chrono::Utc>]),
-    /// A borrowed homogeneous collection.
-    Duration(&'a [std::time::Duration]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "url")]
-    Url(&'a [url::Url]),
-    /// A borrowed homogeneous collection.
-    StringMap(&'a [std::collections::HashMap<String, String>]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "json")]
-    Json(&'a [serde_json::Value]),
-}
-
 macro_rules! impl_multi_values_constructors {
     (
         ;
@@ -222,7 +160,9 @@ impl MultiValues {
     #[inline(always)]
     pub fn view(&self) -> MultiValuesRef<'_> {
         match &self.repr {
-            MultiValuesRepr::Unset(data_type) => MultiValuesRef::Unset(*data_type),
+            MultiValuesRepr::Unset(data_type) => {
+                MultiValuesRef::Unset(*data_type)
+            }
             MultiValuesRepr::Bool(values) => MultiValuesRef::Bool(values),
             MultiValuesRepr::Char(values) => MultiValuesRef::Char(values),
             MultiValuesRepr::Int8(values) => MultiValuesRef::Int8(values),
@@ -238,22 +178,32 @@ impl MultiValues {
             MultiValuesRepr::Float32(values) => MultiValuesRef::Float32(values),
             MultiValuesRepr::Float64(values) => MultiValuesRef::Float64(values),
             #[cfg(feature = "big-integer")]
-            MultiValuesRepr::BigInteger(values) => MultiValuesRef::BigInteger(values),
+            MultiValuesRepr::BigInteger(values) => {
+                MultiValuesRef::BigInteger(values)
+            }
             #[cfg(feature = "big-decimal")]
-            MultiValuesRepr::BigDecimal(values) => MultiValuesRef::BigDecimal(values),
+            MultiValuesRepr::BigDecimal(values) => {
+                MultiValuesRef::BigDecimal(values)
+            }
             MultiValuesRepr::String(values) => MultiValuesRef::String(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Date(values) => MultiValuesRef::Date(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Time(values) => MultiValuesRef::Time(values),
             #[cfg(feature = "chrono")]
-            MultiValuesRepr::DateTime(values) => MultiValuesRef::DateTime(values),
+            MultiValuesRepr::DateTime(values) => {
+                MultiValuesRef::DateTime(values)
+            }
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Instant(values) => MultiValuesRef::Instant(values),
-            MultiValuesRepr::Duration(values) => MultiValuesRef::Duration(values),
+            MultiValuesRepr::Duration(values) => {
+                MultiValuesRef::Duration(values)
+            }
             #[cfg(feature = "url")]
             MultiValuesRepr::Url(values) => MultiValuesRef::Url(values),
-            MultiValuesRepr::StringMap(values) => MultiValuesRef::StringMap(values),
+            MultiValuesRepr::StringMap(values) => {
+                MultiValuesRef::StringMap(values)
+            }
             #[cfg(feature = "json")]
             MultiValuesRepr::Json(values) => MultiValuesRef::Json(values),
         }
