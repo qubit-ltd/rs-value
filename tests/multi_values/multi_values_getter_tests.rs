@@ -7,10 +7,7 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    ValueError,
-};
+use qubit_value::{MultiValues, ValueAbsence, ValueError};
 
 #[test]
 fn test_multi_values_getter_is_strict() {
@@ -23,4 +20,20 @@ fn test_multi_values_getter_is_strict() {
             actual: DataType::Int32,
         })
     ));
+}
+
+#[test]
+fn test_multi_values_first_read_reports_precise_absence() {
+    assert_eq!(
+        MultiValues::Unset(DataType::Int32).get_first::<i32>(),
+        Err(ValueError::NoValue(ValueAbsence::UnsetCollection {
+            data_type: DataType::Int32,
+        })),
+    );
+    assert_eq!(
+        MultiValues::Int32(Vec::new()).get_first::<i32>(),
+        Err(ValueError::NoValue(ValueAbsence::EmptyCollection {
+            data_type: DataType::Int32,
+        })),
+    );
 }

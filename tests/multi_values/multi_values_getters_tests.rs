@@ -7,15 +7,11 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    ValueError,
-};
+use qubit_value::{MultiValues, ValueError};
 
 #[test]
 fn test_multi_values_getters_return_slices_without_copying() {
-    let values =
-        MultiValues::String(vec!["red".to_string(), "blue".to_string()]);
+    let values = MultiValues::String(vec!["red".to_string(), "blue".to_string()]);
     let strings = values.get_strings().unwrap();
     assert_eq!(strings, &["red", "blue"]);
     assert_eq!(strings.len(), values.len());
@@ -24,8 +20,8 @@ fn test_multi_values_getters_return_slices_without_copying() {
 #[test]
 fn test_multi_values_getters_distinguish_unset_from_concrete_empty() {
     let unset = MultiValues::Unset(DataType::Int32);
-    assert!(matches!(unset.get::<i32>(), Err(ValueError::NoValue)));
-    assert!(matches!(unset.get_int32s(), Err(ValueError::NoValue)));
+    assert!(matches!(unset.get::<i32>(), Err(ValueError::NoValue(_))));
+    assert!(matches!(unset.get_int32s(), Err(ValueError::NoValue(_))));
 
     let empty = MultiValues::Int32(Vec::new());
     assert_eq!(empty.get::<i32>(), Ok(Vec::new()));

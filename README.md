@@ -624,9 +624,10 @@ the payload representation is private so callers cannot bypass that
 validation by constructing an unchecked shape.
 
 Generic Serde deserialization does not impose an external message-size budget.
-For untrusted JSON, use `ValueWireV1::decode_json_slice()` to enforce the
-default one-mebibyte limit before parsing, or select a protocol-specific budget
-with `ValueWireLimits`:
+For untrusted JSON, use `ValueWireV1::decode_json_slice()` for a complete
+versioned document or `ValueWirePayloadV1::decode_json_slice()` for a complete
+embedded payload. Both enforce the default one-mebibyte limit before parsing;
+select a protocol-specific budget with `ValueWireLimits`:
 
 ```rust
 use qubit_value::{ValueWireLimits, ValueWireV1};

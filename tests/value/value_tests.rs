@@ -7,10 +7,7 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_value::{Value, ValueError};
 
 #[test]
 fn test_value_preserves_type_when_unset() {
@@ -19,5 +16,5 @@ fn test_value_preserves_type_when_unset() {
 
     assert!(value.is_unset());
     assert_eq!(value.data_type(), DataType::String);
-    assert!(matches!(value.get_string(), Err(ValueError::NoValue)));
+    assert!(matches!(value.get_string(), Err(ValueError::NoValue(_))));
 }

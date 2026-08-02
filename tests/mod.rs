@@ -47,7 +47,6 @@ mod strict_json {
         mod tuple_variant_serializer_tests;
     }
 }
-mod strict_value_list_read_tests;
 mod strict_value_read_tests;
 mod value;
 mod value_container_tests;

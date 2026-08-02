@@ -6,27 +6,61 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-//! Public bound for strict reads from either runtime value shape.
+//! Sealed public bound for strict reads from runtime value storage.
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueError,
-};
+use crate::{MultiValues, Value, ValueError, ValueResult};
 
-/// Marks target types that can be read strictly from a scalar or collection.
-///
-/// This blanket trait preserves the exact-type semantics of [`Value`] and
-/// [`MultiValues`] while hiding their shape-specific conversion bounds from
-/// APIs that delegate to both containers.
-pub trait StrictValueRead:
-    for<'a> TryFrom<&'a Value, Error = ValueError>
-    + for<'a> TryFrom<&'a MultiValues, Error = ValueError>
-{
+mod sealed {
+    use super::{MultiValues, Value, ValueError};
+
+    pub trait Sealed {}
+
+    impl<T> Sealed for T
+    where
+        for<'a> T:
+            TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
+        for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
+    {
+    }
 }
 
-impl<T> StrictValueRead for T where
-    for<'a> T: TryFrom<&'a Value, Error = ValueError>
-        + TryFrom<&'a MultiValues, Error = ValueError>
+/// Marks target types supported by exact, non-converting reads.
+///
+/// This trait is sealed because supported types are determined by the closed
+/// runtime [`crate::DataType`] family. Domain conversions belong in explicit
+/// conversion boundaries, rather than changing strict-read semantics.
+pub trait StrictValueRead: Sized + sealed::Sealed {
+    /// Strictly reads a scalar runtime value.
+    #[doc(hidden)]
+    fn read_scalar(value: &Value) -> ValueResult<Self>;
+
+    /// Strictly reads the first item from a runtime collection.
+    #[doc(hidden)]
+    fn read_collection_first(values: &MultiValues) -> ValueResult<Self>;
+
+    /// Strictly reads every item from a runtime collection.
+    #[doc(hidden)]
+    fn read_collection_list(values: &MultiValues) -> ValueResult<Vec<Self>>;
+}
+
+impl<T> StrictValueRead for T
+where
+    for<'a> T:
+        TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
+    for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
 {
+    #[inline(always)]
+    fn read_scalar(value: &Value) -> ValueResult<Self> {
+        value.get()
+    }
+
+    #[inline(always)]
+    fn read_collection_first(values: &MultiValues) -> ValueResult<Self> {
+        values.get_first()
+    }
+
+    #[inline(always)]
+    fn read_collection_list(values: &MultiValues) -> ValueResult<Vec<Self>> {
+        values.get()
+    }
 }

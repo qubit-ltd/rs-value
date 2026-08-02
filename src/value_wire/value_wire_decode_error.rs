@@ -15,9 +15,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum ValueWireDecodeError {
     /// The input exceeds the configured byte budget.
-    #[error(
-        "wire input contains {input_bytes} bytes, exceeding the {max_input_bytes}-byte limit"
-    )]
+    #[error("wire input contains {input_bytes} bytes, exceeding the {max_input_bytes}-byte limit")]
     InputTooLarge {
         /// Actual input length in bytes.
         input_bytes: usize,

@@ -21,7 +21,4 @@ mod multi_values_getters;
 mod multi_values_identity;
 
 pub(crate) use multi_values::MultiValuesRepr;
-pub use multi_values::{
-    MultiValues,
-    MultiValuesRef,
-};
+pub use multi_values::{MultiValues, MultiValuesRef};

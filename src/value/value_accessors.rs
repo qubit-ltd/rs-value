@@ -14,13 +14,7 @@ use std::time::Duration;
 #[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "chrono")]
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -32,20 +26,11 @@ use url::Url;
 
 use qubit_datatype::DataType;
 #[cfg(all(feature = "converter", feature = "json"))]
-use qubit_datatype::{
-    DataConversionError,
-    DataFormat,
-    InvalidValueReason,
-};
+use qubit_datatype::{DataConversionError, DataFormat, InvalidValueReason};
 
-use super::value::{
-    Value,
-    ValueRepr,
-};
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
+use super::value::{Value, ValueRepr};
+use crate::ValueAbsence;
+use crate::value_error::{ValueError, ValueResult};
 
 macro_rules! impl_get_value {
     // Copy type: directly dereference and return
@@ -61,7 +46,11 @@ macro_rules! impl_get_value {
         pub fn $method(&self) -> ValueResult<$type> {
             match &self.repr {
                 ValueRepr::$variant(v) => Ok(*v),
-                ValueRepr::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                ValueRepr::Unset(dt) if *dt == $data_type => {
+                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetScalar {
+                        data_type: *dt,
+                    }))
+                }
                 ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: *dt,
@@ -91,7 +80,11 @@ macro_rules! impl_get_value {
                     let conv_fn: fn(&_) -> $ret_type = $conversion;
                     Ok(conv_fn(v))
                 },
-                ValueRepr::Unset(dt) if *dt == $data_type => Err(ValueError::NoValue),
+                ValueRepr::Unset(dt) if *dt == $data_type => {
+                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetScalar {
+                        data_type: *dt,
+                    }))
+                }
                 ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                     expected: $data_type,
                     actual: *dt,
@@ -142,14 +135,10 @@ impl Value {
     /// or [`InvalidValueReason::Serialization`] when Serde cannot represent
     /// the input as JSON.
     #[cfg(all(feature = "converter", feature = "json"))]
-    pub fn from_serializable<T: ?Sized + Serialize>(
-        value: &T,
-    ) -> ValueResult<Self> {
+    pub fn from_serializable<T: ?Sized + Serialize>(value: &T) -> ValueResult<Self> {
         let json = crate::strict_json::to_value(value).map_err(|error| {
             let reason = match error {
-                crate::strict_json::StrictJsonError::NonFinite => {
-                    InvalidValueReason::NonFinite
-                }
+                crate::strict_json::StrictJsonError::NonFinite => InvalidValueReason::NonFinite,
                 crate::strict_json::StrictJsonError::Serialization => {
                     InvalidValueReason::Serialization {
                         format: DataFormat::Json,
@@ -489,7 +478,9 @@ impl Value {
         match &self.repr {
             ValueRepr::BigInteger(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigInteger => {
-                Err(ValueError::NoValue)
+                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                    data_type: *dt,
+                }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigInteger,
@@ -519,7 +510,9 @@ impl Value {
         match &self.repr {
             ValueRepr::BigDecimal(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigDecimal => {
-                Err(ValueError::NoValue)
+                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                    data_type: *dt,
+                }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigDecimal,
@@ -549,7 +542,9 @@ impl Value {
         match &self.repr {
             ValueRepr::Url(v) => Ok(v.as_ref()),
             ValueRepr::Unset(dt) if *dt == DataType::Url => {
-                Err(ValueError::NoValue)
+                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                    data_type: *dt,
+                }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Url,
@@ -578,7 +573,9 @@ impl Value {
         match &self.repr {
             ValueRepr::StringMap(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::StringMap => {
-                Err(ValueError::NoValue)
+                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                    data_type: *dt,
+                }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::StringMap,
@@ -608,7 +605,9 @@ impl Value {
         match &self.repr {
             ValueRepr::Json(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::NoValue)
+                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                    data_type: *dt,
+                }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
@@ -642,19 +641,19 @@ impl Value {
     #[cfg(all(feature = "converter", feature = "json"))]
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match &self.repr {
-            ValueRepr::Json(v) => {
-                serde::Deserialize::deserialize(v).map_err(|_| {
-                    ValueError::from(DataConversionError::invalid(
-                        DataType::Json,
-                        DataType::Json,
-                        InvalidValueReason::Deserialization {
-                            format: DataFormat::Json,
-                        },
-                    ))
-                })
-            }
+            ValueRepr::Json(v) => serde::Deserialize::deserialize(v).map_err(|_| {
+                ValueError::from(DataConversionError::invalid(
+                    DataType::Json,
+                    DataType::Json,
+                    InvalidValueReason::Deserialization {
+                        format: DataFormat::Json,
+                    },
+                ))
+            }),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::NoValue)
+                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                    data_type: *dt,
+                }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,

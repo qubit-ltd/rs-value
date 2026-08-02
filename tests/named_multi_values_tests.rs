@@ -10,19 +10,9 @@
 //! Tests various functionalities of the named multi values container。
 
 use chrono::DateTime as UtcDateTime;
-use chrono::{
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    Value,
-};
+use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
 
 /// Rejects schema fields outside the stable named-collection wrapper contract.
 #[test]
@@ -48,17 +38,13 @@ fn test_named_multi_values_serializes_with_v1_wire_contract() {
 
 #[test]
 fn test_named_multi_values_identity_is_reflexive_with_nan() {
-    let values =
-        NamedMultiValues::new("samples", MultiValues::Float32(vec![f32::NAN]));
+    let values = NamedMultiValues::new("samples", MultiValues::Float32(vec![f32::NAN]));
     assert_eq!(values, values);
 }
 
 #[test]
 fn test_named_multi_value_creation() {
-    let mut nmv = NamedMultiValues::new(
-        "ports",
-        MultiValues::Int32(vec![8080, 8081, 8082]),
-    );
+    let mut nmv = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080, 8081, 8082]));
     assert_eq!(nmv.name(), "ports");
     assert_eq!(nmv.values(), &MultiValues::Int32(vec![8080, 8081, 8082]));
 
@@ -71,8 +57,7 @@ fn test_named_multi_value_creation() {
 
 #[test]
 fn test_named_multi_value_into_parts() {
-    let named =
-        NamedMultiValues::new("ports", MultiValues::Int32(vec![8080, 8081]));
+    let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080, 8081]));
     let (name, values) = named.into_parts();
 
     assert_eq!(name, "ports");
@@ -81,10 +66,7 @@ fn test_named_multi_value_into_parts() {
 
 #[test]
 fn test_named_multi_value_accessors() {
-    let mut nmv = NamedMultiValues::new(
-        "servers",
-        MultiValues::String(vec!["s1".to_string()]),
-    );
+    let mut nmv = NamedMultiValues::new("servers", MultiValues::String(vec!["s1".to_string()]));
     assert_eq!(nmv.name(), "servers");
     assert_eq!(nmv.values().len(), 1);
 
@@ -100,8 +82,7 @@ fn test_named_multi_value_accessors() {
 
 #[test]
 fn test_named_multi_value_mut() {
-    let mut nmv =
-        NamedMultiValues::new("numbers", MultiValues::Int32(vec![1, 2]));
+    let mut nmv = NamedMultiValues::new("numbers", MultiValues::Int32(vec![1, 2]));
     nmv.values_mut().add(3).unwrap();
     assert_eq!(nmv.values().len(), 3);
     assert_eq!(nmv.values().get_int32s().unwrap(), &[1, 2, 3]);
@@ -118,8 +99,7 @@ fn test_named_value_to_named_multi_value() {
 
 #[test]
 fn test_named_multi_value_consuming_conversion_reuses_owned_parts() {
-    let named =
-        NamedMultiValues::new("port", MultiValues::Int32(vec![8080, 8081]));
+    let named = NamedMultiValues::new("port", MultiValues::Int32(vec![8080, 8081]));
     let value = named.into_first_named_value();
 
     assert_eq!(value.name(), "port");
@@ -191,9 +171,7 @@ fn test_nmv_get_dates() {
 fn test_nmv_get_times() {
     let nmv = NamedMultiValues::new(
         "t",
-        MultiValues::Time(vec![
-            NaiveTime::from_hms_milli_opt(1, 2, 3, 4).unwrap(),
-        ]),
+        MultiValues::Time(vec![NaiveTime::from_hms_milli_opt(1, 2, 3, 4).unwrap()]),
     );
     let v: Vec<NaiveTime> = nmv.values().get().unwrap();
     assert_eq!(v, vec![NaiveTime::from_hms_milli_opt(1, 2, 3, 4).unwrap()]);
@@ -250,16 +228,14 @@ fn test_nmv_get_first_string() {
 
 #[test]
 fn test_nmv_set_vec_i32() {
-    let mut nmv =
-        NamedMultiValues::new("n", MultiValues::Unset(DataType::Int32));
+    let mut nmv = NamedMultiValues::new("n", MultiValues::Unset(DataType::Int32));
     nmv.values_mut().set(vec![1, 2, 3]);
     assert_eq!(nmv.values().get_int32s().unwrap(), &[1, 2, 3]);
 }
 
 #[test]
 fn test_nmv_set_slice_i32() {
-    let mut nmv =
-        NamedMultiValues::new("n", MultiValues::Unset(DataType::Int32));
+    let mut nmv = NamedMultiValues::new("n", MultiValues::Unset(DataType::Int32));
     let s = &[4, 5, 6][..];
     nmv.values_mut().set(s);
     assert_eq!(nmv.values().get_int32s().unwrap(), &[4, 5, 6]);
@@ -267,16 +243,14 @@ fn test_nmv_set_slice_i32() {
 
 #[test]
 fn test_nmv_set_single_i32() {
-    let mut nmv =
-        NamedMultiValues::new("n", MultiValues::Unset(DataType::Int32));
+    let mut nmv = NamedMultiValues::new("n", MultiValues::Unset(DataType::Int32));
     nmv.values_mut().set(7);
     assert_eq!(nmv.values().get_int32s().unwrap(), &[7]);
 }
 
 #[test]
 fn test_nmv_set_vec_string() {
-    let mut nmv =
-        NamedMultiValues::new("s", MultiValues::Unset(DataType::String));
+    let mut nmv = NamedMultiValues::new("s", MultiValues::Unset(DataType::String));
     nmv.values_mut().set(vec!["a".to_string(), "b".to_string()]);
     assert_eq!(nmv.values().get_strings().unwrap(), &["a", "b"]);
 }
@@ -308,16 +282,14 @@ fn test_nmv_add_i32_slice() {
 
 #[test]
 fn test_nmv_add_string_single() {
-    let mut nmv =
-        NamedMultiValues::new("s", MultiValues::String(vec!["a".to_string()]));
+    let mut nmv = NamedMultiValues::new("s", MultiValues::String(vec!["a".to_string()]));
     nmv.values_mut().add("b".to_string()).unwrap();
     assert_eq!(nmv.values().get_strings().unwrap(), &["a", "b"]);
 }
 
 #[test]
 fn test_nmv_add_string_vec() {
-    let mut nmv =
-        NamedMultiValues::new("s", MultiValues::String(vec!["a".to_string()]));
+    let mut nmv = NamedMultiValues::new("s", MultiValues::String(vec!["a".to_string()]));
     nmv.values_mut()
         .add(vec!["b".to_string(), "c".to_string()])
         .unwrap();
@@ -326,8 +298,7 @@ fn test_nmv_add_string_vec() {
 
 #[test]
 fn test_named_multi_values_first_named_value_non_empty() {
-    let nmv =
-        NamedMultiValues::new("ports", MultiValues::Int32(vec![8080, 8081]));
+    let nmv = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080, 8081]));
     let named = nmv.first_named_value();
     assert_eq!(named.name(), "ports");
     assert_eq!(named.value().get_int32().unwrap(), 8080);
@@ -335,23 +306,19 @@ fn test_named_multi_values_first_named_value_non_empty() {
 
 #[test]
 fn test_named_multi_values_first_named_value_empty_preserves_type() {
-    let nmv = NamedMultiValues::new(
-        "threshold",
-        MultiValues::Unset(DataType::Float64),
-    );
+    let nmv = NamedMultiValues::new("threshold", MultiValues::Unset(DataType::Float64));
     let named = nmv.first_named_value();
     assert_eq!(named.name(), "threshold");
     assert_eq!(named.value().data_type(), DataType::Float64);
     assert!(matches!(
         named.value().get_float64(),
-        Err(qubit_value::ValueError::NoValue)
+        Err(qubit_value::ValueError::NoValue(_))
     ));
 }
 
 #[test]
 fn test_named_multi_values_empty_get_mismatched_type_returns_error() {
-    let nmv =
-        NamedMultiValues::new("ports", MultiValues::Unset(DataType::Int32));
+    let nmv = NamedMultiValues::new("ports", MultiValues::Unset(DataType::Int32));
     assert!(matches!(
         nmv.values().get_strings(),
         Err(qubit_value::ValueError::TypeMismatch { .. })

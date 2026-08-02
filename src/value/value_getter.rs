@@ -8,14 +8,9 @@
 
 //! `TryFrom<&Value>` implementations for strict typed reads.
 
-use super::value::{
-    Value,
-    ValueRepr,
-};
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
+use super::value::{Value, ValueRepr};
+use crate::ValueAbsence;
+use crate::value_error::{ValueError, ValueResult};
 
 macro_rules! impl_value_try_from_table {
     (
@@ -46,7 +41,9 @@ macro_rules! impl_value_try_from_table {
                             Ok(materialize_value_storage!($variant, $materialization, value))
                         }
                         ValueRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::NoValue)
+                            Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                                data_type: *actual,
+                            }))
                         }
                         _ => Err(ValueError::TypeMismatch {
                             expected: $data_type,

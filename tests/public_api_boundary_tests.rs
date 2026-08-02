@@ -11,26 +11,12 @@
 //! types and standard conversion traits.
 
 use std::fs;
-use std::hash::{
-    DefaultHasher,
-    Hash,
-    Hasher,
-};
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
-use std::process::{
-    Command,
-    Output,
-};
+use std::process::{Command, Output};
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    StrictValueListRead,
-    StrictValueRead,
-    Value,
-    ValueContainer,
-    ValueError,
-};
+use qubit_value::{MultiValues, StrictValueRead, Value, ValueContainer, ValueError};
 
 /// Reads one exact value through the public strict-read marker trait.
 ///
@@ -52,7 +38,7 @@ where
     value.get_first()
 }
 
-/// Reads an exact list through the public strict-list marker trait.
+/// Reads an exact list through the public strict-read marker trait.
 ///
 /// # Arguments
 ///
@@ -67,7 +53,7 @@ where
 /// Returns the strict value error reported by the container.
 fn read_list_strict<T>(value: &ValueContainer) -> Result<Vec<T>, ValueError>
 where
-    T: StrictValueListRead,
+    T: StrictValueRead,
 {
     value.get_list()
 }
@@ -198,8 +184,7 @@ fn test_public_semantic_views_expose_values_without_storage_layout() {
 #[test]
 fn test_value_from_serializable_accepts_unsized_slice() {
     let values: &[i32] = &[1, 2, 3];
-    let value = Value::from_serializable(values)
-        .expect("slice should serialize as JSON");
+    let value = Value::from_serializable(values).expect("slice should serialize as JSON");
 
     assert_eq!(
         value.to_json_value().expect("JSON value should project"),
@@ -313,7 +298,7 @@ fn test_external_consumer_cannot_exhaustively_match_value_error() {
 use qubit_value::ValueError;
 fn classify(error: ValueError) -> usize {
     match error {
-        ValueError::NoValue => 0,
+        ValueError::NoValue(_) => 0,
         ValueError::TypeMismatch { .. } => 1,
         ValueError::DataConversion(_) => 2,
         ValueError::DataListConversion(_) => 3,
@@ -407,16 +392,20 @@ fn main() {
 }
 
 #[test]
-fn test_external_consumer_cannot_implement_strict_value_list_read() {
+fn test_external_consumer_cannot_implement_strict_value_read() {
     let output = compile_all_features_consumer(
         r#"
-use qubit_value::{MultiValues, StrictValueListRead, Value, ValueError};
+use qubit_value::{MultiValues, StrictValueRead, Value, ValueError};
 
 struct Custom;
 
-impl StrictValueListRead for Custom {
-    fn read_scalar_list(_: &Value) -> Result<Vec<Self>, ValueError> {
-        Ok(Vec::new())
+impl StrictValueRead for Custom {
+    fn read_scalar(_: &Value) -> Result<Self, ValueError> {
+        Ok(Custom)
+    }
+
+    fn read_collection_first(_: &MultiValues) -> Result<Self, ValueError> {
+        Ok(Custom)
     }
 
     fn read_collection_list(_: &MultiValues) -> Result<Vec<Self>, ValueError> {

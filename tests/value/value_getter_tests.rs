@@ -7,10 +7,7 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_value::{Value, ValueAbsence, ValueError};
 
 #[test]
 fn test_value_getter_is_strict_and_default_is_empty_only() {
@@ -25,5 +22,11 @@ fn test_value_getter_is_strict_and_default_is_empty_only() {
     ));
 
     let empty = Value::Unset(DataType::String);
+    assert_eq!(
+        empty.get::<String>(),
+        Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+            data_type: DataType::String,
+        })),
+    );
     assert_eq!(empty.get_or::<String>("missing").unwrap(), "missing");
 }

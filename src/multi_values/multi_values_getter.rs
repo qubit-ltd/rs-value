@@ -8,14 +8,9 @@
 
 //! `TryFrom<&MultiValues>` implementations for strict typed reads.
 
-use super::multi_values::{
-    MultiValues,
-    MultiValuesRepr,
-};
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
+use super::multi_values::{MultiValues, MultiValuesRepr};
+use crate::ValueAbsence;
+use crate::value_error::{ValueError, ValueResult};
 
 macro_rules! impl_multi_values_try_from_table {
     (
@@ -45,9 +40,13 @@ macro_rules! impl_multi_values_try_from_table {
                         MultiValuesRepr::$variant(values) => values
                             .first()
                             .map(|value| materialize_stored!($materialization, value))
-                            .ok_or(ValueError::NoValue),
+                            .ok_or(ValueError::NoValue(ValueAbsence::EmptyCollection {
+                                data_type: $data_type,
+                            })),
                         MultiValuesRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::NoValue)
+                            Err(ValueError::NoValue(ValueAbsence::UnsetCollection {
+                                data_type: *actual,
+                            }))
                         }
                         _ => Err(ValueError::TypeMismatch {
                             expected: $data_type,
@@ -69,7 +68,9 @@ macro_rules! impl_multi_values_try_from_table {
                             .map(|value| materialize_stored!($materialization, value))
                             .collect()),
                         MultiValuesRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::NoValue)
+                            Err(ValueError::NoValue(ValueAbsence::UnsetCollection {
+                                data_type: *actual,
+                            }))
                         }
                         _ => Err(ValueError::TypeMismatch {
                             expected: $data_type,

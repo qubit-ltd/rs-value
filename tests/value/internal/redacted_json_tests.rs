@@ -8,12 +8,7 @@
 
 //! Tests recursive JSON redaction through the public `Value` API.
 
-use qubit_redact::{
-    MaskPolicy,
-    Redact as _,
-    RedactionPolicy,
-    Sensitivity,
-};
+use qubit_redact::{MaskPolicy, Redact as _, RedactionPolicy, Sensitivity};
 use qubit_value::Value;
 
 /// Verifies sensitive JSON containers are masked without exposing their data.

@@ -13,20 +13,11 @@ use std::marker::PhantomData;
 use std::str::FromStr;
 
 use serde::de;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 mod internal;
 
-use internal::{
-    DecimalVisitor,
-    DisplayDecimal,
-    ParsedDecimal,
-};
+use internal::{DecimalVisitor, DisplayDecimal, ParsedDecimal};
 
 /// Parses and validates the unique textual form emitted by serialization.
 ///
@@ -61,10 +52,7 @@ where
 }
 
 /// Serializes one decimal value as its stable textual form.
-pub(super) fn serialize<T, S>(
-    value: &T,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+pub(super) fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
 where
     T: fmt::Display,
     S: Serializer,
@@ -83,10 +71,7 @@ where
 }
 
 /// Serializes decimal values as a sequence of stable textual forms.
-pub(super) fn serialize_vec<T, S>(
-    values: &[T],
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+pub(super) fn serialize_vec<T, S>(values: &[T], serializer: S) -> Result<S::Ok, S::Error>
 where
     T: fmt::Display,
     S: Serializer,
@@ -95,9 +80,7 @@ where
 }
 
 /// Deserializes decimal values from a sequence of textual forms.
-pub(super) fn deserialize_vec<'de, T, D>(
-    deserializer: D,
-) -> Result<Vec<T>, D::Error>
+pub(super) fn deserialize_vec<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
 where
     T: FromStr + fmt::Display,
     T::Err: fmt::Display,

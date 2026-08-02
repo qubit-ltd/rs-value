@@ -12,11 +12,7 @@
 use std::collections::HashMap;
 
 use serde::ser::SerializeSeq;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serializer,
-};
+use serde::{Deserialize, Deserializer, Serializer};
 
 use super::internal::CanonicalStringMap;
 
@@ -36,9 +32,7 @@ where
 }
 
 /// Deserializes a collection of string maps.
-pub(crate) fn deserialize<'de, D>(
-    deserializer: D,
-) -> Result<Vec<HashMap<String, String>>, D::Error>
+pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<HashMap<String, String>>, D::Error>
 where
     D: Deserializer<'de>,
 {

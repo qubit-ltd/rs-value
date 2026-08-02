@@ -11,11 +11,10 @@
 
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionError,
-    DataListConversionError,
-};
+use qubit_datatype::{DataConversionError, DataListConversionError};
 use thiserror::Error;
+
+use crate::ValueAbsence;
 
 /// Value processing error type
 ///
@@ -34,17 +33,23 @@ use thiserror::Error;
 /// # Examples
 ///
 /// ```rust
-/// use qubit_value::ValueError;
+/// use qubit_datatype::DataType;
+/// use qubit_value::{ValueAbsence, ValueError};
 ///
-/// let error = ValueError::NoValue;
-/// assert_eq!(error.to_string(), "No value");
+/// let error = ValueError::NoValue(ValueAbsence::UnsetScalar {
+///     data_type: DataType::String,
+/// });
+/// assert_eq!(error.to_string(), "No value: unset scalar with declared type string");
 /// ```
 #[non_exhaustive]
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum ValueError {
-    /// No value
-    #[error("No value")]
-    NoValue,
+    /// No concrete item is available from typed runtime storage.
+    #[error("No value: {0}")]
+    NoValue(
+        /// Structured typed storage state that caused the absence.
+        ValueAbsence,
+    ),
 
     /// Type mismatch
     #[error("Type mismatch: expected {expected}, actual {actual}")]
