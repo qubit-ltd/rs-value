@@ -8,15 +8,28 @@
 
 //! Borrowed V1 payload serialization.
 
-use serde::{Serialize, Serializer};
+use serde::{
+    Serialize,
+    Serializer,
+};
 
-#[cfg(feature = "big-decimal")]
-use crate::wire::{MAX_BIG_DECIMAL_ABSOLUTE_SCALE, is_valid_big_decimal_scale};
 use crate::multi_values::MultiValuesRepr;
 use crate::value::ValueRepr;
-use crate::{MultiValues, Value, ValueContainer};
+#[cfg(feature = "big-decimal")]
+use crate::wire::{
+    MAX_BIG_DECIMAL_ABSOLUTE_SCALE,
+    is_valid_big_decimal_scale,
+};
+use crate::{
+    MultiValues,
+    Value,
+    ValueContainer,
+};
 
-use super::{ValueWireEncodeError, WireShapeRef};
+use super::{
+    ValueWireEncodeError,
+    WireShapeRef,
+};
 
 /// Borrowed unversioned V1 payload for serialization without cloning.
 ///
@@ -38,7 +51,9 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     }
 
     /// Borrows a collection after validating V1's finite-float invariant.
-    pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_values(
+        values: &'a MultiValues,
+    ) -> Result<Self, ValueWireEncodeError> {
         validate_values(values)?;
         Ok(Self {
             shape: WireShapeRef::Collection(values.into()),
@@ -46,7 +61,9 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     }
 
     /// Borrows an explicit shape after validating V1's finite-float invariant.
-    pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_container(
+        value: &'a ValueContainer,
+    ) -> Result<Self, ValueWireEncodeError> {
         match value {
             ValueContainer::Scalar(value) => validate_value(value)?,
             ValueContainer::Collection(values) => validate_values(values)?,
@@ -63,7 +80,9 @@ impl<'a> ValueWirePayloadRefV1<'a> {
 }
 
 /// Validates one scalar against V1's JSON finite-float invariant.
-pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
+pub(in crate::value_wire) fn validate_value(
+    value: &Value,
+) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "big-decimal")]
     if let ValueRepr::BigDecimal(value) = &value.repr {
         validate_big_decimal_scale(value.as_bigint_and_exponent().1)?;
@@ -89,8 +108,12 @@ pub(in crate::value_wire) fn validate_values(
         }
     }
     let non_finite = match &values.repr {
-        MultiValuesRepr::Float32(values) => values.iter().any(|value| !value.is_finite()),
-        MultiValuesRepr::Float64(values) => values.iter().any(|value| !value.is_finite()),
+        MultiValuesRepr::Float32(values) => {
+            values.iter().any(|value| !value.is_finite())
+        }
+        MultiValuesRepr::Float64(values) => {
+            values.iter().any(|value| !value.is_finite())
+        }
         _ => false,
     };
     if non_finite {

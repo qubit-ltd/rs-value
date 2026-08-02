@@ -127,17 +127,33 @@ mod wire;
 
 // Public exports
 pub use into_value_default::IntoValueDefault;
-pub use multi_values::{MultiValues, MultiValuesRef};
+pub use multi_values::{
+    MultiValues,
+    MultiValuesRef,
+};
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;
 pub use numeric_comparison_error::NumericComparisonError;
 pub use strict_value_list_read::StrictValueListRead;
 pub use strict_value_read::StrictValueRead;
-pub use value::{Value, ValueRef};
+pub use value::{
+    Value,
+    ValueRef,
+};
 pub use value_container::ValueContainer;
-pub use value_error::{ValueError, ValueResult};
+pub use value_error::{
+    ValueError,
+    ValueResult,
+};
 #[cfg(feature = "json")]
-pub use value_wire::{ValueWireDecodeError, ValueWireLimits};
 pub use value_wire::{
-    ValueWireEncodeError, ValueWirePayloadRefV1, ValueWirePayloadV1, ValueWireRefV1, ValueWireV1,
+    ValueWireDecodeError,
+    ValueWireLimits,
+};
+pub use value_wire::{
+    ValueWireEncodeError,
+    ValueWirePayloadRefV1,
+    ValueWirePayloadV1,
+    ValueWireRefV1,
+    ValueWireV1,
 };

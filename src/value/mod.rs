@@ -21,5 +21,8 @@ mod value_getter;
 mod value_identity;
 mod value_numeric_comparison;
 
-pub use value::{Value, ValueRef};
 pub(crate) use value::ValueRepr;
+pub use value::{
+    Value,
+    ValueRef,
+};

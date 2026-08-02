@@ -10,8 +10,8 @@
 
 use serde::Serialize;
 
-use crate::multi_values::MultiValuesRepr;
 use crate::MultiValues;
+use crate::multi_values::MultiValuesRepr;
 
 use super::WireDataTypeV1;
 
