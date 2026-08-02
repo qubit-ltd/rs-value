@@ -10,14 +10,21 @@
 //! Provides type-safe storage and access functionality for single values.
 
 use qubit_datatype::DataType;
-use std::fmt;
 #[cfg(feature = "converter")]
-use qubit_datatype::{DataConversionOptions, DataConversionTarget};
+use qubit_datatype::{
+    DataConversionOptions,
+    DataConversionTarget,
+};
+use std::fmt;
 
 use crate::value_error::ValueResult;
-use crate::{IntoValueDefault, ValueError};
+use crate::{
+    IntoValueDefault,
+    ValueError,
+};
 
-/// Defines the public single-value container from the shared value-type table.
+/// Defines the private storage representation for the public single-value
+/// container from the shared value-type table.
 macro_rules! define_value_enum {
     (
         ;
@@ -40,8 +47,9 @@ macro_rules! define_value_enum {
         /// Uses an enum to represent different types of values, providing
         /// type-safe value storage and access.
         ///
-        /// This enum is non-exhaustive; downstream matches must include a
-        /// wildcard arm so future value variants remain source-compatible.
+        /// This representation is private; downstream code uses [`Value`]
+        /// constructors and [`ValueRef`] semantic views instead of matching
+        /// storage details.
         ///
         /// # Behavior
         ///
@@ -589,7 +597,9 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
+            }
             result => result,
         }
     }
@@ -698,7 +708,9 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => Ok(default()),
+            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+                Ok(default())
+            }
             result => result,
         }
     }
