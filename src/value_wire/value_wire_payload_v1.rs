@@ -8,14 +8,33 @@
 
 //! Unversioned V1 payload for use inside an already-versioned protocol.
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    Deserialize,
+    Deserializer,
+    Serialize,
+    Serializer,
+};
 
-use crate::{MultiValues, Value, ValueContainer};
+use crate::{
+    MultiValues,
+    Value,
+    ValueContainer,
+};
 #[cfg(feature = "json")]
-use crate::{ValueWireDecodeError, ValueWireLimits};
+use crate::{
+    ValueWireDecodeError,
+    ValueWireLimits,
+};
 
-use super::value_wire_payload_ref_v1::{validate_value, validate_values};
-use super::{ValueWireEncodeError, WireShapeOwned, WireShapeRef};
+use super::value_wire_payload_ref_v1::{
+    validate_value,
+    validate_values,
+};
+use super::{
+    ValueWireEncodeError,
+    WireShapeOwned,
+    WireShapeRef,
+};
 
 /// Typed V1 scalar-or-collection payload without an enclosing version field.
 #[must_use]
@@ -39,7 +58,9 @@ impl ValueWirePayloadV1 {
     /// the bounded input is not a valid V1 payload.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice(
+        input: &[u8],
+    ) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, ValueWireLimits::default())
     }
 
@@ -82,7 +103,9 @@ impl ValueWirePayloadV1 {
     }
 
     /// Wraps a payload decoded through V1's finite-number Serde adapters.
-    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
+    pub(in crate::value_wire) const fn from_decoded(
+        value: ValueContainer,
+    ) -> Self {
         Self { value }
     }
 }

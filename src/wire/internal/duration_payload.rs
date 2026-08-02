@@ -10,7 +10,10 @@
 
 use std::time::Duration;
 
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 /// Stable wire representation of a duration.
 #[derive(Serialize, Deserialize)]
