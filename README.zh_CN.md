@@ -23,8 +23,10 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
 ## 特性
 
 ### 🎯 **核心设计**
-- **枚举抽象**: 使用 `Value`/`MultiValues` 两个枚举覆盖所有支持的数据类型
-- **类型安全**: 枚举变体携带静态类型；通过 `Result<T, ValueError>` 表达失败
+- **带标签的表示**: `Value`/`MultiValues` 是隐藏存储细节的不透明容器，提供
+  类型化构造函数以及语义化的 `ValueRef`/`MultiValuesRef` 视图
+- **类型安全**: 类型化构造函数和访问器保留声明的数据类型；通过
+  `Result<T, ValueError>` 表达失败
 - **借用访问**: 存储类型不是 `Copy` 时，类型化 getter 返回引用
 - **命名值**: `NamedValue`/`NamedMultiValues` 提供名称绑定，便于配置/标识场景
 - **两类 JSON 边界**: 带类型标签的 Serde 保留数据类型；自然 JSON 投影生成普通的
@@ -38,9 +40,11 @@ Qubit Value 提供了以类型安全方式处理动态类型值的综合解决�
   `HashMap<String, String>` 和 `serde_json::Value`
 
 ### 📦 **核心类型**
-- **`Value`**: 单值容器，包含 `Unset(DataType)`，并根据已启用 feature 提供
-  最多 25 个平台无关的具体变体
-- **`MultiValues`**: 多值容器，对应 `Vec<T>` 的枚举变体，含 `Unset(DataType)`
+- **`Value`**: 不透明的单值容器，提供 `Value::Unset(DataType)`、`Value::Int32`、
+  `Value::String` 等类型化构造函数；其存储表示是私有的
+- **`MultiValues`**: 不透明的同质多值容器，提供
+  `MultiValues::Unset(DataType)`、`MultiValues::Int32` 等类型化构造函数；其存储
+  表示是私有的
 - **`ValueContainer`**: 显式表示 `Scalar(Value)` 或
   `Collection(MultiValues)`，不会根据集合长度推断形态
 - **`NamedValue`**: 绑定名称的 `Value`，通过显式的 `value()` 和
@@ -503,8 +507,10 @@ ValueError::DataListConversion(DataListConversionError) // 含原始索引的列
 `NumericConversionLimits` 配置。除非在 `StringConversionOptions` 中显式开启，
 否则文本不会自动 trim。
 
-`Value`、`MultiValues` 与 `ValueError` 都是非穷尽公开 enum。下游对它们进行
-`match` 时必须保留通配分支，以便未来增加变体时保持源码兼容。
+`Value` 和 `MultiValues` 是存储表示私有的 struct，下游应使用它们的构造函数、访问器
+和语义化 `view()` 方法，而不要匹配内部表示。`ValueRef`、`MultiValuesRef` 与
+`ValueError` 是非穷尽公开 enum；对它们进行 `match` 时必须保留通配分支，以便未来增加
+变体时保持源码兼容。
 
 ## 支持的数据类型
 
