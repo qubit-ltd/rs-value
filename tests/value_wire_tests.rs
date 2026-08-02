@@ -49,6 +49,17 @@ fn test_value_wire_v1_identity_preserves_shape() {
 }
 
 #[test]
+fn test_value_wire_v1_preserves_f64_round_trip() {
+    let value = Value::Float64(625_026_605_f64 / 3.0);
+    let wire = ValueWireV1::try_from(value).expect("construct float wire");
+    let encoded = serde_json::to_vec(&wire).expect("serialize float wire");
+    let decoded: ValueWireV1 =
+        serde_json::from_slice(&encoded).expect("deserialize float wire");
+
+    assert_eq!(decoded, wire);
+}
+
+#[test]
 fn test_value_wire_v1_serializes_string_map_keys_in_dictionary_order() {
     let map = (0..128)
         .map(|index| (format!("key-{index:03}"), index.to_string()))
