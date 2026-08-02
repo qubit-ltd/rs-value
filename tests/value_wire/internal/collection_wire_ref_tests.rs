@@ -10,8 +10,13 @@
 
 #[test]
 fn test_borrowed_collection_wire_serializes() {
-    use qubit_value::{ValueContainer, ValueWireRefV1};
+    use qubit_value::{
+        ValueContainer,
+        ValueWireRefV1,
+    };
 
     let value = ValueContainer::from(vec![1_i32]);
-    assert!(serde_json::to_value(ValueWireRefV1::try_from(&value).unwrap()).is_ok());
+    assert!(
+        serde_json::to_value(ValueWireRefV1::try_from(&value).unwrap()).is_ok()
+    );
 }

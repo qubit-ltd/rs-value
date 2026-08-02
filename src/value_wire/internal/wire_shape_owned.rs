@@ -12,7 +12,10 @@ use serde::Deserialize;
 
 use crate::ValueContainer;
 
-use super::{CollectionWireOwned, ScalarWireOwned};
+use super::{
+    CollectionWireOwned,
+    ScalarWireOwned,
+};
 
 /// Owned scalar-or-collection shape used during deserialization.
 #[derive(Deserialize)]
@@ -37,7 +40,9 @@ impl From<WireShapeOwned> for ValueContainer {
     fn from(value: WireShapeOwned) -> Self {
         match value {
             WireShapeOwned::Scalar(value) => Self::Scalar(value.into()),
-            WireShapeOwned::Collection(values) => Self::Collection(values.into()),
+            WireShapeOwned::Collection(values) => {
+                Self::Collection(values.into())
+            }
         }
     }
 }
