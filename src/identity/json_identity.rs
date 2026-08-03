@@ -8,9 +8,14 @@
 //! Structural equality and hashing for JSON payloads.
 
 use std::hash::{
+    BuildHasher,
+    BuildHasherDefault,
     Hash,
     Hasher,
 };
+
+type IdentityHasher =
+    BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
 /// Compares two JSON trees using structural JSON semantics.
 ///
@@ -63,12 +68,18 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
         serde_json::Value::Object(values) => {
             5_u8.hash(state);
             values.len().hash(state);
-            let mut keys: Vec<_> = values.keys().collect();
-            keys.sort_unstable();
-            for key in keys {
-                key.hash(state);
-                hash_json(&values[key], state);
+            let mut sum = 0_u64;
+            let mut xor = 0_u64;
+            for (key, value) in values {
+                let mut entry = IdentityHasher::default().build_hasher();
+                key.hash(&mut entry);
+                hash_json(value, &mut entry);
+                let hash = entry.finish();
+                sum = sum.wrapping_add(hash);
+                xor ^= hash.rotate_left(17);
             }
+            sum.hash(state);
+            xor.hash(state);
         }
     }
 }
