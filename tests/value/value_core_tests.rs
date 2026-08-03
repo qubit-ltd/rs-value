@@ -32,7 +32,7 @@ fn test_value_empty() {
     let v = Value::Unset(DataType::String);
     assert_eq!(v.data_type(), DataType::String);
     assert!(v.is_unset());
-    assert!(matches!(v.get_string(), Err(ValueError::NoValue(_))));
+    assert!(matches!(v.get_string(), Err(ValueError::Missing(_))));
 }
 #[test]
 fn test_value_unset() {
