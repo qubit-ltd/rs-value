@@ -184,7 +184,7 @@ impl MultiValues {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the container is unset with the
+    /// Returns [`ValueError::Missing`] when the container is unset with the
     /// requested type, or [`ValueError::TypeMismatch`] when the stored type
     /// differs from `T`.
     ///
@@ -241,7 +241,7 @@ impl MultiValues {
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::NoValue(absence)) if absence.is_unset() => {
+            Err(ValueError::Missing(missing)) if missing.is_unset() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -277,7 +277,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.get() {
-            Err(ValueError::NoValue(absence)) if absence.is_unset() => {
+            Err(ValueError::Missing(missing)) if missing.is_unset() => {
                 Ok(default())
             }
             result => result,
@@ -302,7 +302,7 @@ impl MultiValues {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the requested type matches but no
+    /// Returns [`ValueError::Missing`] when the requested type matches but no
     /// value is stored, or [`ValueError::TypeMismatch`] when the stored type
     /// differs from `T`.
     ///
@@ -337,7 +337,7 @@ impl MultiValues {
     /// Generic first-value getter with a default value.
     ///
     /// Returns the supplied default only when the container is unset. A
-    /// concrete empty vector returns [`ValueError::NoValue`]; type mismatches
+    /// concrete empty vector returns [`ValueError::Missing`]; type mismatches
     /// are also preserved.
     ///
     /// # Type Parameters
@@ -354,7 +354,7 @@ impl MultiValues {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] for a concrete empty collection or
+    /// Returns [`ValueError::Missing`] for a concrete empty collection or
     /// [`ValueError::TypeMismatch`] when the stored type differs from `T`.
     #[inline]
     pub fn get_first_or<T>(
@@ -365,7 +365,7 @@ impl MultiValues {
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get_first() {
-            Err(ValueError::NoValue(absence)) if absence.is_unset() => {
+            Err(ValueError::Missing(missing)) if missing.is_unset() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -398,7 +398,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.get_first() {
-            Err(ValueError::NoValue(absence)) if absence.is_unset() => {
+            Err(ValueError::Missing(missing)) if missing.is_unset() => {
                 Ok(default())
             }
             result => result,

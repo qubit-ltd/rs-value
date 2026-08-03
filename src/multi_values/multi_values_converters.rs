@@ -189,7 +189,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_first() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -222,7 +222,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default())
             }
             result => result,
@@ -291,7 +291,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_first_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -329,7 +329,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default())
             }
             result => result,
@@ -389,7 +389,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_list() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -422,7 +422,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default())
             }
             result => result,
@@ -489,7 +489,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_list_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -527,7 +527,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default())
             }
             result => result,

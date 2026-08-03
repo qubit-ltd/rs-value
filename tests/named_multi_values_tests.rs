@@ -344,7 +344,7 @@ fn test_named_multi_values_first_named_value_empty_preserves_type() {
     assert_eq!(named.value().data_type(), DataType::Float64);
     assert!(matches!(
         named.value().get_float64(),
-        Err(qubit_value::ValueError::NoValue(_))
+        Err(qubit_value::ValueError::Missing(_))
     ));
 }
 

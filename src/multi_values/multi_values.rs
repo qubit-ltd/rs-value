@@ -230,7 +230,7 @@ macro_rules! impl_get_multi_values {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::NoValue`] when the container is unset"]
+        #[doc = "Returns [`ValueError::Missing`] when the container is unset"]
         #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs. A concrete empty vector returns"]
         #[doc = "an empty slice."]
@@ -239,7 +239,7 @@ macro_rules! impl_get_multi_values {
             match &self.repr {
                 MultiValuesRepr::$variant(v) => Ok(v),
                 MultiValuesRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetCollection {
+                    Err(ValueError::Missing($crate::ValueMissing::UnsetCollection {
                         data_type: *dt,
                     }))
                 }
@@ -257,7 +257,7 @@ macro_rules! impl_get_multi_values {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::NoValue`] when the container is unset"]
+        #[doc = "Returns [`ValueError::Missing`] when the container is unset"]
         #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs. A concrete empty vector returns"]
         #[doc = "an empty slice."]
@@ -266,7 +266,7 @@ macro_rules! impl_get_multi_values {
             match &self.repr {
                 MultiValuesRepr::$variant(v) => Ok(v.as_slice()),
                 MultiValuesRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetCollection {
+                    Err(ValueError::Missing($crate::ValueMissing::UnsetCollection {
                         data_type: *dt,
                     }))
                 }
@@ -295,7 +295,7 @@ macro_rules! impl_get_first_value {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::NoValue`] when the requested type matches"]
+        #[doc = "Returns [`ValueError::Missing`] when the requested type matches"]
         #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs."]
         #[inline(always)]
@@ -303,12 +303,12 @@ macro_rules! impl_get_first_value {
             match &self.repr {
                 MultiValuesRepr::$variant(v) if !v.is_empty() => Ok(v[0]),
                 MultiValuesRepr::$variant(_) => {
-                    Err(ValueError::NoValue($crate::ValueAbsence::EmptyCollection {
+                    Err(ValueError::Missing($crate::ValueMissing::EmptyCollection {
                         data_type: $data_type,
                     }))
                 }
                 MultiValuesRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetCollection {
+                    Err(ValueError::Missing($crate::ValueMissing::UnsetCollection {
                         data_type: *dt,
                     }))
                 }
@@ -326,7 +326,7 @@ macro_rules! impl_get_first_value {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::NoValue`] when the requested type matches"]
+        #[doc = "Returns [`ValueError::Missing`] when the requested type matches"]
         #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs."]
         #[inline(always)]
@@ -337,12 +337,12 @@ macro_rules! impl_get_first_value {
                     Ok(conv_fn(&v[0]))
                 },
                 MultiValuesRepr::$variant(_) => {
-                    Err(ValueError::NoValue($crate::ValueAbsence::EmptyCollection {
+                    Err(ValueError::Missing($crate::ValueMissing::EmptyCollection {
                         data_type: $data_type,
                     }))
                 }
                 MultiValuesRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetCollection {
+                    Err(ValueError::Missing($crate::ValueMissing::UnsetCollection {
                         data_type: *dt,
                     }))
                 }

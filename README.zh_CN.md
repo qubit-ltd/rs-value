@@ -467,8 +467,8 @@ JSON 边界都会拒绝 `NaN`、正无穷和负无穷，因为 JSON 没有这些
 
 #### 标量/集合容器
 `ValueContainer` 保留输入是标量还是集合。它的 `is_unset()` 表示当前形状没有具体值。
-它不提供 `is_empty()` 或 `clear()`：只有访问到集合形状后，才能使用
-`MultiValues::is_empty()` 和 `MultiValues::clear()`。
+`is_empty()` 等价于 `len() == 0`，对标量和集合形状都适用。只有访问到集合形状后，
+才能使用集合专属的 `clear()`。
 
 ```rust
 use qubit_datatype::DataType;
@@ -489,18 +489,19 @@ assert!(values.is_unset());
 ## 错误类型
 
 ```rust
-use qubit_value::{ValueError, ValueResult};
+use qubit_value::{ValueError, ValueMissing, ValueResult};
 use qubit_datatype::DataType;
 
 // 主要错误变体
-ValueError::NoValue                           // 访问了空值
+ValueError::Missing(ValueMissing)              // 未设置、空集合或转换后没有值
 ValueError::TypeMismatch { expected, actual } // get<T>() 类型不匹配
-ValueError::DataConversion(DataConversionError) // 结构化的 to<T>() 错误
-ValueError::DataListConversion(DataListConversionError) // 含原始索引的列表错误
+ValueError::Conversion(DataConversionError)    // 结构化的 to<T>() 错误
+ValueError::ListConversion(DataListConversionError) // 含原始索引的列表错误
 ```
 
 所有可能失败的操作均返回 `ValueResult<T> = Result<T, ValueError>`。
-转换错误会保留共享转换层的结构化 source；列表错误还会保留原始
+`ValueMissing` 区分未设置的标量/集合、具体空集合、标量转换缺失和带原始索引的集合项缺失。
+因此 `Conversion` 与 `ListConversion` 只包含非缺失失败；列表错误还会保留原始
 `source_index`。`to()` 默认使用严格转换 profile；确实需要全部已定义的有损行为
 时，可通过 `to_with()` 指定 `DataConversionOptions::lossy()`，也可以只替换所需的
 `NumericConversionOptions` 策略。数值文本与 `BigInt` 的资源上限可通过
