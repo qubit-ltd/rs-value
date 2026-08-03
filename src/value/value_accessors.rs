@@ -45,7 +45,7 @@ use super::value::{
     Value,
     ValueRepr,
 };
-use crate::ValueAbsence;
+use crate::ValueMissing;
 use crate::value_error::{
     ValueError,
     ValueResult,
@@ -58,7 +58,7 @@ macro_rules! impl_get_value {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::NoValue`] when the value is unset with"]
+        #[doc = "Returns [`ValueError::Missing`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
         #[inline(always)]
@@ -66,7 +66,7 @@ macro_rules! impl_get_value {
             match &self.repr {
                 ValueRepr::$variant(v) => Ok(*v),
                 ValueRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetScalar {
+                    Err(ValueError::Missing($crate::ValueMissing::UnsetScalar {
                         data_type: *dt,
                     }))
                 }
@@ -89,7 +89,7 @@ macro_rules! impl_get_value {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = ""]
-        #[doc = "Returns [`ValueError::NoValue`] when the value is unset with"]
+        #[doc = "Returns [`ValueError::Missing`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
         #[inline(always)]
@@ -100,7 +100,7 @@ macro_rules! impl_get_value {
                     Ok(conv_fn(v))
                 },
                 ValueRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::NoValue($crate::ValueAbsence::UnsetScalar {
+                    Err(ValueError::Missing($crate::ValueMissing::UnsetScalar {
                         data_type: *dt,
                     }))
                 }
@@ -149,7 +149,7 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::DataConversion`] with
+    /// Returns [`ValueError::Conversion`] with
     /// [`InvalidValueReason::NonFinite`] when any nested float is non-finite,
     /// or [`InvalidValueReason::Serialization`] when Serde cannot represent
     /// the input as JSON.
@@ -492,7 +492,7 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is unset with
+    /// Returns [`ValueError::Missing`] when the value is unset with
     /// `DataType::BigInteger`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
     #[cfg(feature = "big-integer")]
@@ -501,7 +501,7 @@ impl Value {
         match &self.repr {
             ValueRepr::BigInteger(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigInteger => {
-                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                Err(ValueError::Missing(ValueMissing::UnsetScalar {
                     data_type: *dt,
                 }))
             }
@@ -524,7 +524,7 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is unset with
+    /// Returns [`ValueError::Missing`] when the value is unset with
     /// `DataType::BigDecimal`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
     #[cfg(feature = "big-decimal")]
@@ -533,7 +533,7 @@ impl Value {
         match &self.repr {
             ValueRepr::BigDecimal(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigDecimal => {
-                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                Err(ValueError::Missing(ValueMissing::UnsetScalar {
                     data_type: *dt,
                 }))
             }
@@ -556,7 +556,7 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is unset with
+    /// Returns [`ValueError::Missing`] when the value is unset with
     /// `DataType::Url`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
     #[cfg(feature = "url")]
@@ -565,7 +565,7 @@ impl Value {
         match &self.repr {
             ValueRepr::Url(v) => Ok(v.as_ref()),
             ValueRepr::Unset(dt) if *dt == DataType::Url => {
-                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                Err(ValueError::Missing(ValueMissing::UnsetScalar {
                     data_type: *dt,
                 }))
             }
@@ -588,7 +588,7 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is unset with
+    /// Returns [`ValueError::Missing`] when the value is unset with
     /// `DataType::StringMap`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
     #[inline(always)]
@@ -596,7 +596,7 @@ impl Value {
         match &self.repr {
             ValueRepr::StringMap(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::StringMap => {
-                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                Err(ValueError::Missing(ValueMissing::UnsetScalar {
                     data_type: *dt,
                 }))
             }
@@ -619,7 +619,7 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is unset with
+    /// Returns [`ValueError::Missing`] when the value is unset with
     /// `DataType::Json`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
     #[cfg(feature = "json")]
@@ -628,7 +628,7 @@ impl Value {
         match &self.repr {
             ValueRepr::Json(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                Err(ValueError::Missing(ValueMissing::UnsetScalar {
                     data_type: *dt,
                 }))
             }
@@ -657,10 +657,10 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when this value is
+    /// Returns [`ValueError::Missing`] when this value is
     /// `Value::Unset(DataType::Json)`,
     /// [`ValueError::TypeMismatch`] when this value has a non-JSON data type,
-    /// or [`ValueError::DataConversion`] when JSON deserialization fails.
+    /// or [`ValueError::Conversion`] when JSON deserialization fails.
     #[cfg(all(feature = "converter", feature = "json"))]
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match &self.repr {
@@ -676,7 +676,7 @@ impl Value {
                 })
             }
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                Err(ValueError::Missing(ValueMissing::UnsetScalar {
                     data_type: *dt,
                 }))
             }

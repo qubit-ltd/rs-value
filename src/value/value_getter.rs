@@ -12,7 +12,7 @@ use super::value::{
     Value,
     ValueRepr,
 };
-use crate::ValueAbsence;
+use crate::ValueMissing;
 use crate::value_error::{
     ValueError,
     ValueResult,
@@ -47,7 +47,7 @@ macro_rules! impl_value_try_from_table {
                             Ok(materialize_value_storage!($variant, $materialization, value))
                         }
                         ValueRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::NoValue(ValueAbsence::UnsetScalar {
+                            Err(ValueError::Missing(ValueMissing::UnsetScalar {
                                 data_type: *actual,
                             }))
                         }

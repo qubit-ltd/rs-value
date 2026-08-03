@@ -51,6 +51,7 @@ mod strict_value_read_tests;
 mod value;
 mod value_container_tests;
 mod value_error_tests;
+mod value_missing_tests;
 mod value_type_table_tests;
 mod value_wire;
 mod value_wire_encode_error_tests;

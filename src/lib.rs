@@ -118,9 +118,9 @@ mod numeric_comparison_error;
 mod strict_json;
 mod strict_value_read;
 mod value;
-mod value_absence;
 mod value_container;
 mod value_error;
+mod value_missing;
 mod value_wire;
 mod wide_integer;
 mod wire;
@@ -139,12 +139,12 @@ pub use value::{
     Value,
     ValueRef,
 };
-pub use value_absence::ValueAbsence;
 pub use value_container::ValueContainer;
 pub use value_error::{
     ValueError,
     ValueResult,
 };
+pub use value_missing::ValueMissing;
 #[cfg(feature = "json")]
 pub use value_wire::{
     ValueWireDecodeError,

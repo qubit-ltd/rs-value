@@ -15,9 +15,31 @@ use qubit_datatype::{
     InvalidValueReason,
 };
 use qubit_value::{
-    ValueAbsence,
     ValueError,
+    ValueMissing,
 };
+
+#[test]
+fn test_missing_error_exposes_default_semantics() {
+    let error = ValueError::Missing(ValueMissing::Conversion {
+        from: DataType::String,
+        to: DataType::Int32,
+    });
+
+    assert!(error.is_missing());
+    assert_eq!(
+        error.missing(),
+        Some(&ValueMissing::Conversion {
+            from: DataType::String,
+            to: DataType::Int32,
+        })
+    );
+    assert!(
+        error
+            .missing()
+            .is_some_and(|missing| missing.uses_default())
+    );
+}
 
 #[test]
 fn test_value_error_display_includes_context() {
@@ -34,10 +56,10 @@ fn test_value_error_display_includes_context() {
 #[test]
 fn test_value_error_variants_compare_by_payload() {
     assert_eq!(
-        ValueError::NoValue(ValueAbsence::UnsetScalar {
+        ValueError::Missing(ValueMissing::UnsetScalar {
             data_type: DataType::String,
         }),
-        ValueError::NoValue(ValueAbsence::UnsetScalar {
+        ValueError::Missing(ValueMissing::UnsetScalar {
             data_type: DataType::String,
         }),
     );
@@ -46,14 +68,14 @@ fn test_value_error_variants_compare_by_payload() {
         DataType::Int32,
         InvalidValueReason::OutOfRange,
     );
-    let single = ValueError::DataConversion(source.clone());
+    let single = ValueError::Conversion(source.clone());
     assert_eq!(
         single.source().and_then(|error| error.downcast_ref()),
         Some(&source),
     );
 
     let list_source = DataListConversionError::new(2, source);
-    let list = ValueError::DataListConversion(list_source.clone());
+    let list = ValueError::ListConversion(list_source.clone());
     assert_eq!(
         list.source().and_then(|error| error.downcast_ref()),
         Some(&list_source),
@@ -61,14 +83,14 @@ fn test_value_error_variants_compare_by_payload() {
 }
 
 #[test]
-fn test_value_absence_preserves_shape_state_and_declared_type() {
-    let scalar = ValueAbsence::UnsetScalar {
+fn test_value_missing_preserves_shape_state_and_declared_type() {
+    let scalar = ValueMissing::UnsetScalar {
         data_type: DataType::Int32,
     };
-    let collection = ValueAbsence::UnsetCollection {
+    let collection = ValueMissing::UnsetCollection {
         data_type: DataType::String,
     };
-    let empty = ValueAbsence::EmptyCollection {
+    let empty = ValueMissing::EmptyCollection {
         data_type: DataType::UInt64,
     };
 
@@ -81,6 +103,60 @@ fn test_value_absence_preserves_shape_state_and_declared_type() {
     assert_eq!(empty.data_type(), DataType::UInt64);
     assert!(!empty.is_unset());
     assert!(empty.is_empty_collection());
+    assert!(!empty.uses_default());
+}
+
+#[test]
+fn test_value_missing_preserves_collection_item_context() {
+    let missing = ValueMissing::CollectionItem {
+        source_index: 4,
+        from: DataType::String,
+        to: DataType::Int32,
+    };
+
+    assert_eq!(missing.source_index(), Some(4));
+    assert_eq!(missing.data_type(), DataType::String);
+    assert_eq!(missing.target_type(), Some(DataType::Int32));
+    assert!(missing.is_conversion());
+    assert!(!missing.uses_default());
+}
+
+#[test]
+fn test_conversion_missing_errors_are_promoted_to_value_missing() {
+    let scalar = ValueError::from(DataConversionError::missing(
+        DataType::String,
+        DataType::Int32,
+    ));
+    assert!(matches!(
+        scalar,
+        ValueError::Missing(ValueMissing::Conversion {
+            from: DataType::String,
+            to: DataType::Int32,
+        })
+    ));
+
+    let empty = ValueError::from(DataConversionError::empty_collection(
+        DataType::Int32,
+    ));
+    assert!(matches!(
+        empty,
+        ValueError::Missing(ValueMissing::EmptyCollection {
+            data_type: DataType::Int32,
+        })
+    ));
+
+    let list = ValueError::from(DataListConversionError::new(
+        3,
+        DataConversionError::missing(DataType::String, DataType::Int32),
+    ));
+    assert!(matches!(
+        list,
+        ValueError::Missing(ValueMissing::CollectionItem {
+            source_index: 3,
+            from: DataType::String,
+            to: DataType::Int32,
+        })
+    ));
 }
 
 #[test]
@@ -91,7 +167,7 @@ fn test_value_error_clone_preserves_structured_source() {
         InvalidValueReason::OutOfRange,
     );
     let error =
-        ValueError::DataListConversion(DataListConversionError::new(3, source));
+        ValueError::ListConversion(DataListConversionError::new(3, source));
 
     assert_eq!(error.clone(), error);
 }

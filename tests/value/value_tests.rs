@@ -19,5 +19,5 @@ fn test_value_preserves_type_when_unset() {
 
     assert!(value.is_unset());
     assert_eq!(value.data_type(), DataType::String);
-    assert!(matches!(value.get_string(), Err(ValueError::NoValue(_))));
+    assert!(matches!(value.get_string(), Err(ValueError::Missing(_))));
 }
