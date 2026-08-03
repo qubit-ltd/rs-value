@@ -103,3 +103,8 @@ harness = false
 name = "downstream_read_bench"
 harness = false
 required-features = ["converter", "json"]
+
+[[bench]]
+name = "value_identity_bench"
+harness = false
+required-features = ["big-decimal", "json"]

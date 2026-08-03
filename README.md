@@ -501,9 +501,9 @@ number literals.
 #### Scalar/Collection Container
 `ValueContainer` preserves whether a value came from scalar or collection
 input. Its `is_unset()` method means that the selected shape stores no concrete
-value. It intentionally has no `is_empty()` or `clear()` method: use
-`MultiValues::is_empty()` and `MultiValues::clear()` only after accessing the
-collection shape.
+value, while `is_empty()` is equivalent to `len() == 0` for either shape.
+Collection-only mutation such as `clear()` remains available through
+`MultiValues` after accessing the collection shape.
 
 ```rust
 use qubit_datatype::DataType;
@@ -524,19 +524,21 @@ assert!(values.is_unset());
 ## Error Types
 
 ```rust
-use qubit_value::{ValueError, ValueResult};
+use qubit_value::{ValueError, ValueMissing, ValueResult};
 use qubit_datatype::DataType;
 
 // Main error variants
-ValueError::NoValue                          // Unset value accessed
+ValueError::Missing(ValueMissing)             // Unset, empty, or conversion-missing value
 ValueError::TypeMismatch { expected, actual }// get<T>() type mismatch
-ValueError::DataConversion(DataConversionError) // structured to<T>() failure
-ValueError::DataListConversion(DataListConversionError) // indexed list failure
+ValueError::Conversion(DataConversionError)   // structured to<T>() failure
+ValueError::ListConversion(DataListConversionError) // indexed list failure
 ```
 
 All operations that may fail return `ValueResult<T> = Result<T, ValueError>`.
-Conversion errors preserve the shared structured source error; list errors also
-preserve the original `source_index`. `to()` uses the strict conversion profile
+`ValueMissing` distinguishes unset scalar/collection storage, concrete empty
+collections, scalar conversion misses, and indexed collection-item misses.
+`Conversion` and `ListConversion` therefore contain only non-missing failures;
+list errors preserve the original `source_index`. `to()` uses the strict conversion profile
 by default. Use `to_with()` and `DataConversionOptions::lossy()` when all
 documented lossy behavior is intentional, or replace only the required
 `NumericConversionOptions` policy. Numeric text and `BigInt` resource caps are

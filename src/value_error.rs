@@ -17,7 +17,7 @@ use qubit_datatype::{
 };
 use thiserror::Error;
 
-use crate::ValueAbsence;
+use crate::ValueMissing;
 
 /// Value processing error type
 ///
@@ -28,7 +28,7 @@ use crate::ValueAbsence;
 /// # Features
 ///
 /// - Type mismatch error
-/// - No value error
+/// - Structured missing-value errors
 /// - Structured single-value conversion errors when `converter` is enabled
 /// - Structured list conversion errors, including the failing item index, when
 ///   `converter` is enabled
@@ -37,21 +37,21 @@ use crate::ValueAbsence;
 ///
 /// ```rust
 /// use qubit_datatype::DataType;
-/// use qubit_value::{ValueAbsence, ValueError};
+/// use qubit_value::{ValueError, ValueMissing};
 ///
-/// let error = ValueError::NoValue(ValueAbsence::UnsetScalar {
+/// let error = ValueError::Missing(ValueMissing::UnsetScalar {
 ///     data_type: DataType::String,
 /// });
-/// assert_eq!(error.to_string(), "No value: unset scalar with declared type string");
+/// assert_eq!(error.to_string(), "Missing value: unset scalar with declared type string");
 /// ```
 #[non_exhaustive]
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum ValueError {
-    /// No concrete item is available from typed runtime storage.
-    #[error("No value: {0}")]
-    NoValue(
-        /// Structured typed storage state that caused the absence.
-        ValueAbsence,
+    /// No concrete item is available from typed runtime storage or conversion.
+    #[error("Missing value: {0}")]
+    Missing(
+        /// Structured typed storage state that caused the missing value.
+        ValueMissing,
     ),
 
     /// Type mismatch
@@ -65,21 +65,88 @@ pub enum ValueError {
 
     /// Error returned by the shared single-value conversion layer.
     #[cfg(feature = "converter")]
-    #[error("Data conversion error: {0}")]
-    DataConversion(
+    #[error("Conversion error: {0}")]
+    Conversion(
         /// Structured conversion failure from `qubit-datatype`.
-        #[from]
+        #[source]
         DataConversionError,
     ),
 
     /// Error returned by the shared list conversion layer.
     #[cfg(feature = "converter")]
-    #[error("Data list conversion error: {0}")]
-    DataListConversion(
+    #[error("List conversion error: {0}")]
+    ListConversion(
         /// Structured list conversion failure, including the source index.
-        #[from]
+        #[source]
         DataListConversionError,
     ),
+}
+
+impl ValueError {
+    /// Reports whether this error describes a missing value.
+    #[must_use]
+    #[inline(always)]
+    pub const fn is_missing(&self) -> bool {
+        matches!(self, Self::Missing(_))
+    }
+
+    /// Returns the structured missing-value reason, when present.
+    #[must_use]
+    #[inline(always)]
+    pub const fn missing(&self) -> Option<&ValueMissing> {
+        match self {
+            Self::Missing(missing) => Some(missing),
+            Self::TypeMismatch { .. } => None,
+            #[cfg(feature = "converter")]
+            Self::Conversion(_) | Self::ListConversion(_) => None,
+        }
+    }
+}
+
+#[cfg(feature = "converter")]
+impl From<DataConversionError> for ValueError {
+    fn from(error: DataConversionError) -> Self {
+        if error.is_missing()
+            && let Some(from) = error.from_type()
+        {
+            return Self::Missing(ValueMissing::Conversion {
+                from,
+                to: error.to_type(),
+            });
+        }
+        if error.kind()
+            == qubit_datatype::DataConversionErrorKind::EmptyCollection
+        {
+            return Self::Missing(ValueMissing::EmptyCollection {
+                data_type: error.to_type(),
+            });
+        }
+        Self::Conversion(error)
+    }
+}
+
+#[cfg(feature = "converter")]
+impl From<DataListConversionError> for ValueError {
+    fn from(error: DataListConversionError) -> Self {
+        let (source_index, source) = error.into_parts();
+        if source.is_missing()
+            && let Some(from) = source.from_type()
+        {
+            return Self::Missing(ValueMissing::CollectionItem {
+                source_index,
+                from,
+                to: source.to_type(),
+            });
+        }
+        if source.kind()
+            == qubit_datatype::DataConversionErrorKind::EmptyCollection
+        {
+            return Self::Missing(ValueMissing::EmptyCollection {
+                data_type: source.to_type(),
+            });
+        }
+        Self::ListConversion(DataListConversionError::new(source_index, source))
+    }
 }
 
 /// Value processing result type

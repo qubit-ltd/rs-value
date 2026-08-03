@@ -928,7 +928,7 @@ fn test_to_f32_from_biginteger_out_of_range() {
     let err = Value::BigInteger(huge).to::<f32>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::DataConversion(error)
+        ValueError::Conversion(error)
             if matches!(
                 error.reason(),
                 Some(qubit_datatype::InvalidValueReason::OutOfRange),
@@ -943,7 +943,7 @@ fn test_to_f32_from_bigdecimal_out_of_range() {
     let err = Value::BigDecimal(huge).to::<f32>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::DataConversion(error)
+        ValueError::Conversion(error)
             if matches!(
                 error.reason(),
                 Some(qubit_datatype::InvalidValueReason::OutOfRange),
@@ -1005,7 +1005,7 @@ fn test_to_f64_from_biginteger_out_of_range() {
     let err = Value::BigInteger(huge).to::<f64>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::DataConversion(error)
+        ValueError::Conversion(error)
             if matches!(
                 error.reason(),
                 Some(qubit_datatype::InvalidValueReason::OutOfRange),
@@ -1020,7 +1020,7 @@ fn test_to_f64_from_bigdecimal_out_of_range() {
     let err = Value::BigDecimal(huge).to::<f64>().unwrap_err();
     assert!(matches!(
         err,
-        ValueError::DataConversion(error)
+        ValueError::Conversion(error)
             if matches!(
                 error.reason(),
                 Some(qubit_datatype::InvalidValueReason::OutOfRange),

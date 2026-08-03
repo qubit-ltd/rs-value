@@ -47,7 +47,7 @@ fn test_multi_values_core_tracks_len_and_type_changes() {
     assert_eq!(values.data_type(), DataType::String);
     assert!(matches!(
         values.get_first::<String>(),
-        Err(ValueError::NoValue(_))
+        Err(ValueError::Missing(_))
     ));
 }
 
@@ -125,7 +125,7 @@ fn test_multi_values_core_get_first_reads_first_or_default() {
     assert_eq!(empty.get_first_or::<i32>(99).unwrap(), 99);
     assert!(matches!(
         empty.get_first::<i32>(),
-        Err(ValueError::NoValue(_))
+        Err(ValueError::Missing(_))
     ));
 }
 

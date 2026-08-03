@@ -29,7 +29,7 @@ use qubit_value::{
 };
 use url::Url;
 
-const TAG_COUNT: u8 = 32;
+const TAG_COUNT: u8 = 52;
 
 fn padded_bytes<const N: usize>(data: &[u8]) -> [u8; N] {
     let mut bytes = [0_u8; N];
@@ -76,6 +76,10 @@ fn container_from_bytes(data: &[u8]) -> ValueContainer {
         data.get(3).copied().unwrap_or_default(),
         data.get(4).copied().unwrap_or_default(),
     ]);
+    let number64 = i64::from_le_bytes(padded_bytes(data));
+    let number128 = i128::from_le_bytes(padded_bytes(data));
+    let unsigned_number = u64::from_le_bytes(padded_bytes(data));
+    let unsigned_number128 = u128::from_le_bytes(padded_bytes(data));
     let text = text(data);
     let date = date(seed);
     let time = time(seed);
@@ -97,6 +101,8 @@ fn container_from_bytes(data: &[u8]) -> ValueContainer {
         "items": [true, null, number],
     });
     let character = char::from_u32((seed % 0x11_0000) as u32).unwrap_or('🦀');
+    let float32 = number as f32 / 3.0;
+    let float64 = number as f64 / 3.0;
 
     match tag {
         0 => ValueContainer::Scalar(Value::Bool(
@@ -104,50 +110,105 @@ fn container_from_bytes(data: &[u8]) -> ValueContainer {
         )),
         1 => ValueContainer::Scalar(Value::Char(character)),
         2 => ValueContainer::Scalar(Value::Int8(number as i8)),
-        3 => ValueContainer::Scalar(Value::Int32(number)),
-        4 => ValueContainer::Scalar(Value::Int128(i128::from_le_bytes(
-            padded_bytes(data),
-        ))),
-        5 => ValueContainer::Scalar(Value::UInt64(seed)),
-        6 => ValueContainer::Scalar(Value::UInt128(u128::from_le_bytes(
-            padded_bytes(data),
-        ))),
-        7 => ValueContainer::Scalar(Value::Float32(number as f32 / 3.0)),
-        8 => ValueContainer::Scalar(Value::Float64(number as f64 / 3.0)),
-        9 => ValueContainer::Scalar(Value::BigInteger(big_integer.clone())),
-        10 => ValueContainer::Scalar(Value::BigDecimal(big_decimal.clone())),
-        11 => ValueContainer::Scalar(Value::String(text.clone())),
-        12 => ValueContainer::Scalar(Value::Date(date)),
-        13 => ValueContainer::Scalar(Value::Time(time)),
-        14 => ValueContainer::Scalar(Value::DateTime(date_time)),
-        15 => ValueContainer::Scalar(Value::Instant(instant)),
-        16 => ValueContainer::Scalar(Value::Duration(duration)),
-        17 => ValueContainer::Scalar(Value::Url(url.clone())),
-        18 => ValueContainer::Scalar(Value::StringMap(string_map.clone())),
-        19 => ValueContainer::Scalar(Value::Json(json.clone())),
-        20 => ValueContainer::Scalar(Value::new_unset(
+        3 => ValueContainer::Scalar(Value::Int16(number as i16)),
+        4 => ValueContainer::Scalar(Value::Int32(number)),
+        5 => ValueContainer::Scalar(Value::Int64(number64)),
+        6 => ValueContainer::Scalar(Value::Int128(number128)),
+        7 => ValueContainer::Scalar(Value::UInt8(seed as u8)),
+        8 => ValueContainer::Scalar(Value::UInt16(seed as u16)),
+        9 => ValueContainer::Scalar(Value::UInt32(seed as u32)),
+        10 => ValueContainer::Scalar(Value::UInt64(unsigned_number)),
+        11 => ValueContainer::Scalar(Value::UInt128(unsigned_number128)),
+        12 => ValueContainer::Scalar(Value::Float32(float32)),
+        13 => ValueContainer::Scalar(Value::Float64(float64)),
+        14 => ValueContainer::Scalar(Value::BigInteger(big_integer.clone())),
+        15 => ValueContainer::Scalar(Value::BigDecimal(big_decimal.clone())),
+        16 => ValueContainer::Scalar(Value::String(text.clone())),
+        17 => ValueContainer::Scalar(Value::Date(date)),
+        18 => ValueContainer::Scalar(Value::Time(time)),
+        19 => ValueContainer::Scalar(Value::DateTime(date_time)),
+        20 => ValueContainer::Scalar(Value::Instant(instant)),
+        21 => ValueContainer::Scalar(Value::Duration(duration)),
+        22 => ValueContainer::Scalar(Value::Url(url.clone())),
+        23 => ValueContainer::Scalar(Value::StringMap(string_map.clone())),
+        24 => ValueContainer::Scalar(Value::Json(json.clone())),
+        25 => ValueContainer::Scalar(Value::new_unset(
             Value::Int32(0).data_type(),
         )),
-        21 => ValueContainer::Collection(MultiValues::Int32(Vec::new())),
-        22 => ValueContainer::Collection(MultiValues::Int32(vec![
+        26 => ValueContainer::Collection(MultiValues::Bool(vec![true, false])),
+        27 => {
+            ValueContainer::Collection(MultiValues::Char(vec![character, '🦀']))
+        }
+        28 => ValueContainer::Collection(MultiValues::Int8(vec![
+            number as i8,
+            (number as i8).wrapping_add(1),
+        ])),
+        29 => ValueContainer::Collection(MultiValues::Int16(vec![
+            number as i16,
+            (number as i16).wrapping_add(1),
+        ])),
+        30 => ValueContainer::Collection(MultiValues::Int32(vec![
             number,
             number.wrapping_add(1),
         ])),
-        23 => ValueContainer::Collection(MultiValues::BigInteger(vec![
+        31 => ValueContainer::Collection(MultiValues::Int64(vec![
+            number64,
+            number64.wrapping_add(1),
+        ])),
+        32 => ValueContainer::Collection(MultiValues::Int128(vec![
+            number128,
+            number128.wrapping_add(1),
+        ])),
+        33 => ValueContainer::Collection(MultiValues::UInt8(vec![
+            seed as u8,
+            (seed as u8).wrapping_add(1),
+        ])),
+        34 => ValueContainer::Collection(MultiValues::UInt16(vec![
+            seed as u16,
+            (seed as u16).wrapping_add(1),
+        ])),
+        35 => ValueContainer::Collection(MultiValues::UInt32(vec![
+            seed as u32,
+            (seed as u32).wrapping_add(1),
+        ])),
+        36 => ValueContainer::Collection(MultiValues::UInt64(vec![
+            unsigned_number,
+            unsigned_number.wrapping_add(1),
+        ])),
+        37 => ValueContainer::Collection(MultiValues::UInt128(vec![
+            unsigned_number128,
+            unsigned_number128.wrapping_add(1),
+        ])),
+        38 => ValueContainer::Collection(MultiValues::Float32(vec![
+            float32,
+            float32 + 0.5,
+        ])),
+        39 => ValueContainer::Collection(MultiValues::Float64(vec![
+            float64,
+            float64 + 0.5,
+        ])),
+        40 => ValueContainer::Collection(MultiValues::BigInteger(vec![
             big_integer,
         ])),
-        24 => ValueContainer::Collection(MultiValues::BigDecimal(vec![
+        41 => ValueContainer::Collection(MultiValues::BigDecimal(vec![
             big_decimal,
         ])),
-        25 => ValueContainer::Collection(MultiValues::Date(vec![date])),
-        26 => ValueContainer::Collection(MultiValues::Duration(vec![duration])),
-        27 => ValueContainer::Collection(MultiValues::Url(vec![url])),
-        28 => {
+        42 => ValueContainer::Collection(MultiValues::String(vec![text])),
+        43 => ValueContainer::Collection(MultiValues::Date(vec![date])),
+        44 => ValueContainer::Collection(MultiValues::Time(vec![time])),
+        45 => {
+            ValueContainer::Collection(MultiValues::DateTime(vec![date_time]))
+        }
+        46 => ValueContainer::Collection(MultiValues::Instant(vec![instant])),
+        47 => ValueContainer::Collection(MultiValues::Duration(vec![duration])),
+        48 => ValueContainer::Collection(MultiValues::Url(vec![url])),
+        49 => {
             ValueContainer::Collection(MultiValues::StringMap(vec![string_map]))
         }
-        29 => ValueContainer::Collection(MultiValues::Json(vec![json])),
-        30 => ValueContainer::Collection(MultiValues::String(vec![text])),
-        _ => ValueContainer::Collection(MultiValues::Bool(vec![true, false])),
+        50 => ValueContainer::Collection(MultiValues::Json(vec![json])),
+        _ => ValueContainer::Collection(MultiValues::new_unset(
+            MultiValues::Int32(Vec::new()).data_type(),
+        )),
     }
 }
 

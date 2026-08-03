@@ -19,7 +19,7 @@ fn test_value_converter_converts_and_reports_invalid_input() {
     let invalid = Value::String("not-a-number".to_string());
     assert!(matches!(
         invalid.to::<i32>(),
-        Err(ValueError::DataConversion(error)) if error.kind() == qubit_datatype::DataConversionErrorKind::InvalidValue
+        Err(ValueError::Conversion(error)) if error.kind() == qubit_datatype::DataConversionErrorKind::InvalidValue
     ));
 }
 

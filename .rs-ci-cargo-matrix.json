@@ -39,7 +39,7 @@
     },
     {
       "name": "json",
-      "commands": ["check", "test", "doc"],
+      "commands": ["check", "test", "doc", "clippy"],
       "defaultFeatures": false,
       "features": ["json"]
     },

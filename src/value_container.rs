@@ -394,7 +394,7 @@ impl ValueContainer {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] for unset or empty matching storage and
+    /// Returns [`ValueError::Missing`] for unset or empty matching storage and
     /// [`ValueError::TypeMismatch`] when the stored data type differs.
     #[inline(always)]
     pub fn get_first<T>(&self) -> ValueResult<T>
@@ -419,7 +419,7 @@ impl ValueContainer {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] for unset matching storage and
+    /// Returns [`ValueError::Missing`] for unset matching storage and
     /// [`ValueError::TypeMismatch`] when the stored data type differs.
     #[inline(always)]
     pub fn get_list<T>(&self) -> ValueResult<Vec<T>>
