@@ -332,7 +332,7 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::NoValue`] when the value is unset with the
+    /// Returns [`ValueError::Missing`] when the value is unset with the
     /// requested type, or [`ValueError::TypeMismatch`] when the stored type
     /// differs from `T`.
     ///
@@ -396,7 +396,7 @@ impl Value {
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::NoValue(absence)) if absence.is_unset() => {
+            Err(ValueError::Missing(missing)) if missing.is_unset() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -429,7 +429,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.get() {
-            Err(ValueError::NoValue(absence)) if absence.is_unset() => {
+            Err(ValueError::Missing(missing)) if missing.is_unset() => {
                 Ok(default())
             }
             result => result,
@@ -502,7 +502,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -537,7 +537,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default())
             }
             result => result,
@@ -609,7 +609,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -648,7 +648,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(options) {
-            Err(ValueError::DataConversion(error)) if error.is_missing() => {
+            Err(ValueError::Missing(missing)) if missing.uses_default() => {
                 Ok(default())
             }
             result => result,

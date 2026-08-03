@@ -9,8 +9,8 @@
 use qubit_datatype::DataType;
 use qubit_value::{
     MultiValues,
-    ValueAbsence,
     ValueError,
+    ValueMissing,
 };
 
 #[test]
@@ -27,16 +27,16 @@ fn test_multi_values_getter_is_strict() {
 }
 
 #[test]
-fn test_multi_values_first_read_reports_precise_absence() {
+fn test_multi_values_first_read_reports_precise_missing_state() {
     assert_eq!(
         MultiValues::Unset(DataType::Int32).get_first::<i32>(),
-        Err(ValueError::NoValue(ValueAbsence::UnsetCollection {
+        Err(ValueError::Missing(ValueMissing::UnsetCollection {
             data_type: DataType::Int32,
         })),
     );
     assert_eq!(
         MultiValues::Int32(Vec::new()).get_first::<i32>(),
-        Err(ValueError::NoValue(ValueAbsence::EmptyCollection {
+        Err(ValueError::Missing(ValueMissing::EmptyCollection {
             data_type: DataType::Int32,
         })),
     );

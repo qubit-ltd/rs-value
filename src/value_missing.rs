@@ -1,0 +1,164 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
+//! Structured reasons why a value read produced no concrete item.
+
+use std::fmt;
+
+use qubit_datatype::DataType;
+
+/// Describes the typed state that produced a missing-value error.
+#[must_use]
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ValueMissing {
+    /// A scalar was unset with a declared data type.
+    UnsetScalar {
+        /// Type retained by the unset scalar storage.
+        data_type: DataType,
+    },
+    /// A collection was unset with a declared element type.
+    UnsetCollection {
+        /// Element type retained by the unset collection storage.
+        data_type: DataType,
+    },
+    /// A concrete collection contains no item for a first-item read.
+    EmptyCollection {
+        /// Element type of the concrete empty collection.
+        data_type: DataType,
+    },
+    /// A conversion policy treated a concrete scalar as missing.
+    Conversion {
+        /// Declared source data type.
+        from: DataType,
+        /// Requested target data type.
+        to: DataType,
+    },
+    /// A collection item conversion produced no value.
+    CollectionItem {
+        /// Original zero-based source position.
+        source_index: usize,
+        /// Declared source data type.
+        from: DataType,
+        /// Requested target data type.
+        to: DataType,
+    },
+}
+
+impl ValueMissing {
+    /// Returns the source or declared data type associated with the error.
+    #[inline(always)]
+    pub const fn data_type(self) -> DataType {
+        match self {
+            Self::UnsetScalar { data_type }
+            | Self::UnsetCollection { data_type }
+            | Self::EmptyCollection { data_type } => data_type,
+            Self::Conversion { from, .. }
+            | Self::CollectionItem { from, .. } => from,
+        }
+    }
+
+    /// Returns the requested target type for conversion failures.
+    #[must_use]
+    #[inline(always)]
+    pub const fn target_type(self) -> Option<DataType> {
+        match self {
+            Self::Conversion { to, .. } | Self::CollectionItem { to, .. } => {
+                Some(to)
+            }
+            Self::UnsetScalar { .. }
+            | Self::UnsetCollection { .. }
+            | Self::EmptyCollection { .. } => None,
+        }
+    }
+
+    /// Returns the source index for a missing collection item.
+    #[must_use]
+    #[inline(always)]
+    pub const fn source_index(self) -> Option<usize> {
+        match self {
+            Self::CollectionItem { source_index, .. } => Some(source_index),
+            Self::UnsetScalar { .. }
+            | Self::UnsetCollection { .. }
+            | Self::EmptyCollection { .. }
+            | Self::Conversion { .. } => None,
+        }
+    }
+
+    /// Reports whether a corresponding `get_or`/`to_or` operation uses its
+    /// default.
+    #[must_use]
+    #[inline(always)]
+    pub const fn uses_default(self) -> bool {
+        matches!(
+            self,
+            Self::UnsetScalar { .. }
+                | Self::UnsetCollection { .. }
+                | Self::Conversion { .. }
+        )
+    }
+
+    /// Reports whether storage itself is unset.
+    #[must_use]
+    #[inline(always)]
+    pub const fn is_unset(self) -> bool {
+        matches!(
+            self,
+            Self::UnsetScalar { .. } | Self::UnsetCollection { .. }
+        )
+    }
+
+    /// Reports whether a concrete collection is empty.
+    #[must_use]
+    #[inline(always)]
+    pub const fn is_empty_collection(self) -> bool {
+        matches!(self, Self::EmptyCollection { .. })
+    }
+
+    /// Reports whether the missing value came from a conversion.
+    #[must_use]
+    #[inline(always)]
+    pub const fn is_conversion(self) -> bool {
+        matches!(self, Self::Conversion { .. } | Self::CollectionItem { .. })
+    }
+}
+
+impl fmt::Display for ValueMissing {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnsetScalar { data_type } => {
+                write!(formatter, "unset scalar with declared type {data_type}")
+            }
+            Self::UnsetCollection { data_type } => {
+                write!(
+                    formatter,
+                    "unset collection with declared type {data_type}"
+                )
+            }
+            Self::EmptyCollection { data_type } => {
+                write!(
+                    formatter,
+                    "empty collection with element type {data_type}"
+                )
+            }
+            Self::Conversion { from, to } => {
+                write!(
+                    formatter,
+                    "conversion from {from} to {to} produced no value"
+                )
+            }
+            Self::CollectionItem {
+                source_index,
+                from,
+                to,
+            } => write!(
+                formatter,
+                "collection item at index {source_index} conversion from {from} to {to} produced no value"
+            ),
+        }
+    }
+}
