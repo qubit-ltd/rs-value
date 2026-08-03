@@ -4,7 +4,7 @@
 
 ```toml
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-redact = { version = "0.5", default-features = false }
+qubit-redact = { version = "0.6", default-features = false }
 ```
 
 The default feature set is empty. Enable only `chrono`, `big-integer`,
