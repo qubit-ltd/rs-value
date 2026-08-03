@@ -38,6 +38,7 @@ where
 }
 
 /// Returns a recursively canonical JSON value for natural projections.
+#[cfg(feature = "converter")]
 pub(crate) fn canonicalize_json_value(value: &Value) -> Value {
     match value {
         Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => {

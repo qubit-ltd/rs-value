@@ -24,8 +24,8 @@ fn test_multi_values_getters_return_slices_without_copying() {
 #[test]
 fn test_multi_values_getters_distinguish_unset_from_concrete_empty() {
     let unset = MultiValues::Unset(DataType::Int32);
-    assert!(matches!(unset.get::<i32>(), Err(ValueError::NoValue(_))));
-    assert!(matches!(unset.get_int32s(), Err(ValueError::NoValue(_))));
+    assert!(matches!(unset.get::<i32>(), Err(ValueError::Missing(_))));
+    assert!(matches!(unset.get_int32s(), Err(ValueError::Missing(_))));
 
     let empty = MultiValues::Int32(Vec::new());
     assert_eq!(empty.get::<i32>(), Ok(Vec::new()));

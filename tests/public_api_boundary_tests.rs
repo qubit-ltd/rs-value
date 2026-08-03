@@ -312,10 +312,10 @@ fn test_external_consumer_cannot_exhaustively_match_value_error() {
 use qubit_value::ValueError;
 fn classify(error: ValueError) -> usize {
     match error {
-        ValueError::NoValue(_) => 0,
+        ValueError::Missing(_) => 0,
         ValueError::TypeMismatch { .. } => 1,
-        ValueError::DataConversion(_) => 2,
-        ValueError::DataListConversion(_) => 3,
+        ValueError::Conversion(_) => 2,
+        ValueError::ListConversion(_) => 3,
     }
 }
 fn main() { let _ = classify; }

@@ -9,9 +9,14 @@
 
 use std::collections::HashMap;
 use std::hash::{
+    BuildHasher,
+    BuildHasherDefault,
     Hash,
     Hasher,
 };
+
+type IdentityHasher =
+    BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
 /// Hashes a string map independently of its iteration order.
 ///
@@ -24,10 +29,16 @@ pub(crate) fn hash_string_map<H: Hasher>(
     state: &mut H,
 ) {
     value.len().hash(state);
-    let mut entries: Vec<_> = value.iter().collect();
-    entries.sort_unstable_by_key(|(left, _)| *left);
-    for (key, value) in entries {
-        key.hash(state);
-        value.hash(state);
+    let mut sum = 0_u64;
+    let mut xor = 0_u64;
+    for (key, value) in value {
+        let mut entry = IdentityHasher::default().build_hasher();
+        key.hash(&mut entry);
+        value.hash(&mut entry);
+        let hash = entry.finish();
+        sum = sum.wrapping_add(hash);
+        xor ^= hash.rotate_left(17);
     }
+    sum.hash(state);
+    xor.hash(state);
 }

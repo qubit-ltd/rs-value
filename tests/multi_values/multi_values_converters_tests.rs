@@ -31,7 +31,7 @@ fn test_multi_values_converters_report_list_conversion_index() {
     let error = values.to_list::<i32>().unwrap_err();
     assert!(matches!(
         error,
-        ValueError::DataListConversion(ref error)
+        ValueError::ListConversion(ref error)
             if error.source_index() == 1
                 && error.conversion_error() == &DataConversionError::invalid(
                     DataType::String,

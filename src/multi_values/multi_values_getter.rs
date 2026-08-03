@@ -12,7 +12,7 @@ use super::multi_values::{
     MultiValues,
     MultiValuesRepr,
 };
-use crate::ValueAbsence;
+use crate::ValueMissing;
 use crate::value_error::{
     ValueError,
     ValueResult,
@@ -46,11 +46,11 @@ macro_rules! impl_multi_values_try_from_table {
                         MultiValuesRepr::$variant(values) => values
                             .first()
                             .map(|value| materialize_stored!($materialization, value))
-                            .ok_or(ValueError::NoValue(ValueAbsence::EmptyCollection {
+                            .ok_or(ValueError::Missing(ValueMissing::EmptyCollection {
                                 data_type: $data_type,
                             })),
                         MultiValuesRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::NoValue(ValueAbsence::UnsetCollection {
+                            Err(ValueError::Missing(ValueMissing::UnsetCollection {
                                 data_type: *actual,
                             }))
                         }
@@ -74,7 +74,7 @@ macro_rules! impl_multi_values_try_from_table {
                             .map(|value| materialize_stored!($materialization, value))
                             .collect()),
                         MultiValuesRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::NoValue(ValueAbsence::UnsetCollection {
+                            Err(ValueError::Missing(ValueMissing::UnsetCollection {
                                 data_type: *actual,
                             }))
                         }
