@@ -1,3 +1,5 @@
 multiple-public-types | src/multi_values/multi_values.rs | The private representation and public container are intentionally co-located; the borrowed semantic view lives in multi_values_ref.rs.
 multiple-public-types | src/strict_value_read.rs | The sealed helper trait and its public read contract are intentionally co-located.
 multiple-public-types | src/value/value.rs | The private representation and public container are intentionally co-located; the borrowed semantic view lives in value_ref.rs.
+multiple-public-types | src/value_wire/value_wire_decode_error.rs | The limit categories and their decode error form one public bounded-decoding contract.
+multiple-public-types | src/value_wire/value_wire_limits.rs | Immutable limits and their non-copying accounting session are one public bounded-decoding API.

@@ -124,7 +124,7 @@ owning crates as direct dependencies. For the complete extended example:
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.6", default-features = false }
+qubit-redact = { version = "0.4", default-features = false }
 url = "2.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -669,7 +669,7 @@ For the full wire-format rationale and feature-availability details, see the
 ```toml
 [dependencies]
 qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.6", default-features = false, optional = true }
+qubit-redact = { version = "0.4", default-features = false, optional = true }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 serde_json = { version = "1.0", features = ["arbitrary_precision", "float_roundtrip"], optional = true }

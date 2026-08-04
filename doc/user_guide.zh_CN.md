@@ -4,7 +4,7 @@
 
 ```toml
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-redact = { version = "0.6", default-features = false }
+qubit-redact = { version = "0.4", default-features = false }
 ```
 
 默认 feature 集为空。不需要全部类型族时，只启用 `chrono`、`big-integer`、
