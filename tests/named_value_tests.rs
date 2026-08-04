@@ -233,7 +233,11 @@ fn test_named_value_get_datetime() {
 
 #[test]
 fn test_named_value_get_instant() {
-    let inst: UtcDateTime<Utc> = Utc::now();
+    let inst: UtcDateTime<Utc> = chrono::DateTime::<chrono::Utc>::from_timestamp(
+        1_700_000_000,
+        0,
+    )
+    .expect("fixed test instant must be valid");
     let nv = NamedValue::new("inst", Value::Instant(inst));
     assert_eq!(nv.value().get_instant().unwrap(), inst);
 }
@@ -405,8 +409,12 @@ fn test_named_value_set_get_datetime() {
 
 #[test]
 fn test_named_value_set_get_instant() {
-    let mut nv = NamedValue::new("inst", Value::Instant(Utc::now()));
-    let inst: UtcDateTime<Utc> = Utc::now();
+    let inst: UtcDateTime<Utc> = chrono::DateTime::<chrono::Utc>::from_timestamp(
+        1_700_000_000,
+        0,
+    )
+    .expect("fixed test instant must be valid");
+    let mut nv = NamedValue::new("inst", Value::Instant(inst));
     nv.value_mut().set(inst);
     let got: UtcDateTime<Utc> = nv.value().get().unwrap();
     assert_eq!(got, inst);
