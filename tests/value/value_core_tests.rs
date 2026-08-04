@@ -174,7 +174,6 @@ fn test_value_datetime_types() {
     use chrono::{
         NaiveDate,
         NaiveTime,
-        Utc,
     };
 
     // Test Date
@@ -202,7 +201,11 @@ fn test_value_datetime_types() {
     assert_eq!(value.data_type(), DataType::DateTime);
 
     // Test Instant
-    let instant = Utc::now();
+    let instant = chrono::DateTime::<chrono::Utc>::from_timestamp(
+        1_700_000_000,
+        0,
+    )
+    .expect("fixed test instant must be valid");
     let mut value = Value::Unset(DataType::Instant);
     value.set(instant);
     assert_eq!(value.get_instant().unwrap(), instant);
@@ -240,7 +243,6 @@ fn test_data_type_coverage_all_variants() {
     use chrono::{
         NaiveDate,
         NaiveTime,
-        Utc,
     };
 
     // Empty type (all possible DataType)
@@ -324,7 +326,14 @@ fn test_data_type_coverage_all_variants() {
         .data_type(),
         DataType::DateTime
     );
-    assert_eq!(Value::Instant(Utc::now()).data_type(), DataType::Instant);
+    assert_eq!(
+        Value::Instant(
+            chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
+                .expect("fixed test instant must be valid"),
+        )
+        .data_type(),
+        DataType::Instant
+    );
     assert_eq!(
         Value::BigInteger(BigInt::from(123)).data_type(),
         DataType::BigInteger
@@ -339,7 +348,6 @@ fn test_is_unset_distinguishes_empty_inner_values() {
     use chrono::{
         NaiveDate,
         NaiveTime,
-        Utc,
     };
 
     assert!(!Value::Bool(true).is_unset());
@@ -372,7 +380,11 @@ fn test_is_unset_distinguishes_empty_inner_values() {
         )
         .is_unset()
     );
-    assert!(!Value::Instant(Utc::now()).is_unset());
+    assert!(!Value::Instant(
+        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
+            .expect("fixed test instant must be valid"),
+    )
+    .is_unset());
     assert!(!Value::BigInteger(BigInt::from(123)).is_unset());
     assert!(
         !Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_unset()
