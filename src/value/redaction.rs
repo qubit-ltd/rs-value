@@ -10,15 +10,15 @@
 use std::fmt;
 
 #[cfg(feature = "json")]
-use qubit_redact::RedactedJson;
+use qubit_redact::RedactedJsonSession;
 use qubit_redact::{
     Redact,
     RedactMapValue,
     RedactValue,
-    RedactedKeyedValue,
-    RedactedMap,
+    RedactedKeyedValueSession,
+    RedactedMapSession,
     RedactedValue,
-    RedactionPolicy,
+    RedactionSession,
 };
 
 use super::{
@@ -38,7 +38,7 @@ impl RedactValue for Value {
     fn redact_value<'a>(
         &'a self,
         level: qubit_redact::Sensitivity,
-        masking: &'a qubit_redact::MaskingPolicy,
+        masking: &qubit_redact::MaskingPolicy,
     ) -> RedactedValue<'a> {
         match &self.repr {
             ValueRepr::String(value) => value.redact_value(level, masking),
@@ -53,7 +53,7 @@ impl RedactValue for MultiValues {
     fn redact_value<'a>(
         &'a self,
         level: qubit_redact::Sensitivity,
-        masking: &'a qubit_redact::MaskingPolicy,
+        masking: &qubit_redact::MaskingPolicy,
     ) -> RedactedValue<'a> {
         RedactedValue::opaque(level, masking)
     }
@@ -67,17 +67,18 @@ impl Redact for Value {
     /// ordinary debug representation until a structured redaction rule applies.
     fn fmt_redacted(
         &self,
-        policy: &RedactionPolicy,
+        session: &RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match &self.repr {
             ValueRepr::StringMap(values) => {
-                values.fmt_redacted_map(policy, formatter)
+                values.fmt_redacted_map(session, formatter)
             }
             #[cfg(feature = "json")]
-            ValueRepr::Json(value) => {
-                fmt::Debug::fmt(&RedactedJson::new(value, policy), formatter)
-            }
+            ValueRepr::Json(value) => fmt::Debug::fmt(
+                &RedactedJsonSession::new(value, session),
+                formatter,
+            ),
             _ => fmt::Debug::fmt(self, formatter),
         }
     }
@@ -88,14 +89,14 @@ impl Redact for MultiValues {
     /// key-bearing values; other typed collections retain normal debug output.
     fn fmt_redacted(
         &self,
-        policy: &RedactionPolicy,
+        session: &RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match &self.repr {
             MultiValuesRepr::StringMap(values) => {
                 let mut output = formatter.debug_list();
                 for value in values {
-                    output.entry(&RedactedMap::new(value, policy.clone()));
+                    output.entry(&RedactedMapSession::new(value, session));
                 }
                 output.finish()
             }
@@ -103,7 +104,7 @@ impl Redact for MultiValues {
             MultiValuesRepr::Json(values) => {
                 let mut output = formatter.debug_list();
                 for value in values {
-                    output.entry(&RedactedJson::new(value, policy));
+                    output.entry(&RedactedJsonSession::new(value, session));
                 }
                 output.finish()
             }
@@ -116,12 +117,12 @@ impl Redact for ValueContainer {
     /// Delegates policy-aware rendering to the explicit scalar or collection.
     fn fmt_redacted(
         &self,
-        policy: &RedactionPolicy,
+        session: &RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match self {
-            Self::Scalar(value) => value.fmt_redacted(policy, formatter),
-            Self::Collection(values) => values.fmt_redacted(policy, formatter),
+            Self::Scalar(value) => value.fmt_redacted(session, formatter),
+            Self::Collection(values) => values.fmt_redacted(session, formatter),
         }
     }
 }
@@ -132,12 +133,15 @@ fn fmt_named_value<T: Redact + RedactValue>(
     value: &T,
     type_name: &str,
     value_name: &str,
-    policy: &RedactionPolicy,
+    session: &RedactionSession<'_>,
     formatter: &mut fmt::Formatter<'_>,
 ) -> fmt::Result {
     let mut output = formatter.debug_struct(type_name);
     output.field("name", &name);
-    output.field(value_name, &RedactedKeyedValue::new(name, value, policy));
+    output.field(
+        value_name,
+        &RedactedKeyedValueSession::new(name, value, session),
+    );
     output.finish()
 }
 
@@ -145,7 +149,7 @@ impl Redact for NamedValue {
     /// Uses the wrapper name to determine whether its complete value is masked.
     fn fmt_redacted(
         &self,
-        policy: &RedactionPolicy,
+        session: &RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         fmt_named_value(
@@ -153,7 +157,7 @@ impl Redact for NamedValue {
             self.value(),
             "NamedValue",
             "value",
-            policy,
+            session,
             formatter,
         )
     }
@@ -164,7 +168,7 @@ impl Redact for NamedMultiValues {
     /// masked.
     fn fmt_redacted(
         &self,
-        policy: &RedactionPolicy,
+        session: &RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         fmt_named_value(
@@ -172,7 +176,7 @@ impl Redact for NamedMultiValues {
             self.values(),
             "NamedMultiValues",
             "value",
-            policy,
+            session,
             formatter,
         )
     }
