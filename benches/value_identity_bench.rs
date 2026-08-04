@@ -24,12 +24,14 @@ use qubit_value::Value;
 use serde_json::json;
 use std::hint::black_box;
 
+/// Hashes one value with the standard library's default hasher.
 fn hash_value(value: &Value) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     value.hash(&mut hasher);
     hasher.finish()
 }
 
+/// Builds the string-map fixture used by identity benchmarks.
 fn string_map_fixture() -> Value {
     let entries = (0..100)
         .map(|index| {
@@ -39,6 +41,7 @@ fn string_map_fixture() -> Value {
     Value::StringMap(entries)
 }
 
+/// Builds the nested JSON fixture used by identity benchmarks.
 fn nested_json_fixture() -> Value {
     Value::Json(json!({
         "service": {
@@ -56,11 +59,13 @@ fn nested_json_fixture() -> Value {
     }))
 }
 
+/// Builds a large-coefficient decimal fixture for scale-sensitive hashing.
 fn large_big_decimal_fixture() -> Value {
     let coefficient = BigInt::from(1_u8) << 4096_u32;
     Value::BigDecimal(BigDecimal::new(coefficient, -4096))
 }
 
+/// Benchmarks hashing a scalar integer value.
 fn benchmark_scalar_hash(c: &mut Criterion) {
     let value = Value::Int64(i64::MAX);
     c.bench_function("identity/hash_scalar_int64", |bencher| {
@@ -68,6 +73,7 @@ fn benchmark_scalar_hash(c: &mut Criterion) {
     });
 }
 
+/// Benchmarks hashing a hundred-entry string map.
 fn benchmark_string_map_hash(c: &mut Criterion) {
     let value = string_map_fixture();
     c.bench_function("identity/hash_string_map_100", |bencher| {
@@ -75,6 +81,7 @@ fn benchmark_string_map_hash(c: &mut Criterion) {
     });
 }
 
+/// Benchmarks hashing a nested JSON object.
 fn benchmark_json_hash(c: &mut Criterion) {
     let value = nested_json_fixture();
     c.bench_function("identity/hash_nested_json", |bencher| {
@@ -82,6 +89,7 @@ fn benchmark_json_hash(c: &mut Criterion) {
     });
 }
 
+/// Benchmarks hashing a large-coefficient BigDecimal.
 fn benchmark_big_decimal_hash(c: &mut Criterion) {
     let value = large_big_decimal_fixture();
     c.bench_function(
@@ -90,6 +98,7 @@ fn benchmark_big_decimal_hash(c: &mut Criterion) {
     );
 }
 
+/// Benchmarks lookup of heterogeneous values in a hash map.
 fn benchmark_hash_map_lookup(c: &mut Criterion) {
     let scalar = Value::Int64(i64::MAX);
     let string_map = string_map_fixture();
