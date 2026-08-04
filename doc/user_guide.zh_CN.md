@@ -36,10 +36,12 @@ let value = Value::StringMap(HashMap::from([
     ("api_key".to_owned(), "raw-secret".to_owned()),
     ("label".to_owned(), "visible".to_owned()),
 ]));
-let policy = RedactionPolicy::default().to_builder()
+let mut builder = RedactionPolicy::default().to_builder();
+builder
+    .fields()
     .raise("api_key", Sensitivity::Secret)
-    .build()
-    .expect("redaction policy should build");
+    .expect("redaction field should be valid");
+let policy = builder.build().expect("redaction policy should build");
 let output = format!("{:?}", value.redacted_with(&policy));
 
 assert!(!output.contains("raw-secret"));
