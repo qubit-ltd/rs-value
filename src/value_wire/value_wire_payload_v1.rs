@@ -48,14 +48,13 @@ impl ValueWirePayloadV1 {
     /// Decodes a complete V1 JSON payload using default resource limits.
     ///
     /// Prefer this entry point when the payload itself is the complete
-    /// untrusted document. For embedded payloads, the outer protocol must
-    /// enforce a limit on its complete document before deserializing fields.
+    /// untrusted document. Embedded protocols should share one budget across
+    /// all payloads in their complete document.
     ///
     /// # Errors
     ///
-    /// Returns [`ValueWireDecodeError::InputTooLarge`] when the input exceeds
-    /// the default byte limit, or [`ValueWireDecodeError::InvalidJson`] when
-    /// the bounded input is not a valid V1 payload.
+    /// Returns a limit error when the input or decoded structure is too large,
+    /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
     pub fn decode_json_slice(
@@ -68,17 +67,19 @@ impl ValueWirePayloadV1 {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueWireDecodeError::InputTooLarge`] when the input exceeds
-    /// `limits`, or [`ValueWireDecodeError::InvalidJson`] when the bounded
-    /// input is not a valid V1 payload.
+    /// Returns a limit error when `input` or its decoded structure exceeds
+    /// `limits`, or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
     pub fn decode_json_slice_with_limits(
         input: &[u8],
         limits: ValueWireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        limits.check_json_bytes(input.len())?;
-        serde_json::from_slice(input).map_err(ValueWireDecodeError::from)
+        let mut budget = limits.begin(input.len())?;
+        let value: Self = serde_json::from_slice(input)
+            .map_err(ValueWireDecodeError::from)?;
+        budget.check_container(value.container())?;
+        Ok(value)
     }
 
     /// Borrows the preserved runtime value.
