@@ -18,7 +18,10 @@ use serde::{
     Serializer,
 };
 
-use super::internal::CanonicalStringMap;
+use super::internal::{
+    CanonicalStringMap,
+    StrictStringMap,
+};
 
 /// Serializes string maps in a collection with dictionary-ordered keys.
 pub(crate) fn serialize<S>(
@@ -42,5 +45,10 @@ pub(crate) fn deserialize<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    Vec::<HashMap<String, String>>::deserialize(deserializer)
+    Vec::<StrictStringMap<String>>::deserialize(deserializer).map(|values| {
+        values
+            .into_iter()
+            .map(StrictStringMap::into_inner)
+            .collect()
+    })
 }

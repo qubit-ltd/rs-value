@@ -16,6 +16,11 @@ use super::ValueWireDecodeError;
 /// does not cap allocations made while parsing, the number of collection
 /// elements, string lengths after decoding, or JSON nesting depth. Callers
 /// that need those guarantees must enforce them in the surrounding protocol.
+///
+/// # TODO
+///
+/// Add composable structural budgets for decoded collection elements, map
+/// entries, string lengths, numeric digit lengths, and JSON nesting depth.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ValueWireLimits {
