@@ -7,9 +7,26 @@
 // =============================================================================
 
 //! Shared resource limits and accounting for JSON wire decoding.
+// qubit-style: allow multiple-public-types
 
-use super::{ValueWireDecodeError, ValueWireLimitKind};
-use crate::{MultiValuesRef, ValueContainer, ValueRef};
+use std::fmt;
+
+use serde::de::{
+    DeserializeSeed,
+    MapAccess,
+    SeqAccess,
+    Visitor,
+};
+
+use super::{
+    ValueWireDecodeError,
+    ValueWireLimitKind,
+};
+use crate::{
+    MultiValuesRef,
+    ValueContainer,
+    ValueRef,
+};
 
 /// Shared limits applied to one complete wire decode.
 #[must_use]
@@ -75,7 +92,10 @@ impl WireLimits {
     /// Sets the maximum elements in one collection.
     #[inline(always)]
     #[must_use = "the configured collection limit should be used"]
-    pub const fn with_max_collection_items(mut self, max_collection_items: usize) -> Self {
+    pub const fn with_max_collection_items(
+        mut self,
+        max_collection_items: usize,
+    ) -> Self {
         self.max_collection_items = max_collection_items;
         self
     }
@@ -83,7 +103,10 @@ impl WireLimits {
     /// Sets the maximum entries in one map.
     #[inline(always)]
     #[must_use = "the configured map limit should be used"]
-    pub const fn with_max_map_entries(mut self, max_map_entries: usize) -> Self {
+    pub const fn with_max_map_entries(
+        mut self,
+        max_map_entries: usize,
+    ) -> Self {
         self.max_map_entries = max_map_entries;
         self
     }
@@ -91,7 +114,10 @@ impl WireLimits {
     /// Sets the maximum bytes in one decoded string.
     #[inline(always)]
     #[must_use = "the configured string limit should be used"]
-    pub const fn with_max_string_bytes(mut self, max_string_bytes: usize) -> Self {
+    pub const fn with_max_string_bytes(
+        mut self,
+        max_string_bytes: usize,
+    ) -> Self {
         self.max_string_bytes = max_string_bytes;
         self
     }
@@ -99,7 +125,10 @@ impl WireLimits {
     /// Sets the maximum digits in one decoded number.
     #[inline(always)]
     #[must_use = "the configured numeric limit should be used"]
-    pub const fn with_max_numeric_digits(mut self, max_numeric_digits: usize) -> Self {
+    pub const fn with_max_numeric_digits(
+        mut self,
+        max_numeric_digits: usize,
+    ) -> Self {
         self.max_numeric_digits = max_numeric_digits;
         self
     }
@@ -162,7 +191,10 @@ impl WireLimits {
 
     /// Checks a complete input length and starts a shared accounting session.
     #[inline]
-    pub fn begin(self, input_bytes: usize) -> Result<WireBudget, ValueWireDecodeError> {
+    pub fn begin(
+        self,
+        input_bytes: usize,
+    ) -> Result<WireBudget, ValueWireDecodeError> {
         if input_bytes > self.max_input_bytes {
             return Err(ValueWireDecodeError::InputTooLarge {
                 input_bytes,
@@ -175,9 +207,45 @@ impl WireLimits {
         })
     }
 
+    /// Preflights one complete JSON document before allocating its decoded
+    /// runtime representation, then starts a semantic accounting session.
+    ///
+    /// The preflight traverses every JSON array, object, string, and value in
+    /// the complete document with fixed protocol headroom. The returned budget
+    /// starts at zero so callers can apply the exact public limits to the
+    /// decoded runtime representation, including every embedded value in a
+    /// larger protocol.
+    ///
+    /// # Errors
+    ///
+    /// Returns an input-size, structural-limit, or JSON syntax error before
+    /// the caller deserializes its concrete wire DTO.
+    #[inline]
+    pub fn begin_json(
+        self,
+        input: &[u8],
+    ) -> Result<WireBudget, ValueWireDecodeError> {
+        self.check_json_bytes(input.len())?;
+        let mut deserializer = serde_json::Deserializer::from_slice(input);
+        let mut preflight = JsonPreflightSeed::new(self);
+        if let Err(error) = (&mut preflight).deserialize(&mut deserializer) {
+            if let Some(error) = preflight.violation.take() {
+                return Err(error);
+            }
+            return Err(ValueWireDecodeError::InvalidJson(error));
+        }
+        deserializer
+            .end()
+            .map_err(ValueWireDecodeError::InvalidJson)?;
+        self.begin(input.len())
+    }
+
     /// Checks a complete input length without starting an accounting session.
     #[inline]
-    pub const fn check_json_bytes(self, input_bytes: usize) -> Result<(), ValueWireDecodeError> {
+    pub const fn check_json_bytes(
+        self,
+        input_bytes: usize,
+    ) -> Result<(), ValueWireDecodeError> {
         if input_bytes > self.max_input_bytes {
             Err(ValueWireDecodeError::InputTooLarge {
                 input_bytes,
@@ -198,7 +266,7 @@ impl Default for WireLimits {
 
 /// Mutable accounting state shared by one complete wire decode.
 #[must_use]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct WireBudget {
     limits: WireLimits,
     nodes: usize,
@@ -207,7 +275,7 @@ pub struct WireBudget {
 impl WireBudget {
     /// Returns the configured limits for this session.
     #[inline(always)]
-    pub const fn limits(self) -> WireLimits {
+    pub const fn limits(&self) -> WireLimits {
         self.limits
     }
 
@@ -215,18 +283,32 @@ impl WireBudget {
     #[inline]
     pub fn check_node(&mut self) -> Result<(), ValueWireDecodeError> {
         self.nodes = self.nodes.saturating_add(1);
-        self.check_limit(ValueWireLimitKind::Nodes, self.nodes, self.limits.max_nodes)
+        self.check_limit(
+            ValueWireLimitKind::Nodes,
+            self.nodes,
+            self.limits.max_nodes,
+        )
     }
 
     /// Checks a recursive depth.
     #[inline]
-    pub fn check_depth(&self, depth: usize) -> Result<(), ValueWireDecodeError> {
-        self.check_limit(ValueWireLimitKind::Depth, depth, self.limits.max_depth)
+    pub fn check_depth(
+        &self,
+        depth: usize,
+    ) -> Result<(), ValueWireDecodeError> {
+        self.check_limit(
+            ValueWireLimitKind::Depth,
+            depth,
+            self.limits.max_depth,
+        )
     }
 
     /// Checks one collection length.
     #[inline]
-    pub fn check_collection_items(&self, items: usize) -> Result<(), ValueWireDecodeError> {
+    pub fn check_collection_items(
+        &self,
+        items: usize,
+    ) -> Result<(), ValueWireDecodeError> {
         self.check_limit(
             ValueWireLimitKind::CollectionItems,
             items,
@@ -236,7 +318,10 @@ impl WireBudget {
 
     /// Checks one map length.
     #[inline]
-    pub fn check_map_entries(&self, entries: usize) -> Result<(), ValueWireDecodeError> {
+    pub fn check_map_entries(
+        &self,
+        entries: usize,
+    ) -> Result<(), ValueWireDecodeError> {
         self.check_limit(
             ValueWireLimitKind::MapEntries,
             entries,
@@ -246,7 +331,10 @@ impl WireBudget {
 
     /// Checks one decoded string length.
     #[inline]
-    pub fn check_string_bytes(&self, bytes: usize) -> Result<(), ValueWireDecodeError> {
+    pub fn check_string_bytes(
+        &self,
+        bytes: usize,
+    ) -> Result<(), ValueWireDecodeError> {
         self.check_limit(
             ValueWireLimitKind::StringBytes,
             bytes,
@@ -256,7 +344,10 @@ impl WireBudget {
 
     /// Checks one decoded numeric length.
     #[inline]
-    pub fn check_numeric_digits(&self, digits: usize) -> Result<(), ValueWireDecodeError> {
+    pub fn check_numeric_digits(
+        &self,
+        digits: usize,
+    ) -> Result<(), ValueWireDecodeError> {
         self.check_limit(
             ValueWireLimitKind::NumericDigits,
             digits,
@@ -281,7 +372,9 @@ impl WireBudget {
     ) -> Result<(), ValueWireDecodeError> {
         self.check_depth(depth)?;
         match container {
-            ValueContainer::Scalar(value) => self.check_value_ref(value.view(), depth),
+            ValueContainer::Scalar(value) => {
+                self.check_value_ref(value.view(), depth)
+            }
             ValueContainer::Collection(values) => {
                 self.check_node()?;
                 self.check_collection_items(values.len())?;
@@ -292,7 +385,10 @@ impl WireBudget {
 
     /// Validates one scalar Value against the shared budget.
     #[inline]
-    pub fn check_value(&mut self, value: &crate::Value) -> Result<(), ValueWireDecodeError> {
+    pub fn check_value(
+        &mut self,
+        value: &crate::Value,
+    ) -> Result<(), ValueWireDecodeError> {
         self.check_value_ref(value.view(), 1)
     }
 
@@ -316,21 +412,49 @@ impl WireBudget {
             #[cfg(feature = "json")]
             ValueRef::Json(value) => self.check_json(value, depth + 1),
             #[cfg(feature = "big-integer")]
-            ValueRef::BigInteger(value) => self.check_numeric_digits(value.to_string().len()),
+            ValueRef::BigInteger(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
             #[cfg(feature = "big-decimal")]
-            ValueRef::BigDecimal(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::Int8(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::Int16(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::Int32(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::Int64(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::Int128(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::UInt8(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::UInt16(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::UInt32(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::UInt64(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::UInt128(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::Float32(value) => self.check_numeric_digits(value.to_string().len()),
-            ValueRef::Float64(value) => self.check_numeric_digits(value.to_string().len()),
+            ValueRef::BigDecimal(value) => {
+                self.check_numeric_digits(big_decimal_numeric_len(value))
+            }
+            ValueRef::Int8(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::Int16(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::Int32(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::Int64(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::Int128(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::UInt8(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::UInt16(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::UInt32(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::UInt64(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::UInt128(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::Float32(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
+            ValueRef::Float64(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
             _ => Ok(()),
         }
     }
@@ -463,8 +587,12 @@ impl WireBudget {
                 }
                 Ok(())
             }
-            serde_json::Value::String(value) => self.check_string_bytes(value.len()),
-            serde_json::Value::Number(value) => self.check_numeric_digits(value.to_string().len()),
+            serde_json::Value::String(value) => {
+                self.check_string_bytes(value.len())
+            }
+            serde_json::Value::Number(value) => {
+                self.check_numeric_digits(value.to_string().len())
+            }
             serde_json::Value::Null | serde_json::Value::Bool(_) => Ok(()),
         }
     }
@@ -484,6 +612,367 @@ impl WireBudget {
         } else {
             Ok(())
         }
+    }
+}
+
+/// Returns the bounded V1 decimal payload length without expanding `scale`.
+///
+/// V1 represents a decimal as its canonical integer coefficient plus a
+/// separately bounded scale. Formatting the decimal itself can expand a large
+/// negative scale into an arbitrarily long string, which is unrelated to the
+/// encoded coefficient size.
+#[cfg(feature = "big-decimal")]
+#[inline]
+fn big_decimal_numeric_len(value: &bigdecimal::BigDecimal) -> usize {
+    value.as_bigint_and_exponent().0.to_string().len()
+}
+
+/// Parses JSON while charging structural limits without materializing a JSON
+/// tree or a wire DTO.
+struct JsonPreflightSeed {
+    limits: WireLimits,
+    nodes: usize,
+    violation: Option<ValueWireDecodeError>,
+}
+
+impl JsonPreflightSeed {
+    #[inline(always)]
+    fn new(limits: WireLimits) -> Self {
+        // The JSON document includes protocol field names and envelopes that do
+        // not exist in the decoded runtime value. Reserve fixed headroom here;
+        // the returned WireBudget applies the exact public limits afterwards.
+        let limits = WireLimits {
+            max_input_bytes: limits.max_input_bytes,
+            max_depth: limits.max_depth.saturating_add(16),
+            max_nodes: limits.max_nodes.saturating_add(64),
+            max_collection_items: limits.max_collection_items,
+            max_map_entries: if limits.max_map_entries < 16 {
+                16
+            } else {
+                limits.max_map_entries
+            },
+            max_string_bytes: if limits.max_string_bytes < 64 {
+                64
+            } else {
+                limits.max_string_bytes
+            },
+            max_numeric_digits: limits.max_numeric_digits,
+        };
+        Self {
+            limits,
+            nodes: 0,
+            violation: None,
+        }
+    }
+
+    #[inline]
+    fn check_limit<E>(
+        &mut self,
+        kind: ValueWireLimitKind,
+        value: usize,
+        maximum: usize,
+    ) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        if value > maximum {
+            self.violation = Some(ValueWireDecodeError::LimitExceeded {
+                kind,
+                value,
+                maximum,
+            });
+            Err(E::custom(format_args!(
+                "wire input {kind:?} value {value} exceeds the limit of {maximum}"
+            )))
+        } else {
+            Ok(())
+        }
+    }
+
+    #[inline]
+    fn check_node<E>(&mut self) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.nodes = self.nodes.saturating_add(1);
+        self.check_limit(
+            ValueWireLimitKind::Nodes,
+            self.nodes,
+            self.limits.max_nodes,
+        )
+    }
+
+    #[inline]
+    fn check_depth<E>(&mut self, depth: usize) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.check_limit(
+            ValueWireLimitKind::Depth,
+            depth,
+            self.limits.max_depth,
+        )
+    }
+
+    #[inline]
+    fn check_collection_items<E>(&mut self, items: usize) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.check_limit(
+            ValueWireLimitKind::CollectionItems,
+            items,
+            self.limits.max_collection_items,
+        )
+    }
+
+    #[inline]
+    fn check_map_entries<E>(&mut self, entries: usize) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.check_limit(
+            ValueWireLimitKind::MapEntries,
+            entries,
+            self.limits.max_map_entries,
+        )
+    }
+
+    #[inline]
+    fn check_string_bytes<E>(&mut self, bytes: usize) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.check_limit(
+            ValueWireLimitKind::StringBytes,
+            bytes,
+            self.limits.max_string_bytes,
+        )
+    }
+}
+
+impl<'de> DeserializeSeed<'de> for &mut JsonPreflightSeed {
+    type Value = ();
+
+    #[inline]
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_any(JsonPreflightVisitor {
+            preflight: self,
+            depth: 1,
+        })
+    }
+}
+
+struct JsonPreflightVisitor<'a> {
+    preflight: &'a mut JsonPreflightSeed,
+    depth: usize,
+}
+
+impl JsonPreflightVisitor<'_> {
+    #[inline]
+    fn scalar<E>(&mut self) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.preflight.check_depth(self.depth)?;
+        self.preflight.check_node()
+    }
+
+    #[inline]
+    fn string<E>(&mut self, value: &str) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.scalar()?;
+        self.preflight.check_string_bytes(value.len())
+    }
+}
+
+macro_rules! visit_json_scalar {
+    ($($method:ident($type:ty)),+ $(,)?) => {
+        $(
+            fn $method<E>(mut self, _value: $type) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                self.scalar()
+            }
+        )+
+    };
+}
+
+impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a JSON value")
+    }
+
+    visit_json_scalar!(
+        visit_bool(bool),
+        visit_i64(i64),
+        visit_u64(u64),
+        visit_f64(f64),
+    );
+
+    fn visit_unit<E>(mut self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.scalar()
+    }
+
+    fn visit_none<E>(mut self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.scalar()
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        (&mut *self.preflight).deserialize(deserializer)
+    }
+
+    fn visit_borrowed_str<E>(
+        mut self,
+        value: &'de str,
+    ) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.string(value)
+    }
+
+    fn visit_str<E>(mut self, value: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.string(value)
+    }
+
+    fn visit_string<E>(mut self, value: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.string(&value)
+    }
+
+    fn visit_seq<A>(mut self, mut access: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        self.scalar()?;
+        let mut items: usize = 0;
+        while access
+            .next_element_seed(JsonPreflightChildSeed {
+                preflight: self.preflight,
+                depth: self.depth + 1,
+            })?
+            .is_some()
+        {
+            items = items.saturating_add(1);
+            self.preflight.check_collection_items(items)?;
+        }
+        Ok(())
+    }
+
+    fn visit_map<A>(mut self, mut access: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        self.scalar()?;
+        let mut entries: usize = 0;
+        while access
+            .next_key_seed(JsonPreflightMapKeySeed {
+                preflight: self.preflight,
+            })?
+            .is_some()
+        {
+            entries = entries.saturating_add(1);
+            self.preflight.check_map_entries(entries)?;
+            access.next_value_seed(JsonPreflightChildSeed {
+                preflight: self.preflight,
+                depth: self.depth + 1,
+            })?;
+        }
+        Ok(())
+    }
+}
+
+struct JsonPreflightChildSeed<'a> {
+    preflight: &'a mut JsonPreflightSeed,
+    depth: usize,
+}
+
+impl<'de> DeserializeSeed<'de> for JsonPreflightChildSeed<'_> {
+    type Value = ();
+
+    #[inline]
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_any(JsonPreflightVisitor {
+            preflight: self.preflight,
+            depth: self.depth,
+        })
+    }
+}
+
+struct JsonPreflightMapKeySeed<'a> {
+    preflight: &'a mut JsonPreflightSeed,
+}
+
+impl<'de> DeserializeSeed<'de> for JsonPreflightMapKeySeed<'_> {
+    type Value = ();
+
+    #[inline]
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_str(JsonPreflightMapKeyVisitor {
+            preflight: self.preflight,
+        })
+    }
+}
+
+struct JsonPreflightMapKeyVisitor<'a> {
+    preflight: &'a mut JsonPreflightSeed,
+}
+
+impl<'de> Visitor<'de> for JsonPreflightMapKeyVisitor<'_> {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a JSON object key")
+    }
+
+    fn visit_borrowed_str<E>(self, value: &'de str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.preflight.check_string_bytes(value.len())
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.preflight.check_string_bytes(value.len())
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.preflight.check_string_bytes(value.len())
     }
 }
 

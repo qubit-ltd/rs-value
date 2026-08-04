@@ -201,11 +201,9 @@ fn test_value_datetime_types() {
     assert_eq!(value.data_type(), DataType::DateTime);
 
     // Test Instant
-    let instant = chrono::DateTime::<chrono::Utc>::from_timestamp(
-        1_700_000_000,
-        0,
-    )
-    .expect("fixed test instant must be valid");
+    let instant =
+        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
+            .expect("fixed test instant must be valid");
     let mut value = Value::Unset(DataType::Instant);
     value.set(instant);
     assert_eq!(value.get_instant().unwrap(), instant);
@@ -380,11 +378,13 @@ fn test_is_unset_distinguishes_empty_inner_values() {
         )
         .is_unset()
     );
-    assert!(!Value::Instant(
-        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
-            .expect("fixed test instant must be valid"),
-    )
-    .is_unset());
+    assert!(
+        !Value::Instant(
+            chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
+                .expect("fixed test instant must be valid"),
+        )
+        .is_unset()
+    );
     assert!(!Value::BigInteger(BigInt::from(123)).is_unset());
     assert!(
         !Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_unset()
