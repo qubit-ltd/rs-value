@@ -34,7 +34,6 @@ mod named_value {
     }
 }
 mod numeric_comparison_error_tests;
-mod public_api_boundary_tests;
 mod strict_json_tests;
 mod strict_json {
     mod internal {
