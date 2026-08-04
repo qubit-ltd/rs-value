@@ -18,6 +18,8 @@ use serde::{
     Serializer,
 };
 
+use super::internal::StrictStringMap;
+
 /// Serializes one string map with lexicographically ordered keys.
 pub(crate) fn serialize<S>(
     value: &HashMap<String, String>,
@@ -43,5 +45,6 @@ pub(crate) fn deserialize<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    HashMap::deserialize(deserializer)
+    StrictStringMap::<String>::deserialize(deserializer)
+        .map(StrictStringMap::into_inner)
 }
