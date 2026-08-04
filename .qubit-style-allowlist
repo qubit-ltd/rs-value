@@ -1,4 +1,3 @@
-multiple-public-types | src/strict_value_list_read.rs | The sealed helper trait and its public read contract are intentionally co-located.
 multiple-public-types | src/multi_values/multi_values.rs | The private representation and public container are intentionally co-located; the borrowed semantic view lives in multi_values_ref.rs.
 multiple-public-types | src/strict_value_read.rs | The sealed helper trait and its public read contract are intentionally co-located.
 multiple-public-types | src/value/value.rs | The private representation and public container are intentionally co-located; the borrowed semantic view lives in value_ref.rs.
