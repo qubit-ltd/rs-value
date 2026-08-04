@@ -76,9 +76,16 @@ use internal::{
 };
 #[cfg(feature = "json")]
 pub use value_wire_decode_error::ValueWireDecodeError;
+#[cfg(feature = "json")]
+pub use value_wire_decode_error::ValueWireLimitKind;
 pub use value_wire_encode_error::ValueWireEncodeError;
 #[cfg(feature = "json")]
 pub use value_wire_limits::ValueWireLimits;
+#[cfg(feature = "json")]
+pub use value_wire_limits::{
+    WireBudget,
+    WireLimits,
+};
 pub use value_wire_payload_ref_v1::ValueWirePayloadRefV1;
 pub use value_wire_payload_v1::ValueWirePayloadV1;
 pub use value_wire_ref_v1::ValueWireRefV1;
