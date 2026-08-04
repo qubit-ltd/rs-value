@@ -148,7 +148,10 @@ pub use value_missing::ValueMissing;
 #[cfg(feature = "json")]
 pub use value_wire::{
     ValueWireDecodeError,
+    ValueWireLimitKind,
     ValueWireLimits,
+    WireBudget,
+    WireLimits,
 };
 pub use value_wire::{
     ValueWireEncodeError,
