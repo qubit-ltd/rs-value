@@ -66,17 +66,11 @@ impl ValueWireV1 {
         Self { value }
     }
 
-    /// Decodes a V1 JSON wire value using the default input byte limit.
+    /// Decodes a V1 JSON wire value using the default structural limits.
     ///
-    /// The complete input length is checked before JSON parsing. This method
-    /// is suitable for untrusted input when the one-mebibyte default in
-    /// [`ValueWireLimits`] matches the surrounding protocol. The byte budget
-    /// is only an encoded-input bound; it does not limit decoded allocations,
-    /// collection element counts, string lengths, or nesting depth. It
-    /// accepts a complete top-level V1 document. When a [`Value`] is embedded
-    /// in a larger JSON document, the outer protocol should call
-    /// [`ValueWireLimits::check_json_bytes`] with the complete document length
-    /// before invoking its own Serde decoder.
+    /// The complete input length and decoded structure are checked before the
+    /// value is returned. Embedded protocols should share one
+    /// [`crate::WireBudget`] across their complete document.
     ///
     /// # Parameters
     ///
@@ -88,9 +82,8 @@ impl ValueWireV1 {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueWireDecodeError::InputTooLarge`] when `input` exceeds
-    /// the default byte limit, or [`ValueWireDecodeError::InvalidJson`] when
-    /// the bounded input is not a valid V1 JSON wire value.
+    /// Returns a limit error when the input or decoded structure is too large,
+    /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
     pub fn decode_json_slice(
@@ -99,19 +92,16 @@ impl ValueWireV1 {
         Self::decode_json_slice_with_limits(input, ValueWireLimits::default())
     }
 
-    /// Decodes a V1 JSON wire value using an explicit input-size limit.
+    /// Decodes a V1 JSON wire value using explicit structural limits.
     ///
-    /// The complete input length is checked before JSON parsing. This bounds
-    /// the encoded document size only; it does not bound decoded collection
-    /// sizes, string lengths, arbitrary-precision numeric allocations, or JSON
-    /// nesting depth. This method accepts a complete top-level V1 document;
-    /// embedded values require the outer protocol to preflight its complete
-    /// document length with [`ValueWireLimits::check_json_bytes`].
+    /// The complete input length and decoded structure are checked before the
+    /// value is returned. Embedded values should be checked through the outer
+    /// protocol's shared [`crate::WireBudget`].
     ///
     /// # Parameters
     ///
     /// * `input` - Complete UTF-8 JSON document to decode.
-    /// * `limits` - Input-size limit checked before decoding begins.
+    /// * `limits` - Shared encoded-input and structural limits.
     ///
     /// # Returns
     ///
@@ -119,17 +109,19 @@ impl ValueWireV1 {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueWireDecodeError::InputTooLarge`] when `input` exceeds
-    /// `limits`, or [`ValueWireDecodeError::InvalidJson`] when the bounded
-    /// input is not a valid V1 JSON wire value.
+    /// Returns a limit error when `input` or its decoded structure exceeds
+    /// `limits`, or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
     pub fn decode_json_slice_with_limits(
         input: &[u8],
         limits: ValueWireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        limits.check_json_bytes(input.len())?;
-        serde_json::from_slice(input).map_err(ValueWireDecodeError::from)
+        let mut budget = limits.begin(input.len())?;
+        let value: Self = serde_json::from_slice(input)
+            .map_err(ValueWireDecodeError::from)?;
+        budget.check_container(value.container())?;
+        Ok(value)
     }
 
     /// Returns the runtime container represented by this DTO.
