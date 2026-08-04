@@ -7,6 +7,7 @@
 // =============================================================================
 
 //! Error reported while decoding bounded JSON wire input.
+// qubit-style: allow multiple-public-types
 
 use thiserror::Error;
 

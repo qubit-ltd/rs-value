@@ -45,7 +45,10 @@ fuzz_target!(|data: &[u8]| {
             .expect("a serialized ValueWireV1 must decode");
             assert_eq!(decoded, value);
         }
-        Err(ValueWireDecodeError::InvalidJson(_)) => {}
+        Err(
+            ValueWireDecodeError::InvalidJson(_)
+            | ValueWireDecodeError::LimitExceeded { .. },
+        ) => {}
         Err(error) => {
             panic!("bounded input returned an unexpected error: {error}")
         }

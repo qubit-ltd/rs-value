@@ -75,7 +75,7 @@ impl ValueWirePayloadV1 {
         input: &[u8],
         limits: ValueWireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut budget = limits.begin(input.len())?;
+        let mut budget = limits.begin_json(input)?;
         let value: Self = serde_json::from_slice(input)
             .map_err(ValueWireDecodeError::from)?;
         budget.check_container(value.container())?;

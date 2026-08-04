@@ -179,11 +179,9 @@ fn test_value_datetime_to_string() {
     assert_eq!(str_repr, "2024-01-15T14:30:45");
 
     // Test Instant to string conversion
-    let instant = chrono::DateTime::<chrono::Utc>::from_timestamp(
-        1_700_000_000,
-        0,
-    )
-    .expect("fixed test instant must be valid");
+    let instant =
+        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
+            .expect("fixed test instant must be valid");
     let value = Value::Instant(instant);
     let str_repr = value.to::<String>().unwrap();
     assert!(str_repr.contains('T')); // RFC3339 format contains 'T'
@@ -1539,9 +1537,7 @@ fn test_as_int64_big_types_edge_cases() {
 }
 #[test]
 fn test_as_float64_non_numeric_type_conversion_failed() {
-    use chrono::{
-        DateTime,
-    };
+    use chrono::DateTime;
 
     // DateTime type cannot convert to f64
     let datetime = DateTime::from_timestamp(1_000_000_000, 0)
@@ -1562,11 +1558,9 @@ fn test_as_float64_non_numeric_type_conversion_failed() {
     }
 
     // Instant type also cannot convert
-    let instant = chrono::DateTime::<chrono::Utc>::from_timestamp(
-        1_700_000_000,
-        0,
-    )
-    .expect("fixed test instant must be valid");
+    let instant =
+        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
+            .expect("fixed test instant must be valid");
     let value = Value::Instant(instant);
     assert!(value.to::<f64>().is_err());
 
