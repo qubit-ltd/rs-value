@@ -220,7 +220,11 @@ fn test_nmv_get_datetimes() {
 
 #[test]
 fn test_nmv_get_instants() {
-    let now: UtcDateTime<Utc> = Utc::now();
+    let now: UtcDateTime<Utc> = chrono::DateTime::<chrono::Utc>::from_timestamp(
+        1_700_000_000,
+        0,
+    )
+    .expect("fixed test instant must be valid");
     let nmv = NamedMultiValues::new("inst", MultiValues::Instant(vec![now]));
     let v: Vec<UtcDateTime<Utc>> = nmv.values().get().unwrap();
     assert_eq!(v, vec![now]);
