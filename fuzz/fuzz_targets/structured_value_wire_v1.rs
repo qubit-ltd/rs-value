@@ -31,6 +31,7 @@ use url::Url;
 
 const TAG_COUNT: u8 = 52;
 
+/// Copies at most `N` fuzz bytes into a fixed-width little-endian buffer.
 fn padded_bytes<const N: usize>(data: &[u8]) -> [u8; N] {
     let mut bytes = [0_u8; N];
     let copy_len = data.len().min(N);
@@ -38,15 +39,18 @@ fn padded_bytes<const N: usize>(data: &[u8]) -> [u8; N] {
     bytes
 }
 
+/// Derives a deterministic scalar seed from the first fuzz bytes.
 fn seed(data: &[u8]) -> u64 {
     u64::from_le_bytes(padded_bytes(data))
 }
 
+/// Converts a bounded suffix of fuzz input into valid UTF-8 text.
 fn text(data: &[u8]) -> String {
     String::from_utf8_lossy(data.get(1..data.len().min(65)).unwrap_or_default())
         .into_owned()
 }
 
+/// Maps a seed to a date inside a fixed one-year fuzzing window.
 fn date(seed: u64) -> NaiveDate {
     NaiveDate::from_ymd_opt(2026, 1, 1)
         .expect("fixed fuzz date must be valid")
@@ -54,6 +58,7 @@ fn date(seed: u64) -> NaiveDate {
         .expect("fuzz date offset must remain in range")
 }
 
+/// Maps a seed to a valid time-of-day value.
 fn time(seed: u64) -> NaiveTime {
     NaiveTime::from_hms_nano_opt(
         (seed % 24) as u32,
