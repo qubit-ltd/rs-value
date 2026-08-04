@@ -79,6 +79,34 @@ fn test_value_wire_v1_serializes_string_map_keys_in_dictionary_order() {
     assert_eq!(encoded, expected);
 }
 
+/// Rejects duplicate keys in scalar and collection string-map payloads.
+#[test]
+fn test_value_wire_v1_rejects_duplicate_string_map_keys() {
+    for input in [
+        r#"{"version":1,"value":{"scalar":{"stringmap":{"key":"first","key":"second"}}}}"#,
+        r#"{"version":1,"value":{"collection":{"stringmap":[{"key":"first","key":"second"}]}}}"#,
+    ] {
+        assert!(
+            serde_json::from_str::<ValueWireV1>(input).is_err(),
+            "duplicate string-map key was accepted: {input}",
+        );
+    }
+}
+
+/// Rejects duplicate keys at every object level of JSON payloads.
+#[test]
+fn test_value_wire_v1_rejects_duplicate_nested_json_keys() {
+    for input in [
+        r#"{"version":1,"value":{"scalar":{"json":{"key":"first","key":"second"}}}}"#,
+        r#"{"version":1,"value":{"collection":{"json":[{"nested":{"key":"first","key":"second"}}]}}}"#,
+    ] {
+        assert!(
+            serde_json::from_str::<ValueWireV1>(input).is_err(),
+            "duplicate JSON key was accepted: {input}",
+        );
+    }
+}
+
 /// Serializes a string-map collection with dictionary-ordered keys.
 #[test]
 fn test_value_wire_v1_serializes_string_map_collection_keys_in_dictionary_order()
