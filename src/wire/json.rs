@@ -16,7 +16,10 @@ use serde::{
 };
 use serde_json::Value;
 
-use super::internal::CanonicalJson;
+use super::internal::{
+    CanonicalJson,
+    StrictJsonValue,
+};
 
 /// Serializes one JSON value with recursively ordered object keys.
 pub(crate) fn serialize<S>(
@@ -34,7 +37,7 @@ pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Value, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Value::deserialize(deserializer)
+    StrictJsonValue::deserialize(deserializer).map(StrictJsonValue::into_inner)
 }
 
 /// Returns a recursively canonical JSON value for natural projections.

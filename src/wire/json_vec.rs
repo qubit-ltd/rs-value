@@ -17,7 +17,10 @@ use serde::{
 };
 use serde_json::Value;
 
-use super::internal::CanonicalJson;
+use super::internal::{
+    CanonicalJson,
+    StrictJsonValue,
+};
 
 /// Serializes JSON values in a collection with recursively ordered keys.
 pub(crate) fn serialize<S>(
@@ -41,5 +44,10 @@ pub(crate) fn deserialize<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    Vec::<Value>::deserialize(deserializer)
+    Vec::<StrictJsonValue>::deserialize(deserializer).map(|values| {
+        values
+            .into_iter()
+            .map(StrictJsonValue::into_inner)
+            .collect()
+    })
 }

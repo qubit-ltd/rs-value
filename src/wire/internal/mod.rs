@@ -14,6 +14,9 @@ mod big_decimal_payload;
 mod canonical_json;
 mod canonical_string_map;
 mod duration_payload;
+#[cfg(feature = "json")]
+mod strict_json_value;
+mod strict_string_map;
 
 #[cfg(feature = "big-decimal")]
 pub(in crate::wire) use big_decimal_payload::BigDecimalPayload;
@@ -21,3 +24,6 @@ pub(in crate::wire) use big_decimal_payload::BigDecimalPayload;
 pub(in crate::wire) use canonical_json::CanonicalJson;
 pub(in crate::wire) use canonical_string_map::CanonicalStringMap;
 pub(in crate::wire) use duration_payload::DurationPayload;
+#[cfg(feature = "json")]
+pub(in crate::wire) use strict_json_value::StrictJsonValue;
+pub(in crate::wire) use strict_string_map::StrictStringMap;
