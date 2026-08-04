@@ -9,8 +9,13 @@
 //! Tests for `ValueWireLimits`.
 
 use qubit_value::{
+    MultiValues,
+    Value,
+    ValueContainer,
     ValueWireDecodeError,
     ValueWireLimits,
+    ValueWirePayloadV1,
+    WireLimits,
 };
 
 #[test]
@@ -43,6 +48,41 @@ fn test_value_wire_limits_check_json_bytes_enforces_public_budget() {
         Err(ValueWireDecodeError::InputTooLarge {
             input_bytes: 9,
             max_input_bytes: 8,
+        })
+    ));
+}
+
+#[test]
+fn test_wire_limits_reject_collection_items() {
+    let payload = ValueWirePayloadV1::try_from(MultiValues::Int32(vec![1, 2]))
+        .expect("the finite collection should be wire-compatible");
+    let input = serde_json::to_vec(&payload).expect("the payload should serialize");
+    let limits = WireLimits::new(input.len()).with_max_collection_items(1);
+
+    assert!(matches!(
+        ValueWirePayloadV1::decode_json_slice_with_limits(&input, limits),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: qubit_value::ValueWireLimitKind::CollectionItems,
+            value: 2,
+            maximum: 1,
+        })
+    ));
+}
+
+#[test]
+fn test_wire_limits_reject_string_bytes() {
+    let payload =
+        ValueWirePayloadV1::try_from(ValueContainer::Scalar(Value::String("hello".to_owned())))
+            .expect("the string should be wire-compatible");
+    let input = serde_json::to_vec(&payload).expect("the payload should serialize");
+    let limits = WireLimits::new(input.len()).with_max_string_bytes(4);
+
+    assert!(matches!(
+        ValueWirePayloadV1::decode_json_slice_with_limits(&input, limits),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: qubit_value::ValueWireLimitKind::StringBytes,
+            value: 5,
+            maximum: 4,
         })
     ));
 }
