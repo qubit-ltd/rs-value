@@ -23,3 +23,16 @@ fn value_missing_accessors_preserve_conversion_context() {
     assert!(missing.is_conversion());
     assert!(!missing.uses_default());
 }
+
+#[test]
+fn empty_collection_conversion_exposes_target_context() {
+    let missing = ValueMissing::EmptyCollectionConversion {
+        to: DataType::Int32,
+    };
+
+    assert_eq!(missing.data_type(), DataType::Int32);
+    assert_eq!(missing.target_type(), Some(DataType::Int32));
+    assert!(missing.is_empty_collection());
+    assert!(missing.is_conversion());
+    assert!(!missing.uses_default());
+}
