@@ -92,14 +92,14 @@ tag 只有在接收方启用对应 feature 时才能反序列化：日期/时间
 和有界的 BigDecimal scale；payload 内部表示是私有的，因此调用方无法构造未经
 校验的 wire shape。
 
-`Value`、`MultiValues`、`ValueContainer` 可通过 `From` 转成
-`ValueWireV1`；`ValueWireV1` 可转回 `ValueContainer`。
+`Value`、`MultiValues`、`ValueContainer` 可通过可能失败的 `TryFrom` 转成
+`ValueWireV1`；`ValueWireV1` 可通过 `From` 转回 `ValueContainer`。
 
 `ValueWireV1::decode_json_slice()` 和
 `ValueWireV1::decode_json_slice_with_limits()` 只接受完整的顶层 V1 文档，并在
-解析前执行字节数限制。当 value 嵌入更大的 JSON 文档时，应先用完整外层输入
-长度调用 `ValueWireLimits::check_json_bytes()`，再执行该文档自己的 Serde
-decoder。
+解析前执行字节数限制。当 value 嵌入更大的 JSON 文档时，应使用完整外层输入
+调用 `ValueWireLimits::begin_json()`，再执行该文档自己的 Serde decoder。对每个
+嵌入值复用返回的 `WireBudget`，使结构限制作用于完整文档。
 
 ## 自然 JSON
 

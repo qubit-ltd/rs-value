@@ -594,9 +594,9 @@ assert!(wire.container().is_scalar());
 ```
 
 这些 decode 方法只接受完整的顶层 `ValueWireV1` 文档。当 `Value`、
-`MultiValues` 或 `ValueContainer` 嵌入外层 JSON 文档时，应先用完整外层输入
-长度调用 `ValueWireLimits::check_json_bytes()`，再执行该文档自己的 Serde
-decoder。
+`MultiValues` 或 `ValueContainer` 嵌入外层 JSON 文档时，应使用完整外层输入
+调用 `ValueWireLimits::begin_json()`，再执行该文档自己的 Serde decoder。对每个
+嵌入值复用返回的 `WireBudget`，使结构限制作用于完整文档。
 
 保留类型的 V1 wire 与 `to_json_value()` 的自然 JSON 投影是两个独立契约。
 自然 JSON 不包含运行时类型标签，未设置值投影为 `null`。
