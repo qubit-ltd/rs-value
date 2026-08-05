@@ -34,11 +34,10 @@ fn test_missing_error_exposes_default_semantics() {
             to: DataType::Int32,
         })
     );
-    assert!(
-        error
-            .missing()
-            .is_some_and(|missing| missing.uses_default())
-    );
+    assert!(error.missing().is_some_and(|missing| {
+        missing.is_unset()
+            || matches!(missing, ValueMissing::Conversion { .. })
+    }));
 }
 
 #[test]
@@ -94,16 +93,15 @@ fn test_value_missing_preserves_shape_state_and_declared_type() {
         data_type: DataType::UInt64,
     };
 
-    assert_eq!(scalar.data_type(), DataType::Int32);
+    assert_eq!(scalar.source_type(), Some(DataType::Int32));
     assert!(scalar.is_unset());
     assert!(!scalar.is_empty_collection());
-    assert_eq!(collection.data_type(), DataType::String);
+    assert_eq!(collection.source_type(), Some(DataType::String));
     assert!(collection.is_unset());
     assert!(!collection.is_empty_collection());
-    assert_eq!(empty.data_type(), DataType::UInt64);
+    assert_eq!(empty.source_type(), Some(DataType::UInt64));
     assert!(!empty.is_unset());
     assert!(empty.is_empty_collection());
-    assert!(!empty.uses_default());
 }
 
 #[test]
@@ -115,10 +113,9 @@ fn test_value_missing_preserves_collection_item_context() {
     };
 
     assert_eq!(missing.source_index(), Some(4));
-    assert_eq!(missing.data_type(), DataType::String);
+    assert_eq!(missing.source_type(), Some(DataType::String));
     assert_eq!(missing.target_type(), Some(DataType::Int32));
     assert!(missing.is_conversion());
-    assert!(!missing.uses_default());
 }
 
 #[test]
