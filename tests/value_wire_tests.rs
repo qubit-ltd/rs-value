@@ -107,6 +107,20 @@ fn test_value_wire_v1_rejects_duplicate_nested_json_keys() {
     }
 }
 
+/// Rejects JSON objects that collide with serde_json's number marker.
+#[test]
+fn test_value_wire_v1_rejects_reserved_json_number_key() {
+    let value = Value::Json(json!({
+        "$serde_json::private::Number": "123",
+        "other": true,
+    }));
+
+    assert!(matches!(
+        ValueWireV1::try_from(value),
+        Err(ValueWireEncodeError::ReservedJsonObjectKey { .. })
+    ));
+}
+
 /// Serializes a string-map collection with dictionary-ordered keys.
 #[test]
 fn test_value_wire_v1_serializes_string_map_collection_keys_in_dictionary_order()

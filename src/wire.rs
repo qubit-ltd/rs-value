@@ -8,6 +8,16 @@
 
 //! Canonical Serde payload adapters for value variants.
 
+/// serde_json's private arbitrary-precision number marker.
+///
+/// A real JSON object can use the same key, but serde_json then cannot
+/// distinguish that object from an arbitrary-precision number when using
+/// `deserialize_any`. V1 rejects this key in JSON payload objects before
+/// encoding them.
+#[cfg(feature = "json")]
+pub(crate) const JSON_NUMBER_TOKEN: &str =
+    "$serde_json::private::Number";
+
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Deserialize;
 

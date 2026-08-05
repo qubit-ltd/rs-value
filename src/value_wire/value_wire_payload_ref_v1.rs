@@ -25,6 +25,8 @@ use crate::{
     Value,
     ValueContainer,
 };
+#[cfg(feature = "json")]
+use crate::wire::JSON_NUMBER_TOKEN;
 
 use super::{
     ValueWireEncodeError,
@@ -94,6 +96,10 @@ pub(in crate::value_wire) fn validate_value(
             data_type: value.data_type(),
         });
     }
+    #[cfg(feature = "json")]
+    if let ValueRepr::Json(value) = &value.repr {
+        validate_json_value(value)?;
+    }
     Ok(())
 }
 
@@ -120,6 +126,41 @@ pub(in crate::value_wire) fn validate_values(
         return Err(ValueWireEncodeError::NonFiniteFloat {
             data_type: values.data_type(),
         });
+    }
+    #[cfg(feature = "json")]
+    if let MultiValuesRepr::Json(values) = &values.repr {
+        for value in values {
+            validate_json_value(value)?;
+        }
+    }
+    Ok(())
+}
+
+/// Rejects JSON objects that collide with serde_json's number marker.
+#[cfg(feature = "json")]
+fn validate_json_value(
+    value: &serde_json::Value,
+) -> Result<(), ValueWireEncodeError> {
+    match value {
+        serde_json::Value::Array(values) => {
+            for value in values {
+                validate_json_value(value)?;
+            }
+        }
+        serde_json::Value::Object(values) => {
+            if values.contains_key(JSON_NUMBER_TOKEN) {
+                return Err(ValueWireEncodeError::ReservedJsonObjectKey {
+                    key: JSON_NUMBER_TOKEN,
+                });
+            }
+            for value in values.values() {
+                validate_json_value(value)?;
+            }
+        }
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::String(_) => {}
     }
     Ok(())
 }
