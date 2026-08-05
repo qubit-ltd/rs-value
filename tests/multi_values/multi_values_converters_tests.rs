@@ -15,6 +15,7 @@ use qubit_value::{
     MultiValues,
     Value,
     ValueError,
+    ValueMissing,
 };
 
 #[test]
@@ -41,4 +42,19 @@ fn test_multi_values_converters_report_list_conversion_index() {
                     },
                 )
     ));
+}
+
+#[test]
+fn test_multi_values_empty_conversion_preserves_conversion_semantics() {
+    let values = MultiValues::String(Vec::new());
+    let error = values
+        .to_first::<i32>()
+        .expect_err("empty collection has no first converted value");
+
+    let ValueError::Missing(ValueMissing::EmptyCollectionConversion { to }) =
+        error
+    else {
+        panic!("expected an empty collection conversion error");
+    };
+    assert_eq!(to, qubit_datatype::DataType::Int32);
 }

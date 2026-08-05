@@ -140,8 +140,8 @@ fn test_conversion_missing_errors_are_promoted_to_value_missing() {
     ));
     assert!(matches!(
         empty,
-        ValueError::Missing(ValueMissing::EmptyCollection {
-            data_type: DataType::Int32,
+        ValueError::Missing(ValueMissing::EmptyCollectionConversion {
+            to: DataType::Int32,
         })
     ));
 

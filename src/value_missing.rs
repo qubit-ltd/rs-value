@@ -31,6 +31,15 @@ pub enum ValueMissing {
         /// Element type of the concrete empty collection.
         data_type: DataType,
     },
+    /// A conversion requested one item from an empty collection.
+    ///
+    /// The source collection has no item and therefore no source value type
+    /// can be recovered from the shared conversion error. `to` records the
+    /// requested target type instead of overloading `EmptyCollection`.
+    EmptyCollectionConversion {
+        /// Requested target data type.
+        to: DataType,
+    },
     /// A conversion policy treated a concrete scalar as missing.
     Conversion {
         /// Declared source data type.
@@ -51,12 +60,16 @@ pub enum ValueMissing {
 
 impl ValueMissing {
     /// Returns the source or declared data type associated with the error.
+    ///
+    /// For [`Self::EmptyCollectionConversion`], no source item exists, so the
+    /// requested target type is returned.
     #[inline(always)]
     pub const fn data_type(self) -> DataType {
         match self {
             Self::UnsetScalar { data_type }
             | Self::UnsetCollection { data_type }
             | Self::EmptyCollection { data_type } => data_type,
+            Self::EmptyCollectionConversion { to } => to,
             Self::Conversion { from, .. }
             | Self::CollectionItem { from, .. } => from,
         }
@@ -67,7 +80,9 @@ impl ValueMissing {
     #[inline(always)]
     pub const fn target_type(self) -> Option<DataType> {
         match self {
-            Self::Conversion { to, .. } | Self::CollectionItem { to, .. } => {
+            Self::Conversion { to, .. }
+            | Self::CollectionItem { to, .. }
+            | Self::EmptyCollectionConversion { to } => {
                 Some(to)
             }
             Self::UnsetScalar { .. }
@@ -85,6 +100,7 @@ impl ValueMissing {
             Self::UnsetScalar { .. }
             | Self::UnsetCollection { .. }
             | Self::EmptyCollection { .. }
+            | Self::EmptyCollectionConversion { .. }
             | Self::Conversion { .. } => None,
         }
     }
@@ -116,14 +132,23 @@ impl ValueMissing {
     #[must_use]
     #[inline(always)]
     pub const fn is_empty_collection(self) -> bool {
-        matches!(self, Self::EmptyCollection { .. })
+        matches!(
+            self,
+            Self::EmptyCollection { .. }
+                | Self::EmptyCollectionConversion { .. }
+        )
     }
 
     /// Reports whether the missing value came from a conversion.
     #[must_use]
     #[inline(always)]
     pub const fn is_conversion(self) -> bool {
-        matches!(self, Self::Conversion { .. } | Self::CollectionItem { .. })
+        matches!(
+            self,
+            Self::Conversion { .. }
+                | Self::CollectionItem { .. }
+                | Self::EmptyCollectionConversion { .. }
+        )
     }
 }
 
@@ -158,6 +183,10 @@ impl fmt::Display for ValueMissing {
             } => write!(
                 formatter,
                 "collection item at index {source_index} conversion from {from} to {to} produced no value"
+            ),
+            Self::EmptyCollectionConversion { to } => write!(
+                formatter,
+                "empty collection conversion to {to} produced no value"
             ),
         }
     }
