@@ -61,17 +61,17 @@ pub enum ValueMissing {
 impl ValueMissing {
     /// Returns the source or declared data type associated with the error.
     ///
-    /// For [`Self::EmptyCollectionConversion`], no source item exists, so the
-    /// requested target type is returned.
+    /// Returns `None` for [`Self::EmptyCollectionConversion`] because no source
+    /// item exists for that conversion.
     #[inline(always)]
-    pub const fn data_type(self) -> DataType {
+    pub const fn source_type(self) -> Option<DataType> {
         match self {
             Self::UnsetScalar { data_type }
             | Self::UnsetCollection { data_type }
-            | Self::EmptyCollection { data_type } => data_type,
-            Self::EmptyCollectionConversion { to } => to,
+            | Self::EmptyCollection { data_type } => Some(data_type),
+            Self::EmptyCollectionConversion { .. } => None,
             Self::Conversion { from, .. }
-            | Self::CollectionItem { from, .. } => from,
+            | Self::CollectionItem { from, .. } => Some(from),
         }
     }
 
@@ -103,19 +103,6 @@ impl ValueMissing {
             | Self::EmptyCollectionConversion { .. }
             | Self::Conversion { .. } => None,
         }
-    }
-
-    /// Reports whether a corresponding `get_or`/`to_or` operation uses its
-    /// default.
-    #[must_use]
-    #[inline(always)]
-    pub const fn uses_default(self) -> bool {
-        matches!(
-            self,
-            Self::UnsetScalar { .. }
-                | Self::UnsetCollection { .. }
-                | Self::Conversion { .. }
-        )
     }
 
     /// Reports whether storage itself is unset.

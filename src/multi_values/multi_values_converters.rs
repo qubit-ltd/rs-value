@@ -23,11 +23,18 @@ use crate::value_error::{
     ValueError,
     ValueResult,
 };
+use crate::ValueMissing;
 
 use super::multi_values::{
     MultiValues,
     MultiValuesRepr,
 };
+
+/// Reports whether conversion semantics permit a fallback value.
+fn is_defaultable_missing(missing: ValueMissing) -> bool {
+    missing.is_unset()
+        || matches!(missing, ValueMissing::Conversion { .. })
+}
 
 macro_rules! multi_values_convert_first_match {
     ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
@@ -189,7 +196,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_first() {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -222,7 +231,9 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first() {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default())
             }
             result => result,
@@ -291,7 +302,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_first_with(options) {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -329,7 +342,9 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first_with(options) {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default())
             }
             result => result,
@@ -389,7 +404,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_list() {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -422,7 +439,9 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list() {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default())
             }
             result => result,
@@ -489,7 +508,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_list_with(options) {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -527,7 +548,9 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list_with(options) {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default())
             }
             result => result,

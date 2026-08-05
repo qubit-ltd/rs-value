@@ -23,8 +23,17 @@ use crate::{
     IntoValueDefault,
     ValueError,
 };
+#[cfg(feature = "converter")]
+use crate::ValueMissing;
 
 use super::value_ref::ValueRef;
+
+/// Reports whether conversion semantics permit a fallback value.
+#[cfg(feature = "converter")]
+fn is_defaultable_missing(missing: ValueMissing) -> bool {
+    missing.is_unset()
+        || matches!(missing, ValueMissing::Conversion { .. })
+}
 
 /// Defines the private storage representation for the public single-value
 /// container from the shared value-type table.
@@ -502,7 +511,9 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to() {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -537,7 +548,9 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default())
             }
             result => result,
@@ -609,7 +622,9 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to_with(options) {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -648,7 +663,9 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(options) {
-            Err(ValueError::Missing(missing)) if missing.uses_default() => {
+            Err(ValueError::Missing(missing))
+                if is_defaultable_missing(missing) =>
+            {
                 Ok(default())
             }
             result => result,
