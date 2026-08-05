@@ -133,6 +133,22 @@ fn test_wire_limits_reject_numeric_payload_length() {
     ));
 }
 
+#[cfg(feature = "json")]
+#[test]
+fn test_json_preflight_rejects_arbitrary_precision_numeric_length() {
+    let input = br#"{"scalar":{"json":1.234567}}"#;
+    let limits = WireLimits::new(input.len()).with_max_numeric_digits(4);
+
+    assert!(matches!(
+        ValueWirePayloadV1::decode_json_slice_with_limits(input, limits),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: qubit_value::ValueWireLimitKind::NumericDigits,
+            value: 8,
+            maximum: 4,
+        })
+    ));
+}
+
 #[cfg(feature = "big-decimal")]
 #[test]
 fn test_wire_budget_counts_big_decimal_coefficient_without_expanding_scale() {

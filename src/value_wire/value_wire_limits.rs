@@ -749,6 +749,18 @@ impl JsonPreflightSeed {
             self.limits.max_string_bytes,
         )
     }
+
+    #[inline]
+    fn check_numeric_digits<E>(&mut self, digits: usize) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.check_limit(
+            ValueWireLimitKind::NumericDigits,
+            digits,
+            self.limits.max_numeric_digits,
+        )
+    }
 }
 
 impl<'de> DeserializeSeed<'de> for &mut JsonPreflightSeed {
@@ -789,19 +801,15 @@ impl JsonPreflightVisitor<'_> {
         self.scalar()?;
         self.preflight.check_string_bytes(value.len())
     }
-}
 
-macro_rules! visit_json_scalar {
-    ($($method:ident($type:ty)),+ $(,)?) => {
-        $(
-            fn $method<E>(mut self, _value: $type) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                self.scalar()
-            }
-        )+
-    };
+    #[inline]
+    fn number<E>(&mut self, digits: usize) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.scalar()?;
+        self.preflight.check_numeric_digits(digits)
+    }
 }
 
 impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
@@ -811,12 +819,33 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
         formatter.write_str("a JSON value")
     }
 
-    visit_json_scalar!(
-        visit_bool(bool),
-        visit_i64(i64),
-        visit_u64(u64),
-        visit_f64(f64),
-    );
+    fn visit_bool<E>(mut self, _value: bool) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.scalar()
+    }
+
+    fn visit_i64<E>(mut self, value: i64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.number(value.to_string().len())
+    }
+
+    fn visit_u64<E>(mut self, value: u64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.number(value.to_string().len())
+    }
+
+    fn visit_f64<E>(mut self, value: f64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.number(value.to_string().len())
+    }
 
     fn visit_unit<E>(mut self) -> Result<Self::Value, E>
     where
@@ -887,15 +916,45 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
         A: MapAccess<'de>,
     {
         self.scalar()?;
-        let mut entries: usize = 0;
-        while access
-            .next_key_seed(JsonPreflightMapKeySeed {
-                preflight: self.preflight,
-            })?
-            .is_some()
-        {
+        let Some(first_key) = access.next_key::<String>()? else {
+            return Ok(());
+        };
+        self.preflight.check_string_bytes(first_key.len())?;
+
+        let mut entries = 1_usize;
+        self.preflight.check_map_entries(entries)?;
+        if first_key == crate::wire::JSON_NUMBER_TOKEN {
+            let number_text = access.next_value::<String>()?;
+            let mut next_key = access.next_key::<String>()?;
+            if next_key.is_none() {
+                return self.preflight.check_numeric_digits(number_text.len());
+            }
+            // The marker key was part of a real object. Its first value is a
+            // normal JSON string; the already-read extra key is accounted for
+            // by the loop below.
+            self.preflight.check_depth(self.depth + 1)?;
+            self.preflight.check_node()?;
+            self.preflight.check_string_bytes(number_text.len())?;
+            while let Some(key) = next_key.take() {
+                entries = entries.saturating_add(1);
+                self.preflight.check_map_entries(entries)?;
+                self.preflight.check_string_bytes(key.len())?;
+                access.next_value_seed(JsonPreflightChildSeed {
+                    preflight: self.preflight,
+                    depth: self.depth + 1,
+                })?;
+                next_key = access.next_key::<String>()?;
+            }
+            return Ok(());
+        }
+        access.next_value_seed(JsonPreflightChildSeed {
+            preflight: self.preflight,
+            depth: self.depth + 1,
+        })?;
+        while let Some(key) = access.next_key::<String>()? {
             entries = entries.saturating_add(1);
             self.preflight.check_map_entries(entries)?;
+            self.preflight.check_string_bytes(key.len())?;
             access.next_value_seed(JsonPreflightChildSeed {
                 preflight: self.preflight,
                 depth: self.depth + 1,
@@ -922,57 +981,6 @@ impl<'de> DeserializeSeed<'de> for JsonPreflightChildSeed<'_> {
             preflight: self.preflight,
             depth: self.depth,
         })
-    }
-}
-
-struct JsonPreflightMapKeySeed<'a> {
-    preflight: &'a mut JsonPreflightSeed,
-}
-
-impl<'de> DeserializeSeed<'de> for JsonPreflightMapKeySeed<'_> {
-    type Value = ();
-
-    #[inline]
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_str(JsonPreflightMapKeyVisitor {
-            preflight: self.preflight,
-        })
-    }
-}
-
-struct JsonPreflightMapKeyVisitor<'a> {
-    preflight: &'a mut JsonPreflightSeed,
-}
-
-impl<'de> Visitor<'de> for JsonPreflightMapKeyVisitor<'_> {
-    type Value = ();
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("a JSON object key")
-    }
-
-    fn visit_borrowed_str<E>(self, value: &'de str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        self.preflight.check_string_bytes(value.len())
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        self.preflight.check_string_bytes(value.len())
-    }
-
-    fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        self.preflight.check_string_bytes(value.len())
     }
 }
 
