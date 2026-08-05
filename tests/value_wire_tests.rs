@@ -250,11 +250,15 @@ fn tagged_payload(tag: &str, payload: JsonValue) -> JsonValue {
 fn wire_value(shape: &str, tag: &str, payload: JsonValue) -> JsonValue {
     json!({
         "version": 1,
-        "value": JsonValue::Object(Map::from_iter([(
-            shape.to_string(),
-            tagged_payload(tag, payload),
-        )])),
+        "value": shaped_value(shape, tag, payload),
     })
+}
+
+fn shaped_value(shape: &str, tag: &str, payload: JsonValue) -> JsonValue {
+    JsonValue::Object(Map::from_iter([(
+        shape.to_string(),
+        tagged_payload(tag, payload),
+    )]))
 }
 
 fn scalar_wire(tag: &str, payload: JsonValue) -> JsonValue {
@@ -512,6 +516,45 @@ fn value_wire_v1_collection_golden_round_trips_all_types() {
         let restored = serde_json::from_value::<ValueWireV1>(expected).unwrap();
         assert_eq!(
             ValueContainer::from(restored),
+            ValueContainer::Collection(values),
+        );
+    }
+}
+
+#[test]
+fn value_wire_v1_borrowed_payload_golden_round_trips_all_types() {
+    for fixture in value_fixtures() {
+        let expected_scalar = shaped_value(
+            "scalar",
+            fixture.tag,
+            fixture.payload.clone(),
+        );
+        let scalar = ValueWirePayloadRefV1::try_from(&fixture.value)
+            .expect("construct borrowed scalar payload");
+        assert_eq!(serde_json::to_value(&scalar).unwrap(), expected_scalar);
+        assert_eq!(
+            serde_json::from_value::<ValueWirePayloadV1>(expected_scalar)
+                .unwrap()
+                .into_container(),
+            ValueContainer::Scalar(fixture.value.clone()),
+        );
+
+        let values = MultiValues::from(fixture.value.clone());
+        let expected_collection = shaped_value(
+            "collection",
+            fixture.tag,
+            json!([fixture.payload]),
+        );
+        let collection = ValueWirePayloadRefV1::try_from(&values)
+            .expect("construct borrowed collection payload");
+        assert_eq!(
+            serde_json::to_value(&collection).unwrap(),
+            expected_collection,
+        );
+        assert_eq!(
+            serde_json::from_value::<ValueWirePayloadV1>(expected_collection)
+                .unwrap()
+                .into_container(),
             ValueContainer::Collection(values),
         );
     }
