@@ -62,6 +62,12 @@
       "features": ["converter", "redact"]
     },
     {
+      "name": "json-redact",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["json", "redact"]
+    },
+    {
       "name": "converter-chrono",
       "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
