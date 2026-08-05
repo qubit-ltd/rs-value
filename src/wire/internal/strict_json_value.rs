@@ -161,8 +161,10 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
                 };
 
                 // serde_json uses this private wrapper to preserve arbitrary-
-                // precision number text during `deserialize_any`.
-                if first_key == "$serde_json::private::Number" {
+                // precision number text during `deserialize_any`. The wire
+                // encoder rejects real objects with this key because the
+                // serde representation is inherently ambiguous.
+                if first_key == crate::wire::JSON_NUMBER_TOKEN {
                     let number_text = map.next_value::<String>()?;
                     if map.next_key::<String>()?.is_some() {
                         return Err(de::Error::custom(

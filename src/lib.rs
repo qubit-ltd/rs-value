@@ -49,6 +49,9 @@
 //! - Version one rejects the pre-0.10 externally tagged representation.
 //! - Non-finite floats may exist in memory, but V1 Serde and natural JSON
 //!   reject them because JSON has no `NaN` or infinity number literals.
+//! - V1 JSON payloads reject objects containing serde_json's private
+//!   `"$serde_json::private::Number"` key because arbitrary-precision number
+//!   decoding uses that same Serde marker.
 //!
 //! # Usage Examples
 //!
