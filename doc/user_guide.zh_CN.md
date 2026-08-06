@@ -98,9 +98,10 @@ tag 只有在接收方启用对应 feature 时才能反序列化：日期/时间
 `ValueWireV1::decode_json_slice()` 和
 `ValueWireV1::decode_json_slice_with_limits()` 只接受完整的顶层 V1 文档，并在
 解码前执行输入字节限制，在运行时值物化后执行语义资源限制。当 value 嵌入更大
-的 JSON 文档时，应使用完整外层输入调用 `WireLimits::begin_json()`，再执行该
-文档自己的 Serde decoder。对每个嵌入值复用返回的 `WireBudget` 并传递真实外层
-深度，使结构限制作用于完整文档。
+的 JSON 文档时，应先调用 `WireLimits::begin(input.len())`，再执行唯一一次 Serde
+解码。对每个嵌入值复用返回的 `WireBudget` 并传递真实外层深度，使结构限制作用
+于完整文档。`begin_json()` 会额外执行一次独立语法预检，只应在明确需要该预检
+时使用。
 
 ## 自然 JSON
 
