@@ -233,6 +233,9 @@ fn test_value_wire_v1_rejects_noncanonical_url_payload() {
         r#"{"version":1,"value":{"scalar":{"url":"HTTPS://example.com/"}}}"#;
 
     assert!(serde_json::from_str::<ValueWireV1>(input).is_err());
+
+    let collection = r#"{"version":1,"value":{"collection":{"url":["HTTPS://example.com/"]}}}"#;
+    assert!(serde_json::from_str::<ValueWireV1>(collection).is_err());
 }
 
 #[derive(Debug)]
