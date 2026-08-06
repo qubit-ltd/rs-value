@@ -49,3 +49,25 @@ fn test_value_wire_payload_v1_decode_json_slice_honors_limits() {
         } if input_bytes == input.len() && max_input_bytes == input.len() - 1
     ));
 }
+
+#[test]
+fn test_value_wire_payload_v1_owned_conversions_cover_all_shapes() {
+    let scalar = ValueWirePayloadV1::try_from(qubit_value::Value::Int32(7))
+        .expect("construct scalar payload");
+    assert_eq!(scalar.container(), &ValueContainer::from(7_i32));
+    let scalar_container: ValueContainer = scalar.into();
+    assert_eq!(scalar_container, ValueContainer::from(7_i32));
+
+    let collection =
+        ValueWirePayloadV1::try_from(qubit_value::MultiValues::Int32(vec![7]))
+            .expect("construct collection payload");
+    assert_eq!(collection.container(), &ValueContainer::from(vec![7_i32]));
+    let collection_container: ValueContainer = collection.into();
+    assert_eq!(collection_container, ValueContainer::from(vec![7_i32]));
+
+    let explicit =
+        ValueContainer::Scalar(qubit_value::Value::String("shape".to_string()));
+    let payload = ValueWirePayloadV1::try_from(explicit.clone())
+        .expect("construct explicit payload");
+    assert_eq!(payload.into_container(), explicit);
+}
