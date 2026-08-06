@@ -32,3 +32,16 @@ fn test_multi_values_constructor_accepts_owned_and_borrowed_strings() {
     let from_slice = MultiValues::new(&slice[..]);
     assert_eq!(from_slice.get_strings().unwrap(), &["e", "f"]);
 }
+
+#[test]
+fn test_multi_values_constructor_accepts_string_slice_inputs() {
+    let values = MultiValues::from("single");
+    assert_eq!(values.get_strings().unwrap(), &["single"]);
+
+    let values = MultiValues::from(vec!["first", "second"]);
+    assert_eq!(values.get_strings().unwrap(), &["first", "second"]);
+
+    let slice = ["third", "fourth"];
+    let values = MultiValues::from(&slice[..]);
+    assert_eq!(values.get_strings().unwrap(), &["third", "fourth"]);
+}

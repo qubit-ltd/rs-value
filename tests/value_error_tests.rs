@@ -167,3 +167,32 @@ fn test_value_error_clone_preserves_structured_source() {
 
     assert_eq!(error.clone(), error);
 }
+
+#[test]
+fn test_value_error_accessors_cover_non_missing_variants() {
+    let mismatch = ValueError::TypeMismatch {
+        expected: DataType::String,
+        actual: DataType::Int32,
+    };
+    assert!(!mismatch.is_missing());
+    assert_eq!(mismatch.missing(), None);
+
+    let conversion = ValueError::Conversion(DataConversionError::invalid(
+        DataType::String,
+        DataType::Int32,
+        InvalidValueReason::OutOfRange,
+    ));
+    assert!(!conversion.is_missing());
+    assert_eq!(conversion.missing(), None);
+
+    let list = ValueError::ListConversion(DataListConversionError::new(
+        0,
+        DataConversionError::invalid(
+            DataType::String,
+            DataType::Int32,
+            InvalidValueReason::OutOfRange,
+        ),
+    ));
+    assert!(!list.is_missing());
+    assert_eq!(list.missing(), None);
+}
