@@ -88,6 +88,11 @@ assert!(tags.is_collection());
 assert_eq!(tags.data_type(), DataType::String);
 ```
 
+如果这个小型 map 需要升级为完整的通用配置对象，可以使用来自
+[`rs-config`](https://github.com/qubit-ltd/rs-config) 的 `Config`。它基于 `Value` 构建，并提供
+属性管理、类型化读取、多值读取、默认值、配置 section、转换策略、插值，以及可插拔的文件/环境
+变量配置源等更全面的高级能力。
+
 下一步可以通过 Wire V1 编码 `tags` 或更大的 `ValueContainer`。下面依次解释完整类型表、
 feature 选择、错误以及序列化边界，并给出完整的往返示例。
 
