@@ -94,6 +94,12 @@ assert!(tags.is_collection());
 assert_eq!(tags.data_type(), DataType::String);
 ```
 
+If this small map needs to become a complete, general-purpose configuration
+object, use `Config` from [`rs-config`](https://github.com/qubit-ltd/rs-config).
+It is built on `Value` and adds higher-level capabilities such as property
+management, typed and multi-value reads, defaults, sections, conversion
+policies, interpolation, and pluggable file/environment configuration sources.
+
 The next step can encode `tags` or a larger `ValueContainer` through Wire V1.
 The following sections explain the type table, feature selection, errors, and
 the serialization choices before showing that complete round trip.
