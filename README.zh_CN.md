@@ -7,69 +7,53 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![English Document](https://img.shields.io/badge/Document-English-blue.svg)](README.md)
 
-基于 `qubit_datatype::DataType` 的类型安全值容器框架，提供单值、多值与命名值
-的统一抽象，支持严格访问、泛型修改、可配置转换与带类型标签的 Serde 表示。
+`qubit-value` 为 Rust 应用提供统一的、类型安全的运行时值边界。当配置、元数据、
+协议字段或用户输入的类型只能在运行时确定，但应用仍需要明确类型、受控转换和可预期
+错误时，可以使用这个 crate。
 
-## 概述
+## 它解决什么问题
 
-Qubit Value 提供了以类型安全方式处理动态类型值的综合解决方案。它在静态类型和运行时
-灵活性之间架起桥梁，为值的存储、检索和转换提供强大的抽象，同时保持 Rust 的安全保证。
+如果没有统一的运行时值模型，每个 key-value 子系统通常都会重新定义自己的 `enum`、
+转换规则、未设置语义和序列化格式，容易产生三个问题：
 
-> **配置对象支持**: 如果您需要基于不同类型多值设计的配置对象，建议使用
-> [qubit-config](https://github.com/qubit-ltd/rs-config) crate，它提供了完整的
-> 配置管理功能。您可以在 [GitHub](https://github.com/qubit-ltd/rs-config) 和
-> [crates.io](https://crates.io/crates/qubit-config) 上找到更多信息。
+- 未设置值、明确为空的集合和 JSON `null` 被混为一谈；
+- 一个元素的集合被意外当成标量；
+- 值跨进程或存储边界传输时丢失运行时类型，或者接受了并未明确允许的转换。
 
-## 特性
+`Value` 保存一个带类型的标量，`MultiValues` 保存一个同类型集合，
+`ValueContainer` 显式保留标量或集合形态。`Unset(DataType)` 保留声明的类型，但明确表示
+当前没有具体值。
 
-### 🎯 **核心设计**
-- **带标签的表示**: `Value`/`MultiValues` 是隐藏存储细节的不透明容器，提供
-  类型化构造函数以及语义化的 `ValueRef`/`MultiValuesRef` 视图
-- **类型安全**: 类型化构造函数和访问器保留声明的数据类型；通过
-  `Result<T, ValueError>` 表达失败
-- **借用访问**: 存储类型不是 `Copy` 时，类型化 getter 返回引用
-- **命名值**: `NamedValue`/`NamedMultiValues` 提供名称绑定，便于配置/标识场景
-- **两类 JSON 边界**: 带类型标签的 Serde 保留数据类型；自然 JSON 投影生成普通的
-  `null`、标量、对象与数组
-- **便捷默认值**: `get_or`、`to_or` 和列表默认值 API 支持标量默认值、
-  借用字符串字面量、数组、切片、vector 和借用的 vector
-- **灵活集合输入**: `MultiValues::new/set/add` 支持直接数组、切片、vector、
-  借用的 vector 和借用字符串集合
-- **大数支持**: 可选的 `BigInt` 和 `BigDecimal` 变体
-- **扩展类型**: 原生支持 `Duration`、`Url`、
-  `HashMap<String, String>` 和 `serde_json::Value`
+## 快速开始：读取带类型的运行时配置值
 
-### 📦 **核心类型**
-- **`Value`**: 不透明的单值容器，提供 `Value::Unset(DataType)`、`Value::Int32`、
-  `Value::String` 等类型化构造函数；其存储表示是私有的
-- **`MultiValues`**: 不透明的同质多值容器，提供
-  `MultiValues::Unset(DataType)`、`MultiValues::Int32` 等类型化构造函数；其存储
-  表示是私有的
-- **`ValueContainer`**: 显式表示 `Scalar(Value)` 或
-  `Collection(MultiValues)`，不会根据集合长度推断形态
-- **`NamedValue`**: 绑定名称的 `Value`，通过显式的 `value()` 和
-  `value_mut()` 访问内部值
-- **`NamedMultiValues`**: 绑定名称的 `MultiValues`，提供借用式
-  `first_named_value()` 与消费式 `into_first_named_value()`
-- **`ValueError` 与 `ValueResult<T>`**: 标准错误与结果别名
+下面是配置或元数据读取场景中最小的有效流程：保存一个运行时值，在类型确定时进行严格
+读取，在源值为文本时执行显式转换。
 
-`Value`、`MultiValues`、`ValueContainer`、`NamedValue`、`NamedMultiValues` 与
-`ValueWireV1` 均实现了满足约束的 `Eq` 和 `Hash`。不同变体以及标量/集合形态保持
-不同；同一浮点宽度内的正负零和所有 NaN payload 会被规范化；字符串映射与 JSON
-对象的 hash 不依赖键迭代顺序；集合元素顺序仍然有意义。需要跨数值变体按数学值
-比较时，请使用带显式 `NumericComparisonPolicy` 的 `numeric_cmp`。
+```rust
+use qubit_datatype::DataType;
+use qubit_value::Value;
 
-这些实现面向 Rust hash 集合和进程内缓存，其 hash 输出不是稳定指纹：结果可能随
-hasher、Rust 版本、crate 版本、启用的 feature、平台或实现变化。不要持久化
-`DefaultHasher` 输出，也不要把它用作分布式缓存键。持久身份需要另行设计带版本的
-规范字节表示与 fingerprint API。
+let raw_port = Value::String("8080".to_owned());
+let port: u16 = raw_port.to().expect("port should be a valid u16");
+assert_eq!(port, 8080);
 
-未设置值始终携带类型。推荐使用 `Value::new_unset(data_type)` 与
-`MultiValues::new_unset(data_type)`；这两个容器都不再实现 `Default`。
+let missing_host = Value::new_unset(DataType::String);
+let host: String = missing_host
+    .get_or("localhost")
+    .expect("the fallback has the declared string type");
+assert_eq!(host, "localhost");
+
+let tags = Value::String("blue".to_owned());
+assert_eq!(tags.data_type(), DataType::String);
+```
+
+`get()` 是严格类型读取，不会静默转换。`to()` 使用 `qubit-datatype` 提供的共享转换规则；
+转换失败仍会返回错误。`to()` 和 `to_or()` 需要启用 `converter` feature；`get_or()` 只为
+未设置值提供 fallback，不执行转换。
 
 ## 安装
 
-在 `Cargo.toml` 中添加：
+在 `Cargo.toml` 中加入核心 crate 和类型定义 crate：
 
 ```toml
 [dependencies]
@@ -77,563 +61,92 @@ qubit-value = "0.10"
 qubit-datatype = { version = "0.10", default-features = false }
 ```
 
-默认 feature 集为空。可按需启用类型族，也可使用 `all` 这一便捷 feature：
-
-| Feature | 启用内容 |
-|---|---|
-| `chrono` | 日期、时间、日期时间与 UTC 时刻变体 |
-| `big-integer` | `BigInt` 变体 |
-| `big-decimal` | `BigDecimal` 变体 |
-| `big-number` | `big-integer` 与 `big-decimal` 的兼容别名 |
-| `url` | URL 变体 |
-| `json` | `serde_json::Value` 变体 |
-| `converter` | 核心转换 API，不隐式启用扩展类型族 |
-| `redact` | 为 `Value` 提供按策略脱敏视图 |
-| `all` | `converter`、`chrono`、`big-number`、`url`、`json` 与 `redact` |
-
-启用 `redact` 后，`value.redacted_with(&policy)` 会按 key 安全格式化
-`StringMap` 和 JSON 对象项；JSON 数组会递归处理其中的对象。没有 key 上下文的
-标量仍使用普通 `Debug` 格式，不会被猜测为秘密。使用该视图的应用还必须直接
-依赖 `qubit-redact`，并导入其 `Redact` trait。
-
-自然 JSON 投影需要同时启用 `converter` 与 `json`；如不需要其他扩展类型族，
-可使用 `features = ["converter", "json"]`。
-
-下面的基础示例只使用默认 feature。转换示例需要 `converter`；使用 `Url`、JSON
-或 Serde 的示例还必须把其所属 crate 声明为直接依赖。完整扩展示例可使用：
-
-```toml
-[dependencies]
-qubit-value = { version = "0.10", features = ["all"] }
-qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.4", default-features = false }
-url = "2.5"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-```
-
-feature 集也是运行时值契约的一部分。V1 wire 信封的版本化对象结构在不同构建
-之间保持不变，但 `date`、`biginteger`、`bigdecimal`、`url` 或 `json` 等具体
-扩展类型 payload，只有启用了对应 feature 的构建才能读取。交换这些 payload
-的生产者与消费者应当约定一致的类型 feature。像 `{"unset":"date"}` 这样的
-未设置 payload 仍会保留声明的 `DataType`，但不会让未启用 `chrono` 的构建获得
-具体日期值的支持。
-
-## 使用示例
-
-### 单值操作
-
-```rust
-use qubit_datatype::DataType;
-use qubit_value::Value;
-
-# fn main() -> Result<(), qubit_value::ValueError> {
-
-// 泛型构造与类型推断获取
-let v = Value::new(8080i32);
-let port: i32 = v.get()?;  // 从变量类型推断
-assert_eq!(port, 8080);
-
-// 具名获取（返回 Copy 或引用）
-assert_eq!(v.get_int32()?, 8080);
-
-// 函数参数中的类型推断
-fn check_port(p: i32) -> bool { p > 1024 }
-assert!(check_port(v.get()?));  // 从函数签名推断为 i32
-
-// 空值与类型管理
-let mut any = Value::Int32(42);
-any.unset();
-assert!(any.is_unset());
-assert_eq!(any.data_type(), DataType::Int32);
-any.set_type(DataType::String);
-any.set("hello");
-assert_eq!(any.get_string()?, "hello");
-# Ok(())
-# }
-```
-
-### 扩展类型
-
-```rust
-use qubit_value::Value;
-use std::time::Duration;
-use url::Url;
-use std::collections::HashMap;
-
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
-
-// Duration（时长）
-let v = Value::new(Duration::from_secs(30));
-let d: Duration = v.get()?;
-assert_eq!(d, Duration::from_secs(30));
-// 默认字符串转换使用毫秒单位
-let s: String = v.to()?;
-assert_eq!(s, "30000ms");
-let v2 = Value::String("30s".to_string());
-let d2: Duration = v2.to()?;
-assert_eq!(d2, Duration::from_secs(30));
-
-// Url
-let url = Url::parse("https://example.com").unwrap();
-let v = Value::new(url.clone());
-let got: Url = v.get()?;
-assert_eq!(got, url);
-// 从字符串解析
-let v2 = Value::String("https://example.com".to_string());
-let got2: Url = v2.to()?;
-assert_eq!(got2, url);
-
-// HashMap<String, String>（字符串映射）
-let mut map = HashMap::new();
-map.insert("host".to_string(), "localhost".to_string());
-let v = Value::new(map.clone());
-let got: HashMap<String, String> = v.get()?;
-assert_eq!(got, map);
-
-// JSON 逃生舱
-let j = serde_json::json!({"key": "value"});
-let v = Value::from_json_value(j.clone());
-let got: serde_json::Value = v.get()?;
-assert_eq!(got, j);
-
-// 将任意可序列化类型存为 JSON
-#[derive(serde::Serialize, serde::Deserialize)]
-struct Config { host: String, port: u16 }
-let cfg = Config { host: "localhost".to_string(), port: 8080 };
-let v = Value::from_serializable(&cfg)?;
-let restored: Config = v.deserialize_json()?;
-# Ok(())
-# }
-```
-
-### 多值操作
-
-```rust
-use qubit_value::{MultiValues, ValueError};
-use qubit_datatype::DataType;
-
-// 从 Vec<T> 泛型构造
-let mut ports = MultiValues::new(vec![8080i32, 8081, 8082]);
-assert_eq!(ports.len(), 3);
-assert_eq!(ports.get_int32s()?, &[8080, 8081, 8082]);
-
-// 可以直接传数组、切片、vector 和借用的 vector
-let array_ports = MultiValues::new([8080i32, 8081, 8082]);
-let more_ports = [9000i32, 9001];
-let borrowed = MultiValues::new(more_ports.as_slice());
-let owned = vec![7000i32, 7001];
-let borrowed_vec = MultiValues::new(&owned);
-
-// 字符串列表可以直接从 &str 集合构造
-let servers = MultiValues::new(["api", "worker", "cache"]);
-assert_eq!(servers.get_strings()?, &["api", "worker", "cache"]);
-
-// 泛型获取与类型推断（克隆 Vec）
-let nums: Vec<i32> = ports.get()?;
-
-// 获取首元素
-let first: i32 = ports.get_first()?;
-assert_eq!(first, 8080);
-
-// 泛型添加：单个 / Vec / 切片
-ports.add(8083)?;
-ports.add(vec![8084, 8085])?;
-ports.add(&[8086, 8087][..])?;
-ports.add([8088, 8089])?;
-
-// 泛型设置：替换整个列表
-ports.set(vec![9001, 9002]);
-ports.set([9100, 9101]);
-ports.set(&owned);
-assert_eq!(ports.get_int32s()?, &[7000, 7001]);
-
-// 合并（类型需一致）
-let mut a = MultiValues::Int32(vec![1, 2]);
-let b = MultiValues::Int32(vec![3, 4]);
-a.merge(&b)?;
-assert_eq!(a.get_int32s()?, &[1, 2, 3, 4]);
-
-// 转为单值（取首元素）
-let single = a.first_value();
-let first_val: i32 = single.get()?;
-assert_eq!(first_val, 1);
-```
-
-### 带默认值的读取与转换
-
-严格读取的默认值 API 只会在容器未设置时使用 fallback。转换默认值 API
-还会在转换策略将具体值判定为缺失时使用 fallback，例如启用“空白即缺失”
-策略时。已经设置的空集合仍保持为空；类型不匹配和普通转换失败会正常返回
-错误，不会被默认值掩盖。
-
-```rust
-use qubit_datatype::DataType;
-use qubit_value::{MultiValues, Value};
-
-// 严格类型读取，并在空值时使用默认值
-let value = Value::Unset(DataType::String);
-let host: String = value.get_or("localhost")?;
-assert_eq!(host, "localhost");
-
-let value = Value::String("8080".to_string());
-let port: u16 = value.to_or(9000u16)?;
-assert_eq!(port, 8080);
-
-// 多值严格读取，并使用集合默认值
-let values = MultiValues::Unset(DataType::String);
-let paths: Vec<String> = values.get_or(["cache", "tmp"])?;
-assert_eq!(paths, vec!["cache".to_string(), "tmp".to_string()]);
-
-// 首元素转换，并使用标量默认值
-let values = MultiValues::Unset(DataType::UInt16);
-let port: u16 = values.to_first_or(8080u16)?;
-assert_eq!(port, 8080);
-
-// 列表转换，并使用数组或切片默认值
-let values = MultiValues::Unset(DataType::String);
-let tags: Vec<String> = values.to_list_or(["blue", "green"])?;
-assert_eq!(tags, vec!["blue".to_string(), "green".to_string()]);
-```
-
-### 集合参数写法
-
-集合类 API 接受调用处最常见的便捷写法。这适用于 `MultiValues::new`、
-`MultiValues::set`、`MultiValues::add`，也适用于 `get_or`、`to_list_or`
-等带列表默认值的读取接口。
-
-```rust
-use qubit_datatype::DataType;
-use qubit_value::MultiValues;
-
-let array_values = MultiValues::new([1i32, 2, 3]);
-let slice_source = [4i32, 5, 6];
-let slice_values = MultiValues::new(slice_source.as_slice());
-let vec_source = vec![7i32, 8, 9];
-let vec_values = MultiValues::new(vec_source.clone());
-let borrowed_vec_values = MultiValues::new(&vec_source);
-
-let mut values = MultiValues::Unset(DataType::Int32);
-values.set([10, 11, 12]);
-values.add(slice_source.as_slice())?;
-values.add(&vec_source)?;
-
-let strings = MultiValues::new(["api", "worker"]);
-let fallback: Vec<String> = MultiValues::Unset(DataType::String)
-    .get_or(["cache", "tmp"])?;
-```
-
-### 命名值操作
-
-```rust
-use qubit_value::{NamedValue, NamedMultiValues, Value, MultiValues};
-
-// 命名单值
-let mut nv = NamedValue::new("timeout", Value::new(30i32));
-assert_eq!(nv.name(), "timeout");
-let timeout: i32 = nv.value().get()?;
-assert_eq!(timeout, 30);
-
-nv.set_name("read_timeout");
-nv.value_mut().set(45i32);
-assert_eq!(nv.value().get_int32()?, 45);
-
-// 命名多值
-let mut nmv = NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
-nmv.values_mut().add(8082)?;
-let first_port: i32 = nmv.values().get_first()?;
-assert_eq!(first_port, 8080);
-
-// 命名多值 → 命名单值（取首元素）
-let first_named = nmv.first_named_value();
-assert_eq!(first_named.name(), "ports");
-let val: i32 = first_named.value().get()?;
-assert_eq!(val, 8080);
-```
-
-## API 参考
-
-### 泛型 API
-
-#### 构造
-- **单值**: `Value::new<T>(t) -> Value`
-- **多值**: `MultiValues::new<S>(values) -> MultiValues`
-
-`MultiValues::new` 支持 `Vec<T>`、`&Vec<T>`、`&[T]`、`[T; N]` 和
-`&[T; N]`。字符串值还支持 `Vec<&str>`、`&Vec<&str>`、`&[&str]`、
-`[&str; N]` 和 `&[&str; N]`，内部会生成 `Vec<String>`。
-
-`new` 支持的 `T`：`bool`、`char`、`i8`、`i16`、`i32`、`i64`、`i128`、
-`u8`、`u16`、`u32`、`u64`、`u128`、`f32`、`f64`、`String`、`&str`、
-`NaiveDate`、`NaiveTime`、`NaiveDateTime`、`DateTime<Utc>`、`BigInt`、
-`BigDecimal`、`Duration`、`Url`、
-`HashMap<String, String>`、`serde_json::Value`。
-
-#### 获取
-- **单值**: `Value::get<T>(&self) -> ValueResult<T>`
-- **带默认值的单值读取**: `Value::get_or<T>(&self, default) -> ValueResult<T>`
-- **多值**: `MultiValues::get<T>(&self) -> ValueResult<Vec<T>>`
-- **带默认值的多值读取**: `MultiValues::get_or<T>(&self, default) -> ValueResult<Vec<T>>`
-- **首元素**: `MultiValues::get_first<T>(&self) -> ValueResult<T>`
-- **带默认值的首元素读取**: `MultiValues::get_first_or<T>(&self, default) -> ValueResult<T>`
-
-`get<T>()` 执行**严格类型匹配**——存储的变体必须与 `T` 完全一致。
-跨类型转换请使用 `to<T>()`。
-
-#### 设置
-- **单值**: `Value::set<T: Into<Value>>(&mut self, value) -> ()`
-- **多值**:
-  - `MultiValues::set<S: Into<MultiValues>>(&mut self, values) -> ()`
-    替换整个集合，并可改变元素类型
-  - `MultiValues::add<S: Into<MultiValues>>(&mut self, values) -> ValueResult<()>`
-    只在元素类型一致时追加
-  - 两者支持相应 `Into<MultiValues>` 实现覆盖的标量、`Vec<T>`、`&Vec<T>`、
-    `&[T]`、`[T; N]` 和 `&[T; N]`
-  - 字符串集合还支持 `Vec<&str>`、`&Vec<&str>`、`&[&str]`、`[&str; N]`
-    和 `&[&str; N]`
-
-#### 类型转换
-- **`Value::to<T>(&self) -> ValueResult<T>`** — 按共享转换规则将当前值转换为
-  `T`，支持跨类型转换，必要时进行范围检查。
-- **`Value::to_or<T>(&self, default) -> ValueResult<T>`** — 转换为 `T`，
-  如果值未设置或转换结果为缺失则返回默认值。
-- **`Value::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
-  使用显式转换选项，并保持相同的默认值语义。
-- **`MultiValues::to_first<T>(&self) -> ValueResult<T>`** — 转换第一个存储值。
-- **`MultiValues::to_first_or<T>(&self, default) -> ValueResult<T>`** —
-  转换第一个存储值，在容器为 `Unset` 或转换结果为缺失时返回默认值。
-- **`MultiValues::to_first_or_with<T>(&self, default, options) -> ValueResult<T>`** —
-  使用显式转换选项，并保持相同的默认值语义。
-- **`MultiValues::to_list<T>(&self) -> ValueResult<Vec<T>>`** —
-  转换所有存储值。
-- **`MultiValues::to_list_with<T>(&self, options) -> ValueResult<Vec<T>>`** —
-  使用显式转换选项转换所有存储值。
-- **`MultiValues::to_list_or<T>(&self, default) -> ValueResult<Vec<T>>`** —
-  转换所有存储值，在容器未设置或转换结果为缺失时返回默认值；具体的空
-  vector 仍保持为空。
-- **`MultiValues::to_list_or_with<T>(&self, default, options) -> ValueResult<Vec<T>>`** —
-  使用显式转换选项，并保持相同的列表默认值语义。
-
-完整的源/目标矩阵、范围规则、解析行为和转换选项语义，以
-[`qubit-datatype` 权威转换契约](https://docs.rs/qubit-datatype/latest/qubit_datatype/)
-为准。本 crate 只补充容器语义：严格 `get`、集合首项转换、unset 错误映射和
-带原始索引的列表错误。
-
-### 类型化与具名 API
-
-#### 单值
-- **获取器**: `get_xxx()` 方法——`get_bool()`、`get_int32()`、`get_string()`、
-  `get_duration()`、`get_url()`、`get_string_map()`、`get_json()` 等
-- **修改**: 使用泛型 `set()`。类型化 setter 已删除，因为它们没有提供泛型 API
-  之外的行为。
-
-#### 多值
-- **获取器**: `get_xxxs()` 方法——`get_int32s()`、`get_strings()`、
-  `get_durations()`、`get_urls()`、`get_string_maps()`、`get_jsons()` 等
-- **修改**: 使用泛型 `set()` 和 `add()`，支持标量、拥有所有权的集合、数组、
-  切片与借用 vector 输入。
-
-### JSON 工具方法
-- `Value::from_json_value(serde_json::Value) -> Value`
-- `Value::from_serializable<T: Serialize>(value: &T) -> ValueResult<Value>`
-- `Value::deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T>`
-- `Value::to_json_value(&self) -> ValueResult<serde_json::Value>`
-- `MultiValues::to_json_value(&self) -> ValueResult<serde_json::Value>`
-- `ValueContainer::to_json_value(&self) -> ValueResult<serde_json::Value>`
-
-带类型标签的 Serde 与自然 JSON 是两个独立契约。前者保留变体名称；后者把未设置值
-映射为 `null`；所有具体集合（包括单元素集合）始终映射为数组。自然 JSON 用字符串表示
-128 位整数和大数，并递归地按字典序输出对象键。内存中可以保存非有限浮点数，但两个
-JSON 边界都会拒绝 `NaN`、正无穷和负无穷，因为 JSON 没有这些数值字面量。
-
-### 工具方法
-
-#### 单值
-- `data_type()` — 获取数据类型
-- `is_unset()` — 检查是否没有存储具体值
-- `is_numeric()` — 判断具体值是否为数值类型
-- `is_nan()` — 判断具体值是否为浮点 NaN
-- `unset()` — 移除值并保留声明类型
-- `set_type()` — 更改类型
-
-#### 多值
-- `len()` — 获取元素数量
-- `is_unset()` — 检查集合是否没有具体值
-- `is_empty()` — 检查元素数量是否为 0；需要区分未设置集合与具体空集合时，使用
-  `is_unset()`
-- `is_numeric()` — 判断具体集合是否为数值类型
-- `unset()` — 移除具体 vector 并保留声明类型
-- `clear()` — 清空具体 vector 并保持具体状态；未设置集合仍保持未设置
-- `set_type()` — 更改类型
-- `merge()` — 与另一个多值合并（类型需一致）
-- `first_value()` / `into_first_value()` — 将首元素转换为单值
-
-#### 标量/集合容器
-`ValueContainer` 保留输入是标量还是集合。它的 `is_unset()` 表示当前形状没有具体值。
-`is_empty()` 等价于 `len() == 0`，对标量和集合形状都适用。只有访问到集合形状后，
-才能使用集合专属的 `clear()`。
-
-```rust
-use qubit_datatype::DataType;
-use qubit_value::{MultiValues, ValueContainer};
-
-let unset = ValueContainer::new_unset_collection(DataType::Int32);
-assert!(unset.is_unset());
-
-let mut values = ValueContainer::Collection(MultiValues::Int32(vec![1, 2]));
-assert!(!values.is_unset());
-if let Some(collection) = values.as_collection() {
-    assert!(!collection.is_empty());
-}
-values.unset();
-assert!(values.is_unset());
-```
-
-## 错误类型
-
-```rust
-use qubit_value::{ValueError, ValueMissing, ValueResult};
-use qubit_datatype::DataType;
-
-// 主要错误变体
-ValueError::Missing(ValueMissing)              // 未设置、空集合或转换后没有值
-ValueError::TypeMismatch { expected, actual } // get<T>() 类型不匹配
-ValueError::Conversion(DataConversionError)    // 结构化的 to<T>() 错误
-ValueError::ListConversion(DataListConversionError) // 含原始索引的列表错误
-```
-
-所有可能失败的操作均返回 `ValueResult<T> = Result<T, ValueError>`。
-`ValueMissing` 区分未设置的标量/集合、具体空集合、标量转换缺失和带原始索引的集合项缺失。
-因此 `Conversion` 与 `ListConversion` 只包含非缺失失败；列表错误还会保留原始
-`source_index`。`to()` 默认使用严格转换 profile；确实需要全部已定义的有损行为
-时，可通过 `to_with()` 指定 `DataConversionOptions::lossy()`，也可以只替换所需的
-`NumericConversionOptions` 策略。数值文本与 `BigInt` 的资源上限可通过
-`NumericConversionLimits` 配置。除非在 `StringConversionOptions` 中显式开启，
-否则文本不会自动 trim。
-
-`Value` 和 `MultiValues` 是存储表示私有的 struct，下游应使用它们的构造函数、访问器
-和语义化 `view()` 方法，而不要匹配内部表示。`ValueRef`、`MultiValuesRef` 与
-`ValueError` 是非穷尽公开 enum；对它们进行 `match` 时必须保留通配分支，以便未来增加
-变体时保持源码兼容。
-
-## 支持的数据类型
-
-### 基本标量类型
-- **有符号整数**: `i8`, `i16`, `i32`, `i64`, `i128`
-- **无符号整数**: `u8`, `u16`, `u32`, `u64`, `u128`
-- **浮点数**: `f32`, `f64`
-- **其他**: `bool`, `char`
-
-### 字符串
-- `String`（直接存储）
-
-### 日期/时间类型
-- `NaiveDate`, `NaiveTime`, `NaiveDateTime`, `DateTime<Utc>`（通过 `chrono`）
-
-### 大数类型
-- `BigInt`, `BigDecimal`（通过 `num-bigint` 和 `bigdecimal`）
-
-### 扩展类型
-- **`Duration`**: `std::time::Duration`；字符串转换使用配置的时长单位，
-  默认是毫秒，例如 `1500ms`。解析时支持 `ns`、`us`、`ms`、`s`、`m`、
-  `h` 和 `d` 后缀；无后缀字符串使用配置的时长单位解析。
-- **`Url`**: `url::Url`；字符串表示为 URL 文本
-- **`HashMap<String, String>`**: 字符串映射；字符串表示为 JSON
-- **`serde_json::Value`**: 用于复杂/自定义类型的 JSON 逃生舱
-
-## 序列化契约
-
-运行时值类型不直接实现 Serde。拥有所有权的值可通过 `TryFrom` 转换为
-`ValueWireV1` 或 `ValueWirePayloadV1`；借用的值可通过 `ValueWireRefV1` 或
-`ValueWirePayloadRefV1` 序列化。`NamedValue` 和 `NamedMultiValues` 会将内嵌值
-通过 `ValueWireV1` 序列化。
-
-保留类型信息的 Serde 统一使用严格的版本化信封：
+默认 feature 集为空。只启用实际使用的类型族：
+
+| Feature | 额外的 `DataType` 或能力 |
+| --- | --- |
+| `converter` | `Value::to` 等跨类型转换 API |
+| `chrono` | `Date`、`Time`、`DateTime` 和 `Instant` |
+| `big-integer` | 由 `num_bigint::BigInt` 支持的 `BigInteger` |
+| `big-decimal` | 由 `bigdecimal::BigDecimal` 支持的 `BigDecimal` |
+| `big-number` | 同时启用两个大数 feature 的兼容别名 |
+| `url` | 由 `url::Url` 支持的 `Url` |
+| `json` | 由 `serde_json::Value` 支持的 `Json` 和有界 JSON Wire 解码；自然 JSON 还需要 `converter` |
+| `redact` | 通过 `qubit-redact` 提供按策略脱敏的视图 |
+| `all` | `converter`、`chrono`、`big-number`、`url`、`json` 和 `redact` |
+
+## 支持的 `DataType`
+
+`qubit_datatype::DataType` 是 `Value`、`MultiValues` 和 `Unset` 使用的封闭运行时类型词汇。
+同一个类型同时标识标量形式和同类型集合形式。
+
+| `DataType` | Rust 值类型 | Feature | 典型用途 |
+| --- | --- | --- | --- |
+| `Bool` | `bool` | — | 开关和标志 |
+| `Char` | `char` | — | 一个 Unicode 字符 |
+| `Int8` / `Int16` / `Int32` / `Int64` / `Int128` | `i8` … `i128` | — | 有符号整数 |
+| `UInt8` / `UInt16` / `UInt32` / `UInt64` / `UInt128` | `u8` … `u128` | — | 无符号整数 |
+| `Float32` / `Float64` | `f32` / `f64` | — | 有限或仅存在于内存中的浮点值 |
+| `String` | `String` | — | 文本和文本输入 |
+| `Date` | `chrono::NaiveDate` | `chrono` | 日历日期 |
+| `Time` | `chrono::NaiveTime` | `chrono` | 一天中的时间 |
+| `DateTime` | `chrono::NaiveDateTime` | `chrono` | 日期和本地时间 |
+| `Instant` | `chrono::DateTime<chrono::Utc>` | `chrono` | UTC 时间点 |
+| `BigInteger` | `num_bigint::BigInt` | `big-integer` | 任意精度整数 |
+| `BigDecimal` | `bigdecimal::BigDecimal` | `big-decimal` | 任意精度小数 |
+| `Duration` | `std::time::Duration` | — | 时间间隔 |
+| `Url` | `url::Url` | `url` | 已解析的 URL |
+| `StringMap` | `HashMap<String, String>` | — | 字符串 key/value 属性 |
+| `Json` | `serde_json::Value` | `json` | 任意 JSON 结构 |
+
+上表的 25 个变体就是当前完整的 `DataType` 枚举。即使没有启用相应 feature，
+`Unset(DataType)` 仍可以声明该类型；但要存储或读取该类型的具体值，构建时必须启用对应
+feature。
+
+## 提供的能力
+
+- `Value` 和 `MultiValues` 提供类型化构造函数、类型化 getter、泛型修改、借用读取和明确
+  的 unset 状态。
+- `ValueContainer::Scalar` 和 `ValueContainer::Collection` 保留形态；单元素集合仍然是集合。
+- `get_or`/`to_or` 及其集合版本让 fallback 语义保持明确：未设置值可以使用默认值，类型不
+  匹配和普通转换失败仍会报告错误。
+- `NamedValue` 和 `NamedMultiValues` 为运行时值附加 key，不改变值本身的类型语义。
+- `ValueWireV1` 提供带版本的类型保留 JSON 表示；当接收方必须恢复精确的 `DataType` 和形态时，
+  应使用它。
+- 自然 JSON 工具方法生成普通的 `null`、标量、对象和数组；当边界只需要 JSON 语义时使用它。
+
+这个 crate 不提供完整的配置存储、schema registry、文件格式或分布式缓存；它提供这些系统
+可以复用的类型化值层。`Eq`/`Hash` 适合进程内 Rust 集合，不是持久化指纹或分布式缓存 key。
+
+## 基于 `Value` 构建的容器
+
+两个兄弟 crate 直接利用这个值模型实现 key-value 容器：
+
+- [`rs-config`](https://github.com/qubit-ltd/rs-config) 提供类型化配置属性、面向配置文件和
+  环境变量的访问，以及按策略读取的能力。应用配置应优先考虑它。
+- [`rs-metadata`](https://github.com/qubit-ltd/rs-metadata) 提供类型化元数据/属性存储和过滤。
+  资源、记录或可检索的应用元数据适合使用它。
+
+## 选择 Wire V1 还是自然 JSON
+
+当接收方必须区分 `Int32(42)` 和 `String("42")`、保留标量与集合形态，或保留
+`Unset(DataType)` 时，选择 Wire V1。典型文档如下：
 
 ```json
 {"version":1,"value":{"scalar":{"int32":42}}}
 ```
 
-规范化 JSON V1 表示在受支持的 `serde_json` 版本和配置下，对同一个 value
-始终产生相同字节。所有 Serde serializer 接收到的 `StringMap` 条目都会按
-key 的字典序从小到大排列；嵌套 JSON 对象的 key 也递归遵循这一顺序。这一
-顺序对标量、集合和借用 Wire payload 都是默认契约。其他 Serde 格式仍可使用，
-但其字节级表示不属于 V1 稳定性承诺。
-V1 是封闭格式：现有 tag、shape 和 payload 表示不得改变；未来新增运行时类型
-必须使用新的 wire 版本，而不能扩展 V1。
+当边界只是普通业务 JSON，接收方只需要 JSON 语义时，选择 `to_json_value()`。Wire V1 是封闭的、
+带版本的格式；自然 JSON 刻意不包含运行时类型标签。完整的 Wire 工作流、借用 payload、feature
+兼容性和资源限制处理，请参阅用户手册。
 
-集合使用 `collection` 而不是 `scalar`；未设置值使用 `{"unset":"int32"}`。
-`Value` 只接受 scalar，`MultiValues` 只接受 collection，`ValueContainer`
-接受两种形态。Named wrapper 保留外层 `name`/`value` 字段，并将该信封放入
-`value`。
+## 延伸阅读
 
-0.10 会明确拒绝旧的外部标签格式，例如 `{"Int32":42}`、
-`{"Unset":"int32"}` 和 `{"Scalar":{"Int32":42}}`。缺失或未知字段、不是
-数字 `1` 的版本、未知 shape/类型，以及与运行时入口不匹配的 shape 同样会拒绝。
-
-`Int128`、`UInt128` 与 `BigInteger` 使用 canonical 十进制字符串。
-`BigDecimal` 使用精确的 `{"coefficient":"...","scale":i64}` payload；V1
-拒绝绝对值大于 150,000 的 scale。
-`Duration` 使用 `{"secs":u64,"nanos":u32}`，且 nanos 必须小于一秒。浮点
-payload 必须是有限值。
-
-借用 payload 应通过 `ValueWirePayloadRefV1::from_value`、`from_values`、
-`from_container` 或对应的 `TryFrom` 实现创建。这些构造器会校验 V1 的有限浮点
-和 BigDecimal scale 不变量；payload 的内部表示保持私有，调用方无法直接构造
-未经校验的 shape 来绕过这些检查。
-
-通用 Serde 反序列化不会自行施加外部消息大小预算。对于不可信 JSON，请使用
-`ValueWireV1::decode_json_slice()` 在解码前执行默认的一 MiB 输入限制，并在
-运行时值物化后执行语义资源限制；或通过
-`WireLimits` 选择符合协议的预算：
-
-```rust
-use qubit_value::{ValueWireV1, WireLimits};
-
-let input = br#"{"version":1,"value":{"scalar":{"int32":42}}}"#;
-let limits = WireLimits::new(64 * 1024);
-let wire = ValueWireV1::decode_json_slice_with_limits(input, limits)?;
-assert!(wire.container().is_scalar());
-# Ok::<(), qubit_value::ValueWireDecodeError>(())
-```
-
-这些 decode 方法只接受完整的顶层 `ValueWireV1` 文档。当 `Value`、
-`MultiValues` 或 `ValueContainer` 嵌入外层 JSON 文档时，应先调用
-`WireLimits::begin(input.len())`，再对该文档执行唯一一次 Serde 解码。对每个
-嵌入值复用返回的 `WireBudget` 并传递真实外层深度，使结构限制作用于完整文档。
-`begin_json()` 会额外执行一次独立语法预检，只应在明确需要单独预检时使用。
-
-保留类型的 V1 wire 与 `to_json_value()` 的自然 JSON 投影是两个独立契约。
-自然 JSON 不包含运行时类型标签，未设置值投影为 `null`。
-Duration 的自然 JSON 投影默认要求精确；仅在明确需要单位舍入时使用
-`to_json_value_with()` 并传入有损转换选项。
-
-完整 wire 格式说明及 feature 可用性请参阅[用户指南](doc/user_guide.zh_CN.md)
-和[英文版](doc/user_guide.md)。
-
-## 性能说明
-
-- **引用返回**: `get_string()` 返回 `&str` 避免克隆
-- **借用支持**: `Value::new()` 和 `set()` 接受 `&str`（自动转换为 `String`）
-- **灵活输入**: `MultiValues::new/set/add` 接受直接数组、切片、vector
-  和借用的 vector，支持所有已实现的元素类型
-- **借用默认值**: 带默认值的读取接口可以直接使用借用字符串字面量和借用集合，
-  调用方无需提前分配 owned fallback
-
-## 依赖项
-
-```toml
-[dependencies]
-qubit-datatype = { version = "0.10", default-features = false }
-qubit-redact = { version = "0.4", default-features = false, optional = true }
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "2.0"
-serde_json = { version = "1.0", features = ["arbitrary_precision", "float_roundtrip"], optional = true }
-chrono = { version = "0.4", default-features = false, features = ["std", "serde"], optional = true }
-url = { version = "2.5", features = ["serde"], optional = true }
-num-bigint = { version = "0.4", optional = true }
-bigdecimal = { version = "0.4", optional = true }
-```
+- [中文用户手册](doc/user_guide.zh_CN.md)
+- [English user guide](doc/user_guide.md)
+- [API 文档](https://docs.rs/qubit-value)
+- [`qubit-datatype` 转换契约](https://docs.rs/qubit-datatype/latest/qubit_datatype/)
+- [English README](README.md)
 
 ## 测试
 
