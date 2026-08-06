@@ -135,6 +135,14 @@ impl ValueMissing {
                 | Self::EmptyCollectionConversion { .. }
         )
     }
+
+    /// Reports whether conversion APIs may use a caller-provided fallback.
+    #[cfg(feature = "converter")]
+    #[must_use]
+    #[inline(always)]
+    pub(crate) const fn is_defaultable_for_conversion(self) -> bool {
+        self.is_unset() || matches!(self, Self::Conversion { .. })
+    }
 }
 
 impl fmt::Display for ValueMissing {

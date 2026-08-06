@@ -149,6 +149,12 @@ fn test_value_to_with_applies_common_conversion_options() {
         blank,
         Err(ValueError::Missing(ValueMissing::Conversion { .. }))
     ));
+    assert_eq!(
+        Value::String("   ".to_string())
+            .to_or_with::<String>("fallback", &options)
+            .expect("conversion-missing values should use the fallback"),
+        "fallback"
+    );
 }
 #[test]
 fn test_value_datetime_to_string() {

@@ -19,7 +19,6 @@ use qubit_datatype::{
 };
 
 use crate::IntoValueDefault;
-use crate::ValueMissing;
 use crate::value_error::{
     ValueError,
     ValueResult,
@@ -29,11 +28,6 @@ use super::multi_values::{
     MultiValues,
     MultiValuesRepr,
 };
-
-/// Reports whether conversion semantics permit a fallback value.
-fn is_defaultable_missing(missing: ValueMissing) -> bool {
-    missing.is_unset() || matches!(missing, ValueMissing::Conversion { .. })
-}
 
 macro_rules! multi_values_convert_first_match {
     ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
@@ -164,8 +158,8 @@ impl MultiValues {
         self.to_first_with(DataConversionOptions::default_ref())
     }
 
-    /// Converts the first stored value to `T`, or returns `default` only when
-    /// the container is [`MultiValues::Unset`].
+    /// Converts the first stored value to `T`, or returns `default` when the
+    /// container is unset or conversion reports a missing value.
     ///
     /// A concrete empty collection remains an error and does not use the
     /// default.
@@ -176,11 +170,13 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Value returned only for an unset container.
+    /// * `default` - Value returned for unset storage or a conversion-missing
+    ///   result.
     ///
     /// # Returns
     ///
-    /// The converted first value, or `default` for an unset container.
+    /// The converted first value, or `default` for unset or conversion-missing
+    /// storage.
     ///
     /// # Errors
     ///
@@ -196,7 +192,7 @@ impl MultiValues {
     {
         match self.to_first() {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default.into_value_default())
             }
@@ -204,7 +200,8 @@ impl MultiValues {
         }
     }
 
-    /// Converts the first value or calls `default` only when storage is unset.
+    /// Converts the first value or calls `default` when storage is unset or
+    /// conversion reports a missing value.
     ///
     /// # Type Parameters
     ///
@@ -213,7 +210,8 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Callback invoked only for unset storage.
+    /// * `default` - Callback invoked for unset storage or a conversion-missing
+    ///   result.
     ///
     /// # Returns
     ///
@@ -231,7 +229,7 @@ impl MultiValues {
     {
         match self.to_first() {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default())
             }
@@ -272,7 +270,8 @@ impl MultiValues {
     }
 
     /// Converts the first stored value to `T` using conversion options, or
-    /// returns `default` only when the container is [`MultiValues::Unset`].
+    /// returns `default` when storage is unset or conversion reports a missing
+    /// value.
     ///
     /// # Type Parameters
     ///
@@ -280,12 +279,14 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Lazily materialized value used only for unset storage.
+    /// * `default` - Lazily materialized value used for unset storage or a
+    ///   conversion-missing result.
     /// * `options` - Conversion options forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///
-    /// The converted first item, or `default` for unset storage.
+    /// The converted first item, or `default` for unset or conversion-missing
+    /// storage.
     ///
     /// # Errors
     ///
@@ -302,7 +303,7 @@ impl MultiValues {
     {
         match self.to_first_with(options) {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default.into_value_default())
             }
@@ -310,7 +311,8 @@ impl MultiValues {
         }
     }
 
-    /// Converts the first value with `options`, or calls `default` when unset.
+    /// Converts the first value with `options`, or calls `default` when storage
+    /// is unset or conversion reports a missing value.
     ///
     /// # Type Parameters
     ///
@@ -319,7 +321,8 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Callback invoked only for unset storage.
+    /// * `default` - Callback invoked for unset storage or a conversion-missing
+    ///   result.
     /// * `options` - Conversion options forwarded to the shared converter.
     ///
     /// # Returns
@@ -342,7 +345,7 @@ impl MultiValues {
     {
         match self.to_first_with(options) {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default())
             }
@@ -376,8 +379,8 @@ impl MultiValues {
         self.to_list_with(DataConversionOptions::default_ref())
     }
 
-    /// Converts all stored values to `T`, or returns `default` when the
-    /// container is unset.
+    /// Converts all stored values to `T`, or returns `default` when storage is
+    /// unset or conversion reports a missing value.
     ///
     /// # Type Parameters
     ///
@@ -385,11 +388,13 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Lazily materialized list used only for unset storage.
+    /// * `default` - Lazily materialized list used for unset storage or a
+    ///   conversion-missing result.
     ///
     /// # Returns
     ///
-    /// All converted items, or `default` for unset storage.
+    /// All converted items, or `default` for unset or conversion-missing
+    /// storage.
     ///
     /// # Errors
     ///
@@ -404,7 +409,7 @@ impl MultiValues {
     {
         match self.to_list() {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default.into_value_default())
             }
@@ -412,7 +417,8 @@ impl MultiValues {
         }
     }
 
-    /// Converts all values or calls `default` only when storage is unset.
+    /// Converts all values or calls `default` when storage is unset or
+    /// conversion reports a missing value.
     ///
     /// # Type Parameters
     ///
@@ -421,7 +427,8 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Callback invoked only for unset storage.
+    /// * `default` - Callback invoked for unset storage or a conversion-missing
+    ///   result.
     ///
     /// # Returns
     ///
@@ -439,7 +446,7 @@ impl MultiValues {
     {
         match self.to_list() {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default())
             }
@@ -479,7 +486,7 @@ impl MultiValues {
     }
 
     /// Converts all stored values to `T` using conversion options, or returns
-    /// `default` when the container is unset.
+    /// `default` when storage is unset or conversion reports a missing value.
     ///
     /// # Type Parameters
     ///
@@ -487,12 +494,14 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Lazily materialized list used only for unset storage.
+    /// * `default` - Lazily materialized list used for unset storage or a
+    ///   conversion-missing result.
     /// * `options` - Conversion options forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///
-    /// All converted items, or `default` for unset storage.
+    /// All converted items, or `default` for unset or conversion-missing
+    /// storage.
     ///
     /// # Errors
     ///
@@ -508,7 +517,7 @@ impl MultiValues {
     {
         match self.to_list_with(options) {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default.into_value_default())
             }
@@ -516,7 +525,8 @@ impl MultiValues {
         }
     }
 
-    /// Converts all values with `options`, or calls `default` when unset.
+    /// Converts all values with `options`, or calls `default` when storage is
+    /// unset or conversion reports a missing value.
     ///
     /// # Type Parameters
     ///
@@ -525,7 +535,8 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Callback invoked only for unset storage.
+    /// * `default` - Callback invoked for unset storage or a conversion-missing
+    ///   result.
     /// * `options` - Conversion options forwarded to the shared converter.
     ///
     /// # Returns
@@ -548,7 +559,7 @@ impl MultiValues {
     {
         match self.to_list_with(options) {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default())
             }
