@@ -153,6 +153,47 @@ feature。
 带版本的格式；自然 JSON 刻意不包含运行时类型标签。完整的 Wire 工作流、借用 payload、feature
 兼容性和资源限制处理，请参阅用户手册。
 
+例如，自然 JSON 会生成以下确切的 JSON 字符串：
+
+```rust
+use std::collections::HashMap;
+
+use qubit_datatype::DataType;
+use qubit_value::{MultiValues, Value};
+
+assert_eq!(Value::new(42i32).to_json_value()?.to_string(), "42");
+assert_eq!(
+    Value::new("localhost".to_owned())
+        .to_json_value()?
+        .to_string(),
+    r#""localhost""#,
+);
+assert_eq!(
+    Value::new_unset(DataType::String)
+        .to_json_value()?
+        .to_string(),
+    "null",
+);
+assert_eq!(
+    MultiValues::new([8080i32, 8081])
+        .to_json_value()?
+        .to_string(),
+    "[8080,8081]",
+);
+assert_eq!(
+    Value::new(HashMap::from([
+        ("z".to_owned(), "26".to_owned()),
+        ("a".to_owned(), "1".to_owned()),
+    ]))
+    .to_json_value()?
+    .to_string(),
+    r#"{"a":"1","z":"26"}"#,
+);
+```
+
+标量数字会变成 `42`，字符串会保留 JSON 引号，未设置值会变成 `null`，具体集合会变成数组，
+字符串 map 的 key 会按字典序输出。
+
 ## 延伸阅读
 
 - [中文用户手册](doc/user_guide.zh_CN.md)

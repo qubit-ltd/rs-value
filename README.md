@@ -176,6 +176,48 @@ Natural JSON intentionally omits runtime type tags. The user guide contains the
 full Wire workflow, borrowed payload examples, feature compatibility rules,
 and resource-limit handling.
 
+For example, Natural JSON produces these exact JSON strings:
+
+```rust
+use std::collections::HashMap;
+
+use qubit_datatype::DataType;
+use qubit_value::{MultiValues, Value};
+
+assert_eq!(Value::new(42i32).to_json_value()?.to_string(), "42");
+assert_eq!(
+    Value::new("localhost".to_owned())
+        .to_json_value()?
+        .to_string(),
+    r#""localhost""#,
+);
+assert_eq!(
+    Value::new_unset(DataType::String)
+        .to_json_value()?
+        .to_string(),
+    "null",
+);
+assert_eq!(
+    MultiValues::new([8080i32, 8081])
+        .to_json_value()?
+        .to_string(),
+    "[8080,8081]",
+);
+assert_eq!(
+    Value::new(HashMap::from([
+        ("z".to_owned(), "26".to_owned()),
+        ("a".to_owned(), "1".to_owned()),
+    ]))
+    .to_json_value()?
+    .to_string(),
+    r#"{"a":"1","z":"26"}"#,
+);
+```
+
+The scalar number becomes `42`, the string keeps its JSON quotes, an unset
+value becomes `null`, a concrete collection becomes an array, and string-map
+keys are emitted in dictionary order.
+
 ## Learn more
 
 - [English user guide](doc/user_guide.md)
