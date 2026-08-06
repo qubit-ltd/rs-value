@@ -42,7 +42,7 @@ registry 或持久化数据库。需要基于 `Value` 实现的现成 key-value 
 `ValueContainer` 也防止单元素集合变成标量：
 `Collection(MultiValues::Int32(vec![42]))` 在所有 API 和 Wire 边界上都仍然是集合。
 
-## 贯穿场景：读取一个运行时配置对象
+## 实际场景：读取一个运行时配置对象
 
 假设服务在运行时收到 `host`、`port`、`timeout` 和 `debug` 这些标量配置属性，同时还收到重复
 的 `tags` 输入。成功标准是：
