@@ -47,7 +47,7 @@ There are three states that should not be collapsed:
 `Collection(MultiValues::Int32(vec![42]))` remains a collection at every API and
 Wire boundary.
 
-## Scenario: read a small runtime configuration object
+## Practical scenario: read a runtime configuration object
 
 Suppose a service receives scalar configuration properties `host`, `port`,
 `timeout`, and `debug` at runtime. It also receives repeated `tags` input. The
