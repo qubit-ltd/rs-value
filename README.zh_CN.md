@@ -581,13 +581,13 @@ payload 必须是有限值。
 
 通用 Serde 反序列化不会自行施加外部消息大小预算。对于不可信 JSON，请使用
 `ValueWireV1::decode_json_slice()` 在解析前执行默认的一 MiB 限制，或通过
-`ValueWireLimits` 选择符合协议的预算：
+`WireLimits` 选择符合协议的预算：
 
 ```rust
-use qubit_value::{ValueWireLimits, ValueWireV1};
+use qubit_value::{ValueWireV1, WireLimits};
 
 let input = br#"{"version":1,"value":{"scalar":{"int32":42}}}"#;
-let limits = ValueWireLimits::new(64 * 1024);
+let limits = WireLimits::new(64 * 1024);
 let wire = ValueWireV1::decode_json_slice_with_limits(input, limits)?;
 assert!(wire.container().is_scalar());
 # Ok::<(), qubit_value::ValueWireDecodeError>(())
@@ -595,7 +595,7 @@ assert!(wire.container().is_scalar());
 
 这些 decode 方法只接受完整的顶层 `ValueWireV1` 文档。当 `Value`、
 `MultiValues` 或 `ValueContainer` 嵌入外层 JSON 文档时，应使用完整外层输入
-调用 `ValueWireLimits::begin_json()`，再执行该文档自己的 Serde decoder。对每个
+调用 `WireLimits::begin_json()`，再执行该文档自己的 Serde decoder。对每个
 嵌入值复用返回的 `WireBudget`，使结构限制作用于完整文档。
 
 保留类型的 V1 wire 与 `to_json_value()` 的自然 JSON 投影是两个独立契约。

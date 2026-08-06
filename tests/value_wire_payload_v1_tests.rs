@@ -9,8 +9,8 @@
 use qubit_value::{
     ValueContainer,
     ValueWireDecodeError,
-    ValueWireLimits,
     ValueWirePayloadV1,
+    WireLimits,
 };
 
 /// Verifies unversioned V1 payloads retain an explicit collection shape.
@@ -31,14 +31,14 @@ fn test_value_wire_payload_v1_decode_json_slice_honors_limits() {
     let input = br#"{"scalar": {"int32": 42}}"#;
     let payload = ValueWirePayloadV1::decode_json_slice_with_limits(
         input,
-        ValueWireLimits::new(input.len()),
+        WireLimits::new(input.len()),
     )
     .expect("decode bounded V1 payload");
     assert_eq!(payload.into_container(), ValueContainer::from(42_i32));
 
     let error = ValueWirePayloadV1::decode_json_slice_with_limits(
         input,
-        ValueWireLimits::new(input.len() - 1),
+        WireLimits::new(input.len() - 1),
     )
     .expect_err("reject payload larger than limit");
     assert!(matches!(

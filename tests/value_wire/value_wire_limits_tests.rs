@@ -6,14 +6,13 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-//! Tests for `ValueWireLimits`.
+//! Tests for `WireLimits`.
 
 use qubit_value::{
     MultiValues,
     Value,
     ValueContainer,
     ValueWireDecodeError,
-    ValueWireLimits,
     ValueWirePayloadV1,
     WireLimits,
 };
@@ -25,25 +24,25 @@ use {
 
 #[test]
 fn test_value_wire_limits_default_uses_documented_byte_budget() {
-    let limits = ValueWireLimits::default();
+    let limits = WireLimits::default();
 
     assert_eq!(
-        limits.max_json_bytes(),
-        ValueWireLimits::DEFAULT_MAX_JSON_BYTES
+        limits.max_input_bytes(),
+        WireLimits::DEFAULT_MAX_INPUT_BYTES
     );
-    assert_eq!(limits.max_json_bytes(), 1_048_576);
+    assert_eq!(limits.max_input_bytes(), 1_048_576);
 }
 
 #[test]
 fn test_value_wire_limits_new_preserves_custom_byte_budget() {
-    let limits = ValueWireLimits::new(64 * 1024);
+    let limits = WireLimits::new(64 * 1024);
 
-    assert_eq!(limits.max_json_bytes(), 65_536);
+    assert_eq!(limits.max_input_bytes(), 65_536);
 }
 
 #[test]
 fn test_value_wire_limits_check_json_bytes_enforces_public_budget() {
-    let limits = ValueWireLimits::new(8);
+    let limits = WireLimits::new(8);
 
     limits
         .check_json_bytes(8)
@@ -115,18 +114,32 @@ fn test_wire_budget_accumulates_nodes_across_values() {
     ));
 }
 
+#[cfg(feature = "json")]
+#[test]
+fn test_wire_budget_saturates_depth_at_usize_maximum() {
+    let value = ValueContainer::Scalar(Value::Json(serde_json::json!([1])));
+    let mut budget = WireLimits::new(0)
+        .with_max_depth(usize::MAX)
+        .begin(0)
+        .expect("the empty input budget should start");
+
+    budget
+        .check_container_at(&value, usize::MAX)
+        .expect("depth accounting must not overflow at usize::MAX");
+}
+
 #[test]
 fn test_wire_limits_reject_numeric_payload_length() {
     let payload = ValueWirePayloadV1::try_from(Value::Int128(12_345))
         .expect("the integer should be wire-compatible");
     let input =
         serde_json::to_vec(&payload).expect("the payload should serialize");
-    let limits = WireLimits::new(input.len()).with_max_numeric_digits(4);
+    let limits = WireLimits::new(input.len()).with_max_numeric_bytes(4);
 
     assert!(matches!(
         ValueWirePayloadV1::decode_json_slice_with_limits(&input, limits),
         Err(ValueWireDecodeError::LimitExceeded {
-            kind: qubit_value::ValueWireLimitKind::NumericDigits,
+            kind: qubit_value::ValueWireLimitKind::NumericBytes,
             value: 5,
             maximum: 4,
         })
@@ -137,12 +150,12 @@ fn test_wire_limits_reject_numeric_payload_length() {
 #[test]
 fn test_json_preflight_rejects_arbitrary_precision_numeric_length() {
     let input = br#"{"scalar":{"json":1.234567}}"#;
-    let limits = WireLimits::new(input.len()).with_max_numeric_digits(4);
+    let limits = WireLimits::new(input.len()).with_max_numeric_bytes(4);
 
     assert!(matches!(
         ValueWirePayloadV1::decode_json_slice_with_limits(input, limits),
         Err(ValueWireDecodeError::LimitExceeded {
-            kind: qubit_value::ValueWireLimitKind::NumericDigits,
+            kind: qubit_value::ValueWireLimitKind::NumericBytes,
             value: 8,
             maximum: 4,
         })
@@ -154,7 +167,7 @@ fn test_json_preflight_rejects_arbitrary_precision_numeric_length() {
 fn test_wire_budget_counts_big_decimal_coefficient_without_expanding_scale() {
     let value = Value::BigDecimal(BigDecimal::new(BigInt::from(1), -150_000));
     let mut budget = WireLimits::new(0)
-        .with_max_numeric_digits(1)
+        .with_max_numeric_bytes(1)
         .begin(0)
         .expect("the empty input budget should start");
 

@@ -27,8 +27,8 @@ pub enum ValueWireLimitKind {
     MapEntries,
     /// Bytes in one decoded string.
     StringBytes,
-    /// Digits in one decoded numeric value.
-    NumericDigits,
+    /// UTF-8 bytes in one decoded numeric representation.
+    NumericBytes,
 }
 
 /// Error produced by a bounded [`crate::ValueWireV1`] JSON decoder.
