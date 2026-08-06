@@ -130,6 +130,22 @@ fn test_multi_values_core_get_first_reads_first_or_default() {
 }
 
 #[test]
+fn test_multi_values_core_fallbacks_and_merge_errors() {
+    let unset = MultiValues::Unset(DataType::Int32);
+    assert_eq!(unset.get_or::<i32>(vec![9]).unwrap(), vec![9]);
+    assert_eq!(unset.get_or_else::<i32, _>(|| vec![10]).unwrap(), vec![10]);
+    assert_eq!(unset.get_first_or::<i32>(11).unwrap(), 11);
+    assert_eq!(unset.get_first_or_else::<i32, _>(|| 12).unwrap(), 12);
+
+    let mut values = MultiValues::Int32(vec![1]);
+    assert!(values.merge(&MultiValues::Int32(Vec::new())).is_ok());
+    assert!(matches!(
+        values.merge(&MultiValues::String(vec!["wrong".to_string()])),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+}
+
+#[test]
 fn test_multi_values_core_set_replaces_with_vec_slice_and_single() {
     let mut values = MultiValues::Unset(DataType::Int32);
     values.set(vec![1, 2]);

@@ -34,3 +34,40 @@ fn empty_collection_conversion_exposes_target_context() {
     assert!(missing.is_empty_collection());
     assert!(missing.is_conversion());
 }
+
+#[test]
+fn value_missing_accessors_cover_all_variants_and_display() {
+    let variants = [
+        ValueMissing::UnsetScalar {
+            data_type: DataType::Bool,
+        },
+        ValueMissing::UnsetCollection {
+            data_type: DataType::String,
+        },
+        ValueMissing::EmptyCollection {
+            data_type: DataType::Int32,
+        },
+        ValueMissing::EmptyCollectionConversion {
+            to: DataType::UInt64,
+        },
+        ValueMissing::Conversion {
+            from: DataType::String,
+            to: DataType::Int32,
+        },
+        ValueMissing::CollectionItem {
+            source_index: 3,
+            from: DataType::String,
+            to: DataType::Int32,
+        },
+    ];
+
+    for missing in variants {
+        let _ = missing.to_string();
+        let _ = missing.source_type();
+        let _ = missing.target_type();
+        let _ = missing.source_index();
+        let _ = missing.is_unset();
+        let _ = missing.is_empty_collection();
+        let _ = missing.is_conversion();
+    }
+}
