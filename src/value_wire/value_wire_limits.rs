@@ -22,6 +22,7 @@ use super::{
     ValueWireDecodeError,
     ValueWireLimitKind,
 };
+use super::internal::display_length;
 use crate::{
     MultiValuesRef,
     ValueContainer,
@@ -211,6 +212,8 @@ impl WireLimits {
     /// Returns an input-size or JSON syntax error before the caller
     /// deserializes its concrete wire DTO. Semantic resource errors are
     /// returned by the budget after the DTO has been materialized.
+    /// Normal decode paths should use [`Self::begin`] and let their Serde
+    /// decoder validate syntax once.
     #[inline]
     pub fn begin_json(
         self,
@@ -369,7 +372,7 @@ impl WireBudget {
             ValueContainer::Collection(values) => {
                 self.check_node()?;
                 self.check_collection_items(values.len())?;
-                self.check_multi_values(values.view(), depth)
+                self.check_multi_values_ref(values.view(), depth)
             }
         }
     }
@@ -383,6 +386,122 @@ impl WireBudget {
         self.check_value_ref(value.view(), 1)
     }
 
+    /// Validates one homogeneous collection against the shared budget.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Collection whose elements are charged to this budget.
+    ///
+    /// # Errors
+    ///
+    /// Returns a resource-limit error when the collection exceeds the
+    /// configured depth, node, item, string, map, or numeric limits.
+    #[inline]
+    pub fn check_multi_values(
+        &mut self,
+        values: &crate::MultiValues,
+    ) -> Result<(), ValueWireDecodeError> {
+        self.check_multi_values_at(values, 1)
+    }
+
+    /// Validates one homogeneous collection at an embedding depth.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Collection whose elements are charged to this budget.
+    /// * `depth` - Root-inclusive depth of the collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns a resource-limit error when the collection exceeds the
+    /// configured depth, node, item, string, map, or numeric limits.
+    pub fn check_multi_values_at(
+        &mut self,
+        values: &crate::MultiValues,
+        depth: usize,
+    ) -> Result<(), ValueWireDecodeError> {
+        self.check_depth(depth)?;
+        self.check_node()?;
+        self.check_collection_items(values.len())?;
+        self.check_multi_values_ref(values.view(), depth)
+    }
+
+    /// Validates a named scalar and reuses scalar budget accounting.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Named scalar to validate.
+    ///
+    /// # Errors
+    ///
+    /// Returns a resource-limit error for the wrapper name or nested value.
+    #[inline]
+    pub fn check_named_value(
+        &mut self,
+        value: &crate::NamedValue,
+    ) -> Result<(), ValueWireDecodeError> {
+        self.check_named_value_at(value, 1)
+    }
+
+    /// Validates a named scalar at an embedding depth.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Named scalar to validate.
+    /// * `depth` - Root-inclusive depth of the named wrapper.
+    ///
+    /// # Errors
+    ///
+    /// Returns a resource-limit error for the wrapper name or nested value.
+    pub fn check_named_value_at(
+        &mut self,
+        value: &crate::NamedValue,
+        depth: usize,
+    ) -> Result<(), ValueWireDecodeError> {
+        self.check_depth(depth)?;
+        self.check_node()?;
+        self.check_string_bytes(value.name().len())?;
+        self.check_value_ref(value.value().view(), depth.saturating_add(1))
+    }
+
+    /// Validates a named collection and reuses collection budget accounting.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Named collection to validate.
+    ///
+    /// # Errors
+    ///
+    /// Returns a resource-limit error for the wrapper name or nested values.
+    #[inline]
+    pub fn check_named_multi_values(
+        &mut self,
+        value: &crate::NamedMultiValues,
+    ) -> Result<(), ValueWireDecodeError> {
+        self.check_named_multi_values_at(value, 1)
+    }
+
+    /// Validates a named collection at an embedding depth.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Named collection to validate.
+    /// * `depth` - Root-inclusive depth of the named wrapper.
+    ///
+    /// # Errors
+    ///
+    /// Returns a resource-limit error for the wrapper name or nested values.
+    pub fn check_named_multi_values_at(
+        &mut self,
+        value: &crate::NamedMultiValues,
+        depth: usize,
+    ) -> Result<(), ValueWireDecodeError> {
+        self.check_depth(depth)?;
+        self.check_node()?;
+        self.check_string_bytes(value.name().len())?;
+        self.check_multi_values_at(value.values(), depth.saturating_add(1))
+    }
+
     fn check_value_ref(
         &mut self,
         value: ValueRef<'_>,
@@ -391,11 +510,16 @@ impl WireBudget {
         self.check_depth(depth)?;
         self.check_node()?;
         match value {
+            ValueRef::Char(value) => {
+                self.check_string_bytes(value.len_utf8())
+            }
             ValueRef::String(value) => self.check_string_bytes(value.len()),
             ValueRef::StringMap(value) => {
                 self.check_map_entries(value.len())?;
                 for (key, value) in value {
                     self.check_string_bytes(key.len())?;
+                    self.check_depth(depth.saturating_add(1))?;
+                    self.check_node()?;
                     self.check_string_bytes(value.len())?;
                 }
                 Ok(())
@@ -406,48 +530,69 @@ impl WireBudget {
             }
             #[cfg(feature = "big-integer")]
             ValueRef::BigInteger(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             #[cfg(feature = "big-decimal")]
             ValueRef::BigDecimal(value) => {
                 self.check_numeric_bytes(big_decimal_numeric_len(value))
             }
             ValueRef::Int8(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::Int16(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::Int32(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::Int64(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::Int128(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::UInt8(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::UInt16(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::UInt32(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::UInt64(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::UInt128(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::Float32(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             ValueRef::Float64(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
+            #[cfg(feature = "chrono")]
+            ValueRef::Date(value) => self
+                .check_string_bytes(display_length(value.format("%F"))),
+            #[cfg(feature = "chrono")]
+            ValueRef::Time(value) => self.check_string_bytes(display_length(
+                value.format("%H:%M:%S%.f"),
+            )),
+            #[cfg(feature = "chrono")]
+            ValueRef::DateTime(value) => self.check_string_bytes(
+                display_length(value.format("%Y-%m-%dT%H:%M:%S%.f")),
+            ),
+            #[cfg(feature = "chrono")]
+            ValueRef::Instant(value) => self.check_string_bytes(
+                display_length(value.format("%Y-%m-%dT%H:%M:%S%.fZ")),
+            ),
+            ValueRef::Duration(value) => {
+                self.check_numeric_bytes(display_length(value.as_secs()))?;
+                self.check_numeric_bytes(display_length(value.subsec_nanos()))
+            }
+            #[cfg(feature = "url")]
+            ValueRef::Url(value) => self.check_string_bytes(value.as_str().len()),
             _ => Ok(()),
         }
     }
@@ -476,7 +621,7 @@ impl WireBudget {
         self.check_value_ref(value.view(), depth)
     }
 
-    fn check_multi_values(
+    fn check_multi_values_ref(
         &mut self,
         values: MultiValuesRef<'_>,
         depth: usize,
@@ -611,7 +756,7 @@ impl WireBudget {
                 self.check_string_bytes(value.len())
             }
             serde_json::Value::Number(value) => {
-                self.check_numeric_bytes(value.to_string().len())
+                self.check_numeric_bytes(display_length(value))
             }
             serde_json::Value::Null | serde_json::Value::Bool(_) => Ok(()),
         }
@@ -644,7 +789,8 @@ impl WireBudget {
 #[cfg(feature = "big-decimal")]
 #[inline]
 fn big_decimal_numeric_len(value: &bigdecimal::BigDecimal) -> usize {
-    value.as_bigint_and_exponent().0.to_string().len()
+    let (coefficient, _) = value.as_bigint_and_scale();
+    display_length(coefficient.as_ref())
 }
 
 /// Parses JSON with input-bounded traversal without materializing a JSON tree
@@ -843,21 +989,21 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
     where
         E: serde::de::Error,
     {
-        self.number(value.to_string().len())
+        self.number(display_length(value))
     }
 
     fn visit_u64<E>(mut self, value: u64) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        self.number(value.to_string().len())
+        self.number(display_length(value))
     }
 
     fn visit_f64<E>(mut self, value: f64) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        self.number(value.to_string().len())
+        self.number(display_length(value))
     }
 
     fn visit_unit<E>(mut self) -> Result<Self::Value, E>
