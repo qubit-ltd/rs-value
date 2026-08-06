@@ -108,7 +108,7 @@ Owned adapters are available through fallible `TryFrom<Value>`,
 `ValueWireV1::decode_json_slice()` and
 `ValueWireV1::decode_json_slice_with_limits()` accept complete top-level V1
 documents and enforce a byte budget before parsing. When a value is embedded
-in a larger JSON document, call `ValueWireLimits::begin_json()` with the
+in a larger JSON document, call `WireLimits::begin_json()` with the
 complete outer input before invoking that document's Serde decoder. Reuse the
 returned `WireBudget` for every embedded value so structural limits apply to
 the complete document.

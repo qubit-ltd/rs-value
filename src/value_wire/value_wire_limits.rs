@@ -38,14 +38,12 @@ pub struct WireLimits {
     max_collection_items: usize,
     max_map_entries: usize,
     max_string_bytes: usize,
-    max_numeric_digits: usize,
+    max_numeric_bytes: usize,
 }
 
 impl WireLimits {
     /// Default maximum complete JSON input length.
     pub const DEFAULT_MAX_INPUT_BYTES: usize = 1_048_576;
-    /// Compatibility name for the default complete JSON input length.
-    pub const DEFAULT_MAX_JSON_BYTES: usize = Self::DEFAULT_MAX_INPUT_BYTES;
     /// Default maximum recursive wire depth.
     pub const DEFAULT_MAX_DEPTH: usize = 64;
     /// Default maximum decoded node count.
@@ -56,8 +54,8 @@ impl WireLimits {
     pub const DEFAULT_MAX_MAP_ENTRIES: usize = 4_096;
     /// Default maximum bytes in one decoded string.
     pub const DEFAULT_MAX_STRING_BYTES: usize = 256 * 1024;
-    /// Default maximum digits in one decoded number.
-    pub const DEFAULT_MAX_NUMERIC_DIGITS: usize = 4_096;
+    /// Default maximum UTF-8 bytes in one decoded numeric representation.
+    pub const DEFAULT_MAX_NUMERIC_BYTES: usize = 4_096;
 
     /// Creates shared wire limits with the specified input-byte bound.
     #[inline(always)]
@@ -69,7 +67,7 @@ impl WireLimits {
             max_collection_items: Self::DEFAULT_MAX_COLLECTION_ITEMS,
             max_map_entries: Self::DEFAULT_MAX_MAP_ENTRIES,
             max_string_bytes: Self::DEFAULT_MAX_STRING_BYTES,
-            max_numeric_digits: Self::DEFAULT_MAX_NUMERIC_DIGITS,
+            max_numeric_bytes: Self::DEFAULT_MAX_NUMERIC_BYTES,
         }
     }
 
@@ -122,14 +120,14 @@ impl WireLimits {
         self
     }
 
-    /// Sets the maximum digits in one decoded number.
+    /// Sets the maximum UTF-8 bytes in one decoded numeric representation.
     #[inline(always)]
     #[must_use = "the configured numeric limit should be used"]
-    pub const fn with_max_numeric_digits(
+    pub const fn with_max_numeric_bytes(
         mut self,
-        max_numeric_digits: usize,
+        max_numeric_bytes: usize,
     ) -> Self {
-        self.max_numeric_digits = max_numeric_digits;
+        self.max_numeric_bytes = max_numeric_bytes;
         self
     }
 
@@ -138,13 +136,6 @@ impl WireLimits {
     #[inline(always)]
     pub const fn max_input_bytes(self) -> usize {
         self.max_input_bytes
-    }
-
-    /// Returns the maximum complete JSON input length.
-    #[must_use]
-    #[inline(always)]
-    pub const fn max_json_bytes(self) -> usize {
-        self.max_input_bytes()
     }
 
     /// Returns the maximum recursive depth.
@@ -182,11 +173,11 @@ impl WireLimits {
         self.max_string_bytes
     }
 
-    /// Returns the maximum digits in one decoded number.
+    /// Returns the maximum UTF-8 bytes in one decoded numeric representation.
     #[must_use]
     #[inline(always)]
-    pub const fn max_numeric_digits(self) -> usize {
-        self.max_numeric_digits
+    pub const fn max_numeric_bytes(self) -> usize {
+        self.max_numeric_bytes
     }
 
     /// Checks a complete input length and starts a shared accounting session.
@@ -342,16 +333,16 @@ impl WireBudget {
         )
     }
 
-    /// Checks one decoded numeric length.
+    /// Checks one decoded numeric representation length in UTF-8 bytes.
     #[inline]
-    pub fn check_numeric_digits(
+    pub fn check_numeric_bytes(
         &self,
-        digits: usize,
+        bytes: usize,
     ) -> Result<(), ValueWireDecodeError> {
         self.check_limit(
-            ValueWireLimitKind::NumericDigits,
-            digits,
-            self.limits.max_numeric_digits,
+            ValueWireLimitKind::NumericBytes,
+            bytes,
+            self.limits.max_numeric_bytes,
         )
     }
 
@@ -410,50 +401,52 @@ impl WireBudget {
                 Ok(())
             }
             #[cfg(feature = "json")]
-            ValueRef::Json(value) => self.check_json(value, depth + 1),
+            ValueRef::Json(value) => {
+                self.check_json(value, depth.saturating_add(1))
+            }
             #[cfg(feature = "big-integer")]
             ValueRef::BigInteger(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             #[cfg(feature = "big-decimal")]
             ValueRef::BigDecimal(value) => {
-                self.check_numeric_digits(big_decimal_numeric_len(value))
+                self.check_numeric_bytes(big_decimal_numeric_len(value))
             }
             ValueRef::Int8(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::Int16(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::Int32(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::Int64(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::Int128(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::UInt8(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::UInt16(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::UInt32(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::UInt64(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::UInt128(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::Float32(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             ValueRef::Float64(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             _ => Ok(()),
         }
@@ -467,7 +460,7 @@ impl WireBudget {
         macro_rules! check_values {
             ($values:expr) => {{
                 for value in $values {
-                    self.check_value_ref(value, depth + 1)?;
+                    self.check_value_ref(value, depth.saturating_add(1))?;
                 }
                 Ok(())
             }};
@@ -526,7 +519,10 @@ impl WireBudget {
             }
             MultiValuesRef::String(values) => {
                 for value in values {
-                    self.check_value_ref(ValueRef::String(value), depth + 1)?;
+                    self.check_value_ref(
+                        ValueRef::String(value),
+                        depth.saturating_add(1),
+                    )?;
                 }
                 Ok(())
             }
@@ -575,7 +571,7 @@ impl WireBudget {
             serde_json::Value::Array(values) => {
                 self.check_collection_items(values.len())?;
                 for value in values {
-                    self.check_json(value, depth + 1)?;
+                    self.check_json(value, depth.saturating_add(1))?;
                 }
                 Ok(())
             }
@@ -583,7 +579,7 @@ impl WireBudget {
                 self.check_map_entries(values.len())?;
                 for (key, value) in values {
                     self.check_string_bytes(key.len())?;
-                    self.check_json(value, depth + 1)?;
+                    self.check_json(value, depth.saturating_add(1))?;
                 }
                 Ok(())
             }
@@ -591,7 +587,7 @@ impl WireBudget {
                 self.check_string_bytes(value.len())
             }
             serde_json::Value::Number(value) => {
-                self.check_numeric_digits(value.to_string().len())
+                self.check_numeric_bytes(value.to_string().len())
             }
             serde_json::Value::Null | serde_json::Value::Bool(_) => Ok(()),
         }
@@ -656,7 +652,7 @@ impl JsonPreflightSeed {
             } else {
                 limits.max_string_bytes
             },
-            max_numeric_digits: limits.max_numeric_digits,
+            max_numeric_bytes: limits.max_numeric_bytes,
         };
         Self {
             limits,
@@ -751,14 +747,14 @@ impl JsonPreflightSeed {
     }
 
     #[inline]
-    fn check_numeric_digits<E>(&mut self, digits: usize) -> Result<(), E>
+    fn check_numeric_bytes<E>(&mut self, bytes: usize) -> Result<(), E>
     where
         E: serde::de::Error,
     {
         self.check_limit(
-            ValueWireLimitKind::NumericDigits,
-            digits,
-            self.limits.max_numeric_digits,
+            ValueWireLimitKind::NumericBytes,
+            bytes,
+            self.limits.max_numeric_bytes,
         )
     }
 }
@@ -803,12 +799,12 @@ impl JsonPreflightVisitor<'_> {
     }
 
     #[inline]
-    fn number<E>(&mut self, digits: usize) -> Result<(), E>
+    fn number<E>(&mut self, bytes: usize) -> Result<(), E>
     where
         E: serde::de::Error,
     {
         self.scalar()?;
-        self.preflight.check_numeric_digits(digits)
+        self.preflight.check_numeric_bytes(bytes)
     }
 }
 
@@ -901,7 +897,7 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
         while access
             .next_element_seed(JsonPreflightChildSeed {
                 preflight: self.preflight,
-                depth: self.depth + 1,
+                depth: self.depth.saturating_add(1),
             })?
             .is_some()
         {
@@ -927,12 +923,12 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
             let number_text = access.next_value::<String>()?;
             let mut next_key = access.next_key::<String>()?;
             if next_key.is_none() {
-                return self.preflight.check_numeric_digits(number_text.len());
+                return self.preflight.check_numeric_bytes(number_text.len());
             }
             // The marker key was part of a real object. Its first value is a
             // normal JSON string; the already-read extra key is accounted for
             // by the loop below.
-            self.preflight.check_depth(self.depth + 1)?;
+            self.preflight.check_depth(self.depth.saturating_add(1))?;
             self.preflight.check_node()?;
             self.preflight.check_string_bytes(number_text.len())?;
             while let Some(key) = next_key.take() {
@@ -941,7 +937,7 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
                 self.preflight.check_string_bytes(key.len())?;
                 access.next_value_seed(JsonPreflightChildSeed {
                     preflight: self.preflight,
-                    depth: self.depth + 1,
+                    depth: self.depth.saturating_add(1),
                 })?;
                 next_key = access.next_key::<String>()?;
             }
@@ -949,7 +945,7 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
         }
         access.next_value_seed(JsonPreflightChildSeed {
             preflight: self.preflight,
-            depth: self.depth + 1,
+            depth: self.depth.saturating_add(1),
         })?;
         while let Some(key) = access.next_key::<String>()? {
             entries = entries.saturating_add(1);
@@ -957,7 +953,7 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
             self.preflight.check_string_bytes(key.len())?;
             access.next_value_seed(JsonPreflightChildSeed {
                 preflight: self.preflight,
-                depth: self.depth + 1,
+                depth: self.depth.saturating_add(1),
             })?;
         }
         Ok(())
@@ -983,6 +979,3 @@ impl<'de> DeserializeSeed<'de> for JsonPreflightChildSeed<'_> {
         })
     }
 }
-
-/// Compatibility alias for the former value-only limit type.
-pub type ValueWireLimits = WireLimits;

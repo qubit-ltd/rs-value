@@ -80,8 +80,6 @@ pub use value_wire_decode_error::ValueWireDecodeError;
 pub use value_wire_decode_error::ValueWireLimitKind;
 pub use value_wire_encode_error::ValueWireEncodeError;
 #[cfg(feature = "json")]
-pub use value_wire_limits::ValueWireLimits;
-#[cfg(feature = "json")]
 pub use value_wire_limits::{
     WireBudget,
     WireLimits,

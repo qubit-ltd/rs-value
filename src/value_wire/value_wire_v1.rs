@@ -31,7 +31,7 @@ use super::{
 #[cfg(feature = "json")]
 use super::{
     ValueWireDecodeError,
-    ValueWireLimits,
+    WireLimits,
 };
 
 /// Stable version-one wire DTO for a scalar or homogeneous collection.
@@ -41,6 +41,14 @@ use super::{
 /// closed: existing tags, shapes, and payload representations cannot change,
 /// and future runtime data types require a new wire version instead of
 /// extending V1.
+///
+/// # Resource limits
+///
+/// The generic [`Deserialize`](serde::Deserialize) implementation is intended
+/// for already-bounded embedded documents and does not enforce message-size or
+/// structural limits. Use `ValueWireV1::decode_json_slice` or
+/// `ValueWireV1::decode_json_slice_with_limits` for untrusted complete JSON
+/// input.
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValueWireV1 {
@@ -89,7 +97,7 @@ impl ValueWireV1 {
     pub fn decode_json_slice(
         input: &[u8],
     ) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(input, ValueWireLimits::default())
+        Self::decode_json_slice_with_limits(input, WireLimits::default())
     }
 
     /// Decodes a V1 JSON wire value using explicit structural limits.
@@ -115,7 +123,7 @@ impl ValueWireV1 {
     #[inline]
     pub fn decode_json_slice_with_limits(
         input: &[u8],
-        limits: ValueWireLimits,
+        limits: WireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut budget = limits.begin_json(input)?;
         let value: Self = serde_json::from_slice(input)

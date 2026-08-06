@@ -23,7 +23,7 @@ use crate::{
 #[cfg(feature = "json")]
 use crate::{
     ValueWireDecodeError,
-    ValueWireLimits,
+    WireLimits,
 };
 
 use super::value_wire_payload_ref_v1::{
@@ -37,6 +37,14 @@ use super::{
 };
 
 /// Typed V1 scalar-or-collection payload without an enclosing version field.
+///
+/// # Resource limits
+///
+/// The generic [`Deserialize`](serde::Deserialize) implementation is intended
+/// for already-bounded embedded documents and does not enforce message-size or
+/// structural limits. Use `ValueWirePayloadV1::decode_json_slice` or
+/// `ValueWirePayloadV1::decode_json_slice_with_limits` for untrusted complete
+/// JSON input.
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValueWirePayloadV1 {
@@ -60,7 +68,7 @@ impl ValueWirePayloadV1 {
     pub fn decode_json_slice(
         input: &[u8],
     ) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(input, ValueWireLimits::default())
+        Self::decode_json_slice_with_limits(input, WireLimits::default())
     }
 
     /// Decodes a complete V1 JSON payload using explicit resource limits.
@@ -73,7 +81,7 @@ impl ValueWirePayloadV1 {
     #[inline]
     pub fn decode_json_slice_with_limits(
         input: &[u8],
-        limits: ValueWireLimits,
+        limits: WireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut budget = limits.begin_json(input)?;
         let value: Self = serde_json::from_slice(input)

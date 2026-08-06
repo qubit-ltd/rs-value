@@ -629,13 +629,13 @@ Generic Serde deserialization does not impose an external message-size budget.
 For untrusted JSON, use `ValueWireV1::decode_json_slice()` for a complete
 versioned document or `ValueWirePayloadV1::decode_json_slice()` for a complete
 embedded payload. Both enforce the default one-mebibyte limit before parsing;
-select a protocol-specific budget with `ValueWireLimits`:
+select a protocol-specific budget with `WireLimits`:
 
 ```rust
-use qubit_value::{ValueWireLimits, ValueWireV1};
+use qubit_value::{ValueWireV1, WireLimits};
 
 let input = br#"{"version":1,"value":{"scalar":{"int32":42}}}"#;
-let limits = ValueWireLimits::new(64 * 1024);
+let limits = WireLimits::new(64 * 1024);
 let wire = ValueWireV1::decode_json_slice_with_limits(input, limits)?;
 assert!(wire.container().is_scalar());
 # Ok::<(), qubit_value::ValueWireDecodeError>(())
@@ -643,7 +643,7 @@ assert!(wire.container().is_scalar());
 
 These decode methods accept a complete top-level `ValueWireV1` document. When
 `Value`, `MultiValues`, or `ValueContainer` is embedded in an outer JSON
-document, call `ValueWireLimits::begin_json()` with the complete outer input
+document, call `WireLimits::begin_json()` with the complete outer input
 before invoking that document's Serde decoder. Reuse the returned `WireBudget`
 for every embedded value so structural limits cover the complete document.
 

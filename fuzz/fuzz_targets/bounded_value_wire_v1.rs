@@ -12,15 +12,15 @@
 use libfuzzer_sys::fuzz_target;
 use qubit_value::{
     ValueWireDecodeError,
-    ValueWireLimits,
     ValueWireV1,
+    WireLimits,
 };
 
 /// Small budget that keeps over-limit inputs common while accepting all seeds.
 const MAX_JSON_BYTES: usize = 94;
 
 fuzz_target!(|data: &[u8]| {
-    let limits = ValueWireLimits::new(MAX_JSON_BYTES);
+    let limits = WireLimits::new(MAX_JSON_BYTES);
     let result = ValueWireV1::decode_json_slice_with_limits(data, limits);
     if data.len() > MAX_JSON_BYTES {
         assert!(matches!(
@@ -40,7 +40,7 @@ fuzz_target!(|data: &[u8]| {
                 .expect("a decoded ValueWireV1 must serialize");
             let decoded = ValueWireV1::decode_json_slice_with_limits(
                 &encoded,
-                ValueWireLimits::new(encoded.len()),
+                WireLimits::new(encoded.len()),
             )
             .expect("a serialized ValueWireV1 must decode");
             assert_eq!(decoded, value);
