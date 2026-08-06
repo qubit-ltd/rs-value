@@ -8,6 +8,7 @@
 
 //! Benchmarks read paths exercised by configuration and metadata consumers.
 
+use std::collections::HashMap;
 use std::hint::black_box;
 
 use criterion::{
@@ -28,6 +29,7 @@ use qubit_value::{
     ValueWireV1,
     WireLimits,
 };
+use serde_json::json;
 
 /// Builds the scalar-string splitting policy used by configuration readers.
 fn config_conversion_options() -> DataConversionOptions {
@@ -201,6 +203,62 @@ fn benchmark_numeric_wire_budget(c: &mut Criterion) {
     });
 }
 
+/// Benchmarks allocation-free accounting of a large string map.
+fn benchmark_string_map_wire_budget(c: &mut Criterion) {
+    let map = (0..1_024)
+        .map(|index| (format!("key-{index}"), format!("value-{index}")))
+        .collect::<HashMap<_, _>>();
+    let value = ValueContainer::Scalar(Value::StringMap(map));
+    let limits = WireLimits::new(0)
+        .with_max_nodes(1_025)
+        .with_max_map_entries(1_024)
+        .with_max_string_bytes(32);
+
+    c.bench_function("downstream/wire_budget_string_map_1024", |bencher| {
+        bencher.iter_batched(
+            || limits.begin(0).expect("empty input should fit"),
+            |mut budget| {
+                budget
+                    .check_container(black_box(&value))
+                    .expect("string map should fit the budget");
+                black_box(budget)
+            },
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+/// Benchmarks recursive accounting of a nested JSON value.
+fn benchmark_nested_json_wire_budget(c: &mut Criterion) {
+    let value = ValueContainer::Scalar(Value::Json(json!({
+        "services": (0..64)
+            .map(|index| json!({
+                "name": format!("service-{index}"),
+                "ports": [index, index + 1, index + 2],
+            }))
+            .collect::<Vec<_>>(),
+    })));
+    let limits = WireLimits::new(0)
+        .with_max_nodes(1_000)
+        .with_max_collection_items(64)
+        .with_max_map_entries(4)
+        .with_max_string_bytes(32)
+        .with_max_numeric_bytes(4);
+
+    c.bench_function("downstream/wire_budget_nested_json", |bencher| {
+        bencher.iter_batched(
+            || limits.begin(0).expect("empty input should fit"),
+            |mut budget| {
+                budget
+                    .check_container(black_box(&value))
+                    .expect("nested JSON should fit the budget");
+                black_box(budget)
+            },
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 criterion_group!(
     benches,
     benchmark_config_conversions,
@@ -208,5 +266,7 @@ criterion_group!(
     benchmark_natural_json_projection,
     benchmark_value_wire_v1,
     benchmark_numeric_wire_budget,
+    benchmark_string_map_wire_budget,
+    benchmark_nested_json_wire_budget,
 );
 criterion_main!(benches);
