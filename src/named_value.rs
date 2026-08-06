@@ -21,6 +21,11 @@ use serde::{
 };
 
 use crate::ValueWireRefV1;
+#[cfg(feature = "json")]
+use crate::{
+    ValueWireDecodeError,
+    WireLimits,
+};
 
 use super::value::Value;
 
@@ -103,6 +108,55 @@ impl NamedValue {
             name: name.into(),
             value,
         }
+    }
+
+    /// Decodes a complete named scalar JSON document with default limits.
+    ///
+    /// # Parameters
+    ///
+    /// * `input` - Complete UTF-8 JSON document to decode.
+    ///
+    /// # Returns
+    ///
+    /// The decoded named scalar.
+    ///
+    /// # Errors
+    ///
+    /// Returns a JSON, wire-contract, or resource-limit error.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn decode_json_slice(
+        input: &[u8],
+    ) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, WireLimits::default())
+    }
+
+    /// Decodes a complete named scalar JSON document with explicit limits.
+    ///
+    /// The wrapper name and nested scalar share one accounting session.
+    ///
+    /// # Parameters
+    ///
+    /// * `input` - Complete UTF-8 JSON document to decode.
+    /// * `limits` - Input and decoded-resource limits.
+    ///
+    /// # Returns
+    ///
+    /// The decoded named scalar.
+    ///
+    /// # Errors
+    ///
+    /// Returns a JSON, wire-contract, or resource-limit error.
+    #[cfg(feature = "json")]
+    pub fn decode_json_slice_with_limits(
+        input: &[u8],
+        limits: WireLimits,
+    ) -> Result<Self, ValueWireDecodeError> {
+        let mut budget = limits.begin(input.len())?;
+        let value: Self = serde_json::from_slice(input)
+            .map_err(ValueWireDecodeError::from)?;
+        budget.check_named_value(&value)?;
+        Ok(value)
     }
 
     /// Get a reference to the name

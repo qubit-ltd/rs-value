@@ -10,6 +10,7 @@
 
 mod collection_wire_owned;
 mod collection_wire_ref;
+mod display_length;
 mod scalar_wire_owned;
 mod scalar_wire_ref;
 mod wire_data_type_v1;
@@ -20,6 +21,7 @@ mod wire_shape_ref;
 
 pub(in crate::value_wire) use collection_wire_owned::CollectionWireOwned;
 pub(in crate::value_wire) use collection_wire_ref::CollectionWireRef;
+pub(in crate::value_wire) use display_length::display_length;
 pub(in crate::value_wire) use scalar_wire_owned::ScalarWireOwned;
 pub(in crate::value_wire) use scalar_wire_ref::ScalarWireRef;
 pub(in crate::value_wire) use wire_data_type_v1::WireDataTypeV1;
