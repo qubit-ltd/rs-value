@@ -24,27 +24,55 @@
 `ValueContainer` 显式保留标量或集合形态。`Unset(DataType)` 保留声明的类型，但明确表示
 当前没有具体值。
 
-## 快速开始：读取带类型的运行时配置值
+## 快速开始：一个小型运行时配置 map
 
-下面是配置或元数据读取场景中最小的有效流程：保存一个运行时值，在类型确定时进行严格
-读取，在源值为文本时执行显式转换。
+下面用一个简化版配置 map 展示典型流程：每个 key 保存一个不同的 `Value`，读取时根据场景
+选择严格读取、显式转换或带类型的默认值。
 
 ```rust
+use std::collections::HashMap;
+use std::time::Duration;
+
 use qubit_datatype::DataType;
 use qubit_value::Value;
 
-let raw_port = Value::String("8080".to_owned());
-let port: u16 = raw_port.to().expect("port should be a valid u16");
-assert_eq!(port, 8080);
+let config = HashMap::from([
+    ("host".to_owned(), Value::new("localhost".to_owned())),
+    ("port".to_owned(), Value::new("8080".to_owned())),
+    ("debug".to_owned(), Value::new(false)),
+    (
+        "timeout".to_owned(),
+        Value::new_unset(DataType::Duration),
+    ),
+]);
 
-let missing_host = Value::new_unset(DataType::String);
-let host: String = missing_host
-    .get_or("localhost")
-    .expect("the fallback has the declared string type");
+let host: String = config
+    .get("host")
+    .expect("host key exists")
+    .get()
+    .expect("host is stored as a String");
 assert_eq!(host, "localhost");
 
-let tags = Value::String("blue".to_owned());
-assert_eq!(tags.data_type(), DataType::String);
+let port: u16 = config
+    .get("port")
+    .expect("port key exists")
+    .to()
+    .expect("port should be a valid u16");
+assert_eq!(port, 8080);
+
+let debug: bool = config
+    .get("debug")
+    .expect("debug key exists")
+    .get()
+    .expect("debug is stored as a bool");
+assert!(!debug);
+
+let timeout: Duration = config
+    .get("timeout")
+    .expect("timeout key exists")
+    .get_or(Duration::from_secs(30))
+    .expect("the fallback has the declared Duration type");
+assert_eq!(timeout, Duration::from_secs(30));
 ```
 
 `get()` 是严格类型读取，不会静默转换。`to()` 使用 `qubit-datatype` 提供的共享转换规则；

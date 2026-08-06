@@ -30,28 +30,55 @@ collection, and `ValueContainer` preserves the explicit scalar-or-collection
 shape. `Unset(DataType)` retains the declared type without pretending that a
 concrete value exists.
 
-## Quick start: a typed runtime configuration value
+## Quick start: a small runtime configuration map
 
-This is the smallest useful workflow for a configuration or metadata reader:
-store a runtime value, perform a strict read when the type is known, and use an
-explicit conversion when the source is text.
+This is a small configuration-like map: each key stores a different `Value`,
+then the reader chooses strict access, explicit conversion, or a typed default.
 
 ```rust
+use std::collections::HashMap;
+use std::time::Duration;
+
 use qubit_datatype::DataType;
 use qubit_value::Value;
 
-let raw_port = Value::String("8080".to_owned());
-let port: u16 = raw_port.to().expect("port should be a valid u16");
-assert_eq!(port, 8080);
+let config = HashMap::from([
+    ("host".to_owned(), Value::new("localhost".to_owned())),
+    ("port".to_owned(), Value::new("8080".to_owned())),
+    ("debug".to_owned(), Value::new(false)),
+    (
+        "timeout".to_owned(),
+        Value::new_unset(DataType::Duration),
+    ),
+]);
 
-let missing_host = Value::new_unset(DataType::String);
-let host: String = missing_host
-    .get_or("localhost")
-    .expect("the fallback has the declared string type");
+let host: String = config
+    .get("host")
+    .expect("the host key exists")
+    .get()
+    .expect("host is stored as a String");
 assert_eq!(host, "localhost");
 
-let tags = Value::String("blue".to_owned());
-assert_eq!(tags.data_type(), DataType::String);
+let port: u16 = config
+    .get("port")
+    .expect("the port key exists")
+    .to()
+    .expect("port should be a valid u16");
+assert_eq!(port, 8080);
+
+let debug: bool = config
+    .get("debug")
+    .expect("the debug key exists")
+    .get()
+    .expect("debug is stored as a bool");
+assert!(!debug);
+
+let timeout: Duration = config
+    .get("timeout")
+    .expect("the timeout key exists")
+    .get_or(Duration::from_secs(30))
+    .expect("the fallback has the declared Duration type");
+assert_eq!(timeout, Duration::from_secs(30));
 ```
 
 `get()` is a strict type read: it does not silently convert. `to()` uses the
