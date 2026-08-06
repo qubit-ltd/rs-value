@@ -647,9 +647,11 @@ assert!(wire.container().is_scalar());
 
 These decode methods accept a complete top-level `ValueWireV1` document. When
 `Value`, `MultiValues`, or `ValueContainer` is embedded in an outer JSON
-document, call `WireLimits::begin_json()` with the complete outer input
-before invoking that document's Serde decoder. Reuse the returned `WireBudget`
-for every embedded value so structural limits cover the complete document.
+document, call `WireLimits::begin(input.len())` before invoking that document's
+single Serde decode. Reuse the returned `WireBudget` for every embedded value
+so structural limits cover the complete document. `begin_json()` additionally
+performs an independent syntax preflight and is intended only when that
+separate validation pass is explicitly required.
 
 This type-preserving V1 wire is separate from `to_json_value()`, which emits
 natural JSON without runtime type tags and projects unset values to `null`.

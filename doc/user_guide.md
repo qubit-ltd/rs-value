@@ -109,10 +109,11 @@ Owned adapters are available through fallible `TryFrom<Value>`,
 `ValueWireV1::decode_json_slice_with_limits()` accept complete top-level V1
 documents and enforce an input byte budget before decoding, then apply semantic
 resource limits after runtime materialization. When a value is embedded in a
-larger JSON document, call `WireLimits::begin_json()` with the complete outer
-input before invoking that document's Serde decoder. Reuse the returned
-`WireBudget` for every embedded value and pass each value's real outer depth so
-structural limits apply to the complete document.
+larger JSON document, call `WireLimits::begin(input.len())` before its single
+Serde decode. Reuse the returned `WireBudget` for every embedded value and pass
+each value's real outer depth so structural limits apply to the complete
+document. `begin_json()` additionally performs an independent syntax preflight
+and is only needed when that separate pass is explicitly required.
 
 ## Natural JSON
 
