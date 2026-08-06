@@ -82,9 +82,7 @@ impl ValueMissing {
         match self {
             Self::Conversion { to, .. }
             | Self::CollectionItem { to, .. }
-            | Self::EmptyCollectionConversion { to } => {
-                Some(to)
-            }
+            | Self::EmptyCollectionConversion { to } => Some(to),
             Self::UnsetScalar { .. }
             | Self::UnsetCollection { .. }
             | Self::EmptyCollection { .. } => None,

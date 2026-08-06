@@ -15,6 +15,8 @@ use serde::{
 
 use crate::multi_values::MultiValuesRepr;
 use crate::value::ValueRepr;
+#[cfg(feature = "json")]
+use crate::wire::JSON_NUMBER_TOKEN;
 #[cfg(feature = "big-decimal")]
 use crate::wire::{
     MAX_BIG_DECIMAL_ABSOLUTE_SCALE,
@@ -25,8 +27,6 @@ use crate::{
     Value,
     ValueContainer,
 };
-#[cfg(feature = "json")]
-use crate::wire::JSON_NUMBER_TOKEN;
 
 use super::{
     ValueWireEncodeError,

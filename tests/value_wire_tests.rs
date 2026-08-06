@@ -524,11 +524,8 @@ fn value_wire_v1_collection_golden_round_trips_all_types() {
 #[test]
 fn value_wire_v1_borrowed_payload_golden_round_trips_all_types() {
     for fixture in value_fixtures() {
-        let expected_scalar = shaped_value(
-            "scalar",
-            fixture.tag,
-            fixture.payload.clone(),
-        );
+        let expected_scalar =
+            shaped_value("scalar", fixture.tag, fixture.payload.clone());
         let scalar = ValueWirePayloadRefV1::try_from(&fixture.value)
             .expect("construct borrowed scalar payload");
         assert_eq!(serde_json::to_value(&scalar).unwrap(), expected_scalar);
@@ -540,11 +537,8 @@ fn value_wire_v1_borrowed_payload_golden_round_trips_all_types() {
         );
 
         let values = MultiValues::from(fixture.value.clone());
-        let expected_collection = shaped_value(
-            "collection",
-            fixture.tag,
-            json!([fixture.payload]),
-        );
+        let expected_collection =
+            shaped_value("collection", fixture.tag, json!([fixture.payload]));
         let collection = ValueWirePayloadRefV1::try_from(&values)
             .expect("construct borrowed collection payload");
         assert_eq!(

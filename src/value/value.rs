@@ -18,21 +18,20 @@ use qubit_datatype::{
 };
 use std::fmt;
 
+#[cfg(feature = "converter")]
+use crate::ValueMissing;
 use crate::value_error::ValueResult;
 use crate::{
     IntoValueDefault,
     ValueError,
 };
-#[cfg(feature = "converter")]
-use crate::ValueMissing;
 
 use super::value_ref::ValueRef;
 
 /// Reports whether conversion semantics permit a fallback value.
 #[cfg(feature = "converter")]
 fn is_defaultable_missing(missing: ValueMissing) -> bool {
-    missing.is_unset()
-        || matches!(missing, ValueMissing::Conversion { .. })
+    missing.is_unset() || matches!(missing, ValueMissing::Conversion { .. })
 }
 
 /// Defines the private storage representation for the public single-value
