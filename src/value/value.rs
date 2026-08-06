@@ -18,8 +18,6 @@ use qubit_datatype::{
 };
 use std::fmt;
 
-#[cfg(feature = "converter")]
-use crate::ValueMissing;
 use crate::value_error::ValueResult;
 use crate::{
     IntoValueDefault,
@@ -27,12 +25,6 @@ use crate::{
 };
 
 use super::value_ref::ValueRef;
-
-/// Reports whether conversion semantics permit a fallback value.
-#[cfg(feature = "converter")]
-fn is_defaultable_missing(missing: ValueMissing) -> bool {
-    missing.is_unset() || matches!(missing, ValueMissing::Conversion { .. })
-}
 
 /// Defines the private storage representation for the public single-value
 /// container from the shared value-type table.
@@ -483,7 +475,8 @@ impl Value {
         self.to_with(DataConversionOptions::default_ref())
     }
 
-    /// Converts this value to `T`, or returns `default` when it is unset.
+    /// Converts this value to `T`, or returns `default` when storage is unset
+    /// or conversion reports a missing value.
     ///
     /// Conversion failures from concrete values are preserved.
     ///
@@ -493,11 +486,13 @@ impl Value {
     ///
     /// # Parameters
     ///
-    /// * `default` - Lazily materialized value used only when `self` is unset.
+    /// * `default` - Lazily materialized value used for unset or conversion-
+    ///   missing storage.
     ///
     /// # Returns
     ///
-    /// The converted value, or `default` when the value is unset.
+    /// The converted value, or `default` for an unset or conversion-missing
+    /// value.
     ///
     /// # Errors
     ///
@@ -511,7 +506,7 @@ impl Value {
     {
         match self.to() {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default.into_value_default())
             }
@@ -519,7 +514,8 @@ impl Value {
         }
     }
 
-    /// Converts this value to `T`, or calls `default` only when it is unset.
+    /// Converts this value to `T`, or calls `default` when storage is unset or
+    /// conversion reports a missing value.
     ///
     /// # Type Parameters
     ///
@@ -533,7 +529,8 @@ impl Value {
     ///
     /// # Returns
     ///
-    /// The converted value, or the callback result for an unset value.
+    /// The converted value, or the callback result for an unset or
+    /// conversion-missing value.
     ///
     /// # Errors
     ///
@@ -548,7 +545,7 @@ impl Value {
     {
         match self.to() {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default())
             }
@@ -589,7 +586,7 @@ impl Value {
     }
 
     /// Converts this value to `T` using conversion options, or returns
-    /// `default` when it is unset.
+    /// `default` when storage is unset or conversion reports a missing value.
     ///
     /// Conversion failures from concrete values are preserved.
     ///
@@ -599,12 +596,14 @@ impl Value {
     ///
     /// # Parameters
     ///
-    /// * `default` - Lazily materialized value used only when `self` is unset.
+    /// * `default` - Lazily materialized value used for unset or conversion-
+    ///   missing storage.
     /// * `options` - Conversion options forwarded to the shared converter.
     ///
     /// # Returns
     ///
-    /// The converted value, or `default` when the value is unset.
+    /// The converted value, or `default` for an unset or conversion-missing
+    /// value.
     ///
     /// # Errors
     ///
@@ -622,7 +621,7 @@ impl Value {
     {
         match self.to_with(options) {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default.into_value_default())
             }
@@ -630,7 +629,8 @@ impl Value {
         }
     }
 
-    /// Converts this value with `options`, or calls `default` only when unset.
+    /// Converts this value with `options`, or calls `default` when storage is
+    /// unset or conversion reports a missing value.
     ///
     /// # Type Parameters
     ///
@@ -644,7 +644,8 @@ impl Value {
     ///
     /// # Returns
     ///
-    /// The converted value, or the callback result for an unset value.
+    /// The converted value, or the callback result for an unset or
+    /// conversion-missing value.
     ///
     /// # Errors
     ///
@@ -663,7 +664,7 @@ impl Value {
     {
         match self.to_with(options) {
             Err(ValueError::Missing(missing))
-                if is_defaultable_missing(missing) =>
+                if missing.is_defaultable_for_conversion() =>
             {
                 Ok(default())
             }
