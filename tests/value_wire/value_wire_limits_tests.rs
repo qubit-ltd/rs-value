@@ -8,6 +8,10 @@
 
 //! Tests for `WireLimits`.
 
+use std::collections::HashMap;
+use std::time::Duration;
+
+use qubit_datatype::DataType;
 use qubit_value::{
     MultiValues,
     Value,
@@ -132,6 +136,47 @@ fn test_wire_budget_accumulates_nodes_across_values() {
     ));
 }
 
+#[test]
+fn test_wire_budget_counts_string_map_values_as_nodes() {
+    let value = Value::StringMap(HashMap::from([(
+        "key".to_owned(),
+        "value".to_owned(),
+    )]));
+    let mut budget = WireLimits::new(0)
+        .with_max_nodes(1)
+        .begin(0)
+        .expect("the empty input budget should start");
+
+    assert!(matches!(
+        budget.check_value(&value),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: qubit_value::ValueWireLimitKind::Nodes,
+            value: 2,
+            maximum: 1,
+        })
+    ));
+}
+
+#[test]
+fn test_wire_budget_counts_string_map_collection_nodes_globally() {
+    let values = MultiValues::StringMap(vec![HashMap::from([
+        ("key".to_owned(), "value".to_owned()),
+    ])]);
+    let mut budget = WireLimits::new(0)
+        .with_max_nodes(2)
+        .begin(0)
+        .expect("the empty input budget should start");
+
+    assert!(matches!(
+        budget.check_container(&ValueContainer::Collection(values)),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: qubit_value::ValueWireLimitKind::Nodes,
+            value: 3,
+            maximum: 2,
+        })
+    ));
+}
+
 #[cfg(feature = "json")]
 #[test]
 fn test_wire_budget_saturates_depth_at_usize_maximum() {
@@ -162,6 +207,173 @@ fn test_wire_limits_reject_numeric_payload_length() {
             maximum: 4,
         })
     ));
+}
+
+#[test]
+fn test_wire_limits_cover_char_url_chrono_and_duration_payloads() {
+    let cases = [
+        (
+            Value::Char('\u{00e9}'),
+            WireLimits::new(0).with_max_string_bytes(1),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
+        (
+            Value::Url(
+                url::Url::parse("https://example.com/long-path")
+                    .expect("the URL fixture should parse"),
+            ),
+            WireLimits::new(0).with_max_string_bytes(8),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
+        (
+            Value::Date(
+                chrono::NaiveDate::from_ymd_opt(2026, 8, 6)
+                    .expect("the date fixture should be valid"),
+            ),
+            WireLimits::new(0).with_max_string_bytes(4),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
+        (
+            Value::Duration(Duration::from_secs(123)),
+            WireLimits::new(0).with_max_numeric_bytes(2),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+    ];
+
+    for (value, limits, expected_kind) in cases {
+        let mut budget = limits
+            .begin(0)
+            .expect("the empty input budget should start");
+        assert!(matches!(
+            budget.check_value(&value),
+            Err(ValueWireDecodeError::LimitExceeded { kind, .. })
+                if kind == expected_kind
+        ));
+    }
+}
+
+#[test]
+fn test_wire_budget_matrix_covers_every_runtime_data_type() {
+    let date = chrono::NaiveDate::from_ymd_opt(2026, 8, 6)
+        .expect("the date fixture should be valid");
+    let time = chrono::NaiveTime::from_hms_milli_opt(12, 34, 56, 789)
+        .expect("the time fixture should be valid");
+    let cases = vec![
+        (Value::Bool(true), qubit_value::ValueWireLimitKind::Nodes),
+        (
+            Value::Char('\u{00e9}'),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
+        (Value::Int8(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (Value::Int16(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (Value::Int32(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (Value::Int64(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (Value::Int128(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (Value::UInt8(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (Value::UInt16(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (Value::UInt32(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (Value::UInt64(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (Value::UInt128(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (
+            Value::Float32(12.5),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::Float64(12.5),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::BigInteger(BigInt::from(12)),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::BigDecimal(BigDecimal::from(12)),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::String("ab".to_owned()),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
+        (Value::Date(date), qubit_value::ValueWireLimitKind::StringBytes),
+        (Value::Time(time), qubit_value::ValueWireLimitKind::StringBytes),
+        (
+            Value::DateTime(date.and_time(time)),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
+        (
+            Value::Instant(
+                date.and_time(time).and_utc(),
+            ),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
+        (
+            Value::Duration(Duration::from_secs(12)),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::Url(
+                url::Url::parse("https://example.com")
+                    .expect("the URL fixture should parse"),
+            ),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
+        (
+            Value::StringMap(HashMap::from([(
+                "key".to_owned(),
+                "value".to_owned(),
+            )])),
+            qubit_value::ValueWireLimitKind::MapEntries,
+        ),
+        (
+            Value::Json(serde_json::json!([1])),
+            qubit_value::ValueWireLimitKind::CollectionItems,
+        ),
+    ];
+
+    let covered_types = cases
+        .iter()
+        .map(|(value, _)| value.data_type())
+        .collect::<Vec<_>>();
+    assert_eq!(covered_types.len(), DataType::ALL.len());
+    for data_type in DataType::ALL {
+        assert_eq!(
+            covered_types
+                .iter()
+                .filter(|covered| *covered == data_type)
+                .count(),
+            1,
+            "the budget matrix must cover {data_type} exactly once",
+        );
+    }
+
+    for (value, expected_kind) in cases {
+        let limits = match expected_kind {
+            qubit_value::ValueWireLimitKind::Nodes => {
+                WireLimits::new(0).with_max_nodes(0)
+            }
+            qubit_value::ValueWireLimitKind::CollectionItems => {
+                WireLimits::new(0).with_max_collection_items(0)
+            }
+            qubit_value::ValueWireLimitKind::MapEntries => {
+                WireLimits::new(0).with_max_map_entries(0)
+            }
+            qubit_value::ValueWireLimitKind::StringBytes => {
+                WireLimits::new(0).with_max_string_bytes(1)
+            }
+            qubit_value::ValueWireLimitKind::NumericBytes => {
+                WireLimits::new(0).with_max_numeric_bytes(1)
+            }
+            _ => panic!("unsupported matrix limit kind"),
+        };
+        let mut budget = limits
+            .begin(0)
+            .expect("the empty input budget should start");
+        assert!(matches!(
+            budget.check_value(&value),
+            Err(ValueWireDecodeError::LimitExceeded { kind, .. })
+                if kind == expected_kind
+        ));
+    }
 }
 
 #[cfg(feature = "json")]

@@ -20,6 +20,8 @@ use qubit_datatype::DataType;
 use qubit_value::{
     NamedValue,
     Value,
+    ValueWireDecodeError,
+    WireLimits,
 };
 
 /// Rejects schema fields outside the stable named-value wrapper contract.
@@ -42,6 +44,41 @@ fn test_named_value_serializes_with_v1_wire_contract() {
             "value": {"version": 1, "value": {"scalar": {"int32": 42}}},
         }),
     );
+}
+
+/// Applies one shared budget to the wrapper name and nested scalar value.
+#[test]
+fn test_named_value_bounded_decode_reuses_value_budget() {
+    let named = NamedValue::new("port", Value::Int32(42));
+    let input = serde_json::to_vec(&named).expect("named value should serialize");
+
+    let name_error = NamedValue::decode_json_slice_with_limits(
+        &input,
+        WireLimits::new(input.len()).with_max_string_bytes(3),
+    )
+    .expect_err("the name should exceed the string limit");
+    assert!(matches!(
+        name_error,
+        ValueWireDecodeError::LimitExceeded {
+            kind: qubit_value::ValueWireLimitKind::StringBytes,
+            value: 4,
+            maximum: 3,
+        }
+    ));
+
+    let node_error = NamedValue::decode_json_slice_with_limits(
+        &input,
+        WireLimits::new(input.len()).with_max_nodes(1),
+    )
+    .expect_err("the wrapper and scalar should consume two nodes");
+    assert!(matches!(
+        node_error,
+        ValueWireDecodeError::LimitExceeded {
+            kind: qubit_value::ValueWireLimitKind::Nodes,
+            value: 2,
+            maximum: 1,
+        }
+    ));
 }
 
 #[test]

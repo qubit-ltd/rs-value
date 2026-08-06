@@ -22,6 +22,8 @@ use qubit_value::{
     NamedMultiValues,
     NamedValue,
     Value,
+    ValueWireDecodeError,
+    WireLimits,
 };
 
 /// Rejects schema fields outside the stable named-collection wrapper contract.
@@ -44,6 +46,30 @@ fn test_named_multi_values_serializes_with_v1_wire_contract() {
             "value": {"version": 1, "value": {"collection": {"int32": [42]}}},
         }),
     );
+}
+
+/// Applies one shared budget to the wrapper and every collection element.
+#[test]
+fn test_named_multi_values_bounded_decode_reuses_collection_budget() {
+    let named =
+        NamedMultiValues::new("ports", MultiValues::Int32(vec![42, 43]));
+    let input =
+        serde_json::to_vec(&named).expect("named collection should serialize");
+
+    let error = NamedMultiValues::decode_json_slice_with_limits(
+        &input,
+        WireLimits::new(input.len()).with_max_nodes(3),
+    )
+    .expect_err("wrapper, collection, and two items should consume four nodes");
+
+    assert!(matches!(
+        error,
+        ValueWireDecodeError::LimitExceeded {
+            kind: qubit_value::ValueWireLimitKind::Nodes,
+            value: 4,
+            maximum: 3,
+        }
+    ));
 }
 
 #[test]
