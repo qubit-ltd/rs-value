@@ -1,122 +1,519 @@
 # qubit-value User Guide
 
-## Dependency
+[中文版本](user_guide.zh_CN.md) · [README](../README.md) · [API documentation](https://docs.rs/qubit-value)
 
-```toml
-qubit-value = { version = "0.10", features = ["all"] }
-qubit-redact = { version = "0.4", default-features = false }
-```
+## Purpose and audience
 
-The default feature set is empty. Enable only `chrono`, `big-integer`,
-`big-decimal`, `url`, `json`, `converter`, or `redact` when the application
-does not need all families. `big-number` remains a compatibility alias for
-both big number families.
+This guide is for Rust developers who receive configuration, metadata, protocol
+fields, or other values whose concrete type is known at runtime. It explains
+how to keep those values type-safe without forcing every caller to create a
+different ad-hoc enum.
 
-## Runtime shapes
+The guide covers `qubit-value` 0.10. It focuses on the value layer. It does not
+turn `qubit-value` into a configuration service, schema registry, or persistent
+database. For ready-made key-value containers built directly on `Value`, see
+[`rs-config`](https://github.com/qubit-ltd/rs-config) and
+[`rs-metadata`](https://github.com/qubit-ltd/rs-metadata) near the end.
 
-`Value` stores one typed scalar. `MultiValues` stores one homogeneous typed
-collection. `ValueContainer` preserves an explicit `Scalar` or `Collection`
-shape; a one-item collection never becomes a scalar. `Unset(DataType)` is
-different from a concrete value and from a concrete empty collection.
+## The problem and the model
 
-## Policy-aware redaction
+A runtime value has two independent properties:
 
-The `redact` feature implements `qubit_redact::Redact` for `Value`. Import the
-trait from its owning crate and explicitly format a redacted view:
+1. its declared `DataType`, such as `Int32`, `Duration`, or `StringMap`;
+2. its shape, either one scalar or a homogeneous collection.
+
+`qubit-value` keeps both properties explicit:
+
+| Type | Stores | Use it when |
+| --- | --- | --- |
+| `Value` | one typed scalar or `Unset(DataType)` | a key has one value |
+| `MultiValues` | one homogeneous collection or typed unset state | a key accepts repeated values |
+| `ValueContainer` | `Scalar(Value)` or `Collection(MultiValues)` | the source shape itself matters |
+| `NamedValue` | a name plus `Value` | a named property must travel with its value |
+| `NamedMultiValues` | a name plus `MultiValues` | a named repeated property must travel with its values |
+
+There are three states that should not be collapsed:
+
+- `Unset(DataType::String)` means the type is declared, but no concrete value is
+  present;
+- `MultiValues::String(vec![])` is a concrete empty collection;
+- `Json(Null)` is a concrete JSON value when the `json` feature is enabled.
+
+`ValueContainer` also prevents a one-item collection from becoming a scalar:
+`Collection(MultiValues::Int32(vec![42]))` remains a collection at every API and
+Wire boundary.
+
+## Scenario: read a small runtime configuration object
+
+Suppose a service receives `port`, `timeout`, and `tags` as runtime values. The
+success criteria are:
+
+- a text port can be converted to `u16` with a range-checked error;
+- an unset timeout can use a default without changing its declared type;
+- tags remain a collection even when there is one tag;
+- the same values can later be serialized with their runtime type and shape.
+
+The core path is:
 
 ```rust
-use std::collections::HashMap;
+use std::time::Duration;
 
-use qubit_redact::{
-    Redact as _,
-    RedactionPolicy,
-    Sensitivity,
-};
-use qubit_value::Value;
+use qubit_datatype::DataType;
+use qubit_value::{MultiValues, Value, ValueContainer};
 
-let value = Value::StringMap(HashMap::from([
-    ("api_key".to_owned(), "raw-secret".to_owned()),
-    ("label".to_owned(), "visible".to_owned()),
-]));
-let mut builder = RedactionPolicy::default().to_builder();
-builder
-    .fields()
-    .raise("api_key", Sensitivity::Secret)
-    .expect("redaction field should be valid");
-let policy = builder.build().expect("redaction policy should build");
-let output = format!("{:?}", value.redacted_with(&policy));
+let port_value = Value::String("8080".to_owned());
+let port: u16 = port_value
+    .to()
+    .expect("the configured port should fit in u16");
+assert_eq!(port, 8080);
 
-assert!(!output.contains("raw-secret"));
-assert!(output.contains("visible"));
+let timeout_value = Value::new_unset(DataType::Duration);
+let timeout: Duration = timeout_value
+    .get_or(Duration::from_secs(30))
+    .expect("the fallback is a Duration");
+assert_eq!(timeout, Duration::from_secs(30));
+
+let tags = ValueContainer::Collection(MultiValues::new(["production"]));
+assert!(tags.is_collection());
+assert_eq!(tags.data_type(), DataType::String);
 ```
 
-String maps classify each value by its key. With both `redact` and `json`,
-JSON objects and arrays are traversed recursively; a sensitive key with a
-non-string value is replaced as a whole. Scalars without key context retain
-ordinary `Debug` formatting. Ordinary `Value` formatting is not implicitly
-redacted, so diagnostics must explicitly use a redacted view.
+The next step can encode `tags` or a larger `ValueContainer` through Wire V1.
+The following sections explain the type table, feature selection, errors, and
+the serialization choices before showing that complete round trip.
 
-## Type-preserving Wire V1
+## Installation and feature selection
 
-Direct Serde uses `ValueWireV1`:
+The core dependency is:
+
+```toml
+[dependencies]
+qubit-value = { version = "0.10", features = ["all"] }
+qubit-datatype = { version = "0.10", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+```
+
+The default feature set is empty. Add only the families required by the
+application:
+
+| Feature | Enables |
+| --- | --- |
+| `converter` | `Value::to`, `MultiValues::to_list`, and related conversion APIs |
+| `chrono` | `Date`, `Time`, `DateTime`, and `Instant` |
+| `big-integer` | `BigInteger` |
+| `big-decimal` | `BigDecimal` |
+| `big-number` | Compatibility alias for `big-integer` and `big-decimal` |
+| `url` | `Url` |
+| `json` | `Json` and Wire JSON decoding/resource limits; Natural JSON also requires `converter` |
+| `redact` | `Value` redacted views; the application also imports `Redact` from `qubit-redact` |
+| `all` | `converter`, `chrono`, `big-number`, `url`, `json`, and `redact` |
+
+When exchanging concrete values between builds, the producer and consumer must
+agree on the features needed by those values. A build without `chrono` can
+still understand an unset declaration such as `Unset(DataType::Date)`, but it
+cannot materialize a concrete `Date` payload.
+
+## Supported `DataType` values
+
+`DataType` is defined by `qubit-datatype` and is the complete type vocabulary
+used by this crate. The 25 variants are:
+
+| `DataType` | Rust representation | Feature | Notes |
+| --- | --- | --- | --- |
+| `Bool` | `bool` | — | Boolean value |
+| `Char` | `char` | — | Unicode character |
+| `Int8` | `i8` | — | 8-bit signed integer |
+| `Int16` | `i16` | — | 16-bit signed integer |
+| `Int32` | `i32` | — | 32-bit signed integer |
+| `Int64` | `i64` | — | 64-bit signed integer |
+| `Int128` | `i128` | — | 128-bit signed integer; Wire uses decimal text |
+| `UInt8` | `u8` | — | 8-bit unsigned integer |
+| `UInt16` | `u16` | — | 16-bit unsigned integer |
+| `UInt32` | `u32` | — | 32-bit unsigned integer |
+| `UInt64` | `u64` | — | 64-bit unsigned integer |
+| `UInt128` | `u128` | — | 128-bit unsigned integer; Wire uses decimal text |
+| `Float32` | `f32` | — | 32-bit float; Wire requires finite values |
+| `Float64` | `f64` | — | 64-bit float; Wire requires finite values |
+| `String` | `String` | — | UTF-8 text |
+| `Date` | `chrono::NaiveDate` | `chrono` | Calendar date |
+| `Time` | `chrono::NaiveTime` | `chrono` | Time of day |
+| `DateTime` | `chrono::NaiveDateTime` | `chrono` | Date and local time |
+| `Instant` | `chrono::DateTime<chrono::Utc>` | `chrono` | UTC time point |
+| `BigInteger` | `num_bigint::BigInt` | `big-integer` | Arbitrary-precision integer |
+| `BigDecimal` | `bigdecimal::BigDecimal` | `big-decimal` | Exact decimal with bounded Wire scale |
+| `Duration` | `std::time::Duration` | — | Seconds/nanoseconds in Wire; text conversion is policy-driven |
+| `Url` | `url::Url` | `url` | Parsed URL |
+| `StringMap` | `HashMap<String, String>` | — | String-to-string map |
+| `Json` | `serde_json::Value` | `json` | Arbitrary JSON structure |
+
+The feature column describes the `qubit-value` feature required for a concrete
+Rust value. `StringMap` is a native map type and does not require `json`; the
+`Json` variant does.
+
+## Core workflow
+
+### Construct and inspect a single value
+
+Use a typed constructor when the Rust type is known. Use `Value::new_unset` when
+the key has a declared type but no value yet.
+
+```rust
+use qubit_datatype::DataType;
+use qubit_value::Value;
+
+let mut value = Value::new(8080i32);
+let port: i32 = value.get().expect("the stored type is Int32");
+assert_eq!(port, 8080);
+assert_eq!(value.data_type(), DataType::Int32);
+
+value.unset();
+assert!(value.is_unset());
+assert_eq!(value.data_type(), DataType::Int32);
+
+value.set_type(DataType::String);
+value.set("8080");
+assert_eq!(value.get_string().expect("the stored type is String"), "8080");
+```
+
+`get<T>()` is strict. The stored variant must match `T`; it never guesses that
+an integer string should be parsed. `get_or` supplies a default only when the
+value is unset. A type mismatch is still an error.
+
+### Construct and mutate homogeneous collections
+
+`MultiValues::new`, `set`, and `add` accept vectors, arrays, slices, borrowed
+vectors, and borrowed string collections where the corresponding conversion is
+implemented.
+
+```rust
+use qubit_value::MultiValues;
+
+let mut ports = MultiValues::new([8080i32, 8081, 8082]);
+assert_eq!(ports.get_int32s().expect("the type is Int32"), &[8080, 8081, 8082]);
+
+ports.add(8083).expect("the appended value has the same type");
+ports.add(vec![8084, 8085]).expect("the appended values have the same type");
+ports.set([9000, 9001]);
+assert_eq!(ports.len(), 2);
+
+let first: i32 = ports.get_first().expect("the collection is not empty");
+assert_eq!(first, 9000);
+```
+
+`add` is fallible because it must reject a different element type. `set`
+replaces the entire collection and can change its element type. `Unset` and a
+concrete empty collection remain distinguishable through `is_unset()` and
+`is_empty()`.
+
+### Convert with explicit policy
+
+With `converter`, `to` applies the shared `qubit-datatype` conversion contract.
+Use `to_with` when the default strict policy is not the policy the application
+wants.
+
+```rust
+use qubit_value::Value;
+
+let text = Value::String("42".to_owned());
+let number: u32 = text.to().expect("42 is a valid u32");
+assert_eq!(number, 42);
+
+let fallback: u16 = Value::new_unset(qubit_datatype::DataType::UInt16)
+    .to_or(8080u16)
+    .expect("unset values use the conversion fallback");
+assert_eq!(fallback, 8080);
+```
+
+`to_or` can also use a conversion policy's missing-value result, such as a
+configured blank-as-missing behavior. It does not hide an ordinary type
+mismatch or invalid conversion. The full source/target matrix and policy
+details live in the [`qubit-datatype` API documentation](https://docs.rs/qubit-datatype/latest/qubit_datatype/).
+
+### Preserve names without changing value semantics
+
+```rust
+use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
+
+let mut timeout = NamedValue::new("timeout", Value::new(30u64));
+assert_eq!(timeout.name(), "timeout");
+assert_eq!(timeout.value().get().expect("the type is UInt64"), 30);
+timeout.value_mut().set(45u64);
+
+let mut ports = NamedMultiValues::new("ports", MultiValues::new([8080u16, 8081]));
+ports.values_mut().add(8082u16).expect("the type is UInt16");
+let first_port: u16 = ports
+    .values()
+    .get_first()
+    .expect("the collection is not empty");
+assert_eq!(first_port, 8080);
+```
+
+## Wire V1: preserve type and shape across JSON
+
+### When to use Wire V1
+
+Runtime `Value` types do not implement Serde directly. Select a versioned Wire
+adapter when a JSON boundary must reconstruct the exact runtime type and shape.
+Use Natural JSON (`to_json_value`) when the receiver only needs ordinary JSON.
+
+| Requirement | Use |
+| --- | --- |
+| Restore `Int32(42)` as `Int32`, not as an untyped JSON number | Wire V1 |
+| Distinguish scalar `42` from collection `[42]` | Wire V1 |
+| Preserve `Unset(DataType::String)` | Wire V1 |
+| Produce normal `null`, numbers, strings, objects, and arrays for a JSON API | Natural JSON |
+
+### Envelope, shape, and payload
+
+`ValueWireV1` is the standalone version-one envelope. It contains numeric
+`version: 1` and a typed `value` shape. The shape is either `scalar` or
+`collection`; its payload key names are the lowercase Wire names of the
+`DataType` variants.
 
 ```json
 {"version":1,"value":{"scalar":{"int32":42}}}
-{"version":1,"value":{"scalar":{"unset":"int32"}}}
+{"version":1,"value":{"scalar":{"unset":"string"}}}
 {"version":1,"value":{"collection":{"int32":[1,2]}}}
 {"version":1,"value":{"collection":{"int32":[]}}}
 {"version":1,"value":{"collection":{"unset":"int32"}}}
 ```
 
-The canonical JSON V1 representation is byte-stable for the same value under
-the supported `serde_json` version and configuration. Every Serde serializer
-receives `StringMap` entries in ascending lexicographic (dictionary) key order;
-nested JSON object keys follow the same recursive ordering. Other Serde formats
-are outside the V1 byte-level stability contract.
+`ValueWirePayloadV1` is the same typed shape without the outer version field;
+use it only when another protocol already owns the versioned envelope.
+`ValueWireRefV1` and `ValueWirePayloadRefV1` serialize borrowed values without
+cloning them.
 
-V1 is closed. Existing tags, shapes, and payload representations cannot
-change, and a future runtime data type requires a new wire version instead of
-extending V1.
+V1 is closed. Existing tags, shapes, and payload representations cannot be
+extended in place; a future runtime type requires a new wire version. String-map
+keys and nested JSON object keys are emitted in lexicographic order under the
+supported canonical JSON configuration.
 
-This structural guarantee does not make every concrete type available under
-every feature set. A concrete rich-type tag can be deserialized only when the
-receiving build enables its feature: `chrono` for date/time values,
-`big-integer` or `big-decimal` for big numbers, `url` for URLs, and `json` for
-JSON values. Producers and consumers exchanging those payloads should agree on
-the required features; an unsupported concrete tag is rejected. An `unset`
-payload may still preserve a declared `DataType` without enabling the feature
-needed to hold a concrete value of that type.
+### End-to-end: `ValueContainer` to JSON and back
 
-`Value` accepts scalar only, `MultiValues` accepts collection only, and
-`ValueContainer` accepts either. The envelope requires numeric version `1` and
-rejects unknown fields, unknown types, wrong shapes, and all pre-0.10 payloads.
-Wide integers use canonical decimal strings. `BigDecimal` uses an exact
-`{"coefficient":"...","scale":i64}` payload. `Duration` uses
-secs/nanos. Non-finite floats are rejected. `Json(null)` is concrete and
-distinct from `Unset(Json)`.
+The following example creates an explicitly scalar value, converts it into the
+owned Wire DTO, serializes it, applies input and semantic limits during decode,
+and restores the original container.
 
-Borrowed payloads must be created with `ValueWirePayloadRefV1::from_value`,
-`from_values`, `from_container`, or `TryFrom`. These fallible constructors
-validate finite floats and bounded `BigDecimal` scales before serialization;
-the internal payload representation is private, so an unchecked wire shape
-cannot be constructed by callers.
+```rust
+use qubit_value::{Value, ValueContainer, ValueWireV1, WireLimits};
 
-Owned adapters are available through fallible `TryFrom<Value>`,
-`TryFrom<MultiValues>`, and `TryFrom<ValueContainer>` for `ValueWireV1`, and
-`From<ValueWireV1>` for `ValueContainer`.
+let original = ValueContainer::Scalar(Value::new(8080i32));
+let wire = ValueWireV1::try_from(original.clone())
+    .expect("8080 is valid for the V1 wire format");
+let encoded = serde_json::to_vec(&wire)
+    .expect("the V1 envelope should serialize as JSON");
 
-`ValueWireV1::decode_json_slice()` and
-`ValueWireV1::decode_json_slice_with_limits()` accept complete top-level V1
-documents and enforce an input byte budget before decoding, then apply semantic
-resource limits after runtime materialization. When a value is embedded in a
-larger JSON document, call `WireLimits::begin(input.len())` before its single
-Serde decode. Reuse the returned `WireBudget` for every embedded value and pass
-each value's real outer depth so structural limits apply to the complete
-document. `begin_json()` additionally performs an independent syntax preflight
-and is only needed when that separate pass is explicitly required.
+assert_eq!(
+    encoded,
+    br#"{"version":1,"value":{"scalar":{"int32":8080}}}"#
+);
+
+let limits = WireLimits::new(64 * 1024)
+    .with_max_depth(32)
+    .with_max_nodes(128);
+let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, limits)
+    .expect("the complete document is within the configured limits");
+let restored: ValueContainer = decoded.into();
+
+assert_eq!(restored, original);
+assert!(restored.is_scalar());
+assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
+```
+
+The decode helpers accept a complete top-level Wire document. They check the
+encoded input length before materialization, then charge decoded depth, nodes,
+collection items, map entries, string bytes, and numeric bytes against the
+limits. `WireLimits::default()` supplies the library defaults; construct
+`WireLimits::new(max_input_bytes)` when the application owns the input budget.
+
+### Borrowed Wire encoding
+
+Use a borrowed adapter when the source value already lives long enough for the
+serialization call and cloning would be unnecessary.
+
+```rust
+use qubit_value::{Value, ValueWireRefV1};
+
+let value = Value::String("service-a".to_owned());
+let borrowed = ValueWireRefV1::from_value(&value)
+    .expect("the string is valid for the V1 wire format");
+let encoded = serde_json::to_vec(&borrowed)
+    .expect("the borrowed envelope should serialize");
+
+assert_eq!(
+    encoded,
+    br#"{"version":1,"value":{"scalar":{"string":"service-a"}}}"#
+);
+```
+
+For an already versioned outer protocol, use
+`ValueWirePayloadRefV1::from_value`, `from_values`, or `from_container` and
+serialize the payload instead. These constructors are fallible because they
+validate finite floats, bounded `BigDecimal` scale, and reserved JSON object
+keys before exposing a serializable payload.
+
+### Embedded values and a shared `WireBudget`
+
+`decode_json_slice_with_limits` is for a complete top-level Wire document. If a
+value is nested inside a larger JSON document, deserialize the outer document
+once, start one budget with the complete input length, then reuse that budget
+for every embedded value. Pass the value's actual outer depth so wrappers count
+correctly.
+
+```rust
+use serde::Deserialize;
+use qubit_value::{ValueContainer, ValueWireV1, WireLimits};
+
+#[derive(Deserialize)]
+struct Request {
+    value: ValueWireV1,
+}
+
+let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
+let mut budget = WireLimits::new(64 * 1024)
+    .begin(input.len())
+    .expect("the complete outer document fits the input budget");
+let request: Request = serde_json::from_slice(input)
+    .expect("the outer JSON and nested Wire envelope are valid");
+
+budget
+    .check_container_at(request.value.container(), 2)
+    .expect("the nested value fits the shared semantic budget");
+let restored: ValueContainer = request.value.into();
+assert!(restored.is_collection());
+```
+
+The outer object is not charged as a `Value` node, but its depth is reflected by
+the `2` passed to `check_container_at`. Reusing one budget accumulates node
+usage across multiple values in the same request. `WireLimits::begin_json()`
+is available when the application explicitly needs a separate syntax preflight;
+normal decoding should validate syntax once through Serde and then charge the
+returned budget.
+
+### Wire-specific type and input boundaries
+
+- `Int128`, `UInt128`, and `BigInteger` use canonical decimal strings rather
+  than JSON numbers that might lose precision.
+- `BigDecimal` uses an exact coefficient/scale payload and rejects a scale whose
+  absolute value exceeds the V1 bound.
+- `Duration` uses a `{ "secs": ..., "nanos": ... }` payload with nanos below
+  one second.
+- `Float32` and `Float64` may contain non-finite values in memory, but V1
+  rejects NaN and infinities because JSON has no such number literals.
+- `Json(null)` is a concrete JSON value and is distinct from `Unset(Json)`.
+- A concrete rich type can be decoded only by a build with its corresponding
+  feature. Unsupported feature-gated payloads are rejected rather than guessed.
+- Unknown fields, unknown types, wrong scalar/collection shapes, non-numeric
+  versions, and pre-0.10 externally tagged documents are rejected.
 
 ## Natural JSON
 
-With both `converter` and `json`, `to_json_value()` emits ordinary application
-JSON without runtime type tags and recursively orders object keys. Use Wire V1
-whenever the receiver must reconstruct the exact runtime type and shape.
+With `converter` and `json`, Natural JSON projects a runtime value into ordinary
+`serde_json::Value`:
+
+```rust
+use qubit_value::Value;
+
+let value = Value::StringMap(std::collections::HashMap::from([
+    ("host".to_owned(), "localhost".to_owned()),
+]));
+let json = value
+    .to_json_value()
+    .expect("the string map can be represented as JSON");
+assert_eq!(json["host"], "localhost");
+```
+
+Natural JSON intentionally loses the runtime `DataType` tag. An unset value
+projects to `null`, and every concrete collection projects to an array,
+including a one-item collection. Use Wire V1 when those distinctions must be
+reconstructed.
+
+## Errors and diagnostics
+
+Value operations return `ValueResult<T>`, an alias for `Result<T, ValueError>`.
+The important categories are:
+
+| Error | Meaning |
+| --- | --- |
+| `ValueError::Missing` | value is unset, a collection is empty, or conversion produced no value |
+| `ValueError::TypeMismatch` | strict `get<T>()` requested a different type |
+| `ValueError::Conversion` | a scalar conversion is unsupported or invalid |
+| `ValueError::ListConversion` | a collection conversion failed and retains the source index |
+| `ValueWireEncodeError` | a value violates V1 encoding rules, such as a non-finite float |
+| `ValueWireDecodeError` | JSON, version, shape, feature, or resource-limit validation failed |
+
+Handle missing values separately from invalid values. A default is appropriate
+for an intentionally absent configuration property, not for a malformed port or
+a type mismatch. For diagnostics containing string maps or JSON objects, use
+the explicit `redact` view when the application has sensitive fields; ordinary
+`Debug` formatting is not implicitly redacted.
+
+## Troubleshooting
+
+### `get<T>()` returns a type mismatch
+
+Inspect `value.data_type()` and use a typed getter when the source type must be
+exact. If conversion is intended, enable `converter` and call `to<T>()` with a
+policy that matches the application.
+
+### A default is not used
+
+Check whether the container is actually unset. A concrete empty `MultiValues`
+is not an unset collection. Also check whether the conversion policy classifies
+the source as missing; ordinary invalid conversions do not use `to_or` defaults.
+
+### Wire decoding rejects a value
+
+Check, in order:
+
+1. the input is one complete JSON document rather than a fragment;
+2. `version` is numeric `1`;
+3. the `scalar`/`collection` shape matches the intended container;
+4. the receiving build enables the feature for the concrete type;
+5. the input and decoded structure fit `WireLimits`;
+6. the value contains no non-finite float or invalid bounded payload.
+
+### A JSON boundary loses type information
+
+That is expected from Natural JSON. Replace `to_json_value()` with
+`ValueWireV1` when the receiver must restore `DataType`, unset state, or shape.
+
+## Limitations and best practices
+
+- Keep the feature sets of Wire producers and consumers explicit when concrete
+  `chrono`, big-number, URL, or JSON payloads cross a boundary.
+- Use `ValueContainer` whenever scalar versus collection is part of the input
+  contract; do not infer shape from collection length.
+- Use bounded Wire decode entry points for untrusted complete JSON input. For an
+  embedded value, account for the complete outer document and share one budget.
+- Do not treat `Eq`/`Hash` output as a persistent fingerprint. Hash behavior is
+  for in-memory Rust collections and may vary with hasher, platform, versions,
+  features, or implementation.
+- Do not assume ordinary `Debug` output is redacted. Create a redacted view
+  explicitly when the `redact` feature and policy crate are in use.
+- Natural JSON is an interoperability projection, not a lossless runtime value
+  format.
+
+## Built on `Value`
+
+`Value` is intentionally a reusable value layer rather than a complete key-value
+product. Two sibling crates build directly on it:
+
+- [`rs-config`](https://github.com/qubit-ltd/rs-config) is for application
+  configuration properties and configuration-oriented reads from sources such
+  as files or environment variables.
+- [`rs-metadata`](https://github.com/qubit-ltd/rs-metadata) is for typed metadata
+  and property values attached to resources or records, including filtering and
+  querying scenarios.
+
+Use these crates when you need key management and domain-level operations in
+addition to the typed storage and conversion primitives described here.
+
+## Further reading
+
+- [README](../README.md)
+- [中文 README](../README.zh_CN.md)
+- [中文用户手册](user_guide.zh_CN.md)
+- [API documentation](https://docs.rs/qubit-value)
+- [`qubit-datatype` conversion documentation](https://docs.rs/qubit-datatype/latest/qubit_datatype/)
