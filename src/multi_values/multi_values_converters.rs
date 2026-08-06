@@ -19,11 +19,11 @@ use qubit_datatype::{
 };
 
 use crate::IntoValueDefault;
+use crate::ValueMissing;
 use crate::value_error::{
     ValueError,
     ValueResult,
 };
-use crate::ValueMissing;
 
 use super::multi_values::{
     MultiValues,
@@ -32,8 +32,7 @@ use super::multi_values::{
 
 /// Reports whether conversion semantics permit a fallback value.
 fn is_defaultable_missing(missing: ValueMissing) -> bool {
-    missing.is_unset()
-        || matches!(missing, ValueMissing::Conversion { .. })
+    missing.is_unset() || matches!(missing, ValueMissing::Conversion { .. })
 }
 
 macro_rules! multi_values_convert_first_match {

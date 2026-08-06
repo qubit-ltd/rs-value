@@ -35,8 +35,7 @@ fn test_missing_error_exposes_default_semantics() {
         })
     );
     assert!(error.missing().is_some_and(|missing| {
-        missing.is_unset()
-            || matches!(missing, ValueMissing::Conversion { .. })
+        missing.is_unset() || matches!(missing, ValueMissing::Conversion { .. })
     }));
 }
 

@@ -15,8 +15,7 @@
 /// `deserialize_any`. V1 rejects this key in JSON payload objects before
 /// encoding them.
 #[cfg(feature = "json")]
-pub(crate) const JSON_NUMBER_TOKEN: &str =
-    "$serde_json::private::Number";
+pub(crate) const JSON_NUMBER_TOKEN: &str = "$serde_json::private::Number";
 
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Deserialize;
