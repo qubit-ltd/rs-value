@@ -159,9 +159,10 @@ fn test_wire_budget_counts_string_map_values_as_nodes() {
 
 #[test]
 fn test_wire_budget_counts_string_map_collection_nodes_globally() {
-    let values = MultiValues::StringMap(vec![HashMap::from([
-        ("key".to_owned(), "value".to_owned()),
-    ])]);
+    let values = MultiValues::StringMap(vec![HashMap::from([(
+        "key".to_owned(),
+        "value".to_owned(),
+    )])]);
     let mut budget = WireLimits::new(0)
         .with_max_nodes(2)
         .begin(0)
@@ -264,16 +265,46 @@ fn test_wire_budget_matrix_covers_every_runtime_data_type() {
             Value::Char('\u{00e9}'),
             qubit_value::ValueWireLimitKind::StringBytes,
         ),
-        (Value::Int8(12), qubit_value::ValueWireLimitKind::NumericBytes),
-        (Value::Int16(12), qubit_value::ValueWireLimitKind::NumericBytes),
-        (Value::Int32(12), qubit_value::ValueWireLimitKind::NumericBytes),
-        (Value::Int64(12), qubit_value::ValueWireLimitKind::NumericBytes),
-        (Value::Int128(12), qubit_value::ValueWireLimitKind::NumericBytes),
-        (Value::UInt8(12), qubit_value::ValueWireLimitKind::NumericBytes),
-        (Value::UInt16(12), qubit_value::ValueWireLimitKind::NumericBytes),
-        (Value::UInt32(12), qubit_value::ValueWireLimitKind::NumericBytes),
-        (Value::UInt64(12), qubit_value::ValueWireLimitKind::NumericBytes),
-        (Value::UInt128(12), qubit_value::ValueWireLimitKind::NumericBytes),
+        (
+            Value::Int8(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::Int16(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::Int32(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::Int64(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::Int128(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::UInt8(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::UInt16(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::UInt32(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::UInt64(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
+        (
+            Value::UInt128(12),
+            qubit_value::ValueWireLimitKind::NumericBytes,
+        ),
         (
             Value::Float32(12.5),
             qubit_value::ValueWireLimitKind::NumericBytes,
@@ -294,16 +325,20 @@ fn test_wire_budget_matrix_covers_every_runtime_data_type() {
             Value::String("ab".to_owned()),
             qubit_value::ValueWireLimitKind::StringBytes,
         ),
-        (Value::Date(date), qubit_value::ValueWireLimitKind::StringBytes),
-        (Value::Time(time), qubit_value::ValueWireLimitKind::StringBytes),
+        (
+            Value::Date(date),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
+        (
+            Value::Time(time),
+            qubit_value::ValueWireLimitKind::StringBytes,
+        ),
         (
             Value::DateTime(date.and_time(time)),
             qubit_value::ValueWireLimitKind::StringBytes,
         ),
         (
-            Value::Instant(
-                date.and_time(time).and_utc(),
-            ),
+            Value::Instant(date.and_time(time).and_utc()),
             qubit_value::ValueWireLimitKind::StringBytes,
         ),
         (

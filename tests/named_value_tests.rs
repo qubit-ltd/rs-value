@@ -50,7 +50,8 @@ fn test_named_value_serializes_with_v1_wire_contract() {
 #[test]
 fn test_named_value_bounded_decode_reuses_value_budget() {
     let named = NamedValue::new("port", Value::Int32(42));
-    let input = serde_json::to_vec(&named).expect("named value should serialize");
+    let input =
+        serde_json::to_vec(&named).expect("named value should serialize");
 
     let name_error = NamedValue::decode_json_slice_with_limits(
         &input,

@@ -18,11 +18,11 @@ use serde::de::{
     Visitor,
 };
 
+use super::internal::display_length;
 use super::{
     ValueWireDecodeError,
     ValueWireLimitKind,
 };
-use super::internal::display_length;
 use crate::{
     MultiValuesRef,
     ValueContainer,
@@ -510,9 +510,7 @@ impl WireBudget {
         self.check_depth(depth)?;
         self.check_node()?;
         match value {
-            ValueRef::Char(value) => {
-                self.check_string_bytes(value.len_utf8())
-            }
+            ValueRef::Char(value) => self.check_string_bytes(value.len_utf8()),
             ValueRef::String(value) => self.check_string_bytes(value.len()),
             ValueRef::StringMap(value) => {
                 self.check_map_entries(value.len())?;
@@ -573,8 +571,9 @@ impl WireBudget {
                 self.check_numeric_bytes(display_length(value))
             }
             #[cfg(feature = "chrono")]
-            ValueRef::Date(value) => self
-                .check_string_bytes(display_length(value.format("%F"))),
+            ValueRef::Date(value) => {
+                self.check_string_bytes(display_length(value.format("%F")))
+            }
             #[cfg(feature = "chrono")]
             ValueRef::Time(value) => self.check_string_bytes(display_length(
                 value.format("%H:%M:%S%.f"),
@@ -592,7 +591,9 @@ impl WireBudget {
                 self.check_numeric_bytes(display_length(value.subsec_nanos()))
             }
             #[cfg(feature = "url")]
-            ValueRef::Url(value) => self.check_string_bytes(value.as_str().len()),
+            ValueRef::Url(value) => {
+                self.check_string_bytes(value.as_str().len())
+            }
             _ => Ok(()),
         }
     }
