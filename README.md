@@ -282,9 +282,11 @@ assert_eq!(first_val, 1);
 
 ### Defaulted Reads and Conversions
 
-Defaulted APIs use the fallback only when the container is unset. A concrete
-empty `MultiValues` vector remains an empty result; it does not trigger the
-fallback. Type mismatches and failed conversions still return errors.
+Strict defaulted APIs use the fallback only when the container is unset. The
+conversion default APIs also use it when the conversion policy reports a
+concrete source as missing, such as a configured blank-as-missing policy. A
+concrete empty `MultiValues` vector remains an empty result; type mismatches
+and ordinary failed conversions still return errors.
 
 ```rust
 use qubit_datatype::DataType;
@@ -417,13 +419,14 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
   the shared conversion rules. Supports cross-type conversion with range
   checking where applicable.
 - **`Value::to_or<T>(&self, default) -> ValueResult<T>`** — converts to `T`,
-  or returns the default when the value is unset.
+  or returns the default for unset or conversion-missing values.
 - **`Value::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   same fallback behavior while using explicit conversion options.
 - **`MultiValues::to_first<T>(&self) -> ValueResult<T>`** — converts the first stored
   value.
 - **`MultiValues::to_first_or<T>(&self, default) -> ValueResult<T>`** — converts the
-  first stored value, or returns the default only when the container is unset.
+  first stored value, or returns the default for unset or conversion-missing
+  values.
 - **`MultiValues::to_first_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   same fallback behavior while using explicit conversion options.
 - **`MultiValues::to_list<T>(&self) -> ValueResult<Vec<T>>`** — converts all
@@ -431,8 +434,8 @@ exactly `T`. For cross-type conversion use `to<T>()` instead.
 - **`MultiValues::to_list_with<T>(&self, options) -> ValueResult<Vec<T>>`** —
   converts all stored values with explicit conversion options.
 - **`MultiValues::to_list_or<T>(&self, default) -> ValueResult<Vec<T>>`** —
-  converts all stored values, or returns the default when the container is
-  unset. A concrete empty vector stays empty.
+  converts all stored values, or returns the default for unset or
+  conversion-missing values. A concrete empty vector stays empty.
 - **`MultiValues::to_list_or_with<T>(&self, default, options) -> ValueResult<Vec<T>>`** —
   same list fallback behavior while using explicit conversion options.
 
@@ -628,7 +631,8 @@ validation by constructing an unchecked shape.
 Generic Serde deserialization does not impose an external message-size budget.
 For untrusted JSON, use `ValueWireV1::decode_json_slice()` for a complete
 versioned document or `ValueWirePayloadV1::decode_json_slice()` for a complete
-embedded payload. Both enforce the default one-mebibyte limit before parsing;
+embedded payload. Both enforce the default one-mebibyte input limit before
+decoding and apply semantic resource limits after runtime materialization;
 select a protocol-specific budget with `WireLimits`:
 
 ```rust

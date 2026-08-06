@@ -262,8 +262,10 @@ assert_eq!(first_val, 1);
 
 ### 带默认值的读取与转换
 
-带默认值的 API 只会在容器未设置时使用 fallback。已经设置的空集合仍保持为空；
-类型不匹配和转换失败会正常返回错误，不会被默认值掩盖。
+严格读取的默认值 API 只会在容器未设置时使用 fallback。转换默认值 API
+还会在转换策略将具体值判定为缺失时使用 fallback，例如启用“空白即缺失”
+策略时。已经设置的空集合仍保持为空；类型不匹配和普通转换失败会正常返回
+错误，不会被默认值掩盖。
 
 ```rust
 use qubit_datatype::DataType;
@@ -394,12 +396,12 @@ assert_eq!(val, 8080);
 - **`Value::to<T>(&self) -> ValueResult<T>`** — 按共享转换规则将当前值转换为
   `T`，支持跨类型转换，必要时进行范围检查。
 - **`Value::to_or<T>(&self, default) -> ValueResult<T>`** — 转换为 `T`，
-  如果值未设置则返回默认值。
+  如果值未设置或转换结果为缺失则返回默认值。
 - **`Value::to_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   使用显式转换选项，并保持相同的默认值语义。
 - **`MultiValues::to_first<T>(&self) -> ValueResult<T>`** — 转换第一个存储值。
 - **`MultiValues::to_first_or<T>(&self, default) -> ValueResult<T>`** —
-  转换第一个存储值，仅当容器为 `Unset` 时返回默认值。
+  转换第一个存储值，在容器为 `Unset` 或转换结果为缺失时返回默认值。
 - **`MultiValues::to_first_or_with<T>(&self, default, options) -> ValueResult<T>`** —
   使用显式转换选项，并保持相同的默认值语义。
 - **`MultiValues::to_list<T>(&self) -> ValueResult<Vec<T>>`** —
@@ -407,7 +409,8 @@ assert_eq!(val, 8080);
 - **`MultiValues::to_list_with<T>(&self, options) -> ValueResult<Vec<T>>`** —
   使用显式转换选项转换所有存储值。
 - **`MultiValues::to_list_or<T>(&self, default) -> ValueResult<Vec<T>>`** —
-  转换所有存储值，仅在容器未设置时返回默认值；具体的空 vector 仍保持为空。
+  转换所有存储值，在容器未设置或转换结果为缺失时返回默认值；具体的空
+  vector 仍保持为空。
 - **`MultiValues::to_list_or_with<T>(&self, default, options) -> ValueResult<Vec<T>>`** —
   使用显式转换选项，并保持相同的列表默认值语义。
 
@@ -580,7 +583,8 @@ payload 必须是有限值。
 未经校验的 shape 来绕过这些检查。
 
 通用 Serde 反序列化不会自行施加外部消息大小预算。对于不可信 JSON，请使用
-`ValueWireV1::decode_json_slice()` 在解析前执行默认的一 MiB 限制，或通过
+`ValueWireV1::decode_json_slice()` 在解码前执行默认的一 MiB 输入限制，并在
+运行时值物化后执行语义资源限制；或通过
 `WireLimits` 选择符合协议的预算：
 
 ```rust
@@ -596,7 +600,7 @@ assert!(wire.container().is_scalar());
 这些 decode 方法只接受完整的顶层 `ValueWireV1` 文档。当 `Value`、
 `MultiValues` 或 `ValueContainer` 嵌入外层 JSON 文档时，应使用完整外层输入
 调用 `WireLimits::begin_json()`，再执行该文档自己的 Serde decoder。对每个
-嵌入值复用返回的 `WireBudget`，使结构限制作用于完整文档。
+嵌入值复用返回的 `WireBudget` 并传递真实外层深度，使结构限制作用于完整文档。
 
 保留类型的 V1 wire 与 `to_json_value()` 的自然 JSON 投影是两个独立契约。
 自然 JSON 不包含运行时类型标签，未设置值投影为 `null`。
