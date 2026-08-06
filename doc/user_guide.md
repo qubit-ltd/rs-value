@@ -15,6 +15,10 @@ database. For ready-made key-value containers built directly on `Value`, see
 [`rs-config`](https://github.com/qubit-ltd/rs-config) and
 [`rs-metadata`](https://github.com/qubit-ltd/rs-metadata) near the end.
 
+Rust snippets omit the surrounding function and assume a compatible `Result`
+return type, so errors are propagated with `?` instead of being hidden by
+`expect`.
+
 ## The problem and the model
 
 A runtime value has two independent properties:
@@ -45,7 +49,8 @@ Wire boundary.
 
 ## Scenario: read a small runtime configuration object
 
-Suppose a service receives `port`, `timeout`, and `tags` as runtime values. The
+Suppose a service receives scalar configuration properties `host`, `port`,
+`timeout`, and `debug` at runtime. It also receives repeated `tags` input. The
 success criteria are:
 
 - a text port can be converted to `u16` with a range-checked error;
@@ -56,21 +61,32 @@ success criteria are:
 The core path is:
 
 ```rust
+use std::collections::HashMap;
 use std::time::Duration;
 
 use qubit_datatype::DataType;
 use qubit_value::{MultiValues, Value, ValueContainer};
 
-let port_value = Value::String("8080".to_owned());
-let port: u16 = port_value
-    .to()
-    .expect("the configured port should fit in u16");
+let config = HashMap::from([
+    ("host".to_owned(), Value::new("localhost".to_owned())),
+    ("port".to_owned(), Value::new("8080".to_owned())),
+    ("debug".to_owned(), Value::new(false)),
+    (
+        "timeout".to_owned(),
+        Value::new_unset(DataType::Duration),
+    ),
+]);
+
+let host: String = config["host"].get()?;
+assert_eq!(host, "localhost");
+
+let port: u16 = config["port"].to()?;
 assert_eq!(port, 8080);
 
-let timeout_value = Value::new_unset(DataType::Duration);
-let timeout: Duration = timeout_value
-    .get_or(Duration::from_secs(30))
-    .expect("the fallback is a Duration");
+let debug: bool = config["debug"].get()?;
+assert!(!debug);
+
+let timeout: Duration = config["timeout"].get_or(Duration::from_secs(30))?;
 assert_eq!(timeout, Duration::from_secs(30));
 
 let tags = ValueContainer::Collection(MultiValues::new(["production"]));
@@ -163,7 +179,7 @@ use qubit_datatype::DataType;
 use qubit_value::Value;
 
 let mut value = Value::new(8080i32);
-let port: i32 = value.get().expect("the stored type is Int32");
+let port: i32 = value.get()?;
 assert_eq!(port, 8080);
 assert_eq!(value.data_type(), DataType::Int32);
 
@@ -173,7 +189,7 @@ assert_eq!(value.data_type(), DataType::Int32);
 
 value.set_type(DataType::String);
 value.set("8080");
-assert_eq!(value.get_string().expect("the stored type is String"), "8080");
+assert_eq!(value.get_string()?, "8080");
 ```
 
 `get<T>()` is strict. The stored variant must match `T`; it never guesses that
@@ -190,14 +206,14 @@ implemented.
 use qubit_value::MultiValues;
 
 let mut ports = MultiValues::new([8080i32, 8081, 8082]);
-assert_eq!(ports.get_int32s().expect("the type is Int32"), &[8080, 8081, 8082]);
+assert_eq!(ports.get_int32s()?, &[8080, 8081, 8082]);
 
-ports.add(8083).expect("the appended value has the same type");
-ports.add(vec![8084, 8085]).expect("the appended values have the same type");
+ports.add(8083)?;
+ports.add(vec![8084, 8085])?;
 ports.set([9000, 9001]);
 assert_eq!(ports.len(), 2);
 
-let first: i32 = ports.get_first().expect("the collection is not empty");
+let first: i32 = ports.get_first()?;
 assert_eq!(first, 9000);
 ```
 
@@ -215,13 +231,12 @@ wants.
 ```rust
 use qubit_value::Value;
 
-let text = Value::String("42".to_owned());
-let number: u32 = text.to().expect("42 is a valid u32");
+let text = Value::new("42".to_owned());
+let number: u32 = text.to()?;
 assert_eq!(number, 42);
 
 let fallback: u16 = Value::new_unset(qubit_datatype::DataType::UInt16)
-    .to_or(8080u16)
-    .expect("unset values use the conversion fallback");
+    .to_or(8080u16)?;
 assert_eq!(fallback, 8080);
 ```
 
@@ -237,15 +252,15 @@ use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
 
 let mut timeout = NamedValue::new("timeout", Value::new(30u64));
 assert_eq!(timeout.name(), "timeout");
-assert_eq!(timeout.value().get().expect("the type is UInt64"), 30);
+assert_eq!(timeout.value().get()?, 30);
 timeout.value_mut().set(45u64);
 
 let mut ports = NamedMultiValues::new("ports", MultiValues::new([8080u16, 8081]));
-ports.values_mut().add(8082u16).expect("the type is UInt16");
+ports.values_mut().add(8082u16)?;
 let first_port: u16 = ports
     .values()
     .get_first()
-    .expect("the collection is not empty");
+    ?;
 assert_eq!(first_port, 8080);
 ```
 
@@ -299,10 +314,8 @@ and restores the original container.
 use qubit_value::{Value, ValueContainer, ValueWireV1, WireLimits};
 
 let original = ValueContainer::Scalar(Value::new(8080i32));
-let wire = ValueWireV1::try_from(original.clone())
-    .expect("8080 is valid for the V1 wire format");
-let encoded = serde_json::to_vec(&wire)
-    .expect("the V1 envelope should serialize as JSON");
+let wire = ValueWireV1::try_from(original.clone())?;
+let encoded = serde_json::to_vec(&wire)?;
 
 assert_eq!(
     encoded,
@@ -312,8 +325,7 @@ assert_eq!(
 let limits = WireLimits::new(64 * 1024)
     .with_max_depth(32)
     .with_max_nodes(128);
-let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, limits)
-    .expect("the complete document is within the configured limits");
+let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, limits)?;
 let restored: ValueContainer = decoded.into();
 
 assert_eq!(restored, original);
@@ -335,11 +347,9 @@ serialization call and cloning would be unnecessary.
 ```rust
 use qubit_value::{Value, ValueWireRefV1};
 
-let value = Value::String("service-a".to_owned());
-let borrowed = ValueWireRefV1::from_value(&value)
-    .expect("the string is valid for the V1 wire format");
-let encoded = serde_json::to_vec(&borrowed)
-    .expect("the borrowed envelope should serialize");
+let value = Value::new("service-a".to_owned());
+let borrowed = ValueWireRefV1::from_value(&value)?;
+let encoded = serde_json::to_vec(&borrowed)?;
 
 assert_eq!(
     encoded,
@@ -371,15 +381,10 @@ struct Request {
 }
 
 let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
-let mut budget = WireLimits::new(64 * 1024)
-    .begin(input.len())
-    .expect("the complete outer document fits the input budget");
-let request: Request = serde_json::from_slice(input)
-    .expect("the outer JSON and nested Wire envelope are valid");
+let mut budget = WireLimits::new(64 * 1024).begin(input.len())?;
+let request: Request = serde_json::from_slice(input)?;
 
-budget
-    .check_container_at(request.value.container(), 2)
-    .expect("the nested value fits the shared semantic budget");
+budget.check_container_at(request.value.container(), 2)?;
 let restored: ValueContainer = request.value.into();
 assert!(restored.is_collection());
 ```
@@ -410,18 +415,60 @@ returned budget.
 ## Natural JSON
 
 With `converter` and `json`, Natural JSON projects a runtime value into ordinary
-`serde_json::Value`:
+`serde_json::Value`. The following example shows the exact JSON string emitted
+for several common values:
+
+```rust
+use std::collections::HashMap;
+
+use qubit_datatype::DataType;
+use qubit_value::{MultiValues, Value};
+
+assert_eq!(Value::new(42i32).to_json_value()?.to_string(), "42");
+assert_eq!(
+    Value::new("localhost".to_owned())
+        .to_json_value()?
+        .to_string(),
+    r#""localhost""#,
+);
+assert_eq!(
+    Value::new_unset(DataType::String)
+        .to_json_value()?
+        .to_string(),
+    "null",
+);
+assert_eq!(
+    MultiValues::new([8080i32, 8081])
+        .to_json_value()?
+        .to_string(),
+    "[8080,8081]",
+);
+assert_eq!(
+    Value::new(HashMap::from([
+        ("z".to_owned(), "26".to_owned()),
+        ("a".to_owned(), "1".to_owned()),
+    ]))
+    .to_json_value()?
+    .to_string(),
+    r#"{"a":"1","z":"26"}"#,
+);
+```
+
+The resulting strings are `42`, `"localhost"`, `null`, `[8080,8081]`, and
+`{"a":"1","z":"26"}` respectively. A scalar remains a scalar, an unset
+value becomes `null`, a concrete collection always becomes an array, and
+string-map keys are emitted in dictionary order.
+
+For a single map value, the equivalent construction is:
 
 ```rust
 use qubit_value::Value;
 
-let value = Value::StringMap(std::collections::HashMap::from([
+let value = Value::new(std::collections::HashMap::from([
     ("host".to_owned(), "localhost".to_owned()),
 ]));
-let json = value
-    .to_json_value()
-    .expect("the string map can be represented as JSON");
-assert_eq!(json["host"], "localhost");
+let json = value.to_json_value()?;
+assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
 ```
 
 Natural JSON intentionally loses the runtime `DataType` tag. An unset value
