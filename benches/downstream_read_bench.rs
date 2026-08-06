@@ -23,6 +23,7 @@ use qubit_datatype::{
 use qubit_value::{
     Value,
     ValueContainer,
+    ValueWireRefV1,
     ValueWireV1,
 };
 
@@ -125,6 +126,56 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
             black_box(value)
         });
     });
+
+    let borrowed_values = ValueContainer::from(vec![
+        "api".to_string(),
+        "worker".to_string(),
+        "scheduler".to_string(),
+    ]);
+    c.bench_function(
+        "downstream/value_wire_ref_v1_construct_and_encode_json",
+        |bencher| {
+            bencher.iter(|| {
+                let wire =
+                    ValueWireRefV1::try_from(black_box(&borrowed_values))
+                        .expect("benchmark wire value should validate");
+                let bytes = serde_json::to_vec(black_box(&wire))
+                    .expect("benchmark wire value should serialize");
+                black_box(bytes)
+            });
+        },
+    );
+
+    let borrowed_float_values = ValueContainer::from(
+        (0..256)
+            .map(|index| index as f64 / 10.0)
+            .collect::<Vec<_>>(),
+    );
+    let borrowed_float_wire = ValueWireRefV1::try_from(&borrowed_float_values)
+        .expect("finite benchmark floats should validate");
+    c.bench_function(
+        "downstream/value_wire_ref_v1_float_encode_json",
+        |bencher| {
+            bencher.iter(|| {
+                let bytes = serde_json::to_vec(black_box(&borrowed_float_wire))
+                    .expect("benchmark float wire should serialize");
+                black_box(bytes)
+            });
+        },
+    );
+    c.bench_function(
+        "downstream/value_wire_ref_v1_float_construct_and_encode_json",
+        |bencher| {
+            bencher.iter(|| {
+                let wire =
+                    ValueWireRefV1::try_from(black_box(&borrowed_float_values))
+                        .expect("benchmark float wire should validate");
+                let bytes = serde_json::to_vec(black_box(&wire))
+                    .expect("benchmark float wire should serialize");
+                black_box(bytes)
+            });
+        },
+    );
 }
 
 criterion_group!(
