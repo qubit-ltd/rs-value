@@ -1,0 +1,38 @@
+{
+  "threshold_exempt_files": {
+    "qubit-value": [
+      "src/finite_float.rs",
+      "src/json.rs",
+      "src/multi_values/multi_values.rs",
+      "src/multi_values/multi_values_converters.rs",
+      "src/multi_values/multi_values_core.rs",
+      "src/named_multi_values.rs",
+      "src/named_value.rs",
+      "src/strict_json/internal/map_key_serializer.rs",
+      "src/strict_json/internal/json_number_serializer.rs",
+      "src/strict_json/internal/object_serializer.rs",
+      "src/strict_json/internal/strict_json_error.rs",
+      "src/strict_json/internal/strict_json_serializer.rs",
+      "src/strict_json/internal/struct_serializer.rs",
+      "src/value/redaction.rs",
+      "src/value/value.rs",
+      "src/value/value_accessors.rs",
+      "src/value_container.rs",
+      "src/value_error.rs",
+      "src/value_missing.rs",
+      "src/value_wire/value_wire_limits.rs",
+      "src/value_wire/value_wire_payload_ref_v1.rs",
+      "src/value_wire/value_wire_payload_v1.rs",
+      "src/value_wire/value_wire_v1.rs",
+      "src/value_wire/internal/display_length.rs",
+      "src/wire.rs",
+      "src/wire/internal/big_decimal_payload.rs",
+      "src/wire/internal/canonical_json.rs",
+      "src/wire/internal/strict_json_value.rs",
+      "src/wire/internal/strict_string_map.rs",
+      "src/wire/json_vec.rs",
+      "src/wire/string_map.rs",
+      "src/wire/string_map_vec.rs"
+    ]
+  }
+}
