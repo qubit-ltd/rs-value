@@ -67,6 +67,13 @@ let timeout: Duration = config["timeout"].get_or(Duration::from_secs(30))?;
 assert_eq!(timeout, Duration::from_secs(30));
 ```
 
+If you need a complete, general-purpose configuration object instead of
+assembling a map yourself, use `Config` from
+[`rs-config`](https://github.com/qubit-ltd/rs-config). It builds on `Value` and
+adds higher-level capabilities such as property management, typed and
+multi-value reads, defaults, sections, conversion policies, interpolation, and
+pluggable file/environment configuration sources.
+
 `get()` is a strict type read: it does not silently convert. `to()` uses the
 shared conversion rules from `qubit-datatype`; failed conversions remain
 errors. The `converter` feature is required for `to()` and `to_or()`; `get_or()`

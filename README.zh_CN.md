@@ -60,6 +60,11 @@ let timeout: Duration = config["timeout"].get_or(Duration::from_secs(30))?;
 assert_eq!(timeout, Duration::from_secs(30));
 ```
 
+如果需要完整的通用配置对象，而不是自己组装 map，可以使用来自
+[`rs-config`](https://github.com/qubit-ltd/rs-config) 的 `Config`。它基于 `Value` 构建，并在此
+之上提供属性管理、类型化读取、多值读取、默认值、配置 section、转换策略、插值，以及可插拔的
+文件/环境变量配置源等更全面的高级能力。
+
 `get()` 是严格类型读取，不会静默转换。`to()` 使用 `qubit-datatype` 提供的共享转换规则；
 转换失败仍会返回错误。`to()` 和 `to_or()` 需要启用 `converter` feature；`get_or()` 只为
 未设置值提供 fallback，不执行转换。
