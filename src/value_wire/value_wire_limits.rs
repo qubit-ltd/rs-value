@@ -594,7 +594,7 @@ impl WireBudget {
             ValueRef::Url(value) => {
                 self.check_string_bytes(value.as_str().len())
             }
-            _ => Ok(()),
+            ValueRef::Unset(_) | ValueRef::Bool(_) => Ok(()),
         }
     }
 
@@ -641,7 +641,7 @@ impl WireBudget {
                 check_values!(values.iter().map(|_| ValueRef::Bool(false)))
             }
             MultiValuesRef::Char(values) => {
-                check_values!(values.iter().map(|_| ValueRef::Char('\0')))
+                check_values!(values.iter().copied().map(ValueRef::Char))
             }
             MultiValuesRef::Int8(values) => {
                 check_values!(values.iter().copied().map(ValueRef::Int8))
