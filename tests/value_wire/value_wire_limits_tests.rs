@@ -57,6 +57,24 @@ fn test_value_wire_limits_check_json_bytes_enforces_public_budget() {
 }
 
 #[test]
+fn test_wire_budget_checks_scalar_at_embedding_depth() {
+    let value = Value::Int32(42);
+    let mut budget = WireLimits::new(0)
+        .with_max_depth(2)
+        .begin(0)
+        .expect("the empty input budget should start");
+
+    assert!(matches!(
+        budget.check_value_at(&value, 3),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: qubit_value::ValueWireLimitKind::Depth,
+            value: 3,
+            maximum: 2,
+        })
+    ));
+}
+
+#[test]
 fn test_wire_limits_reject_collection_items() {
     let payload = ValueWirePayloadV1::try_from(MultiValues::Int32(vec![1, 2]))
         .expect("the finite collection should be wire-compatible");
@@ -148,7 +166,7 @@ fn test_wire_limits_reject_numeric_payload_length() {
 
 #[cfg(feature = "json")]
 #[test]
-fn test_json_preflight_rejects_arbitrary_precision_numeric_length() {
+fn test_json_decode_applies_numeric_limit_to_runtime_value() {
     let input = br#"{"scalar":{"json":1.234567}}"#;
     let limits = WireLimits::new(input.len()).with_max_numeric_bytes(4);
 
@@ -177,7 +195,7 @@ fn test_wire_budget_counts_big_decimal_coefficient_without_expanding_scale() {
 }
 
 #[test]
-fn test_json_preflight_rejects_excessive_string_before_runtime_decode() {
+fn test_json_decode_applies_string_limit_to_runtime_value() {
     let payload = ValueWirePayloadV1::try_from(Value::String("x".repeat(65)))
         .expect("the string should be wire-compatible");
     let input =
@@ -189,13 +207,13 @@ fn test_json_preflight_rejects_excessive_string_before_runtime_decode() {
         Err(ValueWireDecodeError::LimitExceeded {
             kind: qubit_value::ValueWireLimitKind::StringBytes,
             value: 65,
-            maximum: 64,
+            maximum: 4,
         })
     ));
 }
 
 #[test]
-fn test_json_preflight_rejects_excessive_object_before_runtime_decode() {
+fn test_json_decode_applies_map_limit_to_runtime_value() {
     let value = Value::Json(serde_json::Value::Object(
         (0..17)
             .map(|index| (format!("key{index}"), serde_json::json!(index)))
@@ -212,13 +230,13 @@ fn test_json_preflight_rejects_excessive_object_before_runtime_decode() {
         Err(ValueWireDecodeError::LimitExceeded {
             kind: qubit_value::ValueWireLimitKind::MapEntries,
             value: 17,
-            maximum: 16,
+            maximum: 1,
         })
     ));
 }
 
 #[test]
-fn test_json_preflight_rejects_excessive_nodes_before_runtime_decode() {
+fn test_json_decode_applies_node_limit_to_runtime_value() {
     let payload =
         ValueWirePayloadV1::try_from(MultiValues::Int32((0..70).collect()))
             .expect("the collection should be wire-compatible");
@@ -232,14 +250,14 @@ fn test_json_preflight_rejects_excessive_nodes_before_runtime_decode() {
         ValueWirePayloadV1::decode_json_slice_with_limits(&input, limits),
         Err(ValueWireDecodeError::LimitExceeded {
             kind: qubit_value::ValueWireLimitKind::Nodes,
-            value: 66,
-            maximum: 65,
+            value: 2,
+            maximum: 1,
         })
     ));
 }
 
 #[test]
-fn test_json_preflight_rejects_excessive_depth_before_runtime_decode() {
+fn test_json_decode_applies_depth_limit_to_runtime_value() {
     let mut json = serde_json::json!(0);
     for _ in 0..18 {
         json = serde_json::json!([json]);
@@ -254,8 +272,8 @@ fn test_json_preflight_rejects_excessive_depth_before_runtime_decode() {
         ValueWirePayloadV1::decode_json_slice_with_limits(&input, limits),
         Err(ValueWireDecodeError::LimitExceeded {
             kind: qubit_value::ValueWireLimitKind::Depth,
-            value: 18,
-            maximum: 17,
+            value: 2,
+            maximum: 1,
         })
     ));
 }

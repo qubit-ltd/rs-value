@@ -198,19 +198,19 @@ impl WireLimits {
         })
     }
 
-    /// Preflights one complete JSON document before allocating its decoded
-    /// runtime representation, then starts a semantic accounting session.
+    /// Preflights one complete JSON document before decoding its runtime
+    /// representation, then starts a semantic accounting session.
     ///
-    /// The preflight traverses every JSON array, object, string, and value in
-    /// the complete document with fixed protocol headroom. The returned budget
-    /// starts at zero so callers can apply the exact public limits to the
-    /// decoded runtime representation, including every embedded value in a
-    /// larger protocol.
+    /// The preflight validates complete-input size and JSON syntax while
+    /// traversing the document without materializing a JSON tree. Runtime
+    /// resource limits are charged by the returned budget after decoding so
+    /// embedded protocol wrappers do not consume value-node or depth headroom.
     ///
     /// # Errors
     ///
-    /// Returns an input-size, structural-limit, or JSON syntax error before
-    /// the caller deserializes its concrete wire DTO.
+    /// Returns an input-size or JSON syntax error before the caller
+    /// deserializes its concrete wire DTO. Semantic resource errors are
+    /// returned by the budget after the DTO has been materialized.
     #[inline]
     pub fn begin_json(
         self,
@@ -218,7 +218,7 @@ impl WireLimits {
     ) -> Result<WireBudget, ValueWireDecodeError> {
         self.check_json_bytes(input.len())?;
         let mut deserializer = serde_json::Deserializer::from_slice(input);
-        let mut preflight = JsonPreflightSeed::new(self);
+        let mut preflight = JsonPreflightSeed::new(input.len());
         if let Err(error) = (&mut preflight).deserialize(&mut deserializer) {
             if let Some(error) = preflight.violation.take() {
                 return Err(error);
@@ -452,6 +452,30 @@ impl WireBudget {
         }
     }
 
+    /// Validates one scalar value at an embedding depth.
+    ///
+    /// Use this method when the scalar is nested inside an outer wire
+    /// document. The depth is inclusive and should be supplied by the outer
+    /// protocol's accounting traversal.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Scalar value to validate.
+    /// * `depth` - Root-inclusive depth of the scalar in the complete document.
+    ///
+    /// # Errors
+    ///
+    /// Returns a resource-limit error when the value exceeds the configured
+    /// depth, node, string, or numeric budget.
+    #[inline(always)]
+    pub fn check_value_at(
+        &mut self,
+        value: &crate::Value,
+        depth: usize,
+    ) -> Result<(), ValueWireDecodeError> {
+        self.check_value_ref(value.view(), depth)
+    }
+
     fn check_multi_values(
         &mut self,
         values: MultiValuesRef<'_>,
@@ -623,8 +647,8 @@ fn big_decimal_numeric_len(value: &bigdecimal::BigDecimal) -> usize {
     value.as_bigint_and_exponent().0.to_string().len()
 }
 
-/// Parses JSON while charging structural limits without materializing a JSON
-/// tree or a wire DTO.
+/// Parses JSON with input-bounded traversal without materializing a JSON tree
+/// or a wire DTO.
 struct JsonPreflightSeed {
     limits: WireLimits,
     nodes: usize,
@@ -633,26 +657,19 @@ struct JsonPreflightSeed {
 
 impl JsonPreflightSeed {
     #[inline(always)]
-    fn new(limits: WireLimits) -> Self {
-        // The JSON document includes protocol field names and envelopes that do
-        // not exist in the decoded runtime value. Reserve fixed headroom here;
-        // the returned WireBudget applies the exact public limits afterwards.
+    fn new(input_bytes: usize) -> Self {
+        // Every JSON node and decoded scalar must occupy at least one input
+        // byte. Using the complete input length as the syntax-traversal ceiling
+        // avoids guessing how many wrapper nodes an outer protocol contributes;
+        // exact semantic limits are enforced after runtime decoding.
         let limits = WireLimits {
-            max_input_bytes: limits.max_input_bytes,
-            max_depth: limits.max_depth.saturating_add(16),
-            max_nodes: limits.max_nodes.saturating_add(64),
-            max_collection_items: limits.max_collection_items,
-            max_map_entries: if limits.max_map_entries < 16 {
-                16
-            } else {
-                limits.max_map_entries
-            },
-            max_string_bytes: if limits.max_string_bytes < 64 {
-                64
-            } else {
-                limits.max_string_bytes
-            },
-            max_numeric_bytes: limits.max_numeric_bytes,
+            max_input_bytes: input_bytes,
+            max_depth: input_bytes,
+            max_nodes: input_bytes,
+            max_collection_items: input_bytes,
+            max_map_entries: input_bytes,
+            max_string_bytes: input_bytes,
+            max_numeric_bytes: input_bytes,
         };
         Self {
             limits,
