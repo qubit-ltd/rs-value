@@ -34,6 +34,8 @@ concrete value exists.
 
 This is a small configuration-like map: each key stores a different `Value`,
 then the reader chooses strict access, explicit conversion, or a typed default.
+The snippet assumes it is inside a function that returns a compatible `Result`,
+so `?` can propagate value errors.
 
 ```rust
 use std::collections::HashMap;
@@ -52,32 +54,16 @@ let config = HashMap::from([
     ),
 ]);
 
-let host: String = config
-    .get("host")
-    .expect("the host key exists")
-    .get()
-    .expect("host is stored as a String");
+let host: String = config["host"].get()?;
 assert_eq!(host, "localhost");
 
-let port: u16 = config
-    .get("port")
-    .expect("the port key exists")
-    .to()
-    .expect("port should be a valid u16");
+let port: u16 = config["port"].to()?;
 assert_eq!(port, 8080);
 
-let debug: bool = config
-    .get("debug")
-    .expect("the debug key exists")
-    .get()
-    .expect("debug is stored as a bool");
+let debug: bool = config["debug"].get()?;
 assert!(!debug);
 
-let timeout: Duration = config
-    .get("timeout")
-    .expect("the timeout key exists")
-    .get_or(Duration::from_secs(30))
-    .expect("the fallback has the declared Duration type");
+let timeout: Duration = config["timeout"].get_or(Duration::from_secs(30))?;
 assert_eq!(timeout, Duration::from_secs(30));
 ```
 

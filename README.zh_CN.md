@@ -27,7 +27,8 @@
 ## 快速开始：一个小型运行时配置 map
 
 下面用一个简化版配置 map 展示典型流程：每个 key 保存一个不同的 `Value`，读取时根据场景
-选择严格读取、显式转换或带类型的默认值。
+选择严格读取、显式转换或带类型的默认值。下面的代码假定位于一个返回兼容 `Result` 的函数
+中，因此使用 `?` 传播值读取和转换错误。
 
 ```rust
 use std::collections::HashMap;
@@ -46,32 +47,16 @@ let config = HashMap::from([
     ),
 ]);
 
-let host: String = config
-    .get("host")
-    .expect("host key exists")
-    .get()
-    .expect("host is stored as a String");
+let host: String = config["host"].get()?;
 assert_eq!(host, "localhost");
 
-let port: u16 = config
-    .get("port")
-    .expect("port key exists")
-    .to()
-    .expect("port should be a valid u16");
+let port: u16 = config["port"].to()?;
 assert_eq!(port, 8080);
 
-let debug: bool = config
-    .get("debug")
-    .expect("debug key exists")
-    .get()
-    .expect("debug is stored as a bool");
+let debug: bool = config["debug"].get()?;
 assert!(!debug);
 
-let timeout: Duration = config
-    .get("timeout")
-    .expect("timeout key exists")
-    .get_or(Duration::from_secs(30))
-    .expect("the fallback has the declared Duration type");
+let timeout: Duration = config["timeout"].get_or(Duration::from_secs(30))?;
 assert_eq!(timeout, Duration::from_secs(30));
 ```
 
