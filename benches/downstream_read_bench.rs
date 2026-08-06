@@ -11,6 +11,7 @@
 use std::hint::black_box;
 
 use criterion::{
+    BatchSize,
     Criterion,
     criterion_group,
     criterion_main,
@@ -25,6 +26,7 @@ use qubit_value::{
     ValueContainer,
     ValueWireRefV1,
     ValueWireV1,
+    WireLimits,
 };
 
 /// Builds the scalar-string splitting policy used by configuration readers.
@@ -178,11 +180,33 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
     );
 }
 
+/// Benchmarks allocation-free semantic budget accounting on numeric storage.
+fn benchmark_numeric_wire_budget(c: &mut Criterion) {
+    let values = ValueContainer::from((0..4_096_i64).collect::<Vec<_>>());
+    let limits = WireLimits::new(0)
+        .with_max_nodes(4_097)
+        .with_max_collection_items(4_096);
+
+    c.bench_function("downstream/wire_budget_numeric_4096", |bencher| {
+        bencher.iter_batched(
+            || limits.begin(0).expect("empty input should fit"),
+            |mut budget| {
+                budget
+                    .check_container(black_box(&values))
+                    .expect("numeric collection should fit the budget");
+                black_box(budget)
+            },
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 criterion_group!(
     benches,
     benchmark_config_conversions,
     benchmark_metadata_numeric_comparison,
     benchmark_natural_json_projection,
     benchmark_value_wire_v1,
+    benchmark_numeric_wire_budget,
 );
 criterion_main!(benches);
