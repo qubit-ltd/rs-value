@@ -24,11 +24,15 @@ use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireLimitKind;
 use qubit_value::ValueWirePayloadV1;
+use qubit_value::WireBudget;
 use qubit_value::WireLimits;
 use serde_json::Value as JsonValue;
 use serde_json::json;
 use serde_json::to_vec;
 use url::Url;
+
+type StaticWireBudgetCheck =
+    fn(&WireBudget, usize) -> Result<(), ValueWireDecodeError>;
 
 #[test]
 fn test_value_wire_limits_default_uses_documented_byte_budget() {
@@ -78,6 +82,87 @@ fn test_wire_budget_checks_scalar_at_embedding_depth() {
             kind: ValueWireLimitKind::Depth,
             value: 3,
             maximum: 2,
+        })
+    ));
+}
+
+#[test]
+fn test_wire_budget_static_checks_preserve_limit_error_facts() {
+    let maximum = 7;
+    let budget = WireLimits::new(0)
+        .with_max_depth(maximum)
+        .with_max_collection_items(maximum)
+        .with_max_map_entries(maximum)
+        .with_max_string_bytes(maximum)
+        .with_max_numeric_bytes(maximum)
+        .begin(0)
+        .expect("the empty input budget should start");
+    let checks: [(ValueWireLimitKind, StaticWireBudgetCheck); 5] = [
+        (ValueWireLimitKind::Depth, WireBudget::check_depth),
+        (
+            ValueWireLimitKind::CollectionItems,
+            WireBudget::check_collection_items,
+        ),
+        (
+            ValueWireLimitKind::MapEntries,
+            WireBudget::check_map_entries,
+        ),
+        (
+            ValueWireLimitKind::StringBytes,
+            WireBudget::check_string_bytes,
+        ),
+        (
+            ValueWireLimitKind::NumericBytes,
+            WireBudget::check_numeric_bytes,
+        ),
+    ];
+
+    for (kind, check) in checks {
+        check(&budget, maximum)
+            .expect("a static check should accept its exact maximum");
+        assert!(matches!(
+            check(&budget, maximum + 1),
+            Err(ValueWireDecodeError::LimitExceeded {
+                kind: actual_kind,
+                value,
+                maximum: actual_maximum,
+            }) if actual_kind == kind && value == maximum + 1 && actual_maximum == maximum
+        ));
+        assert!(matches!(
+            check(&budget, usize::MAX),
+            Err(ValueWireDecodeError::LimitExceeded {
+                kind: actual_kind,
+                value,
+                maximum: actual_maximum,
+            }) if actual_kind == kind && value == usize::MAX && actual_maximum == maximum
+        ));
+    }
+}
+
+#[test]
+fn test_wire_budget_check_node_keeps_charging_after_limit_exceeded() {
+    let mut budget = WireLimits::new(0)
+        .with_max_nodes(1)
+        .begin(0)
+        .expect("the empty input budget should start");
+
+    budget
+        .check_node()
+        .expect("the first node should fit the limit");
+    assert!(matches!(
+        budget.check_node(),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: ValueWireLimitKind::Nodes,
+            value: 2,
+            maximum: 1,
+        })
+    ));
+    assert!(matches!(
+        budget.check_node(),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: ValueWireLimitKind::Nodes,
+            value: 3,
+            maximum: 1,
         })
     ));
 }

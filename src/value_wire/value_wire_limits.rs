@@ -11,6 +11,7 @@
 
 use std::fmt;
 
+use qubit_budget::ResourceLimit;
 use serde::Deserializer;
 use serde::de::DeserializeSeed;
 use serde::de::Error as DeError;
@@ -287,11 +288,13 @@ impl WireBudget {
         &self,
         depth: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        self.check_limit(
-            ValueWireLimitKind::Depth,
-            depth,
-            self.limits.max_depth,
-        )
+        ResourceLimit::new(self.limits.max_depth)
+            .check(ValueWireLimitKind::Depth, depth)
+            .map_err(|error| ValueWireDecodeError::LimitExceeded {
+                kind: error.into_kind(),
+                value: error.observed_at_least(),
+                maximum: error.maximum(),
+            })
     }
 
     /// Checks one collection length.
@@ -300,11 +303,13 @@ impl WireBudget {
         &self,
         items: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        self.check_limit(
-            ValueWireLimitKind::CollectionItems,
-            items,
-            self.limits.max_collection_items,
-        )
+        ResourceLimit::new(self.limits.max_collection_items)
+            .check(ValueWireLimitKind::CollectionItems, items)
+            .map_err(|error| ValueWireDecodeError::LimitExceeded {
+                kind: error.into_kind(),
+                value: error.observed_at_least(),
+                maximum: error.maximum(),
+            })
     }
 
     /// Checks one map length.
@@ -313,11 +318,13 @@ impl WireBudget {
         &self,
         entries: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        self.check_limit(
-            ValueWireLimitKind::MapEntries,
-            entries,
-            self.limits.max_map_entries,
-        )
+        ResourceLimit::new(self.limits.max_map_entries)
+            .check(ValueWireLimitKind::MapEntries, entries)
+            .map_err(|error| ValueWireDecodeError::LimitExceeded {
+                kind: error.into_kind(),
+                value: error.observed_at_least(),
+                maximum: error.maximum(),
+            })
     }
 
     /// Checks one decoded string length.
@@ -326,11 +333,13 @@ impl WireBudget {
         &self,
         bytes: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        self.check_limit(
-            ValueWireLimitKind::StringBytes,
-            bytes,
-            self.limits.max_string_bytes,
-        )
+        ResourceLimit::new(self.limits.max_string_bytes)
+            .check(ValueWireLimitKind::StringBytes, bytes)
+            .map_err(|error| ValueWireDecodeError::LimitExceeded {
+                kind: error.into_kind(),
+                value: error.observed_at_least(),
+                maximum: error.maximum(),
+            })
     }
 
     /// Checks one decoded numeric representation length in UTF-8 bytes.
@@ -339,11 +348,13 @@ impl WireBudget {
         &self,
         bytes: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        self.check_limit(
-            ValueWireLimitKind::NumericBytes,
-            bytes,
-            self.limits.max_numeric_bytes,
-        )
+        ResourceLimit::new(self.limits.max_numeric_bytes)
+            .check(ValueWireLimitKind::NumericBytes, bytes)
+            .map_err(|error| ValueWireDecodeError::LimitExceeded {
+                kind: error.into_kind(),
+                value: error.observed_at_least(),
+                maximum: error.maximum(),
+            })
     }
 
     /// Validates a decoded value container against the shared budget.
