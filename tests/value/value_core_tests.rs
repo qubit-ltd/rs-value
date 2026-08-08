@@ -9,16 +9,15 @@
 //!
 //! Tests for core and structural `Value` operations.
 
+use std::str::FromStr;
+
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-    ValueWireEncodeError,
-    ValueWireV1,
-};
-use std::str::FromStr;
+use qubit_value::Value;
+use qubit_value::ValueError;
+use qubit_value::ValueWireEncodeError;
+use qubit_value::ValueWireV1;
 
 #[test]
 fn test_value_creation() {
@@ -171,10 +170,10 @@ fn test_value_ref_types() {
 }
 #[test]
 fn test_value_datetime_types() {
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-    };
+    use chrono::DateTime;
+    use chrono::NaiveDate;
+    use chrono::NaiveTime;
+    use chrono::Utc;
 
     // Test Date
     let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
@@ -201,9 +200,8 @@ fn test_value_datetime_types() {
     assert_eq!(value.data_type(), DataType::DateTime);
 
     // Test Instant
-    let instant =
-        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
-            .expect("fixed test instant must be valid");
+    let instant = DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
+        .expect("fixed test instant must be valid");
     let mut value = Value::Unset(DataType::Instant);
     value.set(instant);
     assert_eq!(value.get_instant().unwrap(), instant);
@@ -238,10 +236,10 @@ fn test_set_on_non_empty_for_coverage() {
 #[test]
 fn test_data_type_coverage_all_variants() {
     // Test data_type() method coverage for all data type variants
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-    };
+    use chrono::DateTime;
+    use chrono::NaiveDate;
+    use chrono::NaiveTime;
+    use chrono::Utc;
 
     // Empty type (all possible DataType)
     assert_eq!(Value::Unset(DataType::Bool).data_type(), DataType::Bool);
@@ -326,7 +324,7 @@ fn test_data_type_coverage_all_variants() {
     );
     assert_eq!(
         Value::Instant(
-            chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
+            DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
                 .expect("fixed test instant must be valid"),
         )
         .data_type(),
@@ -343,10 +341,10 @@ fn test_data_type_coverage_all_variants() {
 }
 #[test]
 fn test_is_unset_distinguishes_empty_inner_values() {
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-    };
+    use chrono::DateTime;
+    use chrono::NaiveDate;
+    use chrono::NaiveTime;
+    use chrono::Utc;
 
     assert!(!Value::Bool(true).is_unset());
     assert!(!Value::Char('A').is_unset());
@@ -380,7 +378,7 @@ fn test_is_unset_distinguishes_empty_inner_values() {
     );
     assert!(
         !Value::Instant(
-            chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
+            DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
                 .expect("fixed test instant must be valid"),
         )
         .is_unset()

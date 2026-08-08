@@ -10,21 +10,19 @@
 //! Tests various functionalities of the named multi values container。
 
 use chrono::DateTime as UtcDateTime;
-use chrono::{
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+use chrono::NaiveDate;
+use chrono::NaiveDateTime;
+use chrono::NaiveTime;
+use chrono::Utc;
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    Value,
-    ValueWireDecodeError,
-    WireLimits,
-};
+use qubit_value::MultiValues;
+use qubit_value::NamedMultiValues;
+use qubit_value::NamedValue;
+use qubit_value::Value;
+use qubit_value::ValueError;
+use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireLimitKind;
+use qubit_value::WireLimits;
 
 /// Rejects schema fields outside the stable named-collection wrapper contract.
 #[test]
@@ -65,7 +63,7 @@ fn test_named_multi_values_bounded_decode_reuses_collection_budget() {
     assert!(matches!(
         error,
         ValueWireDecodeError::LimitExceeded {
-            kind: qubit_value::ValueWireLimitKind::Nodes,
+            kind: ValueWireLimitKind::Nodes,
             value: 4,
             maximum: 3,
         }
@@ -246,9 +244,8 @@ fn test_nmv_get_datetimes() {
 
 #[test]
 fn test_nmv_get_instants() {
-    let now: UtcDateTime<Utc> =
-        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
-            .expect("fixed test instant must be valid");
+    let now: UtcDateTime<Utc> = UtcDateTime::from_timestamp(1_700_000_000, 0)
+        .expect("fixed test instant must be valid");
     let nmv = NamedMultiValues::new("inst", MultiValues::Instant(vec![now]));
     let v: Vec<UtcDateTime<Utc>> = nmv.values().get().unwrap();
     assert_eq!(v, vec![now]);
@@ -372,7 +369,7 @@ fn test_named_multi_values_first_named_value_empty_preserves_type() {
     assert_eq!(named.value().data_type(), DataType::Float64);
     assert!(matches!(
         named.value().get_float64(),
-        Err(qubit_value::ValueError::Missing(_))
+        Err(ValueError::Missing(_))
     ));
 }
 
@@ -382,6 +379,6 @@ fn test_named_multi_values_empty_get_mismatched_type_returns_error() {
         NamedMultiValues::new("ports", MultiValues::Unset(DataType::Int32));
     assert!(matches!(
         nmv.values().get_strings(),
-        Err(qubit_value::ValueError::TypeMismatch { .. })
+        Err(ValueError::TypeMismatch { .. })
     ));
 }

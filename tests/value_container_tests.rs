@@ -11,24 +11,21 @@
 use std::collections::HashSet;
 use std::hash::Hash;
 
-use qubit_datatype::{
-    CollectionConversionOptions,
-    DataConversionOptions,
-    DataType,
-};
-use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    Value,
-    ValueContainer,
-    ValueError,
-    ValueWirePayloadV1,
-    ValueWireV1,
-};
-
+use qubit_datatype::CollectionConversionOptions;
+use qubit_datatype::DataConversionOptions;
+use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
 use qubit_redact::Redact;
+use qubit_value::MultiValues;
+use qubit_value::NamedMultiValues;
+use qubit_value::NamedValue;
+use qubit_value::Value;
+use qubit_value::ValueContainer;
+use qubit_value::ValueError;
+use qubit_value::ValueWirePayloadV1;
+use qubit_value::ValueWireV1;
+use serde_json::json;
+use serde_json::to_value;
 
 /// Proves every public value wrapper can be rendered through a redaction
 /// policy.
@@ -40,10 +37,9 @@ fn test_public_value_wrappers_implement_redact() {
     assert_redact::<Value>();
     assert_redact::<MultiValues>();
     assert_redact::<ValueContainer>();
-    assert_redact::<qubit_value::NamedValue>();
-    assert_redact::<qubit_value::NamedMultiValues>();
+    assert_redact::<NamedValue>();
+    assert_redact::<NamedMultiValues>();
 }
-use serde_json::json;
 
 /// Requires a type to satisfy the complete hash-key contract.
 fn assert_hash_key<T: Eq + Hash>() {}
@@ -247,14 +243,12 @@ fn test_value_container_tagged_wire_preserves_shape() {
     let collection = ValueContainer::from(vec![42_i32]);
 
     assert_eq!(
-        serde_json::to_value(
-            ValueWireV1::try_from(scalar).expect("scalar should fit V1"),
-        )
-        .expect("serialize scalar"),
+        to_value(ValueWireV1::try_from(scalar).expect("scalar should fit V1"),)
+            .expect("serialize scalar"),
         json!({"version": 1, "value": {"scalar": {"int32": 42}}})
     );
     assert_eq!(
-        serde_json::to_value(
+        to_value(
             ValueWireV1::try_from(collection)
                 .expect("collection should fit V1"),
         )
@@ -270,7 +264,7 @@ fn test_value_wire_payload_v1_preserves_shape_without_version() {
         .expect("scalar should fit V1 payload");
 
     assert_eq!(
-        serde_json::to_value(payload).expect("serialize V1 payload"),
+        to_value(payload).expect("serialize V1 payload"),
         json!({"scalar": {"int32": 42}}),
     );
 }

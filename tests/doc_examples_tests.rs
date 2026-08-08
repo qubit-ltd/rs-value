@@ -8,12 +8,10 @@
 //! Regression tests for public documentation examples.
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    Value,
-};
+use qubit_value::MultiValues;
+use qubit_value::NamedMultiValues;
+use qubit_value::NamedValue;
+use qubit_value::Value;
 
 #[test]
 fn test_doc_example_single_value_operations() {

@@ -7,16 +7,14 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    MultiValuesRef,
-    NamedMultiValues,
-    NamedValue,
-    Value,
-    ValueContainer,
-    ValueError,
-    ValueRef,
-};
+use qubit_value::MultiValues;
+use qubit_value::MultiValuesRef;
+use qubit_value::NamedMultiValues;
+use qubit_value::NamedValue;
+use qubit_value::Value;
+use qubit_value::ValueContainer;
+use qubit_value::ValueError;
+use qubit_value::ValueRef;
 
 #[test]
 fn unset_is_distinct_from_concrete_empty_values_without_optional_features() {
@@ -113,7 +111,7 @@ fn test_add_moves_owned_strings_when_promoting_scalar() {
     let ValueContainer::Collection(values) = container else {
         panic!("expected a string collection");
     };
-    let qubit_value::MultiValuesRef::String(values) = values.view() else {
+    let MultiValuesRef::String(values) = values.view() else {
         panic!("expected string values");
     };
     assert_eq!(values[1].as_ptr(), appended_ptr);
@@ -132,7 +130,7 @@ fn test_add_moves_owned_strings_into_collection() {
     let ValueContainer::Collection(values) = container else {
         panic!("expected a string collection");
     };
-    let qubit_value::MultiValuesRef::String(values) = values.view() else {
+    let MultiValuesRef::String(values) = values.view() else {
         panic!("expected string values");
     };
     assert_eq!(values[1].as_ptr(), appended_ptr);

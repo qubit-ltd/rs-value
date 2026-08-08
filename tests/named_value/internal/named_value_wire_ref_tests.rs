@@ -7,10 +7,8 @@
 // =============================================================================
 //! Verifies named scalar serialization through the borrowed wire DTO.
 
-use qubit_value::{
-    NamedValue,
-    Value,
-};
+use qubit_value::NamedValue;
+use qubit_value::Value;
 
 /// Serializes a named scalar through the V1 envelope.
 #[test]

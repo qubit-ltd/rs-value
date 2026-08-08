@@ -6,10 +6,10 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_value::{
-    Value,
-    ValueError,
-};
+use qubit_datatype::DataConversionErrorKind;
+use qubit_datatype::DataType;
+use qubit_value::Value;
+use qubit_value::ValueError;
 
 #[test]
 fn test_value_converter_converts_and_reports_invalid_input() {
@@ -19,13 +19,13 @@ fn test_value_converter_converts_and_reports_invalid_input() {
     let invalid = Value::String("not-a-number".to_string());
     assert!(matches!(
         invalid.to::<i32>(),
-        Err(ValueError::Conversion(error)) if error.kind() == qubit_datatype::DataConversionErrorKind::InvalidValue
+        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::InvalidValue
     ));
 }
 
 #[test]
 fn test_value_converter_uses_default_only_for_empty_values() {
-    let empty = Value::Unset(qubit_datatype::DataType::String);
+    let empty = Value::Unset(DataType::String);
     assert_eq!(empty.to_or::<String>("fallback").unwrap(), "fallback");
 
     let value = Value::String("actual".to_string());

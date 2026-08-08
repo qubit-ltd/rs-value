@@ -6,25 +6,19 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::{
-    HashMap,
-    HashSet,
-};
 use std::fmt::Debug;
-use std::hash::{
-    Hash,
-    Hasher,
-};
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveTime,
-    Utc,
-};
+use chrono::DateTime;
+use chrono::NaiveDate;
+use chrono::NaiveTime;
+use chrono::Utc;
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;

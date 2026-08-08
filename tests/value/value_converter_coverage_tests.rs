@@ -19,13 +19,13 @@
 //! - `u128` 的全部转换分支
 //! - `f32` 的全部转换分支
 
-use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-};
 use std::collections::HashMap;
 use std::time::Duration;
+
+use qubit_datatype::DataType;
+use qubit_datatype::InvalidValueReason;
+use qubit_value::Value;
+use qubit_value::ValueError;
 use url::Url;
 
 // ============================================================================
@@ -891,8 +891,9 @@ fn test_to_f32_empty() {
 
 #[test]
 fn test_to_f32_from_biginteger_normal() {
-    use num_bigint::BigInt;
     use std::str::FromStr;
+
+    use num_bigint::BigInt;
     let big = BigInt::from_str("42").unwrap();
     assert_eq!(Value::BigInteger(big).to::<f32>().unwrap(), 42.0f32);
 }
@@ -906,8 +907,9 @@ fn test_to_f32_from_biginteger_huge_out_of_range() {
 
 #[test]
 fn test_to_f32_from_bigdecimal_normal() {
-    use bigdecimal::BigDecimal;
     use std::str::FromStr;
+
+    use bigdecimal::BigDecimal;
     let bd = BigDecimal::from_str("2.25").unwrap();
     let result = Value::BigDecimal(bd).to::<f32>().unwrap();
     assert!((result - 2.25f32).abs() < 1e-5);
@@ -915,8 +917,9 @@ fn test_to_f32_from_bigdecimal_normal() {
 
 #[test]
 fn test_to_f32_from_bigdecimal_huge_out_of_range() {
-    use bigdecimal::BigDecimal;
     use std::str::FromStr;
+
+    use bigdecimal::BigDecimal;
     let huge = BigDecimal::from_str("1e1000").unwrap();
     assert!(Value::BigDecimal(huge).to::<f32>().is_err());
 }
@@ -931,7 +934,7 @@ fn test_to_f32_from_biginteger_out_of_range() {
         ValueError::Conversion(error)
             if matches!(
                 error.reason(),
-                Some(qubit_datatype::InvalidValueReason::OutOfRange),
+                Some(InvalidValueReason::OutOfRange),
             )
     ));
 }
@@ -939,14 +942,15 @@ fn test_to_f32_from_biginteger_out_of_range() {
 #[test]
 fn test_to_f32_from_bigdecimal_out_of_range() {
     use bigdecimal::BigDecimal;
-    let huge = BigDecimal::new(num_bigint::BigInt::from(10u8).pow(5000), 0);
+    use num_bigint::BigInt;
+    let huge = BigDecimal::new(BigInt::from(10u8).pow(5000), 0);
     let err = Value::BigDecimal(huge).to::<f32>().unwrap_err();
     assert!(matches!(
         err,
         ValueError::Conversion(error)
             if matches!(
                 error.reason(),
-                Some(qubit_datatype::InvalidValueReason::OutOfRange),
+                Some(InvalidValueReason::OutOfRange),
             )
     ));
 }
@@ -963,10 +967,8 @@ fn test_to_f32_wrong_type() {
 #[test]
 fn test_to_f64_from_biginteger_normal() {
     use num_bigint::BigInt;
-    use qubit_datatype::{
-        DataConversionOptions,
-        NumericConversionOptions,
-    };
+    use qubit_datatype::DataConversionOptions;
+    use qubit_datatype::NumericConversionOptions;
     let big = BigInt::from(i64::MAX);
     let options = DataConversionOptions::default()
         .with_numeric_options(NumericConversionOptions::lossy());
@@ -983,8 +985,9 @@ fn test_to_f64_from_biginteger_huge_out_of_range() {
 
 #[test]
 fn test_to_f64_from_bigdecimal_normal() {
-    use bigdecimal::BigDecimal;
     use std::str::FromStr;
+
+    use bigdecimal::BigDecimal;
     let bd = BigDecimal::from_str("2.25").unwrap();
     let result = Value::BigDecimal(bd).to::<f64>().unwrap();
     assert!((result - 2.25f64).abs() < 1e-10);
@@ -992,8 +995,9 @@ fn test_to_f64_from_bigdecimal_normal() {
 
 #[test]
 fn test_to_f64_from_bigdecimal_huge_out_of_range() {
-    use bigdecimal::BigDecimal;
     use std::str::FromStr;
+
+    use bigdecimal::BigDecimal;
     let huge = BigDecimal::from_str("1e1000").unwrap();
     assert!(Value::BigDecimal(huge).to::<f64>().is_err());
 }
@@ -1008,7 +1012,7 @@ fn test_to_f64_from_biginteger_out_of_range() {
         ValueError::Conversion(error)
             if matches!(
                 error.reason(),
-                Some(qubit_datatype::InvalidValueReason::OutOfRange),
+                Some(InvalidValueReason::OutOfRange),
             )
     ));
 }
@@ -1016,14 +1020,15 @@ fn test_to_f64_from_biginteger_out_of_range() {
 #[test]
 fn test_to_f64_from_bigdecimal_out_of_range() {
     use bigdecimal::BigDecimal;
-    let huge = BigDecimal::new(num_bigint::BigInt::from(10u8).pow(7000), 0);
+    use num_bigint::BigInt;
+    let huge = BigDecimal::new(BigInt::from(10u8).pow(7000), 0);
     let err = Value::BigDecimal(huge).to::<f64>().unwrap_err();
     assert!(matches!(
         err,
         ValueError::Conversion(error)
             if matches!(
                 error.reason(),
-                Some(qubit_datatype::InvalidValueReason::OutOfRange),
+                Some(InvalidValueReason::OutOfRange),
             )
     ));
 }

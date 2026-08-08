@@ -10,11 +10,9 @@
 //! Fuzzes bounded V1 JSON decoding and successful wire round trips.
 
 use libfuzzer_sys::fuzz_target;
-use qubit_value::{
-    ValueWireDecodeError,
-    ValueWireV1,
-    WireLimits,
-};
+use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireV1;
+use qubit_value::WireLimits;
 
 /// Small budget that keeps over-limit inputs common while accepting all seeds.
 const MAX_JSON_BYTES: usize = 94;

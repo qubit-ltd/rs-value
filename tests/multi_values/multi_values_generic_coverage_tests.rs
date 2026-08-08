@@ -10,17 +10,13 @@
 //! Covers the four generic entry points `set`/`add`/`get`/`get_first`,
 //! verifying all supported types and three parameter categories。
 
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveTime,
-    Utc,
-};
+use chrono::DateTime;
+use chrono::NaiveDate;
+use chrono::NaiveTime;
+use chrono::Utc;
 use qubit_datatype::DataType;
-use qubit_value::{
-    IntoValueDefault,
-    MultiValues,
-};
+use qubit_value::IntoValueDefault;
+use qubit_value::MultiValues;
 
 // ------------------------------ set: Vec<T> ------------------------------
 

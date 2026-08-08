@@ -9,19 +9,15 @@
 
 use std::collections::HashMap;
 
-use qubit_redact::{
-    MaskPolicy,
-    Redact as _,
-    RedactValue as _,
-    RedactionPolicy,
-    Sensitivity,
-};
-use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    Value,
-};
+use qubit_redact::MaskPolicy;
+use qubit_redact::Redact as _;
+use qubit_redact::RedactValue as _;
+use qubit_redact::RedactionPolicy;
+use qubit_redact::Sensitivity;
+use qubit_value::MultiValues;
+use qubit_value::NamedMultiValues;
+use qubit_value::NamedValue;
+use qubit_value::Value;
 
 #[test]
 fn test_value_redacted_view_masks_sensitive_string_map_entries() {

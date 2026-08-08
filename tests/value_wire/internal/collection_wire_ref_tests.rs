@@ -10,10 +10,8 @@
 
 #[test]
 fn test_borrowed_collection_wire_serializes() {
-    use qubit_value::{
-        ValueContainer,
-        ValueWireRefV1,
-    };
+    use qubit_value::ValueContainer;
+    use qubit_value::ValueWireRefV1;
 
     let value = ValueContainer::from(vec![1_i32]);
     assert!(

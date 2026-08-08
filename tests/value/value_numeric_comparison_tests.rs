@@ -7,21 +7,17 @@
 // =============================================================================
 
 use std::cmp::Ordering;
+#[cfg(feature = "big-number")]
+use std::str::FromStr;
 
 #[cfg(feature = "big-number")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "big-number")]
 use num_bigint::BigInt;
-use qubit_datatype::{
-    DataType,
-    NumericComparisonPolicy,
-};
-use qubit_value::{
-    NumericComparisonError,
-    Value,
-};
-#[cfg(feature = "big-number")]
-use std::str::FromStr;
+use qubit_datatype::DataType;
+use qubit_datatype::NumericComparisonPolicy;
+use qubit_value::NumericComparisonError;
+use qubit_value::Value;
 
 /// Verifies numeric equality is distinct from representation identity.
 #[test]

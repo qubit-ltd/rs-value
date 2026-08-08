@@ -12,20 +12,23 @@
 use std::fmt;
 
 #[cfg(all(feature = "converter", feature = "json"))]
-use serde::ser::{
-    SerializeMap,
-    SerializeSeq,
-    SerializeStruct,
-    SerializeStructVariant,
-    SerializeTuple,
-    SerializeTupleStruct,
-    SerializeTupleVariant,
-};
+use serde::Serialize;
 #[cfg(all(feature = "converter", feature = "json"))]
-use serde::{
-    Serialize,
-    Serializer,
-};
+use serde::Serializer;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde::ser::SerializeMap;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde::ser::SerializeSeq;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde::ser::SerializeStruct;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde::ser::SerializeStructVariant;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde::ser::SerializeTuple;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde::ser::SerializeTupleStruct;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde::ser::SerializeTupleVariant;
 
 #[cfg(all(feature = "converter", feature = "json"))]
 struct ScalarProbe(u8);
@@ -119,13 +122,14 @@ impl fmt::Display for DisplayProbe {
 #[test]
 fn test_strict_json_serializes_scalar_variants() {
     use qubit_value::Value;
+    use serde_json::json;
 
     assert_eq!(
         Value::from_serializable(&true)
             .expect("bool should serialize")
             .to_json_value()
             .expect("project JSON"),
-        serde_json::json!(true),
+        json!(true),
     );
 }
 
@@ -134,6 +138,7 @@ fn test_strict_json_serializes_scalar_variants() {
 fn test_strict_json_serializer_preserves_float32_text() {
     use qubit_value::Value;
     use serde_json::Number;
+    use serde_json::Value as JsonValue;
     use serde_json::to_string;
 
     for bits in [
@@ -150,7 +155,7 @@ fn test_strict_json_serializer_preserves_float32_text() {
             &value.to_json_value().expect("project strict JSON value"),
         )
         .expect("serialize json");
-        let legacy_text = serde_json::to_string(&serde_json::Value::Number(
+        let legacy_text = to_string(&JsonValue::Number(
             Number::from_f64(f64::from(f32_value)).expect("finite f64"),
         ))
         .expect("legacy serialize json");
@@ -184,11 +189,12 @@ fn test_strict_json_serializer_covers_serde_entry_points() {
 #[test]
 fn test_strict_json_preserves_arbitrary_precision_number() {
     use qubit_value::Value;
+    use serde_json::Value as JsonValue;
+    use serde_json::from_str;
 
-    let source = serde_json::from_str::<serde_json::Value>(
-        "123456789012345678901234567890.123456789",
-    )
-    .expect("number should parse");
+    let source =
+        from_str::<JsonValue>("123456789012345678901234567890.123456789")
+            .expect("number should parse");
     let value =
         Value::from_serializable(&source).expect("number should serialize");
 
@@ -203,8 +209,10 @@ fn test_strict_json_preserves_arbitrary_precision_number() {
 #[test]
 fn test_strict_json_preserves_nested_arbitrary_precision_number() {
     use qubit_value::Value;
+    use serde_json::Value as JsonValue;
+    use serde_json::from_str;
 
-    let source = serde_json::from_str::<serde_json::Value>(
+    let source = from_str::<JsonValue>(
         r#"{"outer":[0.000000000000000000000000000000000001,{"inner":999999999999999999999999999999}]}"#,
     )
     .expect("nested value should parse");

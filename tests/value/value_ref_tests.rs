@@ -6,10 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_value::{
-    Value,
-    ValueRef,
-};
+use qubit_value::Value;
+use qubit_value::ValueRef;
 
 #[test]
 fn test_value_ref_borrows_scalar_payload_without_changing_it() {

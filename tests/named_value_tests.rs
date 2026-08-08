@@ -10,19 +10,16 @@
 //! Tests various functionalities of the named single value container。
 
 use chrono::DateTime as UtcDateTime;
-use chrono::{
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+use chrono::NaiveDate;
+use chrono::NaiveDateTime;
+use chrono::NaiveTime;
+use chrono::Utc;
 use qubit_datatype::DataType;
-use qubit_value::{
-    NamedValue,
-    Value,
-    ValueWireDecodeError,
-    WireLimits,
-};
+use qubit_value::NamedValue;
+use qubit_value::Value;
+use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireLimitKind;
+use qubit_value::WireLimits;
 
 /// Rejects schema fields outside the stable named-value wrapper contract.
 #[test]
@@ -61,7 +58,7 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
     assert!(matches!(
         name_error,
         ValueWireDecodeError::LimitExceeded {
-            kind: qubit_value::ValueWireLimitKind::StringBytes,
+            kind: ValueWireLimitKind::StringBytes,
             value: 4,
             maximum: 3,
         }
@@ -75,7 +72,7 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
     assert!(matches!(
         node_error,
         ValueWireDecodeError::LimitExceeded {
-            kind: qubit_value::ValueWireLimitKind::Nodes,
+            kind: ValueWireLimitKind::Nodes,
             value: 2,
             maximum: 1,
         }
@@ -271,9 +268,8 @@ fn test_named_value_get_datetime() {
 
 #[test]
 fn test_named_value_get_instant() {
-    let inst: UtcDateTime<Utc> =
-        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
-            .expect("fixed test instant must be valid");
+    let inst: UtcDateTime<Utc> = UtcDateTime::from_timestamp(1_700_000_000, 0)
+        .expect("fixed test instant must be valid");
     let nv = NamedValue::new("inst", Value::Instant(inst));
     assert_eq!(nv.value().get_instant().unwrap(), inst);
 }
@@ -445,9 +441,8 @@ fn test_named_value_set_get_datetime() {
 
 #[test]
 fn test_named_value_set_get_instant() {
-    let inst: UtcDateTime<Utc> =
-        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
-            .expect("fixed test instant must be valid");
+    let inst: UtcDateTime<Utc> = UtcDateTime::from_timestamp(1_700_000_000, 0)
+        .expect("fixed test instant must be valid");
     let mut nv = NamedValue::new("inst", Value::Instant(inst));
     nv.value_mut().set(inst);
     let got: UtcDateTime<Utc> = nv.value().get().unwrap();

@@ -9,10 +9,8 @@
 //! Tests canonical decimal hashing through the public value API.
 
 use std::collections::hash_map::DefaultHasher;
-use std::hash::{
-    Hash,
-    Hasher,
-};
+use std::hash::Hash;
+use std::hash::Hasher;
 
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;

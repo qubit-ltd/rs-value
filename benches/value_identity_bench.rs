@@ -8,21 +8,17 @@
 //! Benchmarks for `Value` identity hashing and hash-map lookup.
 
 use std::collections::HashMap;
-use std::hash::{
-    Hash,
-    Hasher,
-};
+use std::hash::Hash;
+use std::hash::Hasher;
+use std::hint::black_box;
 
 use bigdecimal::BigDecimal;
-use criterion::{
-    Criterion,
-    criterion_group,
-    criterion_main,
-};
+use criterion::Criterion;
+use criterion::criterion_group;
+use criterion::criterion_main;
 use num_bigint::BigInt;
 use qubit_value::Value;
 use serde_json::json;
-use std::hint::black_box;
 
 /// Hashes one value with the standard library's default hasher.
 fn hash_value(value: &Value) -> u64 {

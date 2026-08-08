@@ -12,10 +12,8 @@
 #[test]
 fn test_big_integer_wire_round_trip() {
     use num_bigint::BigInt;
-    use qubit_value::{
-        Value,
-        ValueWireV1,
-    };
+    use qubit_value::Value;
+    use qubit_value::ValueWireV1;
 
     let expected = Value::BigInteger(BigInt::from(42));
     let wire = ValueWireV1::try_from(expected.clone()).unwrap();

@@ -6,17 +6,13 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_datatype::{
-    DataConversionError,
-    DataType,
-    InvalidValueReason,
-};
-use qubit_value::{
-    MultiValues,
-    Value,
-    ValueError,
-    ValueMissing,
-};
+use qubit_datatype::DataConversionError;
+use qubit_datatype::DataType;
+use qubit_datatype::InvalidValueReason;
+use qubit_value::MultiValues;
+use qubit_value::Value;
+use qubit_value::ValueError;
+use qubit_value::ValueMissing;
 
 #[test]
 fn test_multi_values_converters_convert_first_list_and_value() {
@@ -56,7 +52,7 @@ fn test_multi_values_empty_conversion_preserves_conversion_semantics() {
     else {
         panic!("expected an empty collection conversion error");
     };
-    assert_eq!(to, qubit_datatype::DataType::Int32);
+    assert_eq!(to, DataType::Int32);
 }
 
 macro_rules! assert_multi_values_identity_conversion {

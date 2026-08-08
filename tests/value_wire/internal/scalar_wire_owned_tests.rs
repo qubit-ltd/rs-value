@@ -10,10 +10,8 @@
 
 #[test]
 fn test_owned_scalar_wire_round_trip() {
-    use qubit_value::{
-        Value,
-        ValueWireV1,
-    };
+    use qubit_value::Value;
+    use qubit_value::ValueWireV1;
 
     let wire = ValueWireV1::try_from(Value::Int32(1)).expect("construct wire");
     assert_eq!(

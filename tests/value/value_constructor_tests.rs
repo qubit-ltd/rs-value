@@ -6,11 +6,12 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+use std::str::FromStr;
+
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::Value;
-use std::str::FromStr;
 use url::Url;
 
 #[test]

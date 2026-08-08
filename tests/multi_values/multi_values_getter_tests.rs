@@ -7,11 +7,9 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    ValueError,
-    ValueMissing,
-};
+use qubit_value::MultiValues;
+use qubit_value::ValueError;
+use qubit_value::ValueMissing;
 
 #[test]
 fn test_multi_values_getter_is_strict() {
