@@ -8,16 +8,12 @@
 
 use std::error::Error;
 
-use qubit_datatype::{
-    DataConversionError,
-    DataListConversionError,
-    DataType,
-    InvalidValueReason,
-};
-use qubit_value::{
-    ValueError,
-    ValueMissing,
-};
+use qubit_datatype::DataConversionError;
+use qubit_datatype::DataListConversionError;
+use qubit_datatype::DataType;
+use qubit_datatype::InvalidValueReason;
+use qubit_value::ValueError;
+use qubit_value::ValueMissing;
 
 #[test]
 fn test_missing_error_exposes_default_semantics() {

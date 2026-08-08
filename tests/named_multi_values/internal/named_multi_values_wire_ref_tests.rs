@@ -7,10 +7,8 @@
 // =============================================================================
 //! Verifies named collection serialization through the borrowed wire DTO.
 
-use qubit_value::{
-    MultiValues,
-    NamedMultiValues,
-};
+use qubit_value::MultiValues;
+use qubit_value::NamedMultiValues;
 
 /// Serializes a named collection through the V1 envelope.
 #[test]

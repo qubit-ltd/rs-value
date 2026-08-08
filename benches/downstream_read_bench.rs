@@ -11,24 +11,18 @@
 use std::collections::HashMap;
 use std::hint::black_box;
 
-use criterion::{
-    BatchSize,
-    Criterion,
-    criterion_group,
-    criterion_main,
-};
-use qubit_datatype::{
-    CollectionConversionOptions,
-    DataConversionOptions,
-    NumericComparisonPolicy,
-};
-use qubit_value::{
-    Value,
-    ValueContainer,
-    ValueWireRefV1,
-    ValueWireV1,
-    WireLimits,
-};
+use criterion::BatchSize;
+use criterion::Criterion;
+use criterion::criterion_group;
+use criterion::criterion_main;
+use qubit_datatype::CollectionConversionOptions;
+use qubit_datatype::DataConversionOptions;
+use qubit_datatype::NumericComparisonPolicy;
+use qubit_value::Value;
+use qubit_value::ValueContainer;
+use qubit_value::ValueWireRefV1;
+use qubit_value::ValueWireV1;
+use qubit_value::WireLimits;
 use serde_json::json;
 
 /// Builds the scalar-string splitting policy used by configuration readers.

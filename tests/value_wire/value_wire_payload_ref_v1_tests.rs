@@ -10,10 +10,8 @@
 
 #[test]
 fn test_borrowed_payload_omits_envelope() {
-    use qubit_value::{
-        Value,
-        ValueWirePayloadRefV1,
-    };
+    use qubit_value::Value;
+    use qubit_value::ValueWirePayloadRefV1;
 
     assert_eq!(
         serde_json::to_value(

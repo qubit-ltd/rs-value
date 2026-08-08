@@ -8,11 +8,9 @@
 
 //! Tests for borrowed V1 envelope serialization.
 
-use qubit_value::{
-    ValueContainer,
-    ValueWireRefV1,
-    ValueWireV1,
-};
+use qubit_value::ValueContainer;
+use qubit_value::ValueWireRefV1;
+use qubit_value::ValueWireV1;
 
 #[test]
 fn test_value_wire_ref_v1_preserves_the_owned_wire_contract() {

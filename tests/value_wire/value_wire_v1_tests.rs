@@ -8,12 +8,10 @@
 
 //! Regression tests for bounded `ValueWireV1` JSON decoding.
 
-use qubit_value::{
-    ValueContainer,
-    ValueWireDecodeError,
-    ValueWireV1,
-    WireLimits,
-};
+use qubit_value::ValueContainer;
+use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireV1;
+use qubit_value::WireLimits;
 
 #[test]
 fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {

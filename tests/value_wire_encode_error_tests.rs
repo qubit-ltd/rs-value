@@ -7,11 +7,9 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueWireEncodeError,
-    ValueWirePayloadV1,
-};
+use qubit_value::Value;
+use qubit_value::ValueWireEncodeError;
+use qubit_value::ValueWirePayloadV1;
 
 /// Verifies V1 construction rejects float values JSON cannot represent.
 #[test]

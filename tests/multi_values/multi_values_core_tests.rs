@@ -7,12 +7,10 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    ValueError,
-    ValueWireEncodeError,
-    ValueWireV1,
-};
+use qubit_value::MultiValues;
+use qubit_value::ValueError;
+use qubit_value::ValueWireEncodeError;
+use qubit_value::ValueWireV1;
 
 #[test]
 fn test_multi_values_len_and_is_empty_distinguish_unset_from_concrete_empty_values()

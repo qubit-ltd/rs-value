@@ -7,10 +7,8 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    ValueError,
-};
+use qubit_value::MultiValues;
+use qubit_value::ValueError;
 
 #[test]
 fn test_multi_values_getters_return_slices_without_copying() {

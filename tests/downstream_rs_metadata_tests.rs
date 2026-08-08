@@ -8,11 +8,9 @@
 
 use std::collections::HashMap;
 
-use qubit_redact::{
-    Redact as _,
-    RedactionPolicy,
-    Sensitivity,
-};
+use qubit_redact::Redact as _;
+use qubit_redact::RedactionPolicy;
+use qubit_redact::Sensitivity;
 use qubit_value::Value;
 
 #[test]

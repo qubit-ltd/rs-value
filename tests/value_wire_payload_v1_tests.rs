@@ -6,12 +6,12 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_value::{
-    ValueContainer,
-    ValueWireDecodeError,
-    ValueWirePayloadV1,
-    WireLimits,
-};
+use qubit_value::MultiValues;
+use qubit_value::Value;
+use qubit_value::ValueContainer;
+use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWirePayloadV1;
+use qubit_value::WireLimits;
 
 /// Verifies unversioned V1 payloads retain an explicit collection shape.
 #[test]
@@ -52,21 +52,19 @@ fn test_value_wire_payload_v1_decode_json_slice_honors_limits() {
 
 #[test]
 fn test_value_wire_payload_v1_owned_conversions_cover_all_shapes() {
-    let scalar = ValueWirePayloadV1::try_from(qubit_value::Value::Int32(7))
+    let scalar = ValueWirePayloadV1::try_from(Value::Int32(7))
         .expect("construct scalar payload");
     assert_eq!(scalar.container(), &ValueContainer::from(7_i32));
     let scalar_container: ValueContainer = scalar.into();
     assert_eq!(scalar_container, ValueContainer::from(7_i32));
 
-    let collection =
-        ValueWirePayloadV1::try_from(qubit_value::MultiValues::Int32(vec![7]))
-            .expect("construct collection payload");
+    let collection = ValueWirePayloadV1::try_from(MultiValues::Int32(vec![7]))
+        .expect("construct collection payload");
     assert_eq!(collection.container(), &ValueContainer::from(vec![7_i32]));
     let collection_container: ValueContainer = collection.into();
     assert_eq!(collection_container, ValueContainer::from(vec![7_i32]));
 
-    let explicit =
-        ValueContainer::Scalar(qubit_value::Value::String("shape".to_string()));
+    let explicit = ValueContainer::Scalar(Value::String("shape".to_string()));
     let payload = ValueWirePayloadV1::try_from(explicit.clone())
         .expect("construct explicit payload");
     assert_eq!(payload.into_container(), explicit);

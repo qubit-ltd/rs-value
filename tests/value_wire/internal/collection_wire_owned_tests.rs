@@ -10,10 +10,8 @@
 
 #[test]
 fn test_owned_collection_wire_round_trip() {
-    use qubit_value::{
-        ValueContainer,
-        ValueWireV1,
-    };
+    use qubit_value::ValueContainer;
+    use qubit_value::ValueWireV1;
 
     let wire = ValueWireV1::try_from(ValueContainer::from(vec![1_i32]))
         .expect("construct wire");

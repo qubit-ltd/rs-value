@@ -10,10 +10,8 @@
 
 #[test]
 fn test_borrowed_wire_shape_preserves_collection() {
-    use qubit_value::{
-        MultiValues,
-        ValueWireRefV1,
-    };
+    use qubit_value::MultiValues;
+    use qubit_value::ValueWireRefV1;
 
     assert_eq!(
         serde_json::to_value(

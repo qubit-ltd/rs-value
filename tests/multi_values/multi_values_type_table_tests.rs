@@ -7,10 +7,8 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    MultiValues,
-    Value,
-};
+use qubit_value::MultiValues;
+use qubit_value::Value;
 
 #[test]
 fn test_value_type_table_maps_representative_variants() {

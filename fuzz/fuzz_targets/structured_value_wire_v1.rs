@@ -13,20 +13,16 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
-use chrono::{
-    NaiveDate,
-    NaiveTime,
-    TimeZone,
-    Utc,
-};
+use chrono::NaiveDate;
+use chrono::NaiveTime;
+use chrono::TimeZone;
+use chrono::Utc;
 use libfuzzer_sys::fuzz_target;
 use num_bigint::BigInt;
-use qubit_value::{
-    MultiValues,
-    Value,
-    ValueContainer,
-    ValueWireV1,
-};
+use qubit_value::MultiValues;
+use qubit_value::Value;
+use qubit_value::ValueContainer;
+use qubit_value::ValueWireV1;
 use url::Url;
 
 const TAG_COUNT: u8 = 52;

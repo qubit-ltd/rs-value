@@ -9,26 +9,23 @@
 //!
 //! Tests for `to::<T>()` conversion behavior.
 
+use std::str::FromStr;
+
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use num_bigint::BigInt;
-use qubit_datatype::{
-    BlankStringPolicy,
-    BooleanConversionOptions,
-    DataConversionError,
-    DataConversionErrorKind,
-    DataConversionOptions,
-    DataType,
-    InvalidValueReason,
-    NumericConversionOptions,
-    StringConversionOptions,
-};
-use qubit_value::{
-    Value,
-    ValueError,
-    ValueMissing,
-};
-use std::str::FromStr;
+use qubit_datatype::BlankStringPolicy;
+use qubit_datatype::BooleanConversionOptions;
+use qubit_datatype::DataConversionError;
+use qubit_datatype::DataConversionErrorKind;
+use qubit_datatype::DataConversionOptions;
+use qubit_datatype::DataType;
+use qubit_datatype::InvalidValueReason;
+use qubit_datatype::NumericConversionOptions;
+use qubit_datatype::StringConversionOptions;
+use qubit_value::Value;
+use qubit_value::ValueError;
+use qubit_value::ValueMissing;
 
 #[test]
 fn test_value_type_conversion() {
@@ -158,10 +155,10 @@ fn test_value_to_with_applies_common_conversion_options() {
 }
 #[test]
 fn test_value_datetime_to_string() {
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-    };
+    use chrono::DateTime;
+    use chrono::NaiveDate;
+    use chrono::NaiveTime;
+    use chrono::Utc;
 
     // Test Date to string conversion
     let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
@@ -185,9 +182,8 @@ fn test_value_datetime_to_string() {
     assert_eq!(str_repr, "2024-01-15T14:30:45");
 
     // Test Instant to string conversion
-    let instant =
-        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
-            .expect("fixed test instant must be valid");
+    let instant = DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
+        .expect("fixed test instant must be valid");
     let value = Value::Instant(instant);
     let str_repr = value.to::<String>().unwrap();
     assert!(str_repr.contains('T')); // RFC3339 format contains 'T'
@@ -523,10 +519,11 @@ fn test_value_as_float64_conversions() {
 fn test_big_type_conversions_for_coverage() {
     let lossy = DataConversionOptions::default()
         .with_numeric_options(NumericConversionOptions::lossy());
-    use bigdecimal::BigDecimal;
-    use num_bigint::BigInt;
     use std::f64;
     use std::str::FromStr;
+
+    use bigdecimal::BigDecimal;
+    use num_bigint::BigInt;
 
     // BigInt -> as_int32
     let v = Value::BigInteger(BigInt::from(123));
@@ -827,10 +824,10 @@ fn test_as_bool_string_parse_error() {
 #[test]
 fn test_as_bool_all_unsupported_types() {
     // Test all types that do not support conversion to bool
-    use chrono::{
-        NaiveDate,
-        NaiveTime,
-    };
+    use chrono::DateTime;
+    use chrono::NaiveDate;
+    use chrono::NaiveTime;
+    use chrono::Utc;
 
     // Char type
     assert!(matches!(
@@ -877,7 +874,7 @@ fn test_as_bool_all_unsupported_types() {
     // Instant type
     assert!(matches!(
         Value::Instant(
-            chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
+            DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
                 .expect("fixed test instant must be valid"),
         )
         .to::<bool>(),
@@ -1449,8 +1446,9 @@ fn test_conversion_with_edge_values() {
 }
 #[test]
 fn test_as_int32_bigdecimal_out_of_range() {
-    use bigdecimal::BigDecimal;
     use std::str::FromStr;
+
+    use bigdecimal::BigDecimal;
 
     // Create a BigDecimal out of i32 range
     let huge_decimal = BigDecimal::from_str("999999999999999999.123").unwrap();
@@ -1522,9 +1520,10 @@ fn test_as_int64_non_numeric_type_conversion_failed() {
 }
 #[test]
 fn test_as_int64_big_types_edge_cases() {
+    use std::str::FromStr;
+
     use bigdecimal::BigDecimal;
     use num_bigint::BigInt;
-    use std::str::FromStr;
 
     // BigInteger out of i64 range
     let huge_bigint = BigInt::from_str("99999999999999999999").unwrap();
@@ -1544,6 +1543,7 @@ fn test_as_int64_big_types_edge_cases() {
 #[test]
 fn test_as_float64_non_numeric_type_conversion_failed() {
     use chrono::DateTime;
+    use chrono::Utc;
 
     // DateTime type cannot convert to f64
     let datetime = DateTime::from_timestamp(1_000_000_000, 0)
@@ -1564,9 +1564,8 @@ fn test_as_float64_non_numeric_type_conversion_failed() {
     }
 
     // Instant type also cannot convert
-    let instant =
-        chrono::DateTime::<chrono::Utc>::from_timestamp(1_700_000_000, 0)
-            .expect("fixed test instant must be valid");
+    let instant = DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
+        .expect("fixed test instant must be valid");
     let value = Value::Instant(instant);
     assert!(value.to::<f64>().is_err());
 

@@ -6,18 +6,15 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_datatype::{
-    DataConversionError,
-    DataConversionOptions,
-    DataConversionTarget,
-    DataType,
-    DataTypeOf,
-};
-use qubit_value::{
-    MultiValues,
-    Value,
-    ValueWireV1,
-};
+use qubit_datatype::DataConversionError;
+use qubit_datatype::DataConversionOptions;
+use qubit_datatype::DataConversionTarget;
+use qubit_datatype::DataConverter;
+use qubit_datatype::DataType;
+use qubit_datatype::DataTypeOf;
+use qubit_value::MultiValues;
+use qubit_value::Value;
+use qubit_value::ValueWireV1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Port(u16);
@@ -28,7 +25,7 @@ impl DataTypeOf for Port {
 
 impl DataConversionTarget for Port {
     fn convert_from(
-        source: &qubit_datatype::DataConverter<'_>,
+        source: &DataConverter<'_>,
         options: &DataConversionOptions,
     ) -> Result<Self, DataConversionError> {
         u16::convert_from(source, options).map(Self)

@@ -8,12 +8,10 @@
 
 //! Tests the public wire facade.
 
-use qubit_value::{
-    Value,
-    ValueContainer,
-    ValueWirePayloadV1,
-    ValueWireV1,
-};
+use qubit_value::Value;
+use qubit_value::ValueContainer;
+use qubit_value::ValueWirePayloadV1;
+use qubit_value::ValueWireV1;
 
 /// Verifies the public wire facade preserves scalar values.
 #[test]

@@ -10,10 +10,8 @@
 
 #[test]
 fn test_borrowed_scalar_wire_serializes() {
-    use qubit_value::{
-        Value,
-        ValueWireRefV1,
-    };
+    use qubit_value::Value;
+    use qubit_value::ValueWireRefV1;
 
     assert!(
         serde_json::to_value(

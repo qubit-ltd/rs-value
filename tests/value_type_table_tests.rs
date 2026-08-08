@@ -10,6 +10,7 @@
 
 use qubit_datatype::DataType;
 use qubit_value::Value;
+use qubit_value::ValueContainer;
 
 /// Constructs a concrete value for one datatype catalog entry.
 ///
@@ -97,5 +98,5 @@ fn test_value_type_table_covers_all_data_types() {
 #[test]
 fn test_value_layout_with_all_features_is_compact() {
     assert!(std::mem::size_of::<Value>() <= 64);
-    assert!(std::mem::size_of::<qubit_value::ValueContainer>() <= 64);
+    assert!(std::mem::size_of::<ValueContainer>() <= 64);
 }

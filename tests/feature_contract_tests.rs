@@ -6,6 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+#[cfg(feature = "redact")]
+use std::collections::HashMap;
 #[cfg(feature = "big-decimal")]
 use std::str::FromStr;
 
@@ -16,14 +18,25 @@ use chrono::NaiveDate;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 #[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionError,
-    DataConversionOptions,
-    DataConversionTarget,
-    DataConverter,
-    DataType,
-    DataTypeOf,
-};
+use qubit_datatype::DataConversionError;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionOptions;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionTarget;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConverter;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataType;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataTypeOf;
+#[cfg(feature = "redact")]
+use qubit_redact::MaskPolicy;
+#[cfg(feature = "redact")]
+use qubit_redact::Redact as _;
+#[cfg(feature = "redact")]
+use qubit_redact::RedactionPolicy;
+#[cfg(feature = "redact")]
+use qubit_redact::Sensitivity;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -33,6 +46,8 @@ use qubit_datatype::{
     feature = "json",
 ))]
 use qubit_value::MultiValues;
+#[cfg(feature = "redact")]
+use qubit_value::NamedValue;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -51,10 +66,16 @@ use qubit_value::Value;
     feature = "url",
     feature = "json"
 ))]
-use qubit_value::{
-    ValueContainer,
-    ValueWirePayloadV1,
-};
+use qubit_value::ValueContainer;
+#[cfg(any(
+    feature = "converter",
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
+use qubit_value::ValueWirePayloadV1;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -65,17 +86,6 @@ use qubit_value::{
 ))]
 #[cfg(feature = "url")]
 use url::Url;
-
-#[cfg(feature = "redact")]
-use std::collections::HashMap;
-
-#[cfg(feature = "redact")]
-use qubit_redact::{
-    MaskPolicy,
-    Redact as _,
-    RedactionPolicy,
-    Sensitivity,
-};
 
 #[cfg(any(
     feature = "converter",
@@ -247,8 +257,7 @@ fn redact_feature_masks_sensitive_string_map_entries() {
 #[cfg(feature = "redact")]
 #[test]
 fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
-    let value =
-        qubit_value::NamedValue::new("secret_number", Value::Int32(12345));
+    let value = NamedValue::new("secret_number", Value::Int32(12345));
     let policy = RedactionPolicy::builder()
         .raise("secret_number", Sensitivity::Low)
         .expect("the test builder input should be valid")

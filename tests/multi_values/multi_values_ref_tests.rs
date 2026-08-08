@@ -6,10 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_value::{
-    MultiValues,
-    MultiValuesRef,
-};
+use qubit_value::MultiValues;
+use qubit_value::MultiValuesRef;
 
 #[test]
 fn test_multi_values_ref_borrows_collection_payload_without_changing_it() {

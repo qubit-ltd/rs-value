@@ -7,11 +7,9 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_value::{
-    Value,
-    ValueError,
-    ValueMissing,
-};
+use qubit_value::Value;
+use qubit_value::ValueError;
+use qubit_value::ValueMissing;
 
 #[test]
 fn test_value_getter_is_strict_and_default_is_empty_only() {
@@ -172,13 +170,11 @@ fn test_value_scalar_getters_cover_all_builtin_types() {
 #[cfg(feature = "chrono")]
 #[test]
 fn test_value_chrono_getters_cover_unset_and_values() {
-    use chrono::{
-        DateTime,
-        NaiveDate,
-        NaiveDateTime,
-        NaiveTime,
-        Utc,
-    };
+    use chrono::DateTime;
+    use chrono::NaiveDate;
+    use chrono::NaiveDateTime;
+    use chrono::NaiveTime;
+    use chrono::Utc;
 
     assert_eq!(
         Value::Date(NaiveDate::from_ymd_opt(2025, 1, 2).unwrap())
