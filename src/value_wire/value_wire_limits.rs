@@ -11,23 +11,20 @@
 
 use std::fmt;
 
-use serde::de::{
-    DeserializeSeed,
-    MapAccess,
-    SeqAccess,
-    Visitor,
-};
+use serde::Deserializer;
+use serde::de::DeserializeSeed;
+use serde::de::Error as DeError;
+use serde::de::MapAccess;
+use serde::de::SeqAccess;
+use serde::de::Visitor;
 
+use super::ValueWireDecodeError;
+use super::ValueWireLimitKind;
 use super::internal::display_length;
-use super::{
-    ValueWireDecodeError,
-    ValueWireLimitKind,
-};
-use crate::{
-    MultiValuesRef,
-    ValueContainer,
-    ValueRef,
-};
+use crate::MultiValuesRef;
+use crate::ValueContainer;
+use crate::ValueRef;
+use crate::wire::JSON_NUMBER_TOKEN;
 
 /// Shared limits applied to one complete wire decode.
 #[must_use]
@@ -833,7 +830,7 @@ impl JsonPreflightSeed {
         maximum: usize,
     ) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         if value > maximum {
             self.violation = Some(ValueWireDecodeError::LimitExceeded {
@@ -852,7 +849,7 @@ impl JsonPreflightSeed {
     #[inline]
     fn check_node<E>(&mut self) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.nodes = self.nodes.saturating_add(1);
         self.check_limit(
@@ -865,7 +862,7 @@ impl JsonPreflightSeed {
     #[inline]
     fn check_depth<E>(&mut self, depth: usize) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.check_limit(
             ValueWireLimitKind::Depth,
@@ -877,7 +874,7 @@ impl JsonPreflightSeed {
     #[inline]
     fn check_collection_items<E>(&mut self, items: usize) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.check_limit(
             ValueWireLimitKind::CollectionItems,
@@ -889,7 +886,7 @@ impl JsonPreflightSeed {
     #[inline]
     fn check_map_entries<E>(&mut self, entries: usize) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.check_limit(
             ValueWireLimitKind::MapEntries,
@@ -901,7 +898,7 @@ impl JsonPreflightSeed {
     #[inline]
     fn check_string_bytes<E>(&mut self, bytes: usize) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.check_limit(
             ValueWireLimitKind::StringBytes,
@@ -913,7 +910,7 @@ impl JsonPreflightSeed {
     #[inline]
     fn check_numeric_bytes<E>(&mut self, bytes: usize) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.check_limit(
             ValueWireLimitKind::NumericBytes,
@@ -929,7 +926,7 @@ impl<'de> DeserializeSeed<'de> for &mut JsonPreflightSeed {
     #[inline]
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: serde::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
         deserializer.deserialize_any(JsonPreflightVisitor {
             preflight: self,
@@ -947,7 +944,7 @@ impl JsonPreflightVisitor<'_> {
     #[inline]
     fn scalar<E>(&mut self) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.preflight.check_depth(self.depth)?;
         self.preflight.check_node()
@@ -956,7 +953,7 @@ impl JsonPreflightVisitor<'_> {
     #[inline]
     fn string<E>(&mut self, value: &str) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.scalar()?;
         self.preflight.check_string_bytes(value.len())
@@ -965,7 +962,7 @@ impl JsonPreflightVisitor<'_> {
     #[inline]
     fn number<E>(&mut self, bytes: usize) -> Result<(), E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.scalar()?;
         self.preflight.check_numeric_bytes(bytes)
@@ -981,49 +978,49 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
 
     fn visit_bool<E>(mut self, _value: bool) -> Result<Self::Value, E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.scalar()
     }
 
     fn visit_i64<E>(mut self, value: i64) -> Result<Self::Value, E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.number(display_length(value))
     }
 
     fn visit_u64<E>(mut self, value: u64) -> Result<Self::Value, E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.number(display_length(value))
     }
 
     fn visit_f64<E>(mut self, value: f64) -> Result<Self::Value, E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.number(display_length(value))
     }
 
     fn visit_unit<E>(mut self) -> Result<Self::Value, E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.scalar()
     }
 
     fn visit_none<E>(mut self) -> Result<Self::Value, E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.scalar()
     }
 
     fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: serde::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
         (&mut *self.preflight).deserialize(deserializer)
     }
@@ -1033,21 +1030,21 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
         value: &'de str,
     ) -> Result<Self::Value, E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.string(value)
     }
 
     fn visit_str<E>(mut self, value: &str) -> Result<Self::Value, E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.string(value)
     }
 
     fn visit_string<E>(mut self, value: String) -> Result<Self::Value, E>
     where
-        E: serde::de::Error,
+        E: DeError,
     {
         self.string(&value)
     }
@@ -1083,7 +1080,7 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
 
         let mut entries = 1_usize;
         self.preflight.check_map_entries(entries)?;
-        if first_key == crate::wire::JSON_NUMBER_TOKEN {
+        if first_key == JSON_NUMBER_TOKEN {
             let number_text = access.next_value::<String>()?;
             let mut next_key = access.next_key::<String>()?;
             if next_key.is_none() {
@@ -1135,7 +1132,7 @@ impl<'de> DeserializeSeed<'de> for JsonPreflightChildSeed<'_> {
     #[inline]
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: serde::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
         deserializer.deserialize_any(JsonPreflightVisitor {
             preflight: self.preflight,

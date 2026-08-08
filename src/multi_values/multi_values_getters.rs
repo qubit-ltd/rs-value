@@ -14,29 +14,25 @@ use std::time::Duration;
 #[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "chrono")]
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+use chrono::DateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
+use chrono::Utc;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
+use qubit_datatype::DataType;
 #[cfg(feature = "url")]
 use url::Url;
 
-use qubit_datatype::DataType;
-
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
-
-use super::multi_values::{
-    MultiValues,
-    MultiValuesRepr,
-};
+use super::multi_values::MultiValues;
+use super::multi_values::MultiValuesRepr;
+use crate::value_error::ValueError;
+use crate::value_error::ValueResult;
 
 impl MultiValues {
     // ========================================================================

@@ -10,10 +10,9 @@
 
 use serde::Serialize;
 
+use super::WireDataTypeV1;
 use crate::Value;
 use crate::value::ValueRepr;
-
-use super::WireDataTypeV1;
 
 /// Defines the borrowed scalar payload and its exhaustive runtime conversion.
 macro_rules! define_scalar_wire_ref {

@@ -17,15 +17,26 @@ use std::time::Duration;
 #[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "chrono")]
-use chrono::{
-    DateTime,
-    NaiveDate,
-    NaiveDateTime,
-    NaiveTime,
-    Utc,
-};
+use chrono::DateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
+use chrono::Utc;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::DataConversionError;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::DataFormat;
+use qubit_datatype::DataType;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::InvalidValueReason;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde::Deserialize;
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde::Serialize;
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -33,23 +44,11 @@ use serde::de::DeserializeOwned;
 #[cfg(feature = "url")]
 use url::Url;
 
-use qubit_datatype::DataType;
-#[cfg(all(feature = "converter", feature = "json"))]
-use qubit_datatype::{
-    DataConversionError,
-    DataFormat,
-    InvalidValueReason,
-};
-
-use super::value::{
-    Value,
-    ValueRepr,
-};
+use super::value::Value;
+use super::value::ValueRepr;
 use crate::ValueMissing;
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
+use crate::value_error::ValueError;
+use crate::value_error::ValueResult;
 
 macro_rules! impl_get_value {
     // Copy type: directly dereference and return
@@ -664,17 +663,15 @@ impl Value {
     #[cfg(all(feature = "converter", feature = "json"))]
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match &self.repr {
-            ValueRepr::Json(v) => {
-                serde::Deserialize::deserialize(v).map_err(|_| {
-                    ValueError::from(DataConversionError::invalid(
-                        DataType::Json,
-                        DataType::Json,
-                        InvalidValueReason::Deserialization {
-                            format: DataFormat::Json,
-                        },
-                    ))
-                })
-            }
+            ValueRepr::Json(v) => Deserialize::deserialize(v).map_err(|_| {
+                ValueError::from(DataConversionError::invalid(
+                    DataType::Json,
+                    DataType::Json,
+                    InvalidValueReason::Deserialization {
+                        format: DataFormat::Json,
+                    },
+                ))
+            }),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
                 Err(ValueError::Missing(ValueMissing::UnsetScalar {
                     data_type: *dt,

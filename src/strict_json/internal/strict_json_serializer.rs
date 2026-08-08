@@ -9,28 +9,21 @@
 //! Root serializer for strict JSON value construction.
 
 use std::fmt::Display;
+use std::str::FromStr;
 
 use serde::Serialize;
 use serde::ser::Serializer;
-use serde_json::{
-    Map,
-    Number,
-    Value,
-};
-use std::str::FromStr;
+use serde_json::Map;
+use serde_json::Number;
+use serde_json::Value;
 
-use crate::strict_json::{
-    Result,
-    StrictJsonError,
-};
-
-use super::{
-    ObjectSerializer,
-    SequenceSerializer,
-    StructSerializer,
-    StructVariantSerializer,
-    TupleVariantSerializer,
-};
+use super::ObjectSerializer;
+use super::SequenceSerializer;
+use super::StructSerializer;
+use super::StructVariantSerializer;
+use super::TupleVariantSerializer;
+use crate::strict_json::Result;
+use crate::strict_json::StrictJsonError;
 
 /// Maximum number of compound items reserved from a Serde length hint.
 const MAX_PREALLOCATED_ITEMS: usize = 1_024;

@@ -10,20 +10,13 @@
 
 use qubit_datatype::DataType;
 
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
-use crate::{
-    IntoValueDefault,
-    Value,
-};
-
-use super::multi_values::{
-    MultiValues,
-    MultiValuesRepr,
-};
+use super::multi_values::MultiValues;
+use super::multi_values::MultiValuesRepr;
+use crate::IntoValueDefault;
+use crate::Value;
 use crate::value::ValueRepr;
+use crate::value_error::ValueError;
+use crate::value_error::ValueResult;
 
 macro_rules! multi_values_data_type_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {

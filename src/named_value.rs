@@ -13,28 +13,26 @@
 //! Suitable for scenarios such as log annotation, configuration item
 //! encapsulation, and preserving strongly typed values in key-value pairs.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
-
-use crate::ValueWireRefV1;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
+use serde::de::Error as DeserializeError;
+use serde::ser::Error as SerializeError;
 #[cfg(feature = "json")]
-use crate::{
-    ValueWireDecodeError,
-    WireLimits,
-};
+use serde_json::from_slice;
 
 use super::value::Value;
+#[cfg(feature = "json")]
+use crate::ValueWireDecodeError;
+use crate::ValueWireRefV1;
+#[cfg(feature = "json")]
+use crate::WireLimits;
 
 mod internal;
 
-use internal::{
-    NamedValueWireOwned,
-    NamedValueWireRef,
-};
+use internal::NamedValueWireOwned;
+use internal::NamedValueWireRef;
 
 /// Named single value
 ///
@@ -153,8 +151,8 @@ impl NamedValue {
         limits: WireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut budget = limits.begin(input.len())?;
-        let value: Self = serde_json::from_slice(input)
-            .map_err(ValueWireDecodeError::from)?;
+        let value: Self =
+            from_slice(input).map_err(ValueWireDecodeError::from)?;
         budget.check_named_value(&value)?;
         Ok(value)
     }
@@ -255,7 +253,7 @@ impl Serialize for NamedValue {
         S: Serializer,
     {
         let value = ValueWireRefV1::try_from(self.value())
-            .map_err(serde::ser::Error::custom)?;
+            .map_err(SerializeError::custom)?;
         NamedValueWireRef {
             name: self.name(),
             value,
@@ -274,7 +272,7 @@ impl<'de> Deserialize<'de> for NamedValue {
         let NamedValueWireOwned { name, value } =
             NamedValueWireOwned::deserialize(deserializer)?;
         let value = value.into_container().into_scalar().map_err(|_| {
-            serde::de::Error::custom(
+            DeserializeError::custom(
                 "named value wire payload must contain a scalar",
             )
         })?;

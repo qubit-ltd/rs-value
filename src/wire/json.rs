@@ -8,18 +8,16 @@
 
 //! Canonical Serde adapter for JSON values.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
+#[cfg(feature = "converter")]
+use serde_json::Map;
 use serde_json::Value;
 
-use super::internal::{
-    CanonicalJson,
-    StrictJsonValue,
-};
+use super::internal::CanonicalJson;
+use super::internal::StrictJsonValue;
 
 /// Serializes one JSON value with recursively ordered object keys.
 pub(crate) fn serialize<S>(
@@ -53,7 +51,7 @@ pub(crate) fn canonicalize_json_value(value: &Value) -> Value {
         Value::Object(values) => {
             let mut entries: Vec<_> = values.iter().collect();
             entries.sort_unstable_by_key(|(left, _)| *left);
-            let mut object = serde_json::Map::with_capacity(entries.len());
+            let mut object = Map::with_capacity(entries.len());
             for (key, value) in entries {
                 object.insert(key.clone(), canonicalize_json_value(value));
             }

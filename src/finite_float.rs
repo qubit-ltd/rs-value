@@ -17,13 +17,12 @@ use internal::FiniteFloat;
 pub(crate) const NON_FINITE_FLOAT_MESSAGE: &str =
     "non-finite floating-point value";
 
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 use serde::de::Error as _;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::ser::Error as SerializeError;
 
 /// Serializes one finite floating-point value with a caller-provided adapter.
 ///
@@ -57,7 +56,7 @@ where
     S: Serializer,
 {
     if !value.is_finite() {
-        return Err(serde::ser::Error::custom(NON_FINITE_FLOAT_MESSAGE));
+        return Err(SerializeError::custom(NON_FINITE_FLOAT_MESSAGE));
     }
     serialize(serializer, *value)
 }
@@ -123,7 +122,7 @@ where
     S: Serializer,
 {
     if values.iter().any(|value| !value.is_finite()) {
-        return Err(serde::ser::Error::custom(NON_FINITE_FLOAT_MESSAGE));
+        return Err(SerializeError::custom(NON_FINITE_FLOAT_MESSAGE));
     }
     values.serialize(serializer)
 }
@@ -163,10 +162,8 @@ where
 
 /// Serde adapter for one finite `f32` value.
 pub(crate) mod float32 {
-    use serde::{
-        Deserializer,
-        Serializer,
-    };
+    use serde::Deserializer;
+    use serde::Serializer;
 
     /// Serializes one finite `f32` value.
     ///
@@ -218,10 +215,8 @@ pub(crate) mod float32 {
 
 /// Serde adapter for one finite `f64` value.
 pub(crate) mod float64 {
-    use serde::{
-        Deserializer,
-        Serializer,
-    };
+    use serde::Deserializer;
+    use serde::Serializer;
 
     /// Serializes one finite `f64` value.
     ///
@@ -273,10 +268,8 @@ pub(crate) mod float64 {
 
 /// Serde adapter for vectors of finite `f32` values.
 pub(crate) mod float32_vec {
-    use serde::{
-        Deserializer,
-        Serializer,
-    };
+    use serde::Deserializer;
+    use serde::Serializer;
 
     /// Serializes a slice of finite `f32` values.
     ///
@@ -331,10 +324,8 @@ pub(crate) mod float32_vec {
 
 /// Serde adapter for vectors of finite `f64` values.
 pub(crate) mod float64_vec {
-    use serde::{
-        Deserializer,
-        Serializer,
-    };
+    use serde::Deserializer;
+    use serde::Serializer;
 
     /// Serializes a slice of finite `f64` values.
     ///

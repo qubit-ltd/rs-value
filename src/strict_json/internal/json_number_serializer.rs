@@ -11,19 +11,16 @@
 use std::str::FromStr;
 
 use serde::Serialize;
-use serde_json::{
-    Number,
-    Value,
-};
+use serde_json::Number;
+use serde_json::Value;
+use serde_json::value::Serializer as ValueSerializer;
 
-use crate::strict_json::{
-    Result,
-    StrictJsonError,
-};
+use crate::strict_json::Result;
+use crate::strict_json::StrictJsonError;
 
 /// Private struct name emitted by `serde_json` with `arbitrary_precision`.
 pub(in crate::strict_json) const NUMBER_TOKEN: &str =
-    "$serde_json::private::Number";
+    concat!("$", "serde_json", "::private::Number");
 
 /// Converts the string field of a `serde_json` number token into a JSON number.
 ///
@@ -36,7 +33,7 @@ where
     T: ?Sized + Serialize,
 {
     let value = value
-        .serialize(serde_json::value::Serializer)
+        .serialize(ValueSerializer)
         .map_err(|_| StrictJsonError::Serialization)?;
     let Value::String(value) = value else {
         return Err(StrictJsonError::Serialization);

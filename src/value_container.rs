@@ -8,24 +8,23 @@
 
 //! Explicit scalar-or-collection value storage.
 
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionOptions;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionTarget;
+use qubit_datatype::DataType;
+#[cfg(feature = "converter")]
+use qubit_datatype::ScalarStringDataConverters;
+
+use crate::MultiValues;
+use crate::StrictValueRead;
+use crate::Value;
+use crate::ValueError;
+use crate::ValueResult;
 use crate::multi_values::MultiValuesRepr;
 #[cfg(feature = "converter")]
 use crate::value::ValueRef;
 use crate::value::ValueRepr;
-use crate::{
-    MultiValues,
-    StrictValueRead,
-    Value,
-    ValueError,
-    ValueResult,
-};
-use qubit_datatype::DataType;
-#[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionOptions,
-    DataConversionTarget,
-    ScalarStringDataConverters,
-};
 
 /// A typed value whose scalar or collection shape is explicit.
 ///

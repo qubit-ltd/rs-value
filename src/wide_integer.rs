@@ -15,11 +15,9 @@ use serde::de;
 
 mod internal;
 
-use internal::{
-    DisplayInteger,
-    IntegerVisitor,
-    ParsedInteger,
-};
+use internal::DisplayInteger;
+use internal::IntegerVisitor;
+use internal::ParsedInteger;
 
 /// Parses and validates the unique textual form emitted by serialization.
 ///
@@ -58,16 +56,12 @@ macro_rules! define_wide_integer_serde {
         pub(crate) mod $scalar_module {
             use std::marker::PhantomData;
 
-            use serde::{
-                Deserializer,
-                Serialize,
-                Serializer,
-            };
+            use serde::Deserializer;
+            use serde::Serialize;
+            use serde::Serializer;
 
-            use super::{
-                DisplayInteger,
-                IntegerVisitor,
-            };
+            use super::DisplayInteger;
+            use super::IntegerVisitor;
 
             /// Serializes a wide integer as a canonical decimal string.
             pub(crate) fn serialize<S>(
@@ -92,16 +86,12 @@ macro_rules! define_wide_integer_serde {
         }
 
         pub(crate) mod $vector_module {
-            use serde::{
-                Deserialize,
-                Deserializer,
-                Serializer,
-            };
+            use serde::Deserialize;
+            use serde::Deserializer;
+            use serde::Serializer;
 
-            use super::{
-                DisplayInteger,
-                ParsedInteger,
-            };
+            use super::DisplayInteger;
+            use super::ParsedInteger;
 
             /// Serializes wide integers as canonical decimal strings.
             pub(crate) fn serialize<S>(

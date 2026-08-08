@@ -9,10 +9,8 @@
 //! Frozen data type tags used by unset V1 payloads.
 
 use qubit_datatype::DataType;
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::Deserialize;
+use serde::Serialize;
 
 /// Defines the complete V1 data type tag set and runtime mappings.
 macro_rules! define_wire_data_type_v1 {

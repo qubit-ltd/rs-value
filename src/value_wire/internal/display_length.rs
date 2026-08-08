@@ -9,11 +9,9 @@
 // qubit-style: allow source-test-pair
 //! Allocation-free measurement of canonical display payloads.
 
-use std::fmt::{
-    self,
-    Display,
-    Write,
-};
+use std::fmt;
+use std::fmt::Display;
+use std::fmt::Write;
 
 /// Formatting sink that counts UTF-8 bytes without retaining output.
 struct DisplayLength {

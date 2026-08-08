@@ -19,25 +19,25 @@ pub(crate) const JSON_NUMBER_TOKEN: &str = "$serde_json::private::Number";
 
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Deserialize;
+#[cfg(any(feature = "chrono", feature = "url"))]
+use serde::Deserializer;
+#[cfg(any(feature = "chrono", feature = "url"))]
+use serde::Serializer;
 
-pub(crate) use crate::finite_float::{
-    float32,
-    float32_vec,
-    float64,
-    float64_vec,
-};
-pub(crate) use crate::wide_integer::{
-    int128,
-    int128_vec,
-    uint128,
-    uint128_vec,
-};
+pub(crate) use crate::finite_float::float32;
+pub(crate) use crate::finite_float::float32_vec;
+pub(crate) use crate::finite_float::float64;
+pub(crate) use crate::finite_float::float64_vec;
+pub(crate) use crate::wide_integer::int128;
+pub(crate) use crate::wide_integer::int128_vec;
+pub(crate) use crate::wide_integer::uint128;
+pub(crate) use crate::wide_integer::uint128_vec;
 
 pub(crate) mod string_map;
 pub(crate) mod string_map_vec;
 
-#[cfg(feature = "json")]
 /// Serializes JSON values by recursively ordering every object key.
+#[cfg(feature = "json")]
 pub(crate) mod json;
 
 #[cfg(feature = "json")]
@@ -72,7 +72,7 @@ fn serialize_canonical<S, T, F>(
     format: F,
 ) -> Result<S::Ok, S::Error>
 where
-    S: serde::Serializer,
+    S: Serializer,
     F: FnOnce(&T) -> String,
 {
     serializer.serialize_str(&format(value))
@@ -86,7 +86,7 @@ fn deserialize_canonical<'de, D, T, P, F>(
     format: F,
 ) -> Result<T, D::Error>
 where
-    D: serde::Deserializer<'de>,
+    D: Deserializer<'de>,
     P: FnOnce(&str) -> Result<T, String>,
     F: FnOnce(&T) -> String,
 {
@@ -108,7 +108,7 @@ fn serialize_canonical_vec<S, T, F>(
     format: F,
 ) -> Result<S::Ok, S::Error>
 where
-    S: serde::Serializer,
+    S: Serializer,
     F: Fn(&T) -> String,
 {
     serializer.collect_seq(values.iter().map(format))
@@ -122,7 +122,7 @@ fn deserialize_canonical_vec<'de, D, T, P, F>(
     format: F,
 ) -> Result<Vec<T>, D::Error>
 where
-    D: serde::Deserializer<'de>,
+    D: Deserializer<'de>,
     P: Fn(&str) -> Result<T, String>,
     F: Fn(&T) -> String,
 {
@@ -146,10 +146,8 @@ where
 macro_rules! define_chrono_wire {
     ($scalar:ident, $vector:ident, $type:ty, $parse:expr, $format:expr) => {
         pub(crate) mod $scalar {
-            use serde::{
-                Deserializer,
-                Serializer,
-            };
+            use serde::Deserializer;
+            use serde::Serializer;
 
             /// Serializes the chrono value through the crate-owned V1 format.
             pub(crate) fn serialize<S>(
@@ -174,10 +172,8 @@ macro_rules! define_chrono_wire {
         }
 
         pub(crate) mod $vector {
-            use serde::{
-                Deserializer,
-                Serializer,
-            };
+            use serde::Deserializer;
+            use serde::Serializer;
 
             /// Serializes chrono values through the crate-owned V1 format.
             pub(crate) fn serialize<S>(
@@ -254,10 +250,8 @@ define_chrono_wire!(
 macro_rules! define_url_wire {
     () => {
         pub(crate) mod url {
-            use serde::{
-                Deserializer,
-                Serializer,
-            };
+            use serde::Deserializer;
+            use serde::Serializer;
 
             /// Serializes a URL through its canonical normalized string.
             pub(crate) fn serialize<S>(
@@ -293,10 +287,8 @@ macro_rules! define_url_wire {
         }
 
         pub(crate) mod url_vec {
-            use serde::{
-                Deserializer,
-                Serializer,
-            };
+            use serde::Deserializer;
+            use serde::Serializer;
 
             /// Serializes URLs through their canonical normalized strings.
             pub(crate) fn serialize<S>(
@@ -340,10 +332,8 @@ define_url_wire!();
 macro_rules! define_decimal_serde {
     ($scalar_module:ident, $vector_module:ident, $type:ty) => {
         pub(crate) mod $scalar_module {
-            use serde::{
-                Deserializer,
-                Serializer,
-            };
+            use serde::Deserializer;
+            use serde::Serializer;
 
             use super::decimal;
 
@@ -370,10 +360,8 @@ macro_rules! define_decimal_serde {
         }
 
         pub(crate) mod $vector_module {
-            use serde::{
-                Deserializer,
-                Serializer,
-            };
+            use serde::Deserializer;
+            use serde::Serializer;
 
             use super::decimal;
 
@@ -408,14 +396,12 @@ define_decimal_serde!(big_integer, big_integer_vec, num_bigint::BigInt);
 #[cfg(feature = "big-decimal")]
 pub(crate) mod big_decimal {
     use bigdecimal::BigDecimal;
+    use serde::Deserialize;
+    use serde::Deserializer;
+    use serde::Serialize;
+    use serde::Serializer;
     use serde::de::Error as _;
     use serde::ser::Error as _;
-    use serde::{
-        Deserialize,
-        Deserializer,
-        Serialize,
-        Serializer,
-    };
 
     use super::BigDecimalPayload;
 
@@ -449,16 +435,12 @@ pub(crate) mod big_decimal {
 #[cfg(feature = "big-decimal")]
 pub(crate) mod big_decimal_vec {
     use bigdecimal::BigDecimal;
+    use serde::Deserialize;
+    use serde::Deserializer;
+    use serde::Serializer;
     use serde::de::Error as _;
-    use serde::ser::{
-        Error as _,
-        SerializeSeq,
-    };
-    use serde::{
-        Deserialize,
-        Deserializer,
-        Serializer,
-    };
+    use serde::ser::Error as _;
+    use serde::ser::SerializeSeq;
 
     use super::BigDecimalPayload;
 
@@ -497,13 +479,11 @@ pub(crate) mod big_decimal_vec {
 pub(crate) mod duration {
     use std::time::Duration;
 
+    use serde::Deserialize;
+    use serde::Deserializer;
+    use serde::Serialize;
+    use serde::Serializer;
     use serde::de::Error as _;
-    use serde::{
-        Deserialize,
-        Deserializer,
-        Serialize,
-        Serializer,
-    };
 
     use super::DurationPayload;
 
@@ -535,12 +515,10 @@ pub(crate) mod duration {
 pub(crate) mod duration_vec {
     use std::time::Duration;
 
+    use serde::Deserialize;
+    use serde::Deserializer;
+    use serde::Serializer;
     use serde::de::Error as _;
-    use serde::{
-        Deserialize,
-        Deserializer,
-        Serializer,
-    };
 
     use super::DurationPayload;
 

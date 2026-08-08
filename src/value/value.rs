@@ -10,21 +10,18 @@
 //! Provides type-safe storage and access functionality for single values.
 // qubit-style: allow multiple-public-types
 
-use qubit_datatype::DataType;
-#[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionOptions,
-    DataConversionTarget,
-};
 use std::fmt;
 
-use crate::value_error::ValueResult;
-use crate::{
-    IntoValueDefault,
-    ValueError,
-};
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionOptions;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionTarget;
+use qubit_datatype::DataType;
 
 use super::value_ref::ValueRef;
+use crate::IntoValueDefault;
+use crate::ValueError;
+use crate::value_error::ValueResult;
 
 /// Defines the private storage representation for the public single-value
 /// container from the shared value-type table.

@@ -8,31 +8,23 @@
 
 //! Public DTO for the stable version-one JSON wire contract.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
-
-use super::{
-    VALUE_WIRE_V1_VERSION,
-    ValueWireEncodeError,
-    ValueWirePayloadV1,
-    deserialize_wire,
-    serialize_wire,
-};
+use super::VALUE_WIRE_V1_VERSION;
 #[cfg(feature = "json")]
-use super::{
-    ValueWireDecodeError,
-    WireLimits,
-};
+use super::ValueWireDecodeError;
+use super::ValueWireEncodeError;
+use super::ValueWirePayloadV1;
+#[cfg(feature = "json")]
+use super::WireLimits;
+use super::deserialize_wire;
+use super::serialize_wire;
+use crate::MultiValues;
+use crate::Value;
+use crate::ValueContainer;
 
 /// Stable version-one wire DTO for a scalar or homogeneous collection.
 ///

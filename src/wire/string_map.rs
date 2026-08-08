@@ -11,12 +11,10 @@
 
 use std::collections::HashMap;
 
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serializer;
 use serde::ser::SerializeMap;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serializer,
-};
 
 use super::internal::StrictStringMap;
 

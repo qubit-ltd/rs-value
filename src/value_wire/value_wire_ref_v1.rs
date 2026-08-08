@@ -8,22 +8,15 @@
 
 //! Borrowed V1 envelope serialization.
 
-use serde::{
-    Serialize,
-    Serializer,
-};
+use serde::Serialize;
+use serde::Serializer;
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
-
-use super::{
-    ValueWireEncodeError,
-    ValueWirePayloadRefV1,
-    serialize_wire,
-};
+use super::ValueWireEncodeError;
+use super::ValueWirePayloadRefV1;
+use super::serialize_wire;
+use crate::MultiValues;
+use crate::Value;
+use crate::ValueContainer;
 
 /// Borrowed standalone V1 envelope for serialization without cloning.
 #[must_use]

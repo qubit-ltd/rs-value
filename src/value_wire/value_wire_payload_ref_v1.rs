@@ -8,30 +8,22 @@
 
 //! Borrowed V1 payload serialization.
 
-use serde::{
-    Serialize,
-    Serializer,
-};
+use serde::Serialize;
+use serde::Serializer;
 
+use super::ValueWireEncodeError;
+use super::WireShapeRef;
+use crate::MultiValues;
+use crate::Value;
+use crate::ValueContainer;
 use crate::multi_values::MultiValuesRepr;
 use crate::value::ValueRepr;
 #[cfg(feature = "json")]
 use crate::wire::JSON_NUMBER_TOKEN;
 #[cfg(feature = "big-decimal")]
-use crate::wire::{
-    MAX_BIG_DECIMAL_ABSOLUTE_SCALE,
-    is_valid_big_decimal_scale,
-};
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
-
-use super::{
-    ValueWireEncodeError,
-    WireShapeRef,
-};
+use crate::wire::MAX_BIG_DECIMAL_ABSOLUTE_SCALE;
+#[cfg(feature = "big-decimal")]
+use crate::wire::is_valid_big_decimal_scale;
 
 /// Borrowed unversioned V1 payload for serialization without cloning.
 ///

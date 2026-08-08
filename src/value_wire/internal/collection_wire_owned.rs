@@ -10,9 +10,8 @@
 
 use serde::Deserialize;
 
-use crate::MultiValues;
-
 use super::WireDataTypeV1;
+use crate::MultiValues;
 
 /// Defines the owned collection payload and its runtime conversion.
 macro_rules! define_collection_wire_owned {

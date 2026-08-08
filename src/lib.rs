@@ -130,35 +130,28 @@ mod wire;
 
 // Public exports
 pub use into_value_default::IntoValueDefault;
-pub use multi_values::{
-    MultiValues,
-    MultiValuesRef,
-};
+pub use multi_values::MultiValues;
+pub use multi_values::MultiValuesRef;
 pub use named_multi_values::NamedMultiValues;
 pub use named_value::NamedValue;
 pub use numeric_comparison_error::NumericComparisonError;
 pub use strict_value_read::StrictValueRead;
-pub use value::{
-    Value,
-    ValueRef,
-};
+pub use value::Value;
+pub use value::ValueRef;
 pub use value_container::ValueContainer;
-pub use value_error::{
-    ValueError,
-    ValueResult,
-};
+pub use value_error::ValueError;
+pub use value_error::ValueResult;
 pub use value_missing::ValueMissing;
 #[cfg(feature = "json")]
-pub use value_wire::{
-    ValueWireDecodeError,
-    ValueWireLimitKind,
-    WireBudget,
-    WireLimits,
-};
-pub use value_wire::{
-    ValueWireEncodeError,
-    ValueWirePayloadRefV1,
-    ValueWirePayloadV1,
-    ValueWireRefV1,
-    ValueWireV1,
-};
+pub use value_wire::ValueWireDecodeError;
+pub use value_wire::ValueWireEncodeError;
+#[cfg(feature = "json")]
+pub use value_wire::ValueWireLimitKind;
+pub use value_wire::ValueWirePayloadRefV1;
+pub use value_wire::ValueWirePayloadV1;
+pub use value_wire::ValueWireRefV1;
+pub use value_wire::ValueWireV1;
+#[cfg(feature = "json")]
+pub use value_wire::WireBudget;
+#[cfg(feature = "json")]
+pub use value_wire::WireLimits;

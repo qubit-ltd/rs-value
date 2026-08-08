@@ -9,12 +9,13 @@
 //!
 //! Defines various errors that may occur during value processing.
 
-use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
-use qubit_datatype::{
-    DataConversionError,
-    DataListConversionError,
-};
+use qubit_datatype::DataConversionError;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionErrorKind;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataListConversionError;
+use qubit_datatype::DataType;
 use thiserror::Error;
 
 use crate::ValueMissing;
@@ -114,9 +115,7 @@ impl From<DataConversionError> for ValueError {
                 to: error.to_type(),
             });
         }
-        if error.kind()
-            == qubit_datatype::DataConversionErrorKind::EmptyCollection
-        {
+        if error.kind() == DataConversionErrorKind::EmptyCollection {
             return Self::Missing(ValueMissing::EmptyCollectionConversion {
                 to: error.to_type(),
             });
@@ -138,9 +137,7 @@ impl From<DataListConversionError> for ValueError {
                 to: source.to_type(),
             });
         }
-        if source.kind()
-            == qubit_datatype::DataConversionErrorKind::EmptyCollection
-        {
+        if source.kind() == DataConversionErrorKind::EmptyCollection {
             return Self::Missing(ValueMissing::EmptyCollectionConversion {
                 to: source.to_type(),
             });

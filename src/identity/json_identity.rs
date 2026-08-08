@@ -7,12 +7,10 @@
 // =============================================================================
 //! Structural equality and hashing for JSON payloads.
 
-use std::hash::{
-    BuildHasher,
-    BuildHasherDefault,
-    Hash,
-    Hasher,
-};
+use std::hash::BuildHasher;
+use std::hash::BuildHasherDefault;
+use std::hash::Hash;
+use std::hash::Hasher;
 
 type IdentityHasher =
     BuildHasherDefault<std::collections::hash_map::DefaultHasher>;

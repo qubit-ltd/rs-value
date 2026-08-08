@@ -10,24 +10,17 @@
 //!
 //! This module keeps generic conversion logic (`to_first` and `to_list`).
 
-use qubit_datatype::{
-    DataConversionError,
-    DataConversionOptions,
-    DataConversionTarget,
-    DataConverter,
-    DataConverters,
-};
+use qubit_datatype::DataConversionError;
+use qubit_datatype::DataConversionOptions;
+use qubit_datatype::DataConversionTarget;
+use qubit_datatype::DataConverter;
+use qubit_datatype::DataConverters;
 
+use super::multi_values::MultiValues;
+use super::multi_values::MultiValuesRepr;
 use crate::IntoValueDefault;
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
-
-use super::multi_values::{
-    MultiValues,
-    MultiValuesRepr,
-};
+use crate::value_error::ValueError;
+use crate::value_error::ValueResult;
 
 macro_rules! multi_values_convert_first_match {
     ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {

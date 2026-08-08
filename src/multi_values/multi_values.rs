@@ -12,8 +12,9 @@
 // Tests are intentionally distributed across behavior-specific files under
 // tests/multi_values/ rather than collected in multi_values_tests.rs.
 // qubit-style: allow multiple-public-types
-use qubit_datatype::DataType;
 use std::fmt;
+
+use qubit_datatype::DataType;
 
 use super::multi_values_ref::MultiValuesRef;
 

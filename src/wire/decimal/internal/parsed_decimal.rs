@@ -12,10 +12,8 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
-use serde::{
-    Deserialize,
-    Deserializer,
-};
+use serde::Deserialize;
+use serde::Deserializer;
 
 use super::DecimalVisitor;
 

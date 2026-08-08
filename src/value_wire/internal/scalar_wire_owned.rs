@@ -10,9 +10,8 @@
 
 use serde::Deserialize;
 
-use crate::Value;
-
 use super::WireDataTypeV1;
+use crate::Value;
 
 /// Defines the owned scalar payload and its exhaustive runtime conversion.
 macro_rules! define_scalar_wire_owned {

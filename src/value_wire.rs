@@ -12,13 +12,11 @@
 //! standalone [`ValueWireV1`] envelope or nested [`ValueWirePayloadV1`].
 //! Borrowed values can use [`ValueWireRefV1`] or [`ValueWirePayloadRefV1`].
 
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 use serde::de::Error as _;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
 
 use crate::ValueContainer;
 
@@ -68,22 +66,19 @@ mod value_wire_payload_v1;
 mod value_wire_ref_v1;
 mod value_wire_v1;
 
-use internal::{
-    WireEnvelopeOwned,
-    WireEnvelopeRef,
-    WireShapeOwned,
-    WireShapeRef,
-};
+use internal::WireEnvelopeOwned;
+use internal::WireEnvelopeRef;
+use internal::WireShapeOwned;
+use internal::WireShapeRef;
 #[cfg(feature = "json")]
 pub use value_wire_decode_error::ValueWireDecodeError;
 #[cfg(feature = "json")]
 pub use value_wire_decode_error::ValueWireLimitKind;
 pub use value_wire_encode_error::ValueWireEncodeError;
 #[cfg(feature = "json")]
-pub use value_wire_limits::{
-    WireBudget,
-    WireLimits,
-};
+pub use value_wire_limits::WireBudget;
+#[cfg(feature = "json")]
+pub use value_wire_limits::WireLimits;
 pub use value_wire_payload_ref_v1::ValueWirePayloadRefV1;
 pub use value_wire_payload_v1::ValueWirePayloadV1;
 pub use value_wire_ref_v1::ValueWireRefV1;

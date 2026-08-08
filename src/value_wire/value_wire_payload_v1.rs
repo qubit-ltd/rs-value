@@ -8,33 +8,23 @@
 
 //! Unversioned V1 payload for use inside an already-versioned protocol.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-};
+use super::ValueWireEncodeError;
+use super::WireShapeOwned;
+use super::WireShapeRef;
+use super::value_wire_payload_ref_v1::validate_value;
+use super::value_wire_payload_ref_v1::validate_values;
+use crate::MultiValues;
+use crate::Value;
+use crate::ValueContainer;
 #[cfg(feature = "json")]
-use crate::{
-    ValueWireDecodeError,
-    WireLimits,
-};
-
-use super::value_wire_payload_ref_v1::{
-    validate_value,
-    validate_values,
-};
-use super::{
-    ValueWireEncodeError,
-    WireShapeOwned,
-    WireShapeRef,
-};
+use crate::ValueWireDecodeError;
+#[cfg(feature = "json")]
+use crate::WireLimits;
 
 /// Typed V1 scalar-or-collection payload without an enclosing version field.
 ///

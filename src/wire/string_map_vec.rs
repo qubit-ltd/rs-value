@@ -11,17 +11,13 @@
 
 use std::collections::HashMap;
 
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serializer;
 use serde::ser::SerializeSeq;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serializer,
-};
 
-use super::internal::{
-    CanonicalStringMap,
-    StrictStringMap,
-};
+use super::internal::CanonicalStringMap;
+use super::internal::StrictStringMap;
 
 /// Serializes string maps in a collection with dictionary-ordered keys.
 pub(crate) fn serialize<S>(

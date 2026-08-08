@@ -10,12 +10,9 @@
 
 use serde::Deserialize;
 
+use super::CollectionWireOwned;
+use super::ScalarWireOwned;
 use crate::ValueContainer;
-
-use super::{
-    CollectionWireOwned,
-    ScalarWireOwned,
-};
 
 /// Owned scalar-or-collection shape used during deserialization.
 #[derive(Deserialize)]
