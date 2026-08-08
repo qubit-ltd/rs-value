@@ -7,27 +7,20 @@
 // =============================================================================
 //! Equality and hashing for [`super::MultiValues`].
 
-use std::hash::{
-    Hash,
-    Hasher,
-};
+use std::hash::Hash;
+use std::hash::Hasher;
 
-use super::multi_values::{
-    MultiValues,
-    MultiValuesRepr,
-};
+use super::multi_values::MultiValues;
+use super::multi_values::MultiValuesRepr;
+use crate::identity::canonical_f32_bits;
+use crate::identity::canonical_f64_bits;
 #[cfg(feature = "big-decimal")]
 use crate::identity::hash_big_decimal;
-use crate::identity::{
-    canonical_f32_bits,
-    canonical_f64_bits,
-    hash_string_map,
-};
 #[cfg(feature = "json")]
-use crate::identity::{
-    hash_json,
-    json_eq,
-};
+use crate::identity::hash_json;
+use crate::identity::hash_string_map;
+#[cfg(feature = "json")]
+use crate::identity::json_eq;
 
 /// Compares ordered payloads using the identity rule for their element type.
 macro_rules! payloads_eq {

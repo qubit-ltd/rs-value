@@ -9,15 +9,11 @@
 
 use std::cmp::Ordering;
 
-use qubit_datatype::{
-    NumberRef,
-    NumericComparisonPolicy,
-};
+use qubit_datatype::NumberRef;
+use qubit_datatype::NumericComparisonPolicy;
 
-use super::{
-    Value,
-    ValueRepr,
-};
+use super::Value;
+use super::ValueRepr;
 use crate::NumericComparisonError;
 
 /// Projects one stored value according to its type-table numeric strategy.

@@ -12,21 +12,17 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 use serde::de;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
 
 mod internal;
 
-use internal::{
-    DecimalVisitor,
-    DisplayDecimal,
-    ParsedDecimal,
-};
+use internal::DecimalVisitor;
+use internal::DisplayDecimal;
+use internal::ParsedDecimal;
 
 /// Parses and validates the unique textual form emitted by serialization.
 ///

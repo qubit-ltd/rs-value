@@ -9,21 +9,17 @@
 // qubit-style: allow source-test-pair
 //! Strict JSON payload for canonical wire adapters.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    de::{
-        self,
-        MapAccess,
-        SeqAccess,
-        Visitor,
-    },
-};
-use serde_json::{
-    Map,
-    Number,
-    Value,
-};
+use std::fmt;
+
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::de;
+use serde::de::MapAccess;
+use serde::de::SeqAccess;
+use serde::de::Visitor;
+use serde_json::Map;
+use serde_json::Number;
+use serde_json::Value;
 
 /// Private serde_json-compatible value decoded with duplicate-key validation.
 pub(in crate::wire) struct StrictJsonValue(Value);
@@ -47,10 +43,7 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
             type Value = StrictJsonValue;
 
             /// Describes the expected JSON value shape.
-            fn expecting(
-                &self,
-                formatter: &mut std::fmt::Formatter,
-            ) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a JSON value with unique object keys")
             }
 

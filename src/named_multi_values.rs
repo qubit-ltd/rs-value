@@ -11,29 +11,27 @@
 //! collections, facilitating human-readable identification of groups of values
 //! in configurations, serialization, logging, and other scenarios.
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-};
-
-use crate::ValueWireRefV1;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
+use serde::de::Error as DeserializeError;
+use serde::ser::Error as SerializeError;
 #[cfg(feature = "json")]
-use crate::{
-    ValueWireDecodeError,
-    WireLimits,
-};
+use serde_json::from_slice;
 
 use super::multi_values::MultiValues;
 use super::named_value::NamedValue;
+#[cfg(feature = "json")]
+use crate::ValueWireDecodeError;
+use crate::ValueWireRefV1;
+#[cfg(feature = "json")]
+use crate::WireLimits;
 
 mod internal;
 
-use internal::{
-    NamedMultiValuesWireOwned,
-    NamedMultiValuesWireRef,
-};
+use internal::NamedMultiValuesWireOwned;
+use internal::NamedMultiValuesWireRef;
 
 /// Named multiple values
 ///
@@ -169,8 +167,8 @@ impl NamedMultiValues {
         limits: WireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut budget = limits.begin(input.len())?;
-        let value: Self = serde_json::from_slice(input)
-            .map_err(ValueWireDecodeError::from)?;
+        let value: Self =
+            from_slice(input).map_err(ValueWireDecodeError::from)?;
         budget.check_named_multi_values(&value)?;
         Ok(value)
     }
@@ -313,7 +311,7 @@ impl Serialize for NamedMultiValues {
         S: Serializer,
     {
         let value = ValueWireRefV1::try_from(self.values())
-            .map_err(serde::ser::Error::custom)?;
+            .map_err(SerializeError::custom)?;
         NamedMultiValuesWireRef {
             name: self.name(),
             value,
@@ -332,7 +330,7 @@ impl<'de> Deserialize<'de> for NamedMultiValues {
         let NamedMultiValuesWireOwned { name, value } =
             NamedMultiValuesWireOwned::deserialize(deserializer)?;
         let value = value.into_container().into_collection().map_err(|_| {
-            serde::de::Error::custom(
+            DeserializeError::custom(
                 "named multi-values wire payload must contain a collection",
             )
         })?;

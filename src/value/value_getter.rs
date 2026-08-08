@@ -8,15 +8,11 @@
 
 //! `TryFrom<&Value>` implementations for strict typed reads.
 
-use super::value::{
-    Value,
-    ValueRepr,
-};
+use super::value::Value;
+use super::value::ValueRepr;
 use crate::ValueMissing;
-use crate::value_error::{
-    ValueError,
-    ValueResult,
-};
+use crate::value_error::ValueError;
+use crate::value_error::ValueResult;
 
 macro_rules! impl_value_try_from_table {
     (

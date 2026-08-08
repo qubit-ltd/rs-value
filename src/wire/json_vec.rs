@@ -9,18 +9,14 @@
 // qubit-style: allow source-test-pair
 //! Canonical Serde adapter for collections of JSON values.
 
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serializer;
 use serde::ser::SerializeSeq;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serializer,
-};
 use serde_json::Value;
 
-use super::internal::{
-    CanonicalJson,
-    StrictJsonValue,
-};
+use super::internal::CanonicalJson;
+use super::internal::StrictJsonValue;
 
 /// Serializes JSON values in a collection with recursively ordered keys.
 pub(crate) fn serialize<S>(

@@ -11,15 +11,11 @@
 use std::fmt::Display;
 
 use serde::Serialize;
-use serde::ser::{
-    Impossible,
-    Serializer,
-};
+use serde::ser::Impossible;
+use serde::ser::Serializer;
 
-use crate::strict_json::{
-    Result,
-    StrictJsonError,
-};
+use crate::strict_json::Result;
+use crate::strict_json::StrictJsonError;
 
 /// Converts supported scalar map keys to JSON object key strings.
 #[derive(Clone, Copy)]

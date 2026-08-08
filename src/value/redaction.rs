@@ -9,36 +9,32 @@
 
 use std::fmt;
 
+use qubit_redact::MaskingPolicy;
+use qubit_redact::Redact;
+use qubit_redact::RedactMapValue;
+use qubit_redact::RedactValue;
 #[cfg(feature = "json")]
 use qubit_redact::RedactedJsonSession;
-use qubit_redact::{
-    Redact,
-    RedactMapValue,
-    RedactValue,
-    RedactedKeyedValueSession,
-    RedactedMapSession,
-    RedactedValue,
-    RedactionSession,
-};
+use qubit_redact::RedactedKeyedValueSession;
+use qubit_redact::RedactedMapSession;
+use qubit_redact::RedactedValue;
+use qubit_redact::RedactionSession;
+use qubit_redact::Sensitivity;
 
-use super::{
-    Value,
-    ValueRepr,
-};
+use super::Value;
+use super::ValueRepr;
+use crate::MultiValues;
+use crate::NamedMultiValues;
+use crate::NamedValue;
+use crate::ValueContainer;
 use crate::multi_values::MultiValuesRepr;
-use crate::{
-    MultiValues,
-    NamedMultiValues,
-    NamedValue,
-    ValueContainer,
-};
 
 impl RedactValue for Value {
     /// Redacts string contents while replacing every other variant opaquely.
     fn redact_value<'a>(
         &'a self,
-        level: qubit_redact::Sensitivity,
-        masking: &qubit_redact::MaskingPolicy,
+        level: Sensitivity,
+        masking: &MaskingPolicy,
     ) -> RedactedValue<'a> {
         match &self.repr {
             ValueRepr::String(value) => value.redact_value(level, masking),
@@ -52,8 +48,8 @@ impl RedactValue for MultiValues {
     #[inline(always)]
     fn redact_value<'a>(
         &'a self,
-        level: qubit_redact::Sensitivity,
-        masking: &qubit_redact::MaskingPolicy,
+        level: Sensitivity,
+        masking: &MaskingPolicy,
     ) -> RedactedValue<'a> {
         RedactedValue::opaque(level, masking)
     }

@@ -10,10 +10,9 @@
 
 use serde::Serialize;
 
+use super::WireDataTypeV1;
 use crate::MultiValues;
 use crate::multi_values::MultiValuesRepr;
-
-use super::WireDataTypeV1;
 
 /// Defines the borrowed collection payload and its runtime conversion.
 macro_rules! define_collection_wire_ref {

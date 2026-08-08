@@ -12,10 +12,8 @@ use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::wire::is_valid_big_decimal_scale;
 

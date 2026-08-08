@@ -9,19 +9,15 @@
 //! Sealed public bound for strict reads from runtime value storage.
 // qubit-style: allow multiple-public-types
 
-use crate::{
-    MultiValues,
-    Value,
-    ValueError,
-    ValueResult,
-};
+use crate::MultiValues;
+use crate::Value;
+use crate::ValueError;
+use crate::ValueResult;
 
 mod sealed {
-    use super::{
-        MultiValues,
-        Value,
-        ValueError,
-    };
+    use super::MultiValues;
+    use super::Value;
+    use super::ValueError;
 
     pub trait Sealed {}
 

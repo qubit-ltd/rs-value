@@ -9,22 +9,15 @@
 //! Serializer for JSON map and struct values.
 
 use serde::Serialize;
-use serde::ser::{
-    SerializeMap,
-    SerializeStruct,
-};
-use serde_json::{
-    Map,
-    Value,
-};
-
-use crate::strict_json::{
-    Result,
-    StrictJsonError,
-    to_value,
-};
+use serde::ser::SerializeMap;
+use serde::ser::SerializeStruct;
+use serde_json::Map;
+use serde_json::Value;
 
 use super::MapKeySerializer;
+use crate::strict_json::Result;
+use crate::strict_json::StrictJsonError;
+use crate::strict_json::to_value;
 
 /// Accumulates map entries or struct fields into one JSON object.
 pub(in crate::strict_json) struct ObjectSerializer {

@@ -9,21 +9,15 @@
 // qubit-style: allow source-test-pair
 //! Strict string-map payload for canonical wire adapters.
 
-use std::{
-    collections::HashMap,
-    fmt,
-    marker::PhantomData,
-};
+use std::collections::HashMap;
+use std::fmt;
+use std::marker::PhantomData;
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    de::{
-        self,
-        MapAccess,
-        Visitor,
-    },
-};
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::de;
+use serde::de::MapAccess;
+use serde::de::Visitor;
 
 /// Owned string map decoded with duplicate-key validation.
 pub(in crate::wire) struct StrictStringMap<V>(HashMap<String, V>);

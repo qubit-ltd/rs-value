@@ -8,29 +8,25 @@
 
 //! Natural JSON projection for value containers.
 
-use qubit_datatype::{
-    DataConversionError,
-    DataConversionOptions,
-    DataConverter,
-    DataListConversionError,
-    DataType,
-    InvalidValueReason,
-};
-use serde_json::{
-    Number,
-    Value as JsonValue,
-};
 use std::str::FromStr;
 
+use qubit_datatype::DataConversionError;
+use qubit_datatype::DataConversionOptions;
+use qubit_datatype::DataConverter;
+use qubit_datatype::DataListConversionError;
+use qubit_datatype::DataType;
+use qubit_datatype::InvalidValueReason;
+use serde_json::Map;
+use serde_json::Number;
+use serde_json::Value as JsonValue;
+
+use crate::MultiValues;
+use crate::Value;
+use crate::ValueContainer;
+use crate::ValueError;
+use crate::ValueResult;
 use crate::multi_values::MultiValuesRepr;
 use crate::value::ValueRepr;
-use crate::{
-    MultiValues,
-    Value,
-    ValueContainer,
-    ValueError,
-    ValueResult,
-};
 
 /// Converts a finite float to a JSON number.
 ///
@@ -102,7 +98,7 @@ macro_rules! scalar_to_json {
     (json_object, $value:expr, $from:expr, $options:expr) => {{
         let mut entries: Vec<_> = $value.iter().collect();
         entries.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
-        let mut object = serde_json::Map::with_capacity(entries.len());
+        let mut object = Map::with_capacity(entries.len());
         for (key, value) in entries {
             object.insert(key.clone(), JsonValue::String(value.clone()));
         }

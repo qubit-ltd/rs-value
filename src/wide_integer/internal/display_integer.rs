@@ -10,10 +10,8 @@
 
 use std::fmt;
 
-use serde::{
-    Serialize,
-    Serializer,
-};
+use serde::Serialize;
+use serde::Serializer;
 
 /// Serializes a displayable integer as a decimal string without allocating.
 pub(in crate::wide_integer) struct DisplayInteger<'a, T>(

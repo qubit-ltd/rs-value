@@ -8,12 +8,10 @@
 //! Iteration-order-independent hashing for string maps.
 
 use std::collections::HashMap;
-use std::hash::{
-    BuildHasher,
-    BuildHasherDefault,
-    Hash,
-    Hasher,
-};
+use std::hash::BuildHasher;
+use std::hash::BuildHasherDefault;
+use std::hash::Hash;
+use std::hash::Hasher;
 
 type IdentityHasher =
     BuildHasherDefault<std::collections::hash_map::DefaultHasher>;

@@ -10,12 +10,9 @@
 
 use serde::Serialize;
 
+use super::CollectionWireRef;
+use super::ScalarWireRef;
 use crate::ValueContainer;
-
-use super::{
-    CollectionWireRef,
-    ScalarWireRef,
-};
 
 /// Borrowed scalar-or-collection shape used during serialization.
 #[derive(Clone, Copy, Serialize)]

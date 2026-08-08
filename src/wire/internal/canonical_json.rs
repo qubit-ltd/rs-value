@@ -9,11 +9,9 @@
 //! Private recursive canonical serializer for JSON values.
 
 use serde::Serialize;
-use serde::ser::{
-    SerializeMap,
-    SerializeSeq,
-    Serializer,
-};
+use serde::ser::SerializeMap;
+use serde::ser::SerializeSeq;
+use serde::ser::Serializer;
 use serde_json::Value;
 
 /// Borrows a JSON value while recursively sorting object keys.
