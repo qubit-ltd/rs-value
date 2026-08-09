@@ -11,8 +11,9 @@
 
 use std::fmt;
 
-use qubit_budget::BudgetError;
+use qubit_budget::LimitExceeded;
 use qubit_budget::ResourceBudget;
+use qubit_budget::ResourceBudgetError;
 use qubit_budget::ResourceLimit;
 use serde::Deserializer;
 use serde::de::DeserializeSeed;
@@ -195,10 +196,10 @@ impl WireLimits {
         }
         Ok(WireBudget {
             limits: self,
-            nodes: ResourceBudget::new(ResourceLimit::bounded(
+            nodes: ResourceBudget::new(
                 ValueWireLimitKind::Nodes,
-                self.max_nodes,
-            )),
+                ResourceLimit::new(self.max_nodes as u64),
+            ),
         })
     }
 
@@ -285,9 +286,7 @@ impl WireBudget {
     /// Charges one decoded node.
     #[inline]
     pub fn check_node(&mut self) -> Result<(), ValueWireDecodeError> {
-        self.nodes.try_charge(1).map_err(|error| {
-            map_budget_error(error, self.limits.max_nodes)
-        })
+        self.nodes.try_consume(1).map_err(map_budget_error)
     }
 
     /// Checks a recursive depth.
@@ -296,13 +295,9 @@ impl WireBudget {
         &self,
         depth: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        ResourceLimit::bounded(ValueWireLimitKind::Depth, self.limits.max_depth)
-            .check(depth)
-            .map_err(|error| ValueWireDecodeError::LimitExceeded {
-                kind: error.into_kind(),
-                value: error.observed(),
-                maximum: error.maximum(),
-            })
+        ResourceLimit::new(self.limits.max_depth as u64)
+            .check(ValueWireLimitKind::Depth, depth as u64)
+            .map_err(map_limit_error)
     }
 
     /// Checks one collection length.
@@ -311,16 +306,9 @@ impl WireBudget {
         &self,
         items: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        ResourceLimit::bounded(
-            ValueWireLimitKind::CollectionItems,
-            self.limits.max_collection_items,
-        )
-        .check(items)
-        .map_err(|error| ValueWireDecodeError::LimitExceeded {
-            kind: error.into_kind(),
-            value: error.observed(),
-            maximum: error.maximum(),
-        })
+        ResourceLimit::new(self.limits.max_collection_items as u64)
+            .check(ValueWireLimitKind::CollectionItems, items as u64)
+            .map_err(map_limit_error)
     }
 
     /// Checks one map length.
@@ -329,16 +317,9 @@ impl WireBudget {
         &self,
         entries: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        ResourceLimit::bounded(
-            ValueWireLimitKind::MapEntries,
-            self.limits.max_map_entries,
-        )
-        .check(entries)
-        .map_err(|error| ValueWireDecodeError::LimitExceeded {
-            kind: error.into_kind(),
-            value: error.observed(),
-            maximum: error.maximum(),
-        })
+        ResourceLimit::new(self.limits.max_map_entries as u64)
+            .check(ValueWireLimitKind::MapEntries, entries as u64)
+            .map_err(map_limit_error)
     }
 
     /// Checks one decoded string length.
@@ -347,16 +328,9 @@ impl WireBudget {
         &self,
         bytes: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        ResourceLimit::bounded(
-            ValueWireLimitKind::StringBytes,
-            self.limits.max_string_bytes,
-        )
-        .check(bytes)
-        .map_err(|error| ValueWireDecodeError::LimitExceeded {
-            kind: error.into_kind(),
-            value: error.observed(),
-            maximum: error.maximum(),
-        })
+        ResourceLimit::new(self.limits.max_string_bytes as u64)
+            .check(ValueWireLimitKind::StringBytes, bytes as u64)
+            .map_err(map_limit_error)
     }
 
     /// Checks one decoded numeric representation length in UTF-8 bytes.
@@ -365,16 +339,9 @@ impl WireBudget {
         &self,
         bytes: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        ResourceLimit::bounded(
-            ValueWireLimitKind::NumericBytes,
-            self.limits.max_numeric_bytes,
-        )
-        .check(bytes)
-        .map_err(|error| ValueWireDecodeError::LimitExceeded {
-            kind: error.into_kind(),
-            value: error.observed(),
-            maximum: error.maximum(),
-        })
+        ResourceLimit::new(self.limits.max_numeric_bytes as u64)
+            .check(ValueWireLimitKind::NumericBytes, bytes as u64)
+            .map_err(map_limit_error)
     }
 
     /// Validates a decoded value container against the shared budget.
@@ -790,17 +757,33 @@ impl WireBudget {
             serde_json::Value::Null | serde_json::Value::Bool(_) => Ok(()),
         }
     }
-
 }
 
 fn map_budget_error(
-    error: BudgetError<ValueWireLimitKind, usize>,
-    maximum: usize,
+    error: ResourceBudgetError<ValueWireLimitKind>,
+) -> ValueWireDecodeError {
+    let maximum = error.limit().maximum();
+    let value = maximum
+        .saturating_sub(error.remaining())
+        .saturating_add(error.requested());
+    ValueWireDecodeError::LimitExceeded {
+        value: usize::try_from(value).unwrap_or(usize::MAX),
+        maximum: usize::try_from(maximum)
+            .expect("wire node limits originate from usize"),
+        kind: error.into_resource(),
+    }
+}
+
+/// Converts a point-limit failure to the established wire error boundary.
+fn map_limit_error(
+    error: LimitExceeded<ValueWireLimitKind>,
 ) -> ValueWireDecodeError {
     ValueWireDecodeError::LimitExceeded {
-        value: error.observed().unwrap_or_else(|| error.charged()),
-        maximum: error.maximum().unwrap_or(maximum),
-        kind: error.into_kind(),
+        value: usize::try_from(error.observed())
+            .expect("wire observations originate from usize"),
+        maximum: usize::try_from(error.limit().maximum())
+            .expect("wire limits originate from usize"),
+        kind: error.into_resource(),
     }
 }
 
@@ -843,10 +826,10 @@ impl JsonPreflightSeed {
         };
         Self {
             limits,
-            nodes: ResourceBudget::new(ResourceLimit::bounded(
+            nodes: ResourceBudget::new(
                 ValueWireLimitKind::Nodes,
-                input_bytes,
-            )),
+                ResourceLimit::new(input_bytes as u64),
+            ),
             violation: None,
         }
     }
@@ -861,12 +844,14 @@ impl JsonPreflightSeed {
     where
         E: DeError,
     {
-        ResourceLimit::bounded(kind, maximum)
-            .check(value)
+        ResourceLimit::new(maximum as u64)
+            .check(kind, value as u64)
             .map_err(|error| {
-                let kind = error.into_kind();
-                let value = error.observed();
-                let maximum = error.maximum();
+                let kind = *error.resource();
+                let value = usize::try_from(error.observed())
+                    .expect("preflight observations originate from usize");
+                let maximum = usize::try_from(error.limit().maximum())
+                    .expect("preflight limits originate from usize");
                 self.violation = Some(ValueWireDecodeError::LimitExceeded {
                     kind,
                     value,
@@ -883,8 +868,8 @@ impl JsonPreflightSeed {
     where
         E: DeError,
     {
-        self.nodes.try_charge(1).map_err(|error| {
-            self.violation = Some(map_budget_error(error, self.limits.max_nodes));
+        self.nodes.try_consume(1).map_err(|error| {
+            self.violation = Some(map_budget_error(error));
             E::custom("wire input node budget exceeded")
         })
     }
