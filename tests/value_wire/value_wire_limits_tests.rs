@@ -140,9 +140,11 @@ fn test_wire_budget_static_checks_preserve_limit_error_facts() {
 }
 
 #[test]
-fn test_wire_budget_check_node_keeps_charging_after_limit_exceeded() {
+fn test_wire_budget_node_limit_does_not_charge_failed_nodes() {
     let mut budget = WireLimits::new(0)
-        .with_max_nodes(1)
+        .with_max_nodes(2)
+        .with_max_depth(1)
+        .with_max_collection_items(1)
         .begin(0)
         .expect("the empty input budget should start");
 
@@ -150,11 +152,28 @@ fn test_wire_budget_check_node_keeps_charging_after_limit_exceeded() {
         .check_node()
         .expect("the first node should fit the limit");
     assert!(matches!(
+        budget.check_depth(2),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: ValueWireLimitKind::Depth,
+            ..
+        })
+    ));
+    assert!(matches!(
+        budget.check_collection_items(2),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: ValueWireLimitKind::CollectionItems,
+            ..
+        })
+    ));
+    budget
+        .check_node()
+        .expect("point limits must not consume node capacity");
+    assert!(matches!(
         budget.check_node(),
         Err(ValueWireDecodeError::LimitExceeded {
             kind: ValueWireLimitKind::Nodes,
-            value: 2,
-            maximum: 1,
+            value: 3,
+            maximum: 2,
         })
     ));
     assert!(matches!(
@@ -162,7 +181,7 @@ fn test_wire_budget_check_node_keeps_charging_after_limit_exceeded() {
         Err(ValueWireDecodeError::LimitExceeded {
             kind: ValueWireLimitKind::Nodes,
             value: 3,
-            maximum: 1,
+            maximum: 2,
         })
     ));
 }
