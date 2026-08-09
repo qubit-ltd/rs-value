@@ -310,9 +310,7 @@ dependencies = [
 
 [[package]]
 name = "qubit-budget"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "838905f7003616e6576c78506a3c4702153c5b3cd316a6d0b170b290e6079437"
+version = "0.4.0"
 
 [[package]]
 name = "qubit-datatype"
@@ -621,3 +619,11 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+
+[[patch.unused]]
+name = "qubit-clock"
+version = "0.12.1"
+
+[[patch.unused]]
+name = "qubit-retry"
+version = "0.18.0"
