@@ -80,7 +80,7 @@ all = ["converter", "chrono", "big-number", "url", "json", "redact"]
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
-qubit-budget = "0.4"
+qubit-budget = { version = "0.4", path = "../rs-budget" }
 serde_json = { version = "1.0", features = ["arbitrary_precision", "float_roundtrip"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["std", "serde"], optional = true }
 url = { version = "2.5", features = ["serde"], optional = true }
