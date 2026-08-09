@@ -763,9 +763,7 @@ fn map_budget_error(
     error: ResourceBudgetError<ValueWireLimitKind>,
 ) -> ValueWireDecodeError {
     let maximum = error.limit().maximum();
-    let value = maximum
-        .saturating_sub(error.remaining())
-        .saturating_add(error.requested());
+    let value = error.checked_attempted().unwrap_or(u64::MAX);
     ValueWireDecodeError::LimitExceeded {
         value: usize::try_from(value).unwrap_or(usize::MAX),
         maximum: usize::try_from(maximum)
