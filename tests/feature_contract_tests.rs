@@ -18,9 +18,9 @@ use chrono::NaiveDate;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 #[cfg(feature = "converter")]
-use qubit_datatype::DataConversionError;
-#[cfg(feature = "converter")]
 use qubit_datatype::ConversionSession;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionError;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionTarget;
 #[cfg(feature = "converter")]
