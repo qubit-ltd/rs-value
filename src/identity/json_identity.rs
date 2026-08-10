@@ -12,7 +12,8 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hash;
 use std::hash::Hasher;
 
-type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
+type IdentityHasher =
+    BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
 /// Compares two JSON trees using structural JSON semantics.
 ///
@@ -27,7 +28,10 @@ type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHash
 /// significant and array element order is significant.
 #[must_use]
 #[inline(always)]
-pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bool {
+pub(crate) fn json_eq(
+    left: &serde_json::Value,
+    right: &serde_json::Value,
+) -> bool {
     left == right
 }
 
