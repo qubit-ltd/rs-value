@@ -16,10 +16,10 @@ use qubit_value::ValueWirePayloadV1;
 fn test_value_wire_encode_error_rejects_non_finite_float() {
     let result = ValueWirePayloadV1::try_from(Value::Float64(f64::NAN));
 
-    assert_eq!(
+    assert!(matches!(
         result,
         Err(ValueWireEncodeError::NonFiniteFloat {
             data_type: DataType::Float64,
-        }),
-    );
+        })
+    ));
 }

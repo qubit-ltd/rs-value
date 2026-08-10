@@ -8,6 +8,17 @@
 
 //! Unversioned V1 payload for use inside an already-versioned protocol.
 
+#[cfg(feature = "json")]
+use std::io::Write;
+
+#[cfg(feature = "json")]
+use qubit_budget::JsonLimits;
+#[cfg(feature = "json")]
+use qubit_budget::from_slice_with_budget;
+#[cfg(feature = "json")]
+use qubit_budget::to_vec_with_budget;
+#[cfg(feature = "json")]
+use qubit_budget::to_writer_with_budget;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -23,8 +34,6 @@ use crate::Value;
 use crate::ValueContainer;
 #[cfg(feature = "json")]
 use crate::ValueWireDecodeError;
-#[cfg(feature = "json")]
-use crate::WireLimits;
 
 /// Typed V1 scalar-or-collection payload without an enclosing version field.
 ///
@@ -43,6 +52,14 @@ pub struct ValueWirePayloadV1 {
 }
 
 impl ValueWirePayloadV1 {
+    /// Returns the default JSON resource profile for complete V1 payloads.
+    #[cfg(feature = "json")]
+    #[must_use = "the V1 JSON profile should be applied to a budget"]
+    #[inline]
+    pub const fn default_json_limits() -> JsonLimits {
+        super::default_json_limits()
+    }
+
     /// Decodes a complete V1 JSON payload using default resource limits.
     ///
     /// Prefer this entry point when the payload itself is the complete
@@ -55,8 +72,10 @@ impl ValueWirePayloadV1 {
     /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(input, WireLimits::default())
+    pub fn decode_json_slice(
+        input: &[u8],
+    ) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, Self::default_json_limits())
     }
 
     /// Decodes a complete V1 JSON payload using explicit resource limits.
@@ -69,12 +88,37 @@ impl ValueWirePayloadV1 {
     #[inline]
     pub fn decode_json_slice_with_limits(
         input: &[u8],
-        limits: WireLimits,
+        limits: JsonLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut budget = limits.begin(input.len())?;
-        let value: Self = serde_json::from_slice(input).map_err(ValueWireDecodeError::from)?;
-        budget.check_container(value.container())?;
-        Ok(value)
+        let mut budget = limits.budget();
+        from_slice_with_budget(input, &mut budget)
+            .map_err(ValueWireDecodeError::from)
+    }
+
+    /// Encodes this V1 payload into a bounded compact JSON vector.
+    #[cfg(feature = "json")]
+    pub fn to_json_vec_with_limits(
+        &self,
+        limits: JsonLimits,
+    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+        let mut budget = limits.budget();
+        to_vec_with_budget(self, &mut budget)
+            .map_err(ValueWireEncodeError::from)
+    }
+
+    /// Encodes this V1 payload to a writer after enforcing JSON budgets.
+    #[cfg(feature = "json")]
+    pub fn to_json_writer_with_limits<W>(
+        &self,
+        writer: W,
+        limits: JsonLimits,
+    ) -> Result<(), ValueWireEncodeError>
+    where
+        W: Write,
+    {
+        let mut budget = limits.budget();
+        to_writer_with_budget(writer, self, &mut budget)
+            .map_err(ValueWireEncodeError::from)
     }
 
     /// Borrows the preserved runtime value.
@@ -99,7 +143,9 @@ impl ValueWirePayloadV1 {
     }
 
     /// Wraps a payload decoded through V1's finite-number Serde adapters.
-    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
+    pub(in crate::value_wire) const fn from_decoded(
+        value: ValueContainer,
+    ) -> Self {
         Self { value }
     }
 }

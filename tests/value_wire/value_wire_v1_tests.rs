@@ -8,27 +8,35 @@
 
 //! Regression tests for bounded `ValueWireV1` JSON decoding.
 
+use qubit_budget::BudgetError;
+use qubit_budget::JsonLimits;
+use qubit_budget::JsonResource;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWireV1;
-use qubit_value::WireLimits;
 
 #[test]
 fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {
     let expected =
-        ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2, 3])).expect("construct V1 wire");
-    let input = serde_json::to_vec(&expected).expect("wire value should serialize");
+        ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2, 3]))
+            .expect("construct V1 wire");
+    let input =
+        serde_json::to_vec(&expected).expect("wire value should serialize");
 
-    let actual = ValueWireV1::decode_json_slice(&input).expect("bounded input should decode");
+    let actual = ValueWireV1::decode_json_slice(&input)
+        .expect("bounded input should decode");
 
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
-    let expected = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
-    let input = serde_json::to_vec(&expected).expect("wire value should serialize");
-    let limits = WireLimits::new(input.len());
+    let expected = ValueWireV1::try_from(ValueContainer::from(42_i32))
+        .expect("construct V1 wire");
+    let input =
+        serde_json::to_vec(&expected).expect("wire value should serialize");
+    let limits = JsonLimits::new().with_max_input_bytes(input.len());
 
     let actual = ValueWireV1::decode_json_slice_with_limits(&input, limits)
         .expect("input at the byte limit should decode");
@@ -39,27 +47,46 @@ fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
 #[test]
 fn test_value_wire_v1_rejects_oversized_input_before_parsing() {
     let input = b"definitely not valid JSON";
-    let limits = WireLimits::new(input.len() - 1);
+    let limits = JsonLimits::new().with_max_input_bytes(input.len() - 1);
 
     let error = ValueWireV1::decode_json_slice_with_limits(input, limits)
         .expect_err("oversized input must be rejected before JSON parsing");
 
     assert!(matches!(
         error,
-        ValueWireDecodeError::InputTooLarge {
-            input_bytes,
-            max_input_bytes,
-        } if input_bytes == input.len() && max_input_bytes == input.len() - 1
+        ValueWireDecodeError::Budget(BudgetError::LimitExceeded {
+            resource: JsonResource::InputBytes,
+            actual,
+            maximum,
+        }) if actual == input.len() && maximum == input.len() - 1
     ));
 }
 
 #[test]
 fn test_value_wire_v1_reports_malformed_bounded_input() {
     let input = b"not JSON";
-    let limits = WireLimits::new(input.len());
+    let limits = JsonLimits::new().with_max_input_bytes(input.len());
 
     let error = ValueWireV1::decode_json_slice_with_limits(input, limits)
         .expect_err("malformed bounded input must fail");
 
     assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
+}
+
+#[test]
+fn test_value_wire_v1_bounded_encoding_reports_budget_source() {
+    let wire = ValueWireV1::try_from(ValueContainer::from(42_i32))
+        .expect("construct V1 wire");
+    let error = wire
+        .to_json_vec_with_limits(JsonLimits::new().with_max_output_bytes(1))
+        .expect_err("the encoded wire should exceed one byte");
+
+    assert!(matches!(
+        error,
+        ValueWireEncodeError::Budget(BudgetError::LimitExceeded {
+            resource: JsonResource::OutputBytes,
+            maximum: 1,
+            ..
+        })
+    ));
 }

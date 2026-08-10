@@ -12,6 +12,8 @@
 //! standalone [`ValueWireV1`] envelope or nested [`ValueWirePayloadV1`].
 //! Borrowed values can use [`ValueWireRefV1`] or [`ValueWirePayloadRefV1`].
 
+#[cfg(feature = "json")]
+use qubit_budget::JsonLimits;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -59,8 +61,6 @@ mod internal;
 #[cfg(feature = "json")]
 mod value_wire_decode_error;
 mod value_wire_encode_error;
-#[cfg(feature = "json")]
-mod value_wire_limits;
 mod value_wire_payload_ref_v1;
 mod value_wire_payload_v1;
 mod value_wire_ref_v1;
@@ -72,17 +72,27 @@ use internal::WireShapeOwned;
 use internal::WireShapeRef;
 #[cfg(feature = "json")]
 pub use value_wire_decode_error::ValueWireDecodeError;
-#[cfg(feature = "json")]
-pub use value_wire_decode_error::ValueWireLimitKind;
 pub use value_wire_encode_error::ValueWireEncodeError;
-#[cfg(feature = "json")]
-pub use value_wire_limits::WireBudget;
-#[cfg(feature = "json")]
-pub use value_wire_limits::WireLimits;
 pub use value_wire_payload_ref_v1::ValueWirePayloadRefV1;
 pub use value_wire_payload_v1::ValueWirePayloadV1;
 pub use value_wire_ref_v1::ValueWireRefV1;
 pub use value_wire_v1::ValueWireV1;
+
+/// Returns the default resource profile used by complete V1 JSON documents.
+#[cfg(feature = "json")]
+#[inline]
+pub(crate) const fn default_json_limits() -> JsonLimits {
+    JsonLimits::new()
+        .with_max_input_bytes(1_048_576)
+        .with_max_output_bytes(1_048_576)
+        .with_max_depth(64)
+        .with_max_nodes(100_000)
+        .with_max_sequence_items(4_096)
+        .with_max_map_entries(4_096)
+        .with_max_key_bytes(256 * 1024)
+        .with_max_string_bytes(256 * 1024)
+        .with_max_number_bytes(4_096)
+}
 
 /// Serializes a typed shape through the V1 envelope.
 ///
@@ -103,7 +113,10 @@ pub use value_wire_v1::ValueWireV1;
 ///
 /// Returns the error reported by `serializer`.
 #[inline(always)]
-fn serialize_wire<S>(value: WireShapeRef<'_>, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_wire<S>(
+    value: WireShapeRef<'_>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {

@@ -8,6 +8,17 @@
 
 //! Public DTO for the stable version-one JSON wire contract.
 
+#[cfg(feature = "json")]
+use std::io::Write;
+
+#[cfg(feature = "json")]
+use qubit_budget::JsonLimits;
+#[cfg(feature = "json")]
+use qubit_budget::from_slice_with_budget;
+#[cfg(feature = "json")]
+use qubit_budget::to_vec_with_budget;
+#[cfg(feature = "json")]
+use qubit_budget::to_writer_with_budget;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -18,8 +29,6 @@ use super::VALUE_WIRE_V1_VERSION;
 use super::ValueWireDecodeError;
 use super::ValueWireEncodeError;
 use super::ValueWirePayloadV1;
-#[cfg(feature = "json")]
-use super::WireLimits;
 use super::deserialize_wire;
 use super::serialize_wire;
 use crate::MultiValues;
@@ -52,6 +61,14 @@ impl ValueWireV1 {
     /// Numeric version emitted and accepted by this DTO.
     pub const VERSION: u8 = VALUE_WIRE_V1_VERSION;
 
+    /// Returns the default JSON resource profile for complete V1 documents.
+    #[cfg(feature = "json")]
+    #[must_use = "the V1 JSON profile should be applied to a budget"]
+    #[inline]
+    pub const fn default_json_limits() -> JsonLimits {
+        super::default_json_limits()
+    }
+
     /// Creates a V1 DTO from an explicit scalar-or-collection container.
     ///
     /// # Parameters
@@ -70,7 +87,7 @@ impl ValueWireV1 {
     ///
     /// The complete input length and decoded structure are checked before the
     /// value is returned. Embedded protocols should share one
-    /// [`crate::WireBudget`] across their complete document.
+    /// [`qubit_budget::JsonBudget`] across their complete document.
     ///
     /// # Parameters
     ///
@@ -86,15 +103,17 @@ impl ValueWireV1 {
     /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(input, WireLimits::default())
+    pub fn decode_json_slice(
+        input: &[u8],
+    ) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, Self::default_json_limits())
     }
 
     /// Decodes a V1 JSON wire value using explicit structural limits.
     ///
     /// The complete input length and decoded structure are checked before the
     /// value is returned. Embedded values should be checked through the outer
-    /// protocol's shared [`crate::WireBudget`].
+    /// protocol's shared [`qubit_budget::JsonBudget`].
     ///
     /// # Parameters
     ///
@@ -113,12 +132,37 @@ impl ValueWireV1 {
     #[inline]
     pub fn decode_json_slice_with_limits(
         input: &[u8],
-        limits: WireLimits,
+        limits: JsonLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut budget = limits.begin(input.len())?;
-        let value: Self = serde_json::from_slice(input).map_err(ValueWireDecodeError::from)?;
-        budget.check_container(value.container())?;
-        Ok(value)
+        let mut budget = limits.budget();
+        from_slice_with_budget(input, &mut budget)
+            .map_err(ValueWireDecodeError::from)
+    }
+
+    /// Encodes this V1 document into a bounded compact JSON vector.
+    #[cfg(feature = "json")]
+    pub fn to_json_vec_with_limits(
+        &self,
+        limits: JsonLimits,
+    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+        let mut budget = limits.budget();
+        to_vec_with_budget(self, &mut budget)
+            .map_err(ValueWireEncodeError::from)
+    }
+
+    /// Encodes this V1 document to a writer after enforcing JSON budgets.
+    #[cfg(feature = "json")]
+    pub fn to_json_writer_with_limits<W>(
+        &self,
+        writer: W,
+        limits: JsonLimits,
+    ) -> Result<(), ValueWireEncodeError>
+    where
+        W: Write,
+    {
+        let mut budget = limits.budget();
+        to_writer_with_budget(writer, self, &mut budget)
+            .map_err(ValueWireEncodeError::from)
     }
 
     /// Returns the runtime container represented by this DTO.

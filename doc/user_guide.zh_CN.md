@@ -295,20 +295,23 @@ V1 是封闭格式。现有 tag、shape 和 payload 表示不能原地扩展；�
 语义资源限制下解码，最后恢复原来的 container。
 
 ```rust
-use qubit_value::{Value, ValueContainer, ValueWireV1, WireLimits};
+use qubit_budget::JsonLimits;
+use qubit_value::{Value, ValueContainer, ValueWireV1};
 
 let original = ValueContainer::Scalar(Value::new(8080i32));
 let wire = ValueWireV1::try_from(original.clone())?;
-let encoded = serde_json::to_vec(&wire)?;
+let limits = JsonLimits::new()
+    .with_max_input_bytes(64 * 1024)
+    .with_max_output_bytes(64 * 1024)
+    .with_max_depth(32)
+    .with_max_nodes(128);
+let encoded = wire.to_json_vec_with_limits(limits)?;
 
 assert_eq!(
     encoded,
     br#"{"version":1,"value":{"scalar":{"int32":8080}}}"#
 );
 
-let limits = WireLimits::new(64 * 1024)
-    .with_max_depth(32)
-    .with_max_nodes(128);
 let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, limits)?;
 let restored: ValueContainer = decoded.into();
 
@@ -317,9 +320,9 @@ assert!(restored.is_scalar());
 assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
 ```
 
-解码入口在物化前检查完整输入长度，然后把解码后的深度、节点数、集合元素数、map 条目数、
-字符串字节数和数字字节数计入 limits。`WireLimits::default()` 使用库默认值；应用需要自己
-控制输入预算时，使用 `WireLimits::new(max_input_bytes)`。
+解码入口使用 `qubit-budget` 提供的通用 JSON/Serde adapter。`ValueWireV1::default_json_limits()`
+提供 V1 默认 profile；应用需要自己控制输入、输出或结构预算时，直接传入 `JsonLimits`。编码
+可以通过 `to_json_vec_with_limits` 或 `to_json_writer_with_limits` 使用同一个 profile。
 
 ### 借用 Wire 编码
 
@@ -342,15 +345,15 @@ assert_eq!(
 `from_container`，然后只序列化 payload。这些构造器会在返回可序列化 payload 前校验有限浮点、
 有界的 `BigDecimal scale` 以及保留的 JSON object key，因此它们是可能失败的。
 
-### 嵌入值与共享 `WireBudget`
+### 嵌入值与共享 `JsonBudget`
 
 `decode_json_slice_with_limits` 用于完整的顶层 Wire 文档。如果值嵌套在更大的 JSON 文档中，
-应只对外层文档执行一次反序列化：使用完整输入长度启动一个 budget，再把这个 budget 复用于
-外层文档中的每个值；同时传入值实际的外层深度。
+应使用 `qubit-budget` 的 Serde adapter 处理完整外层文档，让同一个 session 计费所有 JSON 节点。
 
 ```rust
 use serde::Deserialize;
-use qubit_value::{ValueContainer, ValueWireV1, WireLimits};
+use qubit_budget::{from_slice_with_budget, JsonLimits};
+use qubit_value::{ValueContainer, ValueWireV1};
 
 #[derive(Deserialize)]
 struct Request {
@@ -358,18 +361,18 @@ struct Request {
 }
 
 let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
-let mut budget = WireLimits::new(64 * 1024).begin(input.len())?;
-let request: Request = serde_json::from_slice(input)?;
-
-budget.check_container_at(request.value.container(), 2)?;
+let mut budget = JsonLimits::new()
+    .with_max_input_bytes(64 * 1024)
+    .with_max_depth(32)
+    .with_max_nodes(128)
+    .budget();
+let request: Request = from_slice_with_budget(input, &mut budget)?;
 let restored: ValueContainer = request.value.into();
 assert!(restored.is_collection());
 ```
 
-外层 object 不会作为 `Value` 节点计费，但通过传给 `check_container_at` 的 `2` 反映了它的
-深度。复用一个 budget 可以累计同一 request 中多个值的节点用量。只有在应用明确需要单独
-进行 JSON 语法预检时才使用 `WireLimits::begin_json()`；正常解码应让 Serde 执行一次语法校验，
-然后为返回的 budget 计入语义资源。
+外层 object 和嵌入的 V1 envelope 都属于同一个通用 JSON 文档预算。复用一个 `JsonBudget` 可以
+累计同一 request 中多个嵌入值的用量，并拒绝完整文档后的 trailing content。
 
 ### Wire 的类型和输入边界
 
@@ -481,7 +484,7 @@ assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
 2. `version` 是否为数字 `1`；
 3. `scalar`/`collection` shape 是否与目标容器一致；
 4. 接收方构建是否启用了具体类型所需的 feature；
-5. 输入和解码后的结构是否符合 `WireLimits`；
+5. 输入和解码后的结构是否符合传入的 `JsonLimits` profile；
 6. 值是否包含非有限浮点或不符合边界的 payload。
 
 ### JSON 边界丢失了类型信息

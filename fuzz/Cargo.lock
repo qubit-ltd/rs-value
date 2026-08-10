@@ -312,6 +312,8 @@ dependencies = [
 name = "qubit-budget"
 version = "0.3.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 
@@ -365,6 +367,7 @@ dependencies = [
  "chrono",
  "libfuzzer-sys",
  "num-bigint",
+ "qubit-budget",
  "qubit-value",
  "serde_json",
  "url",

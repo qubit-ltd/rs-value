@@ -8,11 +8,19 @@
 
 //! Errors produced while constructing a V1 wire DTO.
 
+#[cfg(feature = "json")]
+use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::JsonResource;
+#[cfg(feature = "json")]
+use qubit_budget::JsonSerdeError;
 use qubit_datatype::DataType;
+#[cfg(feature = "json")]
+use serde_json::Error as JsonError;
 use thiserror::Error;
 
 /// A runtime value cannot be represented by the JSON V1 wire contract.
-#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum ValueWireEncodeError {
     /// A JSON V1 float must be finite.
@@ -33,9 +41,35 @@ pub enum ValueWireEncodeError {
     },
     /// A JSON V1 object uses serde_json's private number marker key.
     #[cfg(feature = "json")]
-    #[error("V1 JSON wire cannot represent an object containing the reserved key '{key}'")]
+    #[error(
+        "V1 JSON wire cannot represent an object containing the reserved key '{key}'"
+    )]
     ReservedJsonObjectKey {
         /// Key reserved by serde_json's arbitrary-precision representation.
         key: &'static str,
     },
+    /// The JSON output exceeded one configured resource budget.
+    #[cfg(feature = "json")]
+    #[error("V1 JSON wire resource budget exceeded: {0}")]
+    Budget(#[source] BudgetError<JsonResource, usize>),
+    /// Serde JSON rejected the value during bounded encoding.
+    #[cfg(feature = "json")]
+    #[error("failed to encode V1 JSON wire value: {0}")]
+    Json(#[source] JsonError),
+    /// The destination writer rejected bounded JSON output.
+    #[cfg(feature = "json")]
+    #[error("failed to write V1 JSON wire value: {0}")]
+    Io(#[source] std::io::Error),
+}
+
+#[cfg(feature = "json")]
+impl From<JsonSerdeError<JsonResource>> for ValueWireEncodeError {
+    #[inline]
+    fn from(error: JsonSerdeError<JsonResource>) -> Self {
+        match error {
+            JsonSerdeError::Budget(error) => Self::Budget(error),
+            JsonSerdeError::Json(error) => Self::Json(error),
+            JsonSerdeError::Io(error) => Self::Io(error),
+        }
+    }
 }

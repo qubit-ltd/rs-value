@@ -11,22 +11,33 @@
 //! collections, facilitating human-readable identification of groups of values
 //! in configurations, serialization, logging, and other scenarios.
 
+#[cfg(feature = "json")]
+use std::io::Write;
+
+#[cfg(feature = "json")]
+use qubit_budget::JsonLimits;
+#[cfg(feature = "json")]
+use qubit_budget::from_slice_with_budget;
+#[cfg(feature = "json")]
+use qubit_budget::to_vec_with_budget;
+#[cfg(feature = "json")]
+use qubit_budget::to_writer_with_budget;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
 use serde::de::Error as DeserializeError;
 use serde::ser::Error as SerializeError;
-#[cfg(feature = "json")]
-use serde_json::from_slice;
 
 use super::multi_values::MultiValues;
 use super::named_value::NamedValue;
 #[cfg(feature = "json")]
 use crate::ValueWireDecodeError;
+#[cfg(feature = "json")]
+use crate::ValueWireEncodeError;
 use crate::ValueWireRefV1;
 #[cfg(feature = "json")]
-use crate::WireLimits;
+use crate::ValueWireV1;
 
 mod internal;
 
@@ -139,8 +150,13 @@ impl NamedMultiValues {
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(input, WireLimits::default())
+    pub fn decode_json_slice(
+        input: &[u8],
+    ) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(
+            input,
+            ValueWireV1::default_json_limits(),
+        )
     }
 
     /// Decodes a complete named collection JSON document with explicit limits.
@@ -162,12 +178,37 @@ impl NamedMultiValues {
     #[cfg(feature = "json")]
     pub fn decode_json_slice_with_limits(
         input: &[u8],
-        limits: WireLimits,
+        limits: JsonLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut budget = limits.begin(input.len())?;
-        let value: Self = from_slice(input).map_err(ValueWireDecodeError::from)?;
-        budget.check_named_multi_values(&value)?;
-        Ok(value)
+        let mut budget = limits.budget();
+        from_slice_with_budget(input, &mut budget)
+            .map_err(ValueWireDecodeError::from)
+    }
+
+    /// Encodes this named collection into a bounded compact JSON vector.
+    #[cfg(feature = "json")]
+    pub fn to_json_vec_with_limits(
+        &self,
+        limits: JsonLimits,
+    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+        let mut budget = limits.budget();
+        to_vec_with_budget(self, &mut budget)
+            .map_err(ValueWireEncodeError::from)
+    }
+
+    /// Encodes this named collection to a writer after enforcing JSON budgets.
+    #[cfg(feature = "json")]
+    pub fn to_json_writer_with_limits<W>(
+        &self,
+        writer: W,
+        limits: JsonLimits,
+    ) -> Result<(), ValueWireEncodeError>
+    where
+        W: Write,
+    {
+        let mut budget = limits.budget();
+        to_writer_with_budget(writer, self, &mut budget)
+            .map_err(ValueWireEncodeError::from)
     }
 
     /// Get a reference to the name
@@ -307,7 +348,8 @@ impl Serialize for NamedMultiValues {
     where
         S: Serializer,
     {
-        let value = ValueWireRefV1::try_from(self.values()).map_err(SerializeError::custom)?;
+        let value = ValueWireRefV1::try_from(self.values())
+            .map_err(SerializeError::custom)?;
         NamedMultiValuesWireRef {
             name: self.name(),
             value,
@@ -326,7 +368,9 @@ impl<'de> Deserialize<'de> for NamedMultiValues {
         let NamedMultiValuesWireOwned { name, value } =
             NamedMultiValuesWireOwned::deserialize(deserializer)?;
         let value = value.into_container().into_collection().map_err(|_| {
-            DeserializeError::custom("named multi-values wire payload must contain a collection")
+            DeserializeError::custom(
+                "named multi-values wire payload must contain a collection",
+            )
         })?;
         Ok(Self::new(name, value))
     }
