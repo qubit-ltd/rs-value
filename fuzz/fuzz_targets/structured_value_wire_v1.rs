@@ -19,6 +19,7 @@ use chrono::TimeZone;
 use chrono::Utc;
 use libfuzzer_sys::fuzz_target;
 use num_bigint::BigInt;
+use qubit_budget::JsonLimits;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
@@ -26,6 +27,20 @@ use qubit_value::ValueWireV1;
 use url::Url;
 
 const TAG_COUNT: u8 = 52;
+
+/// Bounds generated structured values during both sides of the wire round trip.
+fn fuzz_limits() -> JsonLimits {
+    JsonLimits::new()
+        .with_max_input_bytes(4_096)
+        .with_max_output_bytes(4_096)
+        .with_max_depth(16)
+        .with_max_nodes(128)
+        .with_max_sequence_items(16)
+        .with_max_map_entries(16)
+        .with_max_key_bytes(4_096)
+        .with_max_string_bytes(4_096)
+        .with_max_number_bytes(256)
+}
 
 /// Copies at most `N` fuzz bytes into a fixed-width little-endian buffer.
 fn padded_bytes<const N: usize>(data: &[u8]) -> [u8; N] {
@@ -219,10 +234,14 @@ fuzz_target!(|data: &[u8]| {
 
     match wire {
         Ok(wire) => {
-            let encoded = serde_json::to_vec(&wire)
-                .expect("validated V1 values serialize");
-            let decoded: ValueWireV1 = serde_json::from_slice(&encoded)
-                .expect("serialized V1 values deserialize");
+            let encoded = wire
+                .to_json_vec_with_limits(fuzz_limits())
+                .expect("validated V1 values serialize within fuzz limits");
+            let decoded = ValueWireV1::decode_json_slice_with_limits(
+                &encoded,
+                fuzz_limits(),
+            )
+            .expect("serialized V1 values deserialize within fuzz limits");
             assert_eq!(decoded, wire);
             assert_eq!(decoded.into_container(), container);
         }

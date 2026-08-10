@@ -17,8 +17,22 @@ use qubit_value::ValueWireV1;
 /// Small budget that keeps over-limit inputs common while accepting all seeds.
 const MAX_JSON_BYTES: usize = 94;
 
+/// Keeps all JSON resource dimensions active while fuzzing bounded input.
+fn fuzz_limits(max_input_bytes: usize) -> JsonLimits {
+    JsonLimits::new()
+        .with_max_input_bytes(max_input_bytes)
+        .with_max_output_bytes(4_096)
+        .with_max_depth(16)
+        .with_max_nodes(128)
+        .with_max_sequence_items(16)
+        .with_max_map_entries(16)
+        .with_max_key_bytes(64)
+        .with_max_string_bytes(64)
+        .with_max_number_bytes(64)
+}
+
 fuzz_target!(|data: &[u8]| {
-    let limits = JsonLimits::new().with_max_input_bytes(MAX_JSON_BYTES);
+    let limits = fuzz_limits(MAX_JSON_BYTES);
     let result = ValueWireV1::decode_json_slice_with_limits(data, limits);
     if data.len() > MAX_JSON_BYTES {
         assert!(matches!(result, Err(ValueWireDecodeError::Budget(_))));
@@ -27,11 +41,14 @@ fuzz_target!(|data: &[u8]| {
 
     match result {
         Ok(value) => {
-            let encoded = serde_json::to_vec(&value)
-                .expect("a decoded ValueWireV1 must serialize");
+            let encoded = value
+                .to_json_vec_with_limits(fuzz_limits(MAX_JSON_BYTES))
+                .expect(
+                    "a decoded ValueWireV1 must serialize within fuzz limits",
+                );
             let decoded = ValueWireV1::decode_json_slice_with_limits(
                 &encoded,
-                JsonLimits::new().with_max_input_bytes(encoded.len()),
+                fuzz_limits(encoded.len()),
             )
             .expect("a serialized ValueWireV1 must decode");
             assert_eq!(decoded, value);
