@@ -8,6 +8,15 @@
 
 //! Borrowed V1 envelope serialization.
 
+#[cfg(feature = "json")]
+use std::io::Write;
+
+#[cfg(feature = "json")]
+use qubit_budget::JsonLimits;
+#[cfg(feature = "json")]
+use qubit_budget::to_vec_with_budget;
+#[cfg(feature = "json")]
+use qubit_budget::to_writer_with_budget;
 use serde::Serialize;
 use serde::Serializer;
 
@@ -44,6 +53,54 @@ impl<'a> ValueWireRefV1<'a> {
     /// Wraps an already validated borrowed payload.
     pub const fn new(value: ValueWirePayloadRefV1<'a>) -> Self {
         Self { value }
+    }
+
+    /// Encodes the borrowed V1 envelope into a compact JSON vector.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
+        self.to_json_vec_with_limits(super::default_json_limits())
+    }
+
+    /// Encodes the borrowed V1 envelope with explicit JSON resource limits.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn to_json_vec_with_limits(
+        &self,
+        limits: JsonLimits,
+    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+        let mut budget = limits.budget();
+        to_vec_with_budget(self, &mut budget)
+            .map_err(ValueWireEncodeError::from)
+    }
+
+    /// Encodes the borrowed V1 envelope to a writer with default limits.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn to_json_writer<W>(
+        &self,
+        writer: W,
+    ) -> Result<(), ValueWireEncodeError>
+    where
+        W: Write,
+    {
+        self.to_json_writer_with_limits(writer, super::default_json_limits())
+    }
+
+    /// Encodes the borrowed V1 envelope to a writer with explicit limits.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn to_json_writer_with_limits<W>(
+        &self,
+        writer: W,
+        limits: JsonLimits,
+    ) -> Result<(), ValueWireEncodeError>
+    where
+        W: Write,
+    {
+        let mut budget = limits.budget();
+        to_writer_with_budget(writer, self, &mut budget)
+            .map_err(ValueWireEncodeError::from)
     }
 }
 
