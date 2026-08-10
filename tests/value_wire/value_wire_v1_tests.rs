@@ -8,13 +8,47 @@
 
 //! Regression tests for bounded `ValueWireV1` JSON decoding.
 
+use std::io;
+use std::io::Write;
+
 use qubit_budget::BudgetError;
 use qubit_budget::JsonLimits;
 use qubit_budget::JsonResource;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireEncodeError;
+use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
+
+/// Writer that rejects every write to verify error conversion.
+struct FailingWriter;
+
+impl Write for FailingWriter {
+    /// Rejects the supplied bytes with a stable test error.
+    fn write(&mut self, _buffer: &[u8]) -> io::Result<usize> {
+        Err(io::Error::new(io::ErrorKind::BrokenPipe, "test writer"))
+    }
+
+    /// Does not flush because writes are always rejected.
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+#[test]
+fn test_value_wire_v1_default_json_limits_are_stable() {
+    let limits = ValueWireV1::default_json_limits();
+
+    assert_eq!(limits.max_input_bytes(), Some(1_048_576));
+    assert_eq!(limits.max_output_bytes(), Some(1_048_576));
+    assert_eq!(limits.max_depth(), Some(64));
+    assert_eq!(limits.max_nodes(), Some(100_000));
+    assert_eq!(limits.max_sequence_items(), Some(4_096));
+    assert_eq!(limits.max_map_entries(), Some(4_096));
+    assert_eq!(limits.max_key_bytes(), Some(256 * 1024));
+    assert_eq!(limits.max_string_bytes(), Some(256 * 1024));
+    assert_eq!(limits.max_number_bytes(), Some(4_096));
+}
 
 #[test]
 fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {
@@ -89,4 +123,151 @@ fn test_value_wire_v1_bounded_encoding_reports_budget_source() {
             ..
         })
     ));
+}
+
+#[test]
+fn test_value_wire_v1_default_encoding_round_trips() {
+    let wire = ValueWireV1::try_from(ValueContainer::from(42_i32))
+        .expect("construct V1 wire");
+    let encoded = wire.to_json_vec().expect("default limits should encode");
+
+    assert_eq!(
+        encoded,
+        serde_json::to_vec(&wire).expect("wire should serialize")
+    );
+    assert_eq!(
+        ValueWireV1::decode_json_slice(&encoded)
+            .expect("default limits should decode"),
+        wire
+    );
+}
+
+#[test]
+fn test_value_wire_v1_default_writer_encoding_matches_vec() {
+    let wire = ValueWireV1::try_from(ValueContainer::from("ready"))
+        .expect("construct V1 wire");
+    let mut output = Vec::new();
+
+    wire.to_json_writer(&mut output)
+        .expect("default limits should encode to writer");
+
+    assert_eq!(
+        output,
+        wire.to_json_vec().expect("default limits should encode")
+    );
+}
+
+#[test]
+fn test_value_wire_ref_v1_bounded_encoding_matches_owned_wire() {
+    let value = ValueContainer::from(42_i32);
+    let owned =
+        ValueWireV1::try_from(value.clone()).expect("construct V1 wire");
+    let borrowed =
+        ValueWireRefV1::try_from(&value).expect("construct borrowed V1 wire");
+
+    assert_eq!(
+        borrowed
+            .to_json_vec_with_limits(ValueWireV1::default_json_limits())
+            .expect("borrowed wire should encode"),
+        owned.to_json_vec().expect("owned wire should encode")
+    );
+}
+
+#[test]
+fn test_value_wire_v1_encoding_honors_structural_budgets() {
+    let scalar = ValueWireV1::try_from(ValueContainer::from(42_i32))
+        .expect("construct V1 wire");
+    let collection =
+        ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2]))
+            .expect("construct collection wire");
+    let cases = [
+        (
+            scalar.to_json_vec_with_limits(JsonLimits::new().with_max_depth(1)),
+            JsonResource::Depth,
+        ),
+        (
+            scalar.to_json_vec_with_limits(JsonLimits::new().with_max_nodes(1)),
+            JsonResource::Nodes,
+        ),
+        (
+            collection.to_json_vec_with_limits(
+                JsonLimits::new().with_max_sequence_items(1),
+            ),
+            JsonResource::SequenceItems,
+        ),
+        (
+            scalar.to_json_vec_with_limits(
+                JsonLimits::new().with_max_map_entries(1),
+            ),
+            JsonResource::MapEntries,
+        ),
+        (
+            scalar.to_json_vec_with_limits(
+                JsonLimits::new().with_max_key_bytes(1),
+            ),
+            JsonResource::KeyBytes,
+        ),
+        (
+            ValueWireV1::try_from(ValueContainer::from("ready"))
+                .expect("construct string wire")
+                .to_json_vec_with_limits(
+                    JsonLimits::new().with_max_string_bytes(1),
+                ),
+            JsonResource::StringBytes,
+        ),
+        (
+            scalar.to_json_vec_with_limits(
+                JsonLimits::new().with_max_number_bytes(0),
+            ),
+            JsonResource::NumberBytes,
+        ),
+    ];
+
+    for (result, resource) in cases {
+        assert!(
+            matches!(
+                result,
+                Err(ValueWireEncodeError::Budget(
+                    BudgetError::LimitExceeded { resource: actual, .. }
+                        | BudgetError::Insufficient { resource: actual, .. }
+                )) if actual == resource
+            ),
+            "unexpected resource error: {result:?}, expected {resource:?}"
+        );
+    }
+}
+
+#[test]
+fn test_value_wire_v1_writer_maps_io_errors() {
+    let wire = ValueWireV1::try_from(ValueContainer::from(42_i32))
+        .expect("construct V1 wire");
+
+    let error = wire
+        .to_json_writer(FailingWriter)
+        .expect_err("writer failure should be returned");
+
+    assert!(matches!(error, ValueWireEncodeError::Io(_)));
+}
+
+#[test]
+fn test_value_wire_v1_writer_budget_failure_does_not_write() {
+    let wire = ValueWireV1::try_from(ValueContainer::from(42_i32))
+        .expect("construct V1 wire");
+    let mut output = Vec::new();
+
+    let error = wire
+        .to_json_writer_with_limits(
+            &mut output,
+            JsonLimits::new().with_max_output_bytes(1),
+        )
+        .expect_err("output budget should reject the document");
+
+    assert!(matches!(
+        error,
+        ValueWireEncodeError::Budget(BudgetError::LimitExceeded {
+            resource: JsonResource::OutputBytes,
+            ..
+        })
+    ));
+    assert!(output.is_empty());
 }

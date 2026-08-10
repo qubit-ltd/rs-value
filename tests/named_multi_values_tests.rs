@@ -75,6 +75,20 @@ fn test_named_multi_values_bounded_decode_reuses_collection_budget() {
 }
 
 #[test]
+fn test_named_multi_values_default_encoding_round_trips() {
+    let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![42]));
+    let encoded = named
+        .to_json_vec()
+        .expect("default limits should encode named values");
+
+    assert_eq!(
+        NamedMultiValues::decode_json_slice(&encoded)
+            .expect("default limits should decode named values"),
+        named
+    );
+}
+
+#[test]
 fn test_named_multi_values_identity_is_reflexive_with_nan() {
     let values =
         NamedMultiValues::new("samples", MultiValues::Float32(vec![f32::NAN]));

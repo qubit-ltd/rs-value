@@ -13,6 +13,7 @@ use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
 
 /// Verifies unversioned V1 payloads retain an explicit collection shape.
@@ -71,4 +72,54 @@ fn test_value_wire_payload_v1_owned_conversions_cover_all_shapes() {
     let payload = ValueWirePayloadV1::try_from(explicit.clone())
         .expect("construct explicit payload");
     assert_eq!(payload.into_container(), explicit);
+}
+
+#[test]
+fn test_value_wire_payload_v1_default_encoding_round_trips() {
+    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(42_i32))
+        .expect("construct V1 payload");
+    let encoded = payload
+        .to_json_vec()
+        .expect("default limits should encode payload");
+
+    assert_eq!(
+        ValueWirePayloadV1::decode_json_slice(&encoded)
+            .expect("default limits should decode payload"),
+        payload
+    );
+}
+
+#[test]
+fn test_value_wire_payload_ref_v1_bounded_encoding_matches_owned_payload() {
+    let value = ValueContainer::from(vec![1_i32, 2]);
+    let owned = ValueWirePayloadV1::try_from(value.clone())
+        .expect("construct V1 payload");
+    let borrowed = ValueWirePayloadRefV1::try_from(&value)
+        .expect("construct borrowed V1 payload");
+
+    assert_eq!(
+        borrowed
+            .to_json_vec()
+            .expect("borrowed payload should encode"),
+        owned.to_json_vec().expect("owned payload should encode")
+    );
+}
+
+#[test]
+fn test_value_wire_payload_ref_v1_default_writer_matches_vec() {
+    let value = ValueContainer::from(42_i32);
+    let borrowed = ValueWirePayloadRefV1::try_from(&value)
+        .expect("construct borrowed V1 payload");
+    let mut output = Vec::new();
+
+    borrowed
+        .to_json_writer(&mut output)
+        .expect("borrowed payload should encode to writer");
+
+    assert_eq!(
+        output,
+        borrowed
+            .to_json_vec()
+            .expect("borrowed payload should encode")
+    );
 }
