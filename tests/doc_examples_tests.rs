@@ -65,7 +65,8 @@ fn test_doc_example_named_value_operations() {
     nv.value_mut().set(45i32);
     assert_eq!(nv.value().get_int32().unwrap(), 45);
 
-    let mut nmv = NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
+    let mut nmv =
+        NamedMultiValues::new("ports", MultiValues::new(vec![8080i32, 8081]));
     nmv.values_mut().add(8082).unwrap();
     let first_port: i32 = nmv.values().get_first().unwrap();
     assert_eq!(first_port, 8080);

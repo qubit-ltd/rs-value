@@ -16,8 +16,11 @@ fn test_big_integer_wire_serializes_negative_value() {
     use qubit_value::ValueWireV1;
 
     assert_eq!(
-        serde_json::to_value(ValueWireV1::try_from(Value::BigInteger(BigInt::from(-42))).unwrap())
-            .unwrap()["value"]["scalar"]["biginteger"],
+        serde_json::to_value(
+            ValueWireV1::try_from(Value::BigInteger(BigInt::from(-42)))
+                .unwrap()
+        )
+        .unwrap()["value"]["scalar"]["biginteger"],
         "-42"
     );
 }

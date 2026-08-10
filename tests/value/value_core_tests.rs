@@ -92,7 +92,8 @@ fn test_value_wire_rejects_non_finite_floats() {
     let wire = ValueWireV1::try_from(finite.clone())
         .expect("finite value should fit the V1 wire contract");
     let json = serde_json::to_string(&wire).expect("serialize V1 wire");
-    let decoded: ValueWireV1 = serde_json::from_str(&json).expect("deserialize V1 wire");
+    let decoded: ValueWireV1 =
+        serde_json::from_str(&json).expect("deserialize V1 wire");
     assert_eq!(decoded.into_container(), finite.into());
 
     for value in [
@@ -360,8 +361,12 @@ fn test_is_unset_distinguishes_empty_inner_values() {
     assert!(!Value::Float32(1.0).is_unset());
     assert!(!Value::Float64(1.0).is_unset());
     assert!(!Value::String(String::new()).is_unset());
-    assert!(!Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_unset());
-    assert!(!Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_unset());
+    assert!(
+        !Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_unset()
+    );
+    assert!(
+        !Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_unset()
+    );
     assert!(
         !Value::DateTime(
             NaiveDate::from_ymd_opt(2024, 1, 1)
@@ -379,7 +384,9 @@ fn test_is_unset_distinguishes_empty_inner_values() {
         .is_unset()
     );
     assert!(!Value::BigInteger(BigInt::from(123)).is_unset());
-    assert!(!Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_unset());
+    assert!(
+        !Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_unset()
+    );
 
     for &data_type in DataType::ALL {
         assert!(Value::Unset(data_type).is_unset());

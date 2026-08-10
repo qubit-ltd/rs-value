@@ -13,7 +13,8 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hash;
 use std::hash::Hasher;
 
-type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
+type IdentityHasher =
+    BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
 /// Hashes a string map independently of its iteration order.
 ///
@@ -21,7 +22,10 @@ type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHash
 ///
 /// * `value` - Map to hash.
 /// * `state` - Destination hasher.
-pub(crate) fn hash_string_map<H: Hasher>(value: &HashMap<String, String>, state: &mut H) {
+pub(crate) fn hash_string_map<H: Hasher>(
+    value: &HashMap<String, String>,
+    state: &mut H,
+) {
     value.len().hash(state);
     let mut sum = 0_u64;
     let mut xor = 0_u64;
