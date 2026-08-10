@@ -17,6 +17,7 @@ use chrono::NaiveDate;
 use chrono::NaiveTime;
 #[cfg(feature = "big-decimal")]
 use num_bigint::BigInt;
+use qubit_budget::StructureLimits;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::Value;
@@ -26,13 +27,28 @@ use qubit_value::ValueWireLimitKind;
 use qubit_value::ValueWirePayloadV1;
 use qubit_value::WireBudget;
 use qubit_value::WireLimits;
+
+#[test]
+fn test_wire_limits_compose_structure_limits() {
+    let structure_limits = StructureLimits::new()
+        .with_max_depth(1)
+        .with_max_nodes(2)
+        .with_max_sequence_items(3)
+        .with_max_map_entries(4);
+    let limits = WireLimits::new(5).with_structure_limits(structure_limits);
+
+    assert_eq!(limits.structure_limits(), structure_limits);
+    assert_eq!(limits.max_depth(), 1);
+    assert_eq!(limits.max_nodes(), 2);
+    assert_eq!(limits.max_collection_items(), 3);
+    assert_eq!(limits.max_map_entries(), 4);
+}
 use serde_json::Value as JsonValue;
 use serde_json::json;
 use serde_json::to_vec;
 use url::Url;
 
-type StaticWireBudgetCheck =
-    fn(&WireBudget, usize) -> Result<(), ValueWireDecodeError>;
+type StaticWireBudgetCheck = fn(&WireBudget, usize) -> Result<(), ValueWireDecodeError>;
 
 #[test]
 fn test_value_wire_limits_default_uses_documented_byte_budget() {
@@ -140,8 +156,7 @@ fn test_wire_budget_static_checks_preserve_limit_error_facts() {
     ];
 
     for (kind, check) in checks {
-        check(&budget, maximum)
-            .expect("a static check should accept its exact maximum");
+        check(&budget, maximum).expect("a static check should accept its exact maximum");
         assert!(matches!(
             check(&budget, maximum + 1),
             Err(ValueWireDecodeError::LimitExceeded {
@@ -263,10 +278,9 @@ fn test_json_decode_applies_string_limit_to_multibyte_char_collection() {
 
 #[test]
 fn test_wire_limits_reject_string_bytes() {
-    let payload = ValueWirePayloadV1::try_from(ValueContainer::Scalar(
-        Value::String("hello".to_owned()),
-    ))
-    .expect("the string should be wire-compatible");
+    let payload =
+        ValueWirePayloadV1::try_from(ValueContainer::Scalar(Value::String("hello".to_owned())))
+            .expect("the string should be wire-compatible");
     let input = to_vec(&payload).expect("the payload should serialize");
     let limits = WireLimits::new(input.len()).with_max_string_bytes(4);
 
@@ -302,10 +316,7 @@ fn test_wire_budget_accumulates_nodes_across_values() {
 
 #[test]
 fn test_wire_budget_counts_string_map_values_as_nodes() {
-    let value = Value::StringMap(HashMap::from([(
-        "key".to_owned(),
-        "value".to_owned(),
-    )]));
+    let value = Value::StringMap(HashMap::from([("key".to_owned(), "value".to_owned())]));
     let mut budget = WireLimits::new(0)
         .with_max_nodes(1)
         .begin(0)
@@ -383,16 +394,14 @@ fn test_wire_limits_cover_char_url_chrono_and_duration_payloads() {
         ),
         (
             Value::Url(
-                Url::parse("https://example.com/long-path")
-                    .expect("the URL fixture should parse"),
+                Url::parse("https://example.com/long-path").expect("the URL fixture should parse"),
             ),
             WireLimits::new(0).with_max_string_bytes(8),
             ValueWireLimitKind::StringBytes,
         ),
         (
             Value::Date(
-                NaiveDate::from_ymd_opt(2026, 8, 6)
-                    .expect("the date fixture should be valid"),
+                NaiveDate::from_ymd_opt(2026, 8, 6).expect("the date fixture should be valid"),
             ),
             WireLimits::new(0).with_max_string_bytes(4),
             ValueWireLimitKind::StringBytes,
@@ -418,10 +427,9 @@ fn test_wire_limits_cover_char_url_chrono_and_duration_payloads() {
 
 #[test]
 fn test_wire_budget_matrix_covers_every_runtime_data_type() {
-    let date = NaiveDate::from_ymd_opt(2026, 8, 6)
-        .expect("the date fixture should be valid");
-    let time = NaiveTime::from_hms_milli_opt(12, 34, 56, 789)
-        .expect("the time fixture should be valid");
+    let date = NaiveDate::from_ymd_opt(2026, 8, 6).expect("the date fixture should be valid");
+    let time =
+        NaiveTime::from_hms_milli_opt(12, 34, 56, 789).expect("the time fixture should be valid");
     let cases = vec![
         (Value::Bool(true), ValueWireLimitKind::Nodes),
         (Value::Char('\u{00e9}'), ValueWireLimitKind::StringBytes),
@@ -464,17 +472,11 @@ fn test_wire_budget_matrix_covers_every_runtime_data_type() {
             ValueWireLimitKind::NumericBytes,
         ),
         (
-            Value::Url(
-                Url::parse("https://example.com")
-                    .expect("the URL fixture should parse"),
-            ),
+            Value::Url(Url::parse("https://example.com").expect("the URL fixture should parse")),
             ValueWireLimitKind::StringBytes,
         ),
         (
-            Value::StringMap(HashMap::from([(
-                "key".to_owned(),
-                "value".to_owned(),
-            )])),
+            Value::StringMap(HashMap::from([("key".to_owned(), "value".to_owned())])),
             ValueWireLimitKind::MapEntries,
         ),
         (Value::Json(json!([1])), ValueWireLimitKind::CollectionItems),
@@ -499,18 +501,10 @@ fn test_wire_budget_matrix_covers_every_runtime_data_type() {
     for (value, expected_kind) in cases {
         let limits = match expected_kind {
             ValueWireLimitKind::Nodes => WireLimits::new(0).with_max_nodes(0),
-            ValueWireLimitKind::CollectionItems => {
-                WireLimits::new(0).with_max_collection_items(0)
-            }
-            ValueWireLimitKind::MapEntries => {
-                WireLimits::new(0).with_max_map_entries(0)
-            }
-            ValueWireLimitKind::StringBytes => {
-                WireLimits::new(0).with_max_string_bytes(1)
-            }
-            ValueWireLimitKind::NumericBytes => {
-                WireLimits::new(0).with_max_numeric_bytes(1)
-            }
+            ValueWireLimitKind::CollectionItems => WireLimits::new(0).with_max_collection_items(0),
+            ValueWireLimitKind::MapEntries => WireLimits::new(0).with_max_map_entries(0),
+            ValueWireLimitKind::StringBytes => WireLimits::new(0).with_max_string_bytes(1),
+            ValueWireLimitKind::NumericBytes => WireLimits::new(0).with_max_numeric_bytes(1),
             _ => panic!("unsupported matrix limit kind"),
         };
         let mut budget = limits
@@ -578,8 +572,8 @@ fn test_json_decode_applies_map_limit_to_runtime_value() {
             .map(|index| (format!("key{index}"), json!(index)))
             .collect(),
     ));
-    let payload = ValueWirePayloadV1::try_from(value)
-        .expect("the JSON object should be wire-compatible");
+    let payload =
+        ValueWirePayloadV1::try_from(value).expect("the JSON object should be wire-compatible");
     let input = to_vec(&payload).expect("the payload should serialize");
     let limits = WireLimits::new(input.len()).with_max_map_entries(1);
 
@@ -595,9 +589,8 @@ fn test_json_decode_applies_map_limit_to_runtime_value() {
 
 #[test]
 fn test_json_decode_applies_node_limit_to_runtime_value() {
-    let payload =
-        ValueWirePayloadV1::try_from(MultiValues::Int32((0..70).collect()))
-            .expect("the collection should be wire-compatible");
+    let payload = ValueWirePayloadV1::try_from(MultiValues::Int32((0..70).collect()))
+        .expect("the collection should be wire-compatible");
     let input = to_vec(&payload).expect("the payload should serialize");
     let limits = WireLimits::new(input.len())
         .with_max_nodes(1)
