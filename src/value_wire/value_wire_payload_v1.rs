@@ -55,9 +55,7 @@ impl ValueWirePayloadV1 {
     /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, WireLimits::default())
     }
 
@@ -74,8 +72,7 @@ impl ValueWirePayloadV1 {
         limits: WireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut budget = limits.begin(input.len())?;
-        let value: Self = serde_json::from_slice(input)
-            .map_err(ValueWireDecodeError::from)?;
+        let value: Self = serde_json::from_slice(input).map_err(ValueWireDecodeError::from)?;
         budget.check_container(value.container())?;
         Ok(value)
     }
@@ -102,9 +99,7 @@ impl ValueWirePayloadV1 {
     }
 
     /// Wraps a payload decoded through V1's finite-number Serde adapters.
-    pub(in crate::value_wire) const fn from_decoded(
-        value: ValueContainer,
-    ) -> Self {
+    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
         Self { value }
     }
 }

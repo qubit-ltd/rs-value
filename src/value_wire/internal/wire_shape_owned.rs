@@ -37,9 +37,7 @@ impl From<WireShapeOwned> for ValueContainer {
     fn from(value: WireShapeOwned) -> Self {
         match value {
             WireShapeOwned::Scalar(value) => Self::Scalar(value.into()),
-            WireShapeOwned::Collection(values) => {
-                Self::Collection(values.into())
-            }
+            WireShapeOwned::Collection(values) => Self::Collection(values.into()),
         }
     }
 }

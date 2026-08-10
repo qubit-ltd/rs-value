@@ -123,9 +123,7 @@ impl NamedValue {
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, WireLimits::default())
     }
 
@@ -151,8 +149,7 @@ impl NamedValue {
         limits: WireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut budget = limits.begin(input.len())?;
-        let value: Self =
-            from_slice(input).map_err(ValueWireDecodeError::from)?;
+        let value: Self = from_slice(input).map_err(ValueWireDecodeError::from)?;
         budget.check_named_value(&value)?;
         Ok(value)
     }
@@ -252,8 +249,7 @@ impl Serialize for NamedValue {
     where
         S: Serializer,
     {
-        let value = ValueWireRefV1::try_from(self.value())
-            .map_err(SerializeError::custom)?;
+        let value = ValueWireRefV1::try_from(self.value()).map_err(SerializeError::custom)?;
         NamedValueWireRef {
             name: self.name(),
             value,
@@ -269,12 +265,9 @@ impl<'de> Deserialize<'de> for NamedValue {
     where
         D: Deserializer<'de>,
     {
-        let NamedValueWireOwned { name, value } =
-            NamedValueWireOwned::deserialize(deserializer)?;
+        let NamedValueWireOwned { name, value } = NamedValueWireOwned::deserialize(deserializer)?;
         let value = value.into_container().into_scalar().map_err(|_| {
-            DeserializeError::custom(
-                "named value wire payload must contain a scalar",
-            )
+            DeserializeError::custom("named value wire payload must contain a scalar")
         })?;
         Ok(Self::new(name, value))
     }

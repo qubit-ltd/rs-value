@@ -48,17 +48,14 @@ fn benchmark_config_conversions(c: &mut Criterion) {
             black_box(value)
         });
     });
-    c.bench_function(
-        "downstream/config_scalar_string_to_u16_list",
-        |bencher| {
-            bencher.iter(|| {
-                let values = ports
-                    .to_list_with::<u16>(black_box(&options))
-                    .expect("delimited port text should convert");
-                black_box(values)
-            });
-        },
-    );
+    c.bench_function("downstream/config_scalar_string_to_u16_list", |bencher| {
+        bencher.iter(|| {
+            let values = ports
+                .to_list_with::<u16>(black_box(&options))
+                .expect("delimited port text should convert");
+            black_box(values)
+        });
+    });
 }
 
 /// Benchmarks mixed-width numeric comparison used by `qubit-metadata`.
@@ -67,17 +64,14 @@ fn benchmark_metadata_numeric_comparison(c: &mut Criterion) {
     let right = Value::UInt64(i64::MAX as u64 + 1);
     let policy = NumericComparisonPolicy::default();
 
-    c.bench_function(
-        "downstream/metadata_mixed_integer_comparison",
-        |bencher| {
-            bencher.iter(|| {
-                let ordering = left
-                    .numeric_cmp(black_box(&right), black_box(policy))
-                    .expect("finite integer values should compare");
-                black_box(ordering)
-            });
-        },
-    );
+    c.bench_function("downstream/metadata_mixed_integer_comparison", |bencher| {
+        bencher.iter(|| {
+            let ordering = left
+                .numeric_cmp(black_box(&right), black_box(policy))
+                .expect("finite integer values should compare");
+            black_box(ordering)
+        });
+    });
 }
 
 /// Benchmarks natural JSON projection used by configuration serialization.
@@ -107,8 +101,7 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
         "scheduler".to_string(),
     ]))
     .expect("construct V1 wire");
-    let encoded = serde_json::to_vec(&wire)
-        .expect("benchmark wire value should serialize");
+    let encoded = serde_json::to_vec(&wire).expect("benchmark wire value should serialize");
 
     c.bench_function("downstream/value_wire_v1_encode_json", |bencher| {
         bencher.iter(|| {
@@ -134,9 +127,8 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
         "downstream/value_wire_ref_v1_construct_and_encode_json",
         |bencher| {
             bencher.iter(|| {
-                let wire =
-                    ValueWireRefV1::try_from(black_box(&borrowed_values))
-                        .expect("benchmark wire value should validate");
+                let wire = ValueWireRefV1::try_from(black_box(&borrowed_values))
+                    .expect("benchmark wire value should validate");
                 let bytes = serde_json::to_vec(black_box(&wire))
                     .expect("benchmark wire value should serialize");
                 black_box(bytes)
@@ -165,9 +157,8 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
         "downstream/value_wire_ref_v1_float_construct_and_encode_json",
         |bencher| {
             bencher.iter(|| {
-                let wire =
-                    ValueWireRefV1::try_from(black_box(&borrowed_float_values))
-                        .expect("benchmark float wire should validate");
+                let wire = ValueWireRefV1::try_from(black_box(&borrowed_float_values))
+                    .expect("benchmark float wire should validate");
                 let bytes = serde_json::to_vec(black_box(&wire))
                     .expect("benchmark float wire should serialize");
                 black_box(bytes)

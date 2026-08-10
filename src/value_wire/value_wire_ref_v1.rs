@@ -30,15 +30,11 @@ impl<'a> ValueWireRefV1<'a> {
         ValueWirePayloadRefV1::from_value(value).map(Self::new)
     }
     /// Borrows a collection after validating V1's finite-float invariant.
-    pub fn from_values(
-        values: &'a MultiValues,
-    ) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_values(values).map(Self::new)
     }
     /// Borrows an explicit shape after validating V1's finite-float invariant.
-    pub fn from_container(
-        value: &'a ValueContainer,
-    ) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_container(value).map(Self::new)
     }
     /// Wraps an already validated borrowed payload.

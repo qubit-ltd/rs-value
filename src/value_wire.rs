@@ -103,10 +103,7 @@ pub use value_wire_v1::ValueWireV1;
 ///
 /// Returns the error reported by `serializer`.
 #[inline(always)]
-fn serialize_wire<S>(
-    value: WireShapeRef<'_>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_wire<S>(value: WireShapeRef<'_>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
