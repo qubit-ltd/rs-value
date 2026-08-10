@@ -317,20 +317,23 @@ owned Wire DTO, serializes it, applies input and semantic limits during decode,
 and restores the original container.
 
 ```rust
-use qubit_value::{Value, ValueContainer, ValueWireV1, WireLimits};
+use qubit_budget::JsonLimits;
+use qubit_value::{Value, ValueContainer, ValueWireV1};
 
 let original = ValueContainer::Scalar(Value::new(8080i32));
 let wire = ValueWireV1::try_from(original.clone())?;
-let encoded = serde_json::to_vec(&wire)?;
+let limits = JsonLimits::new()
+    .with_max_input_bytes(64 * 1024)
+    .with_max_output_bytes(64 * 1024)
+    .with_max_depth(32)
+    .with_max_nodes(128);
+let encoded = wire.to_json_vec_with_limits(limits)?;
 
 assert_eq!(
     encoded,
     br#"{"version":1,"value":{"scalar":{"int32":8080}}}"#
 );
 
-let limits = WireLimits::new(64 * 1024)
-    .with_max_depth(32)
-    .with_max_nodes(128);
 let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, limits)?;
 let restored: ValueContainer = decoded.into();
 
@@ -339,11 +342,11 @@ assert!(restored.is_scalar());
 assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
 ```
 
-The decode helpers accept a complete top-level Wire document. They check the
-encoded input length before materialization, then charge decoded depth, nodes,
-collection items, map entries, string bytes, and numeric bytes against the
-limits. `WireLimits::default()` supplies the library defaults; construct
-`WireLimits::new(max_input_bytes)` when the application owns the input budget.
+The decode helpers accept a complete top-level Wire document and use the
+generic `qubit-budget` JSON/Serde adapter. `ValueWireV1::default_json_limits()`
+provides the V1 profile; pass a `JsonLimits` value when the application owns a
+different input, output, or structural budget. Encoding can use the same
+profile through `to_json_vec_with_limits` or `to_json_writer_with_limits`.
 
 ### Borrowed Wire encoding
 
@@ -369,17 +372,17 @@ serialize the payload instead. These constructors are fallible because they
 validate finite floats, bounded `BigDecimal` scale, and reserved JSON object
 keys before exposing a serializable payload.
 
-### Embedded values and a shared `WireBudget`
+### Embedded values and a shared `JsonBudget`
 
 `decode_json_slice_with_limits` is for a complete top-level Wire document. If a
-value is nested inside a larger JSON document, deserialize the outer document
-once, start one budget with the complete input length, then reuse that budget
-for every embedded value. Pass the value's actual outer depth so wrappers count
-correctly.
+value is nested inside a larger JSON document, use the shared `qubit-budget`
+Serde adapter for the complete outer document so every JSON node is charged in
+one session.
 
 ```rust
 use serde::Deserialize;
-use qubit_value::{ValueContainer, ValueWireV1, WireLimits};
+use qubit_budget::{from_slice_with_budget, JsonLimits};
+use qubit_value::{ValueContainer, ValueWireV1};
 
 #[derive(Deserialize)]
 struct Request {
@@ -387,20 +390,19 @@ struct Request {
 }
 
 let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
-let mut budget = WireLimits::new(64 * 1024).begin(input.len())?;
-let request: Request = serde_json::from_slice(input)?;
-
-budget.check_container_at(request.value.container(), 2)?;
+let mut budget = JsonLimits::new()
+    .with_max_input_bytes(64 * 1024)
+    .with_max_depth(32)
+    .with_max_nodes(128)
+    .budget();
+let request: Request = from_slice_with_budget(input, &mut budget)?;
 let restored: ValueContainer = request.value.into();
 assert!(restored.is_collection());
 ```
 
-The outer object is not charged as a `Value` node, but its depth is reflected by
-the `2` passed to `check_container_at`. Reusing one budget accumulates node
-usage across multiple values in the same request. `WireLimits::begin_json()`
-is available when the application explicitly needs a separate syntax preflight;
-normal decoding should validate syntax once through Serde and then charge the
-returned budget.
+The outer object and embedded V1 envelope are both part of the same generic JSON
+document budget. Reusing one `JsonBudget` accumulates usage across multiple
+embedded values and rejects trailing content after the complete document.
 
 ### Wire-specific type and input boundaries
 
@@ -524,7 +526,7 @@ Check, in order:
 2. `version` is numeric `1`;
 3. the `scalar`/`collection` shape matches the intended container;
 4. the receiving build enables the feature for the concrete type;
-5. the input and decoded structure fit `WireLimits`;
+5. the input and decoded structure fit the supplied `JsonLimits` profile;
 6. the value contains no non-finite float or invalid bounded payload.
 
 ### A JSON boundary loses type information

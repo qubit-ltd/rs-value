@@ -9,57 +9,41 @@
 //! Error reported while decoding bounded JSON wire input.
 // qubit-style: allow multiple-public-types
 
+use qubit_budget::BudgetError;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonSerdeError;
+use serde_json::Error as JsonError;
 use thiserror::Error;
-
-/// Shared resource category enforced while decoding one wire document.
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ValueWireLimitKind {
-    /// Complete encoded input length.
-    InputBytes,
-    /// Complete encoded output length.
-    OutputBytes,
-    /// Recursive wire depth.
-    Depth,
-    /// Total decoded node count.
-    Nodes,
-    /// Elements in one collection.
-    CollectionItems,
-    /// Entries in one map.
-    MapEntries,
-    /// Bytes in one object key.
-    KeyBytes,
-    /// Bytes in one decoded string.
-    StringBytes,
-    /// UTF-8 bytes in one decoded numeric representation.
-    NumericBytes,
-}
 
 /// Error produced by a bounded [`crate::ValueWireV1`] JSON decoder.
 #[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum ValueWireDecodeError {
-    /// The input exceeds the configured byte budget.
-    #[error("wire input contains {input_bytes} bytes, exceeding the {max_input_bytes}-byte limit")]
-    InputTooLarge {
-        /// Actual input length in bytes.
-        input_bytes: usize,
-        /// Maximum accepted input length in bytes.
-        max_input_bytes: usize,
-    },
-
-    /// The decoded value exceeded one structural resource limit.
-    #[error("wire input {kind:?} value {value} exceeds the limit of {maximum}")]
-    LimitExceeded {
-        /// Resource category that exceeded its limit.
-        kind: ValueWireLimitKind,
-        /// Observed resource value.
-        value: usize,
-        /// Largest permitted resource value.
-        maximum: usize,
-    },
+    /// The JSON document exceeded one configured resource budget.
+    #[error("V1 JSON wire resource budget exceeded: {0}")]
+    Budget(#[source] BudgetError<JsonResource, usize>),
 
     /// The bounded input is not a valid V1 JSON wire value.
     #[error("failed to decode V1 JSON wire input: {0}")]
-    InvalidJson(#[from] serde_json::Error),
+    InvalidJson(#[source] JsonError),
+}
+
+impl From<JsonSerdeError<JsonResource>> for ValueWireDecodeError {
+    #[inline]
+    fn from(error: JsonSerdeError<JsonResource>) -> Self {
+        match error {
+            JsonSerdeError::Budget(error) => Self::Budget(error),
+            JsonSerdeError::Json(error) => Self::InvalidJson(error),
+            JsonSerdeError::Io(error) => {
+                Self::InvalidJson(JsonError::io(error))
+            }
+        }
+    }
+}
+
+impl From<JsonError> for ValueWireDecodeError {
+    #[inline]
+    fn from(error: JsonError) -> Self {
+        Self::InvalidJson(error)
+    }
 }

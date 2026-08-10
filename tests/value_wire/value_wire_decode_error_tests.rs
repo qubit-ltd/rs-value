@@ -10,20 +10,20 @@
 
 use std::error::Error;
 
+use qubit_budget::BudgetError;
+use qubit_budget::JsonResource;
 use qubit_value::ValueWireDecodeError;
 
 #[test]
-fn test_value_wire_decode_error_describes_input_limit() {
-    let error = ValueWireDecodeError::InputTooLarge {
-        input_bytes: 9,
-        max_input_bytes: 8,
-    };
+fn test_value_wire_decode_error_preserves_budget_source() {
+    let error = ValueWireDecodeError::Budget(BudgetError::LimitExceeded {
+        resource: JsonResource::InputBytes,
+        actual: 9,
+        maximum: 8,
+    });
 
-    assert_eq!(
-        error.to_string(),
-        "wire input contains 9 bytes, exceeding the 8-byte limit"
-    );
-    assert!(error.source().is_none());
+    assert!(error.to_string().contains("InputBytes"));
+    assert!(error.source().is_some());
 }
 
 #[test]

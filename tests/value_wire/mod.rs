@@ -9,7 +9,6 @@
 //! Tests for public bounded wire-decoding types.
 
 mod value_wire_decode_error_tests;
-mod value_wire_limits_tests;
 mod value_wire_payload_ref_v1_tests;
 mod value_wire_ref_v1_tests;
 mod value_wire_v1_tests;
