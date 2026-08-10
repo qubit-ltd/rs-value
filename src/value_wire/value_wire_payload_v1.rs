@@ -95,6 +95,18 @@ impl ValueWirePayloadV1 {
             .map_err(ValueWireDecodeError::from)
     }
 
+    /// Encodes this V1 payload into a compact JSON vector with default limits.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError::Budget`] when the payload exceeds the
+    /// default JSON resource profile.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
+        self.to_json_vec_with_limits(Self::default_json_limits())
+    }
+
     /// Encodes this V1 payload into a bounded compact JSON vector.
     #[cfg(feature = "json")]
     pub fn to_json_vec_with_limits(
@@ -104,6 +116,28 @@ impl ValueWirePayloadV1 {
         let mut budget = limits.budget();
         to_vec_with_budget(self, &mut budget)
             .map_err(ValueWireEncodeError::from)
+    }
+
+    /// Encodes this V1 payload to a writer with default limits.
+    ///
+    /// # Parameters
+    ///
+    /// * `writer` - Destination receiving the complete JSON payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError::Budget`] for resource-limit failures or
+    /// [`ValueWireEncodeError::Io`] when `writer` rejects output.
+    #[cfg(feature = "json")]
+    #[inline]
+    pub fn to_json_writer<W>(
+        &self,
+        writer: W,
+    ) -> Result<(), ValueWireEncodeError>
+    where
+        W: Write,
+    {
+        self.to_json_writer_with_limits(writer, Self::default_json_limits())
     }
 
     /// Encodes this V1 payload to a writer after enforcing JSON budgets.
