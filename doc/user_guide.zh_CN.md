@@ -321,8 +321,9 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
 ```
 
 解码入口使用 `qubit-budget` 提供的通用 JSON/Serde adapter。`ValueWireV1::default_json_limits()`
-提供 V1 默认 profile；应用需要自己控制输入、输出或结构预算时，直接传入 `JsonLimits`。编码
-可以通过 `to_json_vec_with_limits` 或 `to_json_writer_with_limits` 使用同一个 profile。
+提供 V1 默认 profile；应用需要自己控制输入、输出或结构预算时，直接传入 `JsonLimits`。
+编码可以通过 `to_json_vec()` 或 `to_json_writer()` 使用 V1 默认 profile，也可以通过
+`to_json_vec_with_limits` 或 `to_json_writer_with_limits` 使用应用自己的 profile。
 
 ### 借用 Wire 编码
 
@@ -333,7 +334,7 @@ use qubit_value::{Value, ValueWireRefV1};
 
 let value = Value::new("service-a".to_owned());
 let borrowed = ValueWireRefV1::from_value(&value)?;
-let encoded = serde_json::to_vec(&borrowed)?;
+let encoded = borrowed.to_json_vec()?;
 
 assert_eq!(
     encoded,
@@ -342,7 +343,7 @@ assert_eq!(
 ```
 
 对于已经版本化的外层协议，可以使用 `ValueWirePayloadRefV1::from_value`、`from_values` 或
-`from_container`，然后只序列化 payload。这些构造器会在返回可序列化 payload 前校验有限浮点、
+`from_container`，然后调用借用 payload 的 `to_json_vec()` 或 `to_json_writer()`。这些构造器会在返回可序列化 payload 前校验有限浮点、
 有界的 `BigDecimal scale` 以及保留的 JSON object key，因此它们是可能失败的。
 
 ### 嵌入值与共享 `JsonBudget`

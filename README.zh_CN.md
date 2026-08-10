@@ -129,7 +129,8 @@ feature。
 - `get_or`/`to_or` 及其集合版本让 fallback 语义保持明确：未设置值可以使用默认值，类型不
   匹配和普通转换失败仍会报告错误。
 - `NamedValue` 和 `NamedMultiValues` 为运行时值附加 key，不改变值本身的类型语义。
-- `ValueWireV1` 提供带版本的类型保留 JSON 表示；当接收方必须恢复精确的 `DataType` 和形态时，
+- `ValueWireV1` 提供带版本的类型保留 JSON 表示，并提供有界的 `to_json_vec()`、
+  `to_json_writer()` 入口；需要显式预算时使用对应的 `_with_limits` 方法。当接收方必须恢复精确的 `DataType` 和形态时，
   应使用它。
 - 自然 JSON 工具方法生成普通的 `null`、标量、对象和数组；当边界只需要 JSON 语义时使用它。
 

@@ -345,8 +345,9 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
 The decode helpers accept a complete top-level Wire document and use the
 generic `qubit-budget` JSON/Serde adapter. `ValueWireV1::default_json_limits()`
 provides the V1 profile; pass a `JsonLimits` value when the application owns a
-different input, output, or structural budget. Encoding can use the same
-profile through `to_json_vec_with_limits` or `to_json_writer_with_limits`.
+different input, output, or structural budget. Encoding can use the default V1
+profile through `to_json_vec()` or `to_json_writer()`, or an application-owned
+profile through `to_json_vec_with_limits` and `to_json_writer_with_limits`.
 
 ### Borrowed Wire encoding
 
@@ -358,7 +359,7 @@ use qubit_value::{Value, ValueWireRefV1};
 
 let value = Value::new("service-a".to_owned());
 let borrowed = ValueWireRefV1::from_value(&value)?;
-let encoded = serde_json::to_vec(&borrowed)?;
+let encoded = borrowed.to_json_vec()?;
 
 assert_eq!(
     encoded,
@@ -368,7 +369,8 @@ assert_eq!(
 
 For an already versioned outer protocol, use
 `ValueWirePayloadRefV1::from_value`, `from_values`, or `from_container` and
-serialize the payload instead. These constructors are fallible because they
+call `to_json_vec()` or `to_json_writer()` on the borrowed payload. These
+constructors are fallible because they
 validate finite floats, bounded `BigDecimal` scale, and reserved JSON object
 keys before exposing a serializable payload.
 
