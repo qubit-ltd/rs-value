@@ -86,6 +86,20 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
 }
 
 #[test]
+fn test_named_value_default_encoding_round_trips() {
+    let named = NamedValue::new("port", Value::Int32(42));
+    let encoded = named
+        .to_json_vec()
+        .expect("default limits should encode named value");
+
+    assert_eq!(
+        NamedValue::decode_json_slice(&encoded)
+            .expect("default limits should decode named value"),
+        named
+    );
+}
+
+#[test]
 fn test_named_value_identity_includes_name() {
     assert_ne!(
         NamedValue::new("left", Value::Float64(f64::NAN)),
