@@ -72,7 +72,7 @@ big-decimal = [
 ]
 big-number = ["big-integer", "big-decimal"]
 url = ["dep:url", "qubit-datatype/url"]
-json = ["dep:serde_json", "qubit-datatype/json", "qubit-redact?/json"]
+json = ["dep:serde_json", "qubit-budget/json", "qubit-datatype/json", "qubit-redact?/json"]
 converter = ["qubit-datatype/converter"]
 redact = ["dep:qubit-redact"]
 all = ["converter", "chrono", "big-number", "url", "json", "redact"]

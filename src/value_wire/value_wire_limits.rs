@@ -11,8 +11,10 @@
 
 use std::fmt;
 
-use qubit_budget::ResourceBudget;
-use qubit_budget::ResourceBudgetError;
+use qubit_budget::BudgetError;
+use qubit_budget::JsonBudget;
+use qubit_budget::JsonLimits;
+use qubit_budget::JsonResource;
 use serde::Deserializer;
 use serde::de::DeserializeSeed;
 use serde::de::Error as DeError;
@@ -186,18 +188,13 @@ impl WireLimits {
         self,
         input_bytes: usize,
     ) -> Result<WireBudget, ValueWireDecodeError> {
-        if input_bytes > self.max_input_bytes {
-            return Err(ValueWireDecodeError::InputTooLarge {
-                input_bytes,
-                max_input_bytes: self.max_input_bytes,
-            });
-        }
+        let json_budget = self.json_limits().budget();
+        json_budget
+            .check_input_bytes(input_bytes)
+            .map_err(map_budget_error)?;
         Ok(WireBudget {
             limits: self,
-            nodes: ResourceBudget::new(
-                ValueWireLimitKind::Nodes,
-                self.max_nodes,
-            ),
+            json_budget,
         })
     }
 
@@ -251,6 +248,19 @@ impl WireLimits {
             Ok(())
         }
     }
+
+    /// Builds the generic JSON limit configuration for this wire protocol.
+    #[inline(always)]
+    fn json_limits(self) -> JsonLimits {
+        JsonLimits::new()
+            .with_max_input_bytes(self.max_input_bytes)
+            .with_max_depth(self.max_depth)
+            .with_max_nodes(self.max_nodes)
+            .with_max_sequence_items(self.max_collection_items)
+            .with_max_map_entries(self.max_map_entries)
+            .with_max_string_bytes(self.max_string_bytes)
+            .with_max_number_bytes(self.max_numeric_bytes)
+    }
 }
 
 impl Default for WireLimits {
@@ -271,7 +281,7 @@ impl Default for WireLimits {
 #[derive(Debug)]
 pub struct WireBudget {
     limits: WireLimits,
-    nodes: ResourceBudget<ValueWireLimitKind, usize>,
+    json_budget: JsonBudget,
 }
 
 impl WireBudget {
@@ -284,7 +294,7 @@ impl WireBudget {
     /// Charges one decoded node.
     #[inline]
     pub fn check_node(&mut self) -> Result<(), ValueWireDecodeError> {
-        self.nodes.try_consume(1).map_err(map_budget_error)
+        self.json_budget.charge_node().map_err(map_budget_error)
     }
 
     /// Checks a recursive depth.
@@ -293,11 +303,7 @@ impl WireBudget {
         &self,
         depth: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        check_point_limit(
-            ValueWireLimitKind::Depth,
-            depth,
-            self.limits.max_depth,
-        )
+        self.json_budget.check_depth(depth).map_err(map_budget_error)
     }
 
     /// Checks one collection length.
@@ -306,11 +312,9 @@ impl WireBudget {
         &self,
         items: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        check_point_limit(
-            ValueWireLimitKind::CollectionItems,
-            items,
-            self.limits.max_collection_items,
-        )
+        self.json_budget
+            .check_sequence_items(items)
+            .map_err(map_budget_error)
     }
 
     /// Checks one map length.
@@ -319,11 +323,9 @@ impl WireBudget {
         &self,
         entries: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        check_point_limit(
-            ValueWireLimitKind::MapEntries,
-            entries,
-            self.limits.max_map_entries,
-        )
+        self.json_budget
+            .check_map_entries(entries)
+            .map_err(map_budget_error)
     }
 
     /// Checks one decoded string length.
@@ -332,11 +334,9 @@ impl WireBudget {
         &self,
         bytes: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        check_point_limit(
-            ValueWireLimitKind::StringBytes,
-            bytes,
-            self.limits.max_string_bytes,
-        )
+        self.json_budget
+            .check_string_bytes(bytes)
+            .map_err(map_budget_error)
     }
 
     /// Checks one decoded numeric representation length in UTF-8 bytes.
@@ -345,11 +345,9 @@ impl WireBudget {
         &self,
         bytes: usize,
     ) -> Result<(), ValueWireDecodeError> {
-        check_point_limit(
-            ValueWireLimitKind::NumericBytes,
-            bytes,
-            self.limits.max_numeric_bytes,
-        )
+        self.json_budget
+            .check_number_bytes(bytes)
+            .map_err(map_budget_error)
     }
 
     /// Validates a decoded value container against the shared budget.
@@ -768,32 +766,86 @@ impl WireBudget {
 }
 
 fn map_budget_error(
-    error: ResourceBudgetError<ValueWireLimitKind, usize>,
+    error: BudgetError<JsonResource, usize>,
 ) -> ValueWireDecodeError {
-    let maximum = error.limit();
-    let value = error.checked_attempted().unwrap_or(usize::MAX);
-    ValueWireDecodeError::LimitExceeded {
-        value,
-        maximum,
-        kind: error.into_resource(),
+    match error {
+        BudgetError::LimitExceeded {
+            resource,
+            actual,
+            maximum,
+        } => limit_error(resource, actual, maximum),
+        BudgetError::Insufficient {
+            resource,
+            limit,
+            remaining,
+            requested,
+        } => limit_error(
+            resource,
+            (limit - remaining).saturating_add(requested),
+            limit,
+        ),
+        BudgetError::InvalidRelease { .. } => {
+            unreachable!("JSON budgets never release resources")
+        }
     }
 }
 
-/// Checks a point limit and preserves the established wire error facts.
+/// Maps a generic JSON resource limit to established wire error facts.
 #[inline]
-fn check_point_limit(
+fn limit_error(
+    resource: JsonResource,
+    value: usize,
+    maximum: usize,
+) -> ValueWireDecodeError {
+    match resource {
+        JsonResource::InputBytes => ValueWireDecodeError::InputTooLarge {
+            input_bytes: value,
+            max_input_bytes: maximum,
+        },
+        JsonResource::Depth => wire_limit_error(
+            ValueWireLimitKind::Depth,
+            value,
+            maximum,
+        ),
+        JsonResource::Nodes => wire_limit_error(
+            ValueWireLimitKind::Nodes,
+            value,
+            maximum,
+        ),
+        JsonResource::SequenceItems => wire_limit_error(
+            ValueWireLimitKind::CollectionItems,
+            value,
+            maximum,
+        ),
+        JsonResource::MapEntries => wire_limit_error(
+            ValueWireLimitKind::MapEntries,
+            value,
+            maximum,
+        ),
+        JsonResource::StringBytes => wire_limit_error(
+            ValueWireLimitKind::StringBytes,
+            value,
+            maximum,
+        ),
+        JsonResource::NumberBytes => wire_limit_error(
+            ValueWireLimitKind::NumericBytes,
+            value,
+            maximum,
+        ),
+    }
+}
+
+/// Creates a wire point-limit error from established public facts.
+#[inline(always)]
+fn wire_limit_error(
     kind: ValueWireLimitKind,
     value: usize,
     maximum: usize,
-) -> Result<(), ValueWireDecodeError> {
-    if value > maximum {
-        Err(ValueWireDecodeError::LimitExceeded {
-            kind,
-            value,
-            maximum,
-        })
-    } else {
-        Ok(())
+) -> ValueWireDecodeError {
+    ValueWireDecodeError::LimitExceeded {
+        kind,
+        value,
+        maximum,
     }
 }
 
@@ -813,8 +865,7 @@ fn big_decimal_numeric_len(value: &bigdecimal::BigDecimal) -> usize {
 /// Parses JSON with input-bounded traversal without materializing a JSON tree
 /// or a wire DTO.
 struct JsonPreflightSeed {
-    limits: WireLimits,
-    nodes: ResourceBudget<ValueWireLimitKind, usize>,
+    budget: JsonBudget,
     violation: Option<ValueWireDecodeError>,
 }
 
@@ -825,44 +876,32 @@ impl JsonPreflightSeed {
         // byte. Using the complete input length as the syntax-traversal ceiling
         // avoids guessing how many wrapper nodes an outer protocol contributes;
         // exact semantic limits are enforced after runtime decoding.
-        let limits = WireLimits {
-            max_input_bytes: input_bytes,
-            max_depth: input_bytes,
-            max_nodes: input_bytes,
-            max_collection_items: input_bytes,
-            max_map_entries: input_bytes,
-            max_string_bytes: input_bytes,
-            max_numeric_bytes: input_bytes,
-        };
         Self {
-            limits,
-            nodes: ResourceBudget::new(ValueWireLimitKind::Nodes, input_bytes),
+            budget: JsonLimits::new()
+                .with_max_input_bytes(input_bytes)
+                .with_max_depth(input_bytes)
+                .with_max_nodes(input_bytes)
+                .with_max_sequence_items(input_bytes)
+                .with_max_map_entries(input_bytes)
+                .with_max_string_bytes(input_bytes)
+                .with_max_number_bytes(input_bytes)
+                .budget(),
             violation: None,
         }
     }
 
     #[inline]
-    fn check_limit<E>(
+    fn record<E>(
         &mut self,
-        kind: ValueWireLimitKind,
-        value: usize,
-        maximum: usize,
+        result: Result<(), BudgetError<JsonResource, usize>>,
     ) -> Result<(), E>
     where
         E: DeError,
     {
-        if value > maximum {
-            self.violation = Some(ValueWireDecodeError::LimitExceeded {
-                kind,
-                value,
-                maximum,
-            });
-            Err(E::custom(format_args!(
-                "wire input {kind:?} value {value} exceeds the limit of {maximum}"
-            )))
-        } else {
-            Ok(())
-        }
+        result.map_err(|error| {
+            self.violation = Some(map_budget_error(error));
+            E::custom("wire JSON preflight resource limit exceeded")
+        })
     }
 
     #[inline]
@@ -870,10 +909,8 @@ impl JsonPreflightSeed {
     where
         E: DeError,
     {
-        self.nodes.try_consume(1).map_err(|error| {
-            self.violation = Some(map_budget_error(error));
-            E::custom("wire input node budget exceeded")
-        })
+        let result = self.budget.charge_node();
+        self.record(result)
     }
 
     #[inline]
@@ -881,11 +918,7 @@ impl JsonPreflightSeed {
     where
         E: DeError,
     {
-        self.check_limit(
-            ValueWireLimitKind::Depth,
-            depth,
-            self.limits.max_depth,
-        )
+        self.record(self.budget.check_depth(depth))
     }
 
     #[inline]
@@ -893,11 +926,7 @@ impl JsonPreflightSeed {
     where
         E: DeError,
     {
-        self.check_limit(
-            ValueWireLimitKind::CollectionItems,
-            items,
-            self.limits.max_collection_items,
-        )
+        self.record(self.budget.check_sequence_items(items))
     }
 
     #[inline]
@@ -905,11 +934,7 @@ impl JsonPreflightSeed {
     where
         E: DeError,
     {
-        self.check_limit(
-            ValueWireLimitKind::MapEntries,
-            entries,
-            self.limits.max_map_entries,
-        )
+        self.record(self.budget.check_map_entries(entries))
     }
 
     #[inline]
@@ -917,11 +942,7 @@ impl JsonPreflightSeed {
     where
         E: DeError,
     {
-        self.check_limit(
-            ValueWireLimitKind::StringBytes,
-            bytes,
-            self.limits.max_string_bytes,
-        )
+        self.record(self.budget.check_string_bytes(bytes))
     }
 
     #[inline]
@@ -929,11 +950,7 @@ impl JsonPreflightSeed {
     where
         E: DeError,
     {
-        self.check_limit(
-            ValueWireLimitKind::NumericBytes,
-            bytes,
-            self.limits.max_numeric_bytes,
-        )
+        self.record(self.budget.check_number_bytes(bytes))
     }
 }
 

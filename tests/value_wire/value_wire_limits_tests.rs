@@ -69,6 +69,28 @@ fn test_value_wire_limits_check_json_bytes_enforces_public_budget() {
 }
 
 #[test]
+fn test_wire_budget_point_checks_do_not_share_capacity() {
+    let budget = WireLimits::new(2)
+        .with_max_string_bytes(2)
+        .with_max_numeric_bytes(2)
+        .begin(2)
+        .expect("the complete input should fit");
+
+    budget
+        .check_string_bytes(2)
+        .expect("the first string should fit");
+    budget
+        .check_string_bytes(2)
+        .expect("the second string should fit independently");
+    budget
+        .check_numeric_bytes(2)
+        .expect("the first number should fit");
+    budget
+        .check_numeric_bytes(2)
+        .expect("the second number should fit independently");
+}
+
+#[test]
 fn test_wire_budget_checks_scalar_at_embedding_depth() {
     let value = Value::Int32(42);
     let mut budget = WireLimits::new(0)
