@@ -970,8 +970,8 @@ fn test_to_f64_from_biginteger_normal() {
     use qubit_datatype::DataConversionOptions;
     use qubit_datatype::NumericConversionOptions;
     let big = BigInt::from(i64::MAX);
-    let options = DataConversionOptions::default()
-        .with_numeric_options(NumericConversionOptions::lossy());
+    let options =
+        DataConversionOptions::default().with_numeric_options(NumericConversionOptions::lossy());
     let result = Value::BigInteger(big).to_with::<f64>(&options).unwrap();
     assert!((result - i64::MAX as f64).abs() < 1.0);
 }

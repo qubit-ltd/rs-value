@@ -62,9 +62,7 @@ impl Serialize for ScalarProbe {
             19 => serializer.serialize_unit_struct("Unit"),
             20 => serializer.serialize_unit_variant("Enum", 0, "Unit"),
             21 => serializer.serialize_newtype_struct("New", &1_i32),
-            22 => {
-                serializer.serialize_newtype_variant("Enum", 0, "New", &1_i32)
-            }
+            22 => serializer.serialize_newtype_variant("Enum", 0, "New", &1_i32),
             23 => {
                 let mut seq = serializer.serialize_seq(Some(1))?;
                 seq.serialize_element(&1_i32)?;
@@ -76,14 +74,12 @@ impl Serialize for ScalarProbe {
                 tuple.end()
             }
             25 => {
-                let mut tuple =
-                    serializer.serialize_tuple_struct("Tuple", 1)?;
+                let mut tuple = serializer.serialize_tuple_struct("Tuple", 1)?;
                 tuple.serialize_field(&1_i32)?;
                 tuple.end()
             }
             26 => {
-                let mut tuple = serializer
-                    .serialize_tuple_variant("Enum", 0, "Tuple", 1)?;
+                let mut tuple = serializer.serialize_tuple_variant("Enum", 0, "Tuple", 1)?;
                 tuple.serialize_field(&1_i32)?;
                 tuple.end()
             }
@@ -98,8 +94,7 @@ impl Serialize for ScalarProbe {
                 object.end()
             }
             29 => {
-                let mut object = serializer
-                    .serialize_struct_variant("Enum", 0, "Object", 1)?;
+                let mut object = serializer.serialize_struct_variant("Enum", 0, "Object", 1)?;
                 object.serialize_field("key", &1_i32)?;
                 object.end()
             }
@@ -149,12 +144,9 @@ fn test_strict_json_serializer_preserves_float32_text() {
         0x2696_F5F4_u32, // 0.000000000000001047500658
     ] {
         let f32_value = f32::from_bits(bits);
-        let value =
-            Value::from_serializable(&f32_value).expect("serialize float");
-        let projected = to_string(
-            &value.to_json_value().expect("project strict JSON value"),
-        )
-        .expect("serialize json");
+        let value = Value::from_serializable(&f32_value).expect("serialize float");
+        let projected = to_string(&value.to_json_value().expect("project strict JSON value"))
+            .expect("serialize json");
         let legacy_text = to_string(&JsonValue::Number(
             Number::from_f64(f64::from(f32_value)).expect("finite f64"),
         ))
@@ -179,8 +171,7 @@ fn test_strict_json_serializer_covers_serde_entry_points() {
     use qubit_value::Value;
 
     for index in 0..=30 {
-        let _ = Value::from_serializable(&ScalarProbe(index))
-            .expect("probe should serialize");
+        let _ = Value::from_serializable(&ScalarProbe(index)).expect("probe should serialize");
     }
 }
 
@@ -192,11 +183,9 @@ fn test_strict_json_preserves_arbitrary_precision_number() {
     use serde_json::Value as JsonValue;
     use serde_json::from_str;
 
-    let source =
-        from_str::<JsonValue>("123456789012345678901234567890.123456789")
-            .expect("number should parse");
-    let value =
-        Value::from_serializable(&source).expect("number should serialize");
+    let source = from_str::<JsonValue>("123456789012345678901234567890.123456789")
+        .expect("number should parse");
+    let value = Value::from_serializable(&source).expect("number should serialize");
 
     assert_eq!(
         value.to_json_value().expect("project JSON").to_string(),
@@ -216,8 +205,7 @@ fn test_strict_json_preserves_nested_arbitrary_precision_number() {
         r#"{"outer":[0.000000000000000000000000000000000001,{"inner":999999999999999999999999999999}]}"#,
     )
     .expect("nested value should parse");
-    let value = Value::from_serializable(&source)
-        .expect("nested value should serialize");
+    let value = Value::from_serializable(&source).expect("nested value should serialize");
 
     assert_eq!(value.to_json_value().expect("project JSON"), source);
 }

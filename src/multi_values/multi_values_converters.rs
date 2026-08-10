@@ -176,17 +176,12 @@ impl MultiValues {
     /// Returns an empty-collection error for a concrete empty vector, or a
     /// conversion error when the first value cannot be converted to `T`.
     #[inline]
-    pub fn to_first_or<T>(
-        &self,
-        default: impl IntoValueDefault<T>,
-    ) -> ValueResult<T>
+    pub fn to_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
         match self.to_first() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -221,9 +216,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,
@@ -252,10 +245,7 @@ impl MultiValues {
     /// Returns a structured missing-value conversion error when the container
     /// is unset, an empty-collection error for a concrete empty vector, or a
     /// conversion error when the first value cannot be converted to `T`.
-    pub fn to_first_with<T>(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<T>
+    pub fn to_first_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -295,9 +285,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_first_with(options) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -337,9 +325,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first_with(options) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,
@@ -393,17 +379,12 @@ impl MultiValues {
     ///
     /// Returns the first item conversion error for concrete storage.
     #[inline]
-    pub fn to_list_or<T>(
-        &self,
-        default: impl IntoValueDefault<Vec<T>>,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
         match self.to_list() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -438,9 +419,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,
@@ -468,10 +447,7 @@ impl MultiValues {
     ///
     /// Returns the first conversion error encountered while converting an
     /// element.
-    pub fn to_list_with<T>(
-        &self,
-        options: &DataConversionOptions,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(&self, options: &DataConversionOptions) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
@@ -509,9 +485,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_list_with(options) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -551,9 +525,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list_with(options) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,

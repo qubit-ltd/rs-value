@@ -426,9 +426,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
             result => result,
         }
     }
@@ -502,9 +500,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -541,9 +537,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,
@@ -617,9 +611,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to_with(options) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -660,9 +652,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(options) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,

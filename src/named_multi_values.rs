@@ -139,9 +139,7 @@ impl NamedMultiValues {
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, WireLimits::default())
     }
 
@@ -167,8 +165,7 @@ impl NamedMultiValues {
         limits: WireLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut budget = limits.begin(input.len())?;
-        let value: Self =
-            from_slice(input).map_err(ValueWireDecodeError::from)?;
+        let value: Self = from_slice(input).map_err(ValueWireDecodeError::from)?;
         budget.check_named_multi_values(&value)?;
         Ok(value)
     }
@@ -310,8 +307,7 @@ impl Serialize for NamedMultiValues {
     where
         S: Serializer,
     {
-        let value = ValueWireRefV1::try_from(self.values())
-            .map_err(SerializeError::custom)?;
+        let value = ValueWireRefV1::try_from(self.values()).map_err(SerializeError::custom)?;
         NamedMultiValuesWireRef {
             name: self.name(),
             value,
@@ -330,9 +326,7 @@ impl<'de> Deserialize<'de> for NamedMultiValues {
         let NamedMultiValuesWireOwned { name, value } =
             NamedMultiValuesWireOwned::deserialize(deserializer)?;
         let value = value.into_container().into_collection().map_err(|_| {
-            DeserializeError::custom(
-                "named multi-values wire payload must contain a collection",
-            )
+            DeserializeError::custom("named multi-values wire payload must contain a collection")
         })?;
         Ok(Self::new(name, value))
     }

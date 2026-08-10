@@ -33,9 +33,7 @@ pub enum ValueWireEncodeError {
     },
     /// A JSON V1 object uses serde_json's private number marker key.
     #[cfg(feature = "json")]
-    #[error(
-        "V1 JSON wire cannot represent an object containing the reserved key '{key}'"
-    )]
+    #[error("V1 JSON wire cannot represent an object containing the reserved key '{key}'")]
     ReservedJsonObjectKey {
         /// Key reserved by serde_json's arbitrary-precision representation.
         key: &'static str,

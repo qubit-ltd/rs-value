@@ -61,10 +61,7 @@ fn test_multi_values_float_identity_is_reflexive_and_hash_consistent() {
         &MultiValues::Float32(vec![0.0, f32::from_bits(0x7fff_ffff)]),
     );
     assert_equal_hash(
-        &MultiValues::Float64(vec![
-            -0.0,
-            f64::from_bits(0x7ff8_0000_0000_0001),
-        ]),
+        &MultiValues::Float64(vec![-0.0, f64::from_bits(0x7ff8_0000_0000_0001)]),
         &MultiValues::Float64(vec![0.0, f64::from_bits(0x7fff_ffff_ffff_ffff)]),
     );
 
@@ -112,12 +109,8 @@ fn test_multi_values_unordered_payloads_hash_structurally() {
         &MultiValues::StringMap(vec![right_map]),
     );
     assert_equal_hash(
-        &MultiValues::Json(vec![
-            serde_json::json!({"b": {"y": 2, "x": 1}, "a": 0}),
-        ]),
-        &MultiValues::Json(vec![
-            serde_json::json!({"a": 0, "b": {"x": 1, "y": 2}}),
-        ]),
+        &MultiValues::Json(vec![serde_json::json!({"b": {"y": 2, "x": 1}, "a": 0})]),
+        &MultiValues::Json(vec![serde_json::json!({"a": 0, "b": {"x": 1, "y": 2}})]),
     );
 }
 
@@ -128,20 +121,16 @@ fn test_multi_values_big_decimal_identity_is_canonical() {
         &MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(10), 1)]),
         &MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(1), 0)]),
     );
-    let extreme = MultiValues::BigDecimal(vec![BigDecimal::new(
-        BigInt::from(1),
-        i64::MIN,
-    )]);
+    let extreme = MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(1), i64::MIN)]);
     let _ = hash(&extreme);
 }
 
 /// Exercises equality and hashing for every multi-value variant.
 #[test]
 fn test_multi_values_identity_covers_every_variant() {
-    let date = NaiveDate::from_ymd_opt(2026, 7, 17)
-        .expect("the test fixture date must be valid");
-    let time = NaiveTime::from_hms_nano_opt(12, 34, 56, 789)
-        .expect("the test fixture time must be valid");
+    let date = NaiveDate::from_ymd_opt(2026, 7, 17).expect("the test fixture date must be valid");
+    let time =
+        NaiveTime::from_hms_nano_opt(12, 34, 56, 789).expect("the test fixture time must be valid");
     let datetime = date.and_time(time);
     let values = vec![
         MultiValues::Unset(DataType::Bool),
@@ -170,8 +159,7 @@ fn test_multi_values_identity_covers_every_variant() {
         )]),
         MultiValues::Duration(vec![Duration::new(8, 9)]),
         MultiValues::Url(vec![
-            Url::parse("https://example.com/path")
-                .expect("the test fixture URL must be valid"),
+            Url::parse("https://example.com/path").expect("the test fixture URL must be valid"),
         ]),
         MultiValues::StringMap(vec![HashMap::from([(
             "key".to_owned(),
