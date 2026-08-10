@@ -36,9 +36,11 @@ use crate::wire::JSON_NUMBER_TOKEN;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WireLimits {
     max_input_bytes: usize,
+    max_output_bytes: usize,
     structure_limits: StructureLimits,
     max_string_bytes: usize,
     max_numeric_bytes: usize,
+    max_key_bytes: usize,
 }
 
 impl WireLimits {
@@ -46,6 +48,8 @@ impl WireLimits {
     pub const DEFAULT_MAX_INPUT_BYTES: usize = 1_048_576;
     /// Default maximum recursive wire depth.
     pub const DEFAULT_MAX_DEPTH: usize = 64;
+    /// Default maximum complete JSON output length.
+    pub const DEFAULT_MAX_OUTPUT_BYTES: usize = 1_048_576;
     /// Default maximum decoded node count.
     pub const DEFAULT_MAX_NODES: usize = 100_000;
     /// Default maximum elements in one collection.
@@ -56,12 +60,15 @@ impl WireLimits {
     pub const DEFAULT_MAX_STRING_BYTES: usize = 256 * 1024;
     /// Default maximum UTF-8 bytes in one decoded numeric representation.
     pub const DEFAULT_MAX_NUMERIC_BYTES: usize = 4_096;
+    /// Default maximum bytes in one object key.
+    pub const DEFAULT_MAX_KEY_BYTES: usize = 256 * 1024;
 
     /// Creates shared wire limits with the specified input-byte bound.
     #[inline(always)]
     pub const fn new(max_input_bytes: usize) -> Self {
         Self {
             max_input_bytes,
+            max_output_bytes: max_input_bytes,
             structure_limits: StructureLimits::new()
                 .with_max_depth(Self::DEFAULT_MAX_DEPTH)
                 .with_max_nodes(Self::DEFAULT_MAX_NODES)
@@ -69,6 +76,7 @@ impl WireLimits {
                 .with_max_map_entries(Self::DEFAULT_MAX_MAP_ENTRIES),
             max_string_bytes: Self::DEFAULT_MAX_STRING_BYTES,
             max_numeric_bytes: Self::DEFAULT_MAX_NUMERIC_BYTES,
+            max_key_bytes: Self::DEFAULT_MAX_KEY_BYTES,
         }
     }
 
@@ -114,6 +122,22 @@ impl WireLimits {
         self
     }
 
+    /// Sets the maximum complete JSON output length.
+    #[inline(always)]
+    #[must_use = "the configured output byte limit should be used"]
+    pub const fn with_max_output_bytes(mut self, max_output_bytes: usize) -> Self {
+        self.max_output_bytes = max_output_bytes;
+        self
+    }
+
+    /// Sets the maximum bytes in one object key.
+    #[inline(always)]
+    #[must_use = "the configured key byte limit should be used"]
+    pub const fn with_max_key_bytes(mut self, max_key_bytes: usize) -> Self {
+        self.max_key_bytes = max_key_bytes;
+        self
+    }
+
     /// Sets the maximum UTF-8 bytes in one decoded numeric representation.
     #[inline(always)]
     #[must_use = "the configured numeric limit should be used"]
@@ -127,6 +151,13 @@ impl WireLimits {
     #[inline(always)]
     pub const fn max_input_bytes(self) -> usize {
         self.max_input_bytes
+    }
+
+    /// Returns the maximum complete JSON output length.
+    #[must_use]
+    #[inline(always)]
+    pub const fn max_output_bytes(self) -> usize {
+        self.max_output_bytes
     }
 
     /// Returns the maximum recursive depth.
@@ -169,6 +200,13 @@ impl WireLimits {
     #[inline(always)]
     pub const fn max_numeric_bytes(self) -> usize {
         self.max_numeric_bytes
+    }
+
+    /// Returns the maximum bytes in one object key.
+    #[must_use]
+    #[inline(always)]
+    pub const fn max_key_bytes(self) -> usize {
+        self.max_key_bytes
     }
 
     /// Replaces the shared structural limits.
@@ -259,13 +297,32 @@ impl WireLimits {
         }
     }
 
+    /// Checks a complete JSON output length against the configured output budget.
+    #[inline]
+    pub const fn check_json_output_bytes(
+        self,
+        output_bytes: usize,
+    ) -> Result<(), ValueWireDecodeError> {
+        if output_bytes > self.max_output_bytes {
+            Err(ValueWireDecodeError::LimitExceeded {
+                kind: ValueWireLimitKind::OutputBytes,
+                value: output_bytes,
+                maximum: self.max_output_bytes,
+            })
+        } else {
+            Ok(())
+        }
+    }
+
     /// Builds the generic JSON limit configuration for this wire protocol.
     #[inline(always)]
     fn json_limits(self) -> JsonLimits {
         JsonLimits::new()
             .with_max_input_bytes(self.max_input_bytes)
+            .with_max_output_bytes(self.max_output_bytes)
             .with_structure_limits(self.structure_limits)
             .with_max_string_bytes(self.max_string_bytes)
+            .with_max_key_bytes(self.max_key_bytes)
             .with_max_number_bytes(self.max_numeric_bytes)
     }
 }
@@ -341,6 +398,22 @@ impl WireBudget {
     pub fn check_numeric_bytes(&self, bytes: usize) -> Result<(), ValueWireDecodeError> {
         self.json_budget
             .check_number_bytes(bytes)
+            .map_err(map_budget_error)
+    }
+
+    /// Checks one complete JSON output length.
+    #[inline]
+    pub fn check_output_bytes(&self, bytes: usize) -> Result<(), ValueWireDecodeError> {
+        self.json_budget
+            .check_output_bytes(bytes)
+            .map_err(map_budget_error)
+    }
+
+    /// Checks one JSON object key length.
+    #[inline]
+    pub fn check_key_bytes(&self, bytes: usize) -> Result<(), ValueWireDecodeError> {
+        self.json_budget
+            .check_key_bytes(bytes)
             .map_err(map_budget_error)
     }
 
@@ -505,7 +578,7 @@ impl WireBudget {
             ValueRef::StringMap(value) => {
                 self.check_map_entries(value.len())?;
                 for (key, value) in value {
-                    self.check_string_bytes(key.len())?;
+                    self.check_key_bytes(key.len())?;
                     self.check_depth(depth.saturating_add(1))?;
                     self.check_node()?;
                     self.check_string_bytes(value.len())?;
@@ -701,7 +774,7 @@ impl WireBudget {
             serde_json::Value::Object(values) => {
                 self.check_map_entries(values.len())?;
                 for (key, value) in values {
-                    self.check_string_bytes(key.len())?;
+                    self.check_key_bytes(key.len())?;
                     self.check_json(value, depth.saturating_add(1))?;
                 }
                 Ok(())
@@ -744,6 +817,9 @@ fn limit_error(resource: JsonResource, value: usize, maximum: usize) -> ValueWir
             input_bytes: value,
             max_input_bytes: maximum,
         },
+        JsonResource::OutputBytes => {
+            wire_limit_error(ValueWireLimitKind::OutputBytes, value, maximum)
+        }
         JsonResource::Depth => wire_limit_error(ValueWireLimitKind::Depth, value, maximum),
         JsonResource::Nodes => wire_limit_error(ValueWireLimitKind::Nodes, value, maximum),
         JsonResource::SequenceItems => {
@@ -752,6 +828,7 @@ fn limit_error(resource: JsonResource, value: usize, maximum: usize) -> ValueWir
         JsonResource::MapEntries => {
             wire_limit_error(ValueWireLimitKind::MapEntries, value, maximum)
         }
+        JsonResource::KeyBytes => wire_limit_error(ValueWireLimitKind::KeyBytes, value, maximum),
         JsonResource::StringBytes => {
             wire_limit_error(ValueWireLimitKind::StringBytes, value, maximum)
         }
@@ -866,6 +943,14 @@ impl JsonPreflightSeed {
         E: DeError,
     {
         self.record(self.budget.check_string_bytes(bytes))
+    }
+
+    #[inline]
+    fn check_key_bytes<E>(&mut self, bytes: usize) -> Result<(), E>
+    where
+        E: DeError,
+    {
+        self.record(self.budget.check_key_bytes(bytes))
     }
 
     #[inline]
@@ -1049,7 +1134,7 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
             while let Some(key) = next_key.take() {
                 entries = entries.saturating_add(1);
                 self.preflight.check_map_entries(entries)?;
-                self.preflight.check_string_bytes(key.len())?;
+                self.preflight.check_key_bytes(key.len())?;
                 access.next_value_seed(JsonPreflightChildSeed {
                     preflight: self.preflight,
                     depth: self.depth.saturating_add(1),
@@ -1065,7 +1150,7 @@ impl<'de> Visitor<'de> for JsonPreflightVisitor<'_> {
         while let Some(key) = access.next_key::<String>()? {
             entries = entries.saturating_add(1);
             self.preflight.check_map_entries(entries)?;
-            self.preflight.check_string_bytes(key.len())?;
+            self.preflight.check_key_bytes(key.len())?;
             access.next_value_seed(JsonPreflightChildSeed {
                 preflight: self.preflight,
                 depth: self.depth.saturating_add(1),

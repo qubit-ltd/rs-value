@@ -85,6 +85,40 @@ fn test_value_wire_limits_check_json_bytes_enforces_public_budget() {
 }
 
 #[test]
+fn test_value_wire_limits_check_json_output_bytes_uses_output_resource() {
+    let limits = WireLimits::new(8).with_max_output_bytes(4);
+
+    limits
+        .check_json_output_bytes(4)
+        .expect("output at the byte budget should be accepted");
+    assert!(matches!(
+        limits.check_json_output_bytes(5),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: ValueWireLimitKind::OutputBytes,
+            value: 5,
+            maximum: 4,
+        })
+    ));
+}
+
+#[test]
+fn test_wire_budget_checks_object_key_bytes_separately() {
+    let budget = WireLimits::new(0)
+        .with_max_key_bytes(2)
+        .begin(0)
+        .expect("the empty input budget should start");
+
+    assert!(matches!(
+        budget.check_key_bytes(3),
+        Err(ValueWireDecodeError::LimitExceeded {
+            kind: ValueWireLimitKind::KeyBytes,
+            value: 3,
+            maximum: 2,
+        })
+    ));
+}
+
+#[test]
 fn test_wire_budget_point_checks_do_not_share_capacity() {
     let budget = WireLimits::new(2)
         .with_max_string_bytes(2)

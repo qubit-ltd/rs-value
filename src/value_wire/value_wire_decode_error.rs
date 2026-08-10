@@ -17,6 +17,8 @@ use thiserror::Error;
 pub enum ValueWireLimitKind {
     /// Complete encoded input length.
     InputBytes,
+    /// Complete encoded output length.
+    OutputBytes,
     /// Recursive wire depth.
     Depth,
     /// Total decoded node count.
@@ -25,6 +27,8 @@ pub enum ValueWireLimitKind {
     CollectionItems,
     /// Entries in one map.
     MapEntries,
+    /// Bytes in one object key.
+    KeyBytes,
     /// Bytes in one decoded string.
     StringBytes,
     /// UTF-8 bytes in one decoded numeric representation.
