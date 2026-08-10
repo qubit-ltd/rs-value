@@ -20,7 +20,7 @@ use num_bigint::BigInt;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionError;
 #[cfg(feature = "converter")]
-use qubit_datatype::DataConversionOptions;
+use qubit_datatype::ConversionSession;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionTarget;
 #[cfg(feature = "converter")]
@@ -132,9 +132,9 @@ impl DataTypeOf for Port {
 impl DataConversionTarget for Port {
     fn convert_from(
         source: &DataConverter<'_>,
-        options: &DataConversionOptions,
+        session: &mut ConversionSession<'_>,
     ) -> Result<Self, DataConversionError> {
-        u16::convert_from(source, options).map(Self)
+        session.delegate::<u16>(source).map(Self)
     }
 }
 
