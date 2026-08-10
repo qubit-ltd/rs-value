@@ -144,7 +144,9 @@ or reads it.
   failures are still reported.
 - `NamedValue` and `NamedMultiValues` attach a key to a runtime value without
   changing the value's type semantics.
-- `ValueWireV1` provides a versioned, type-preserving JSON representation.
+- `ValueWireV1` provides a versioned, type-preserving JSON representation with
+  bounded `to_json_vec()` and `to_json_writer()` entry points; explicit
+  `JsonLimits` are available through the corresponding `_with_limits` methods.
   Use it when the receiver must reconstruct the exact `DataType` and shape.
 - Natural JSON helpers produce ordinary `null`, scalar, object, and array
   values when runtime type tags are not wanted.
