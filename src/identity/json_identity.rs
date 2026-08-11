@@ -27,6 +27,27 @@ enum HashFrame<'a> {
     /// Hashes an array length before its elements are visited.
     HashArrayLength(usize),
 
+    /// Continues visiting an array from its next element.
+    VisitArray {
+        /// Array elements being visited.
+        values: &'a [serde_json::Value],
+
+        /// Root-inclusive depth of each array element.
+        depth: usize,
+
+        /// Index of the next element to visit.
+        next: usize,
+    },
+
+    /// Continues visiting an object from its next entry.
+    VisitObject {
+        /// Object entries being visited.
+        entries: serde_json::map::Iter<'a>,
+
+        /// Root-inclusive depth of each object value.
+        depth: usize,
+    },
+
     /// Starts an object entry with its independent identity hasher.
     StartObjectEntry(&'a str),
 
@@ -207,7 +228,9 @@ where
 /// Runs the shared explicit-stack hashing engine with an optional budget.
 ///
 /// A missing budget skips every constraint check, preserving the infallible
-/// behavior of [`hash_json`].
+/// behavior of [`hash_json`]. Container continuations visit one child at a
+/// time, so pending traversal storage depends on nesting depth rather than
+/// the width of any one array or object.
 fn hash_json_iterative<H, R>(
     value: &serde_json::Value,
     state: &mut H,
@@ -245,9 +268,11 @@ where
                     serde_json::Value::Array(values) => {
                         destination.hash(&4_u8);
                         let child_depth = depth.saturating_add(1);
-                        for value in values.iter().rev() {
-                            frames.push(HashFrame::Visit(value, child_depth));
-                        }
+                        frames.push(HashFrame::VisitArray {
+                            values,
+                            depth: child_depth,
+                            next: 0,
+                        });
                         frames.push(HashFrame::HashArrayLength(values.len()));
                     }
                     serde_json::Value::Object(values) => {
@@ -256,11 +281,10 @@ where
                         objects.push(ObjectHash::default());
                         frames.push(HashFrame::FinishObject);
                         let child_depth = depth.saturating_add(1);
-                        for (key, value) in values.iter().rev() {
-                            frames.push(HashFrame::FinishObjectEntry);
-                            frames.push(HashFrame::Visit(value, child_depth));
-                            frames.push(HashFrame::StartObjectEntry(key));
-                        }
+                        frames.push(HashFrame::VisitObject {
+                            entries: values.iter(),
+                            depth: child_depth,
+                        });
                     }
                 }
             }
@@ -269,6 +293,28 @@ where
                     .last_mut()
                     .expect("an array must have a hash destination")
                     .hash(&length);
+            }
+            HashFrame::VisitArray {
+                values,
+                depth,
+                next,
+            } => {
+                if let Some(value) = values.get(next) {
+                    frames.push(HashFrame::VisitArray {
+                        values,
+                        depth,
+                        next: next.saturating_add(1),
+                    });
+                    frames.push(HashFrame::Visit(value, depth));
+                }
+            }
+            HashFrame::VisitObject { mut entries, depth } => {
+                if let Some((key, value)) = entries.next() {
+                    frames.push(HashFrame::VisitObject { entries, depth });
+                    frames.push(HashFrame::FinishObjectEntry);
+                    frames.push(HashFrame::Visit(value, depth));
+                    frames.push(HashFrame::StartObjectEntry(key));
+                }
             }
             HashFrame::StartObjectEntry(key) => {
                 if let Some(budget) = budget.as_deref_mut() {
