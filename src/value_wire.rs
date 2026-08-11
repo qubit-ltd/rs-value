@@ -13,7 +13,11 @@
 //! Borrowed values can use [`ValueWireRefV1`] or [`ValueWirePayloadRefV1`].
 
 #[cfg(feature = "json")]
+use qubit_budget::JsonBudget;
+#[cfg(feature = "json")]
 use qubit_budget::JsonLimits;
+#[cfg(feature = "json")]
+use qubit_budget::from_slice_with_budget;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -92,6 +96,42 @@ pub(crate) const fn default_json_limits() -> JsonLimits {
         .with_max_key_bytes(256 * 1024)
         .with_max_string_bytes(256 * 1024)
         .with_max_number_bytes(4_096)
+}
+
+/// Decodes and validates a complete V1 envelope with one caller-owned budget.
+///
+/// # Parameters
+///
+/// * `input` - Complete UTF-8 JSON document to decode.
+/// * `budget` - Budget charged for the complete envelope and its payload.
+///
+/// # Returns
+///
+/// The decoded V1 wire DTO.
+///
+/// # Errors
+///
+/// Returns [`ValueWireDecodeError::Budget`] when the document exceeds the
+/// budget, [`ValueWireDecodeError::UnsupportedVersion`] when the decoded
+/// envelope declares another `u8` version, or
+/// [`ValueWireDecodeError::InvalidJson`] when typed decoding fails.
+#[cfg(feature = "json")]
+pub(crate) fn decode_wire_json_slice_with_budget(
+    input: &[u8],
+    budget: &mut JsonBudget,
+) -> Result<ValueWireV1, ValueWireDecodeError> {
+    let envelope =
+        from_slice_with_budget::<WireEnvelopeOwned, _>(input, budget)
+            .map_err(ValueWireDecodeError::from)?;
+    if envelope.version != VALUE_WIRE_V1_VERSION {
+        return Err(ValueWireDecodeError::UnsupportedVersion {
+            expected: VALUE_WIRE_V1_VERSION,
+            actual: envelope.version,
+        });
+    }
+    Ok(ValueWireV1::new(ValueWirePayloadV1::from_decoded(
+        envelope.value.into(),
+    )))
 }
 
 /// Serializes a typed shape through the V1 envelope.

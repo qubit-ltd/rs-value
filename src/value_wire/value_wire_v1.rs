@@ -14,8 +14,6 @@ use std::io::Write;
 #[cfg(feature = "json")]
 use qubit_budget::JsonLimits;
 #[cfg(feature = "json")]
-use qubit_budget::from_slice_with_budget;
-#[cfg(feature = "json")]
 use qubit_budget::to_vec_with_budget;
 #[cfg(feature = "json")]
 use qubit_budget::to_writer_with_budget;
@@ -100,7 +98,9 @@ impl ValueWireV1 {
     /// # Errors
     ///
     /// Returns a limit error when the input or decoded structure is too large,
-    /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
+    /// [`ValueWireDecodeError::UnsupportedVersion`] when the envelope declares
+    /// another supported-width version, or
+    /// [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
     pub fn decode_json_slice(
@@ -127,7 +127,9 @@ impl ValueWireV1 {
     /// # Errors
     ///
     /// Returns a limit error when `input` or its decoded structure exceeds
-    /// `limits`, or [`ValueWireDecodeError::InvalidJson`] for malformed input.
+    /// `limits`, [`ValueWireDecodeError::UnsupportedVersion`] when the envelope
+    /// declares another supported-width version, or
+    /// [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
     pub fn decode_json_slice_with_limits(
@@ -135,8 +137,7 @@ impl ValueWireV1 {
         limits: JsonLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut budget = limits.budget();
-        from_slice_with_budget(input, &mut budget)
-            .map_err(ValueWireDecodeError::from)
+        super::decode_wire_json_slice_with_budget(input, &mut budget)
     }
 
     /// Encodes this V1 document into a compact JSON vector with default limits.

@@ -108,6 +108,41 @@ fn test_value_wire_v1_reports_malformed_bounded_input() {
 }
 
 #[test]
+fn test_bounded_decode_reports_unsupported_version() {
+    let error = ValueWireV1::decode_json_slice(
+        br#"{"version":2,"value":{"scalar":{"int32":1}}}"#,
+    )
+    .expect_err("version two must be rejected");
+
+    assert!(matches!(
+        error,
+        ValueWireDecodeError::UnsupportedVersion {
+            expected: 1,
+            actual: 2
+        }
+    ));
+}
+
+#[test]
+fn test_bounded_decode_reports_out_of_range_version_as_invalid_json() {
+    let error = ValueWireV1::decode_json_slice(
+        br#"{"version":256,"value":{"scalar":{"int32":1}}}"#,
+    )
+    .expect_err("a version outside u8 must be rejected during typed decoding");
+
+    assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
+}
+
+#[test]
+fn test_bounded_decode_reports_missing_version_as_invalid_json() {
+    let error =
+        ValueWireV1::decode_json_slice(br#"{"value":{"scalar":{"int32":1}}}"#)
+            .expect_err("an envelope without a version must be rejected");
+
+    assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
+}
+
+#[test]
 fn test_value_wire_v1_bounded_encoding_reports_budget_source() {
     let wire = ValueWireV1::try_from(ValueContainer::from(42_i32))
         .expect("construct V1 wire");
