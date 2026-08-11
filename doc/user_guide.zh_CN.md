@@ -295,24 +295,42 @@ V1 是封闭格式。现有 tag、shape 和 payload 表示不能原地扩展；�
 语义资源限制下解码，最后恢复原来的 container。
 
 ```rust
-use qubit_budget::JsonLimits;
-use qubit_value::{Value, ValueContainer, ValueWireV1};
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
+use qubit_value::Value;
+use qubit_value::ValueContainer;
+use qubit_value::ValueWireV1;
 
 let original = ValueContainer::Scalar(Value::new(8080i32));
 let wire = ValueWireV1::try_from(original.clone())?;
-let limits = JsonLimits::new()
-    .with_max_input_bytes(64 * 1024)
-    .with_max_output_bytes(64 * 1024)
-    .with_max_depth(32)
-    .with_max_nodes(128);
-let encoded = wire.to_json_vec_with_limits(limits)?;
+let structure = StructureLimits::empty()
+    .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 32))
+    .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 128));
+let values = JsonValueLimits::empty().with_structure_limits(structure);
+let encode_limits = JsonEncodeLimits::empty()
+    .with_output_bytes_limit(ResourceLimit::new(
+        JsonResource::OutputBytes,
+        64 * 1024,
+    ))
+    .with_value_limits(values);
+let encoded = wire.to_json_vec_with_limits(encode_limits)?;
 
 assert_eq!(
     encoded,
     br#"{"version":1,"value":{"scalar":{"int32":8080}}}"#
 );
 
-let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, limits)?;
+let decode_limits = JsonDecodeLimits::empty()
+    .with_input_bytes_limit(ResourceLimit::new(
+        JsonResource::InputBytes,
+        64 * 1024,
+    ))
+    .with_value_limits(values);
+let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, decode_limits)?;
 let restored: ValueContainer = decoded.into();
 
 assert_eq!(restored, original);
@@ -320,10 +338,10 @@ assert!(restored.is_scalar());
 assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
 ```
 
-解码入口使用 `qubit-budget` 提供的通用 JSON/Serde adapter。`ValueWireV1::default_json_limits()`
-提供 V1 默认 profile；应用需要自己控制输入、输出或结构预算时，直接传入 `JsonLimits`。
-编码可以通过 `to_json_vec()` 或 `to_json_writer()` 使用 V1 默认 profile，也可以通过
-`to_json_vec_with_limits` 或 `to_json_writer_with_limits` 使用应用自己的 profile。
+解码入口使用 `qubit-budget` 提供的通用 JSON/Serde adapter。
+`ValueWireV1::default_json_decode_limits()` 与 `default_json_encode_limits()` 分别提供
+V1 默认定向 profile；应用自行控制输入、输出或 value 预算时，传入对应的
+`JsonDecodeLimits` 或 `JsonEncodeLimits`。
 
 ### 借用 Wire 编码
 
@@ -346,15 +364,20 @@ assert_eq!(
 `from_container`，然后调用借用 payload 的 `to_json_vec()` 或 `to_json_writer()`。这些构造器会在返回可序列化 payload 前校验有限浮点、
 有界的 `BigDecimal scale` 以及保留的 JSON object key，因此它们是可能失败的。
 
-### 嵌入值与共享 `JsonBudget`
+### 嵌入值与共享 `JsonDecodeSession`
 
 `decode_json_slice_with_limits` 用于完整的顶层 Wire 文档。如果值嵌套在更大的 JSON 文档中，
 应使用 `qubit-budget` 的 Serde adapter 处理完整外层文档，让同一个 session 计费所有 JSON 节点。
 
 ```rust
+use qubit_budget::decode_slice;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonDecodeSession;
+use qubit_budget::JsonResource;
+use qubit_budget::ResourceLimit;
+use qubit_value::ValueContainer;
+use qubit_value::ValueWireV1;
 use serde::Deserialize;
-use qubit_budget::{from_slice_with_budget, JsonLimits};
-use qubit_value::{ValueContainer, ValueWireV1};
 
 #[derive(Deserialize)]
 struct Request {
@@ -362,17 +385,16 @@ struct Request {
 }
 
 let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
-let mut budget = JsonLimits::new()
-    .with_max_input_bytes(64 * 1024)
-    .with_max_depth(32)
-    .with_max_nodes(128)
-    .budget();
-let request: Request = from_slice_with_budget(input, &mut budget)?;
+let limits = JsonDecodeLimits::empty().with_input_bytes_limit(
+    ResourceLimit::new(JsonResource::InputBytes, 64 * 1024),
+);
+let mut session = JsonDecodeSession::new(limits);
+let request: Request = decode_slice(input, &mut session)?;
 let restored: ValueContainer = request.value.into();
 assert!(restored.is_collection());
 ```
 
-外层 object 和嵌入的 V1 envelope 都属于同一个通用 JSON 文档预算。复用一个 `JsonBudget` 可以
+外层 object 和嵌入的 V1 envelope 都属于同一个通用 JSON 文档预算。复用一个 `JsonDecodeSession` 可以
 累计同一 request 中多个嵌入值的用量，并拒绝完整文档后的 trailing content。
 
 ### Wire 的类型和输入边界
@@ -485,7 +507,7 @@ assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
 2. `version` 是否为数字 `1`；
 3. `scalar`/`collection` shape 是否与目标容器一致；
 4. 接收方构建是否启用了具体类型所需的 feature；
-5. 输入和解码后的结构是否符合传入的 `JsonLimits` profile；
+5. 输入和解码后的结构是否符合传入的 `JsonDecodeLimits` profile；
 6. 值是否包含非有限浮点或不符合边界的 payload。
 
 ### JSON 边界丢失了类型信息

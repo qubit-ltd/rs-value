@@ -69,6 +69,21 @@ assert_eq!(timeout, Duration::from_secs(30));
 转换失败仍会返回错误。`to()` 和 `to_or()` 需要启用 `converter` feature；`get_or()` 只为
 未设置值提供 fallback，不执行转换。
 
+需要显式策略和限制时使用 `to_with`。每次 `to_with` 调用都会创建全新的
+`ConversionSession`，因此彼此独立的读取不会共享累计消耗：
+
+```rust
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionPolicy;
+use qubit_value::Value;
+
+let policy = ConversionPolicy::env_friendly();
+let limits = ConversionLimits::default();
+let first = Value::new(" 8080 ").to_with::<u16>(&policy, &limits)?;
+let second = Value::new(" 8081 ").to_with::<u16>(&policy, &limits)?;
+assert_eq!((first, second), (8080, 8081));
+```
+
 ## 安装
 
 在 `Cargo.toml` 中加入核心 crate 和类型定义 crate：
@@ -130,8 +145,10 @@ feature。
   匹配和普通转换失败仍会报告错误。
 - `NamedValue` 和 `NamedMultiValues` 为运行时值附加 key，不改变值本身的类型语义。
 - `ValueWireV1` 提供带版本的类型保留 JSON 表示，并提供有界的 `to_json_vec()`、
-  `to_json_writer()` 入口；需要显式预算时使用对应的 `_with_limits` 方法。当接收方必须恢复精确的 `DataType` 和形态时，
-  应使用它。
+  `to_json_writer()` 入口；定向 `_with_limits` 方法分别接收 `JsonDecodeLimits` 和
+  `JsonEncodeLimits`。解码通过调用方配置的 `JsonDecodeSession` 完成准入；编码通过
+  `JsonEncodeSession` 在线限制结构与输出字节。当接收方必须恢复精确的 `DataType`
+  和形态时，应使用 Wire V1。
 - 自然 JSON 工具方法生成普通的 `null`、标量、对象和数组；当边界只需要 JSON 语义时使用它。
 
 这个 crate 不提供完整的配置存储、schema registry、文件格式或分布式缓存；它提供这些系统
@@ -158,6 +175,9 @@ feature。
 当边界只是普通业务 JSON，接收方只需要 JSON 语义时，选择 `to_json_value()`。Wire V1 是封闭的、
 带版本的格式；自然 JSON 刻意不包含运行时类型标签。完整的 Wire 工作流、借用 payload、feature
 兼容性和资源限制处理，请参阅用户手册。
+
+定向操作失败时会保留本次会话已经接受的记账：被拒绝的请求本身不消费额度，但此前
+已经接受的输入、输出、节点或 payload 消耗不会回滚。每个独立 wire 操作应创建新会话。
 
 例如，自然 JSON 会生成以下确切的 JSON 字符串：
 
