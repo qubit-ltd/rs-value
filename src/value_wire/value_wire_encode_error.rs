@@ -41,9 +41,7 @@ pub enum ValueWireEncodeError {
     },
     /// A JSON V1 object uses serde_json's private number marker key.
     #[cfg(feature = "json")]
-    #[error(
-        "V1 JSON wire cannot represent an object containing the reserved key '{key}'"
-    )]
+    #[error("V1 JSON wire cannot represent an object containing the reserved key '{key}'")]
     ReservedJsonObjectKey {
         /// Key reserved by serde_json's arbitrary-precision representation.
         key: &'static str,
@@ -51,7 +49,7 @@ pub enum ValueWireEncodeError {
     /// The JSON output exceeded one configured resource budget.
     #[cfg(feature = "json")]
     #[error("V1 JSON wire resource budget exceeded: {0}")]
-    Budget(#[source] BudgetError<JsonResource, usize>),
+    Budget(#[source] BudgetError<JsonResource, u64>),
     /// Serde JSON rejected the value during bounded encoding.
     #[cfg(feature = "json")]
     #[error("failed to encode V1 JSON wire value: {0}")]
