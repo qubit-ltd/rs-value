@@ -12,8 +12,7 @@ use qubit_value::ValueError;
 
 #[test]
 fn test_multi_values_getters_return_slices_without_copying() {
-    let values =
-        MultiValues::String(vec!["red".to_string(), "blue".to_string()]);
+    let values = MultiValues::String(vec!["red".to_string(), "blue".to_string()]);
     let strings = values.get_strings().unwrap();
     assert_eq!(strings, &["red", "blue"]);
     assert_eq!(strings.len(), values.len());
@@ -66,10 +65,7 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
         values.get_first_duration().unwrap(),
         std::time::Duration::from_secs(1)
     );
-    let map = std::collections::HashMap::from([(
-        "key".to_string(),
-        "value".to_string(),
-    )]);
+    let map = std::collections::HashMap::from([("key".to_string(), "value".to_string())]);
     let values = MultiValues::StringMap(vec![map.clone()]);
     assert_eq!(
         values.get_string_maps().unwrap(),
@@ -83,10 +79,7 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
         let time = chrono::NaiveTime::from_hms_opt(1, 2, 3).unwrap();
         let datetime = date.and_time(time);
         let instant =
-            chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
-                datetime,
-                chrono::Utc,
-            );
+            chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(datetime, chrono::Utc);
         let values = MultiValues::Date(vec![date]);
         assert_eq!(values.get_dates().unwrap(), &[date]);
         assert_eq!(values.get_first_date().unwrap(), date);

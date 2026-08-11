@@ -21,12 +21,10 @@ use thiserror::Error;
 pub enum ValueWireDecodeError {
     /// The JSON document exceeded one configured resource budget.
     #[error("V1 JSON wire resource budget exceeded: {0}")]
-    Budget(#[source] BudgetError<JsonResource, usize>),
+    Budget(#[source] BudgetError<JsonResource, u64>),
 
     /// The envelope declares a wire version that this decoder does not support.
-    #[error(
-        "unsupported qubit-value wire version {actual}; expected {expected}"
-    )]
+    #[error("unsupported qubit-value wire version {actual}; expected {expected}")]
     UnsupportedVersion {
         /// Wire version accepted by this decoder.
         expected: u8,
@@ -46,9 +44,7 @@ impl From<JsonSerdeError<JsonResource>> for ValueWireDecodeError {
         match error {
             JsonSerdeError::Budget(error) => Self::Budget(error),
             JsonSerdeError::Json(error) => Self::InvalidJson(error),
-            JsonSerdeError::Io(error) => {
-                Self::InvalidJson(JsonError::io(error))
-            }
+            JsonSerdeError::Io(error) => Self::InvalidJson(JsonError::io(error)),
         }
     }
 }

@@ -127,9 +127,7 @@ fn test_conversion_missing_errors_are_promoted_to_value_missing() {
         })
     ));
 
-    let empty = ValueError::from(DataConversionError::empty_collection(
-        DataType::Int32,
-    ));
+    let empty = ValueError::from(DataConversionError::empty_collection(DataType::Int32));
     assert!(matches!(
         empty,
         ValueError::Missing(ValueMissing::EmptyCollectionConversion {
@@ -158,8 +156,7 @@ fn test_value_error_clone_preserves_structured_source() {
         DataType::Int32,
         InvalidValueReason::OutOfRange,
     );
-    let error =
-        ValueError::ListConversion(DataListConversionError::new(3, source));
+    let error = ValueError::ListConversion(DataListConversionError::new(3, source));
 
     assert_eq!(error.clone(), error);
 }
