@@ -190,26 +190,23 @@ pub(in crate::value_wire) fn validate_values(
 fn validate_json_value(
     value: &serde_json::Value,
 ) -> Result<(), ValueWireEncodeError> {
-    match value {
-        serde_json::Value::Array(values) => {
-            for value in values {
-                validate_json_value(value)?;
+    let mut pending = vec![value];
+    while let Some(value) = pending.pop() {
+        match value {
+            serde_json::Value::Array(values) => pending.extend(values),
+            serde_json::Value::Object(values) => {
+                if values.contains_key(JSON_NUMBER_TOKEN) {
+                    return Err(ValueWireEncodeError::ReservedJsonObjectKey {
+                        key: JSON_NUMBER_TOKEN,
+                    });
+                }
+                pending.extend(values.values());
             }
+            serde_json::Value::Null
+            | serde_json::Value::Bool(_)
+            | serde_json::Value::Number(_)
+            | serde_json::Value::String(_) => {}
         }
-        serde_json::Value::Object(values) => {
-            if values.contains_key(JSON_NUMBER_TOKEN) {
-                return Err(ValueWireEncodeError::ReservedJsonObjectKey {
-                    key: JSON_NUMBER_TOKEN,
-                });
-            }
-            for value in values.values() {
-                validate_json_value(value)?;
-            }
-        }
-        serde_json::Value::Null
-        | serde_json::Value::Bool(_)
-        | serde_json::Value::Number(_)
-        | serde_json::Value::String(_) => {}
     }
     Ok(())
 }
