@@ -226,8 +226,8 @@ impl Value {
     pub fn hash_with_json_budget<H, R>(
         &self,
         state: &mut H,
-        budget: &mut JsonValueBudget<R, usize>,
-    ) -> Result<(), BudgetError<R, usize>>
+        budget: &mut JsonValueBudget<R, u64>,
+    ) -> Result<(), BudgetError<R, u64>>
     where
         H: Hasher,
         R: Clone,
@@ -495,9 +495,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
             result => result,
         }
     }
@@ -575,9 +573,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -614,9 +610,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,
@@ -648,27 +642,18 @@ impl Value {
     /// or invalid for `T` under the provided options.
     #[inline(always)]
     #[cfg(feature = "converter")]
-    pub fn to_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<T>
+    pub fn to_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
-        super::value_converters::convert_with_data_converter_with(
-            self, policy, limits,
-        )
+        super::value_converters::convert_with_data_converter_with(self, policy, limits)
     }
 
     /// Converts this value to `T` while charging an existing conversion
     /// session.
     #[inline(always)]
     #[cfg(feature = "converter")]
-    pub fn to_in<T>(
-        &self,
-        session: &mut ConversionSession<'_>,
-    ) -> ValueResult<T>
+    pub fn to_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -711,9 +696,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to_with(policy, limits) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -755,9 +738,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(policy, limits) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,

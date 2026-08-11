@@ -68,10 +68,7 @@ fn test_multi_values_first_url_getter() {
 
 #[test]
 fn test_multi_values_first_string_map_getter() {
-    let map = std::collections::HashMap::from([(
-        "key".to_string(),
-        "value".to_string(),
-    )]);
+    let map = std::collections::HashMap::from([("key".to_string(), "value".to_string())]);
     let values = MultiValues::StringMap(vec![map.clone()]);
     assert_eq!(values.get_first_string_map().unwrap(), map);
 }
