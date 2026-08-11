@@ -20,7 +20,11 @@ use chrono::NaiveTime;
 use chrono::Utc;
 use num_bigint::BigInt;
 #[cfg(feature = "json")]
-use qubit_budget::{BudgetError, JsonLimits, JsonResource};
+use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::JsonLimits;
+#[cfg(feature = "json")]
+use qubit_budget::JsonResource;
 use qubit_datatype::DataType;
 use qubit_value::Value;
 use url::Url;
@@ -220,7 +224,8 @@ fn test_value_hash_with_json_budget_rejects_json_exceeding_node_budget() {
 /// Verifies budgeted hashing preserves special non-JSON identity hashes.
 #[cfg(feature = "json")]
 #[test]
-fn test_value_hash_with_json_budget_matches_standard_hash_for_special_non_json_values() {
+fn test_value_hash_with_json_budget_matches_standard_hash_for_special_non_json_values()
+ {
     let float = Value::Float32(-0.0);
     let string_map = Value::StringMap(HashMap::from([
         ("second".to_owned(), "2".to_owned()),

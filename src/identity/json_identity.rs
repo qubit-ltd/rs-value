@@ -12,10 +12,12 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hash;
 use std::hash::Hasher;
 
+use qubit_budget::BudgetError;
+use qubit_budget::JsonBudget;
 use qubit_budget::JsonResource;
-use qubit_budget::{BudgetError, JsonBudget};
 
-type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
+type IdentityHasher =
+    BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
 /// One pending operation in the iterative JSON hashing traversal.
 enum HashFrame<'a> {
@@ -70,7 +72,9 @@ where
     fn finish_object_entry(self) -> u64 {
         match self {
             Self::ObjectEntry(state) => state.finish(),
-            Self::Root(_) => unreachable!("the root hasher cannot finish an object entry"),
+            Self::Root(_) => {
+                unreachable!("the root hasher cannot finish an object entry")
+            }
         }
     }
 }
@@ -112,17 +116,26 @@ pub(crate) fn json_eq(
                     return false;
                 }
             }
-            (serde_json::Value::Number(left), serde_json::Value::Number(right)) => {
+            (
+                serde_json::Value::Number(left),
+                serde_json::Value::Number(right),
+            ) => {
                 if left != right {
                     return false;
                 }
             }
-            (serde_json::Value::String(left), serde_json::Value::String(right)) => {
+            (
+                serde_json::Value::String(left),
+                serde_json::Value::String(right),
+            ) => {
                 if left != right {
                     return false;
                 }
             }
-            (serde_json::Value::Array(left), serde_json::Value::Array(right)) => {
+            (
+                serde_json::Value::Array(left),
+                serde_json::Value::Array(right),
+            ) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -130,7 +143,10 @@ pub(crate) fn json_eq(
                     pending.push((left, right));
                 }
             }
-            (serde_json::Value::Object(left), serde_json::Value::Object(right)) => {
+            (
+                serde_json::Value::Object(left),
+                serde_json::Value::Object(right),
+            ) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -303,8 +319,12 @@ where
         return Ok(());
     };
     match value {
-        serde_json::Value::Array(values) => budget.enter_array(depth, values.len()),
-        serde_json::Value::Object(values) => budget.enter_object(depth, values.len()),
+        serde_json::Value::Array(values) => {
+            budget.enter_array(depth, values.len())
+        }
+        serde_json::Value::Object(values) => {
+            budget.enter_object(depth, values.len())
+        }
         serde_json::Value::String(value) => {
             budget.enter_node(depth)?;
             budget.check_string_bytes(value.len())
@@ -313,6 +333,8 @@ where
             budget.enter_node(depth)?;
             budget.check_number_bytes(value.as_str().len())
         }
-        serde_json::Value::Null | serde_json::Value::Bool(_) => budget.enter_node(depth),
+        serde_json::Value::Null | serde_json::Value::Bool(_) => {
+            budget.enter_node(depth)
+        }
     }
 }

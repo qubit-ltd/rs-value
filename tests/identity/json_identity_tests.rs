@@ -9,17 +9,22 @@
 //! Tests JSON identity normalization.
 
 #[cfg(feature = "json")]
+use std::collections::hash_map::DefaultHasher;
+#[cfg(feature = "json")]
+use std::hash::Hash;
+#[cfg(feature = "json")]
+use std::hash::Hasher;
+#[cfg(feature = "json")]
 use std::mem::ManuallyDrop;
 #[cfg(feature = "json")]
 use std::process::Command;
-#[cfg(feature = "json")]
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-};
 
 #[cfg(feature = "json")]
-use qubit_budget::{BudgetError, JsonLimits, JsonResource};
+use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::JsonLimits;
+#[cfg(feature = "json")]
+use qubit_budget::JsonResource;
 use qubit_value::Value;
 
 #[cfg(feature = "json")]
@@ -27,7 +32,8 @@ use qubit_value::Value;
 mod json_identity;
 
 #[cfg(feature = "json")]
-const DEEP_JSON_IDENTITY_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_IDENTITY_CHILD";
+const DEEP_JSON_IDENTITY_CHILD_ENV: &str =
+    "QUBIT_VALUE_DEEP_JSON_IDENTITY_CHILD";
 #[cfg(feature = "json")]
 const DEEP_JSON_HASH_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_HASH_CHILD";
 #[cfg(feature = "json")]
@@ -97,13 +103,15 @@ fn test_hash_json_distinguishes_array_order() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_hash_does_not_recurse() {
-    let output = Command::new(std::env::current_exe().expect("locate test binary"))
-        .arg("--exact")
-        .arg("identity::json_identity_tests::test_deep_json_identity_hash_child")
-        .arg("--ignored")
-        .env(DEEP_JSON_HASH_CHILD_ENV, "1")
-        .output()
-        .expect("run deep JSON hash child test");
+    let output = Command::new(
+        std::env::current_exe().expect("locate test binary"),
+    )
+    .arg("--exact")
+    .arg("identity::json_identity_tests::test_deep_json_identity_hash_child")
+    .arg("--ignored")
+    .env(DEEP_JSON_HASH_CHILD_ENV, "1")
+    .output()
+    .expect("run deep JSON hash child test");
 
     assert!(
         output.status.success(),
@@ -283,13 +291,17 @@ fn test_hash_json_with_budget_matches_unbounded_hash() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_equality_does_not_recurse() {
-    let output = Command::new(std::env::current_exe().expect("locate test binary"))
-        .arg("--exact")
-        .arg("identity::json_identity_tests::test_deep_json_identity_equality_child")
-        .arg("--ignored")
-        .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
-        .output()
-        .expect("run deep JSON identity child test");
+    let output = Command::new(
+        std::env::current_exe().expect("locate test binary"),
+    )
+    .arg("--exact")
+    .arg(
+        "identity::json_identity_tests::test_deep_json_identity_equality_child",
+    )
+    .arg("--ignored")
+    .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
+    .output()
+    .expect("run deep JSON identity child test");
 
     assert!(
         output.status.success(),
@@ -389,7 +401,9 @@ fn dismantle_json_value(value: serde_json::Value) {
     while let Some(value) = pending.pop() {
         match value {
             serde_json::Value::Array(values) => pending.extend(values),
-            serde_json::Value::Object(values) => pending.extend(values.into_values()),
+            serde_json::Value::Object(values) => {
+                pending.extend(values.into_values())
+            }
             serde_json::Value::Null
             | serde_json::Value::Bool(_)
             | serde_json::Value::Number(_)

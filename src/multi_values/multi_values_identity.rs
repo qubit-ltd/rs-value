@@ -10,19 +10,24 @@
 use std::hash::Hash;
 use std::hash::Hasher;
 
+#[cfg(feature = "json")]
+use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::JsonBudget;
+
 use super::multi_values::MultiValues;
 use super::multi_values::MultiValuesRepr;
 use crate::identity::canonical_f32_bits;
 use crate::identity::canonical_f64_bits;
 #[cfg(feature = "big-decimal")]
 use crate::identity::hash_big_decimal;
+#[cfg(feature = "json")]
+use crate::identity::hash_json;
+#[cfg(feature = "json")]
+use crate::identity::hash_json_with_budget;
 use crate::identity::hash_string_map;
 #[cfg(feature = "json")]
 use crate::identity::json_eq;
-#[cfg(feature = "json")]
-use crate::identity::{hash_json, hash_json_with_budget};
-#[cfg(feature = "json")]
-use qubit_budget::{BudgetError, JsonBudget};
 
 /// Compares ordered payloads using the identity rule for their element type.
 macro_rules! payloads_eq {
@@ -106,31 +111,59 @@ where
         MultiValuesRepr::Int16(values) => hash_payloads!(Int16, values, state),
         MultiValuesRepr::Int32(values) => hash_payloads!(Int32, values, state),
         MultiValuesRepr::Int64(values) => hash_payloads!(Int64, values, state),
-        MultiValuesRepr::Int128(values) => hash_payloads!(Int128, values, state),
+        MultiValuesRepr::Int128(values) => {
+            hash_payloads!(Int128, values, state)
+        }
         MultiValuesRepr::UInt8(values) => hash_payloads!(UInt8, values, state),
-        MultiValuesRepr::UInt16(values) => hash_payloads!(UInt16, values, state),
-        MultiValuesRepr::UInt32(values) => hash_payloads!(UInt32, values, state),
-        MultiValuesRepr::UInt64(values) => hash_payloads!(UInt64, values, state),
-        MultiValuesRepr::UInt128(values) => hash_payloads!(UInt128, values, state),
-        MultiValuesRepr::Float32(values) => hash_payloads!(Float32, values, state),
-        MultiValuesRepr::Float64(values) => hash_payloads!(Float64, values, state),
+        MultiValuesRepr::UInt16(values) => {
+            hash_payloads!(UInt16, values, state)
+        }
+        MultiValuesRepr::UInt32(values) => {
+            hash_payloads!(UInt32, values, state)
+        }
+        MultiValuesRepr::UInt64(values) => {
+            hash_payloads!(UInt64, values, state)
+        }
+        MultiValuesRepr::UInt128(values) => {
+            hash_payloads!(UInt128, values, state)
+        }
+        MultiValuesRepr::Float32(values) => {
+            hash_payloads!(Float32, values, state)
+        }
+        MultiValuesRepr::Float64(values) => {
+            hash_payloads!(Float64, values, state)
+        }
         #[cfg(feature = "big-integer")]
-        MultiValuesRepr::BigInteger(values) => hash_payloads!(BigInteger, values, state),
+        MultiValuesRepr::BigInteger(values) => {
+            hash_payloads!(BigInteger, values, state)
+        }
         #[cfg(feature = "big-decimal")]
-        MultiValuesRepr::BigDecimal(values) => hash_payloads!(BigDecimal, values, state),
-        MultiValuesRepr::String(values) => hash_payloads!(String, values, state),
+        MultiValuesRepr::BigDecimal(values) => {
+            hash_payloads!(BigDecimal, values, state)
+        }
+        MultiValuesRepr::String(values) => {
+            hash_payloads!(String, values, state)
+        }
         #[cfg(feature = "chrono")]
         MultiValuesRepr::Date(values) => hash_payloads!(Date, values, state),
         #[cfg(feature = "chrono")]
         MultiValuesRepr::Time(values) => hash_payloads!(Time, values, state),
         #[cfg(feature = "chrono")]
-        MultiValuesRepr::DateTime(values) => hash_payloads!(DateTime, values, state),
+        MultiValuesRepr::DateTime(values) => {
+            hash_payloads!(DateTime, values, state)
+        }
         #[cfg(feature = "chrono")]
-        MultiValuesRepr::Instant(values) => hash_payloads!(Instant, values, state),
-        MultiValuesRepr::Duration(values) => hash_payloads!(Duration, values, state),
+        MultiValuesRepr::Instant(values) => {
+            hash_payloads!(Instant, values, state)
+        }
+        MultiValuesRepr::Duration(values) => {
+            hash_payloads!(Duration, values, state)
+        }
         #[cfg(feature = "url")]
         MultiValuesRepr::Url(values) => hash_payloads!(Url, values, state),
-        MultiValuesRepr::StringMap(values) => hash_payloads!(StringMap, values, state),
+        MultiValuesRepr::StringMap(values) => {
+            hash_payloads!(StringMap, values, state)
+        }
         MultiValuesRepr::Json(values) => {
             values.len().hash(state);
             for value in values {
