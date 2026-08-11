@@ -181,6 +181,50 @@ fn test_hash_json_with_budget_charges_nodes() {
     ));
 }
 
+/// Verifies a wide array still honors a node budget.
+#[cfg(feature = "json")]
+#[test]
+fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
+    let value = serde_json::Value::Array(
+        (0..10_000).map(|_| serde_json::Value::Null).collect(),
+    );
+    let error =
+        hash_json_with_limits(&value, JsonLimits::new().with_max_nodes(1));
+
+    assert!(matches!(
+        error,
+        BudgetError::Insufficient {
+            resource: JsonResource::Nodes,
+            remaining: 0,
+            requested: 1,
+            ..
+        }
+    ));
+}
+
+/// Verifies a wide object still honors a node budget.
+#[cfg(feature = "json")]
+#[test]
+fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
+    let value = serde_json::Value::Object(
+        (0..10_000)
+            .map(|index| (format!("key-{index}"), serde_json::Value::Null))
+            .collect(),
+    );
+    let error =
+        hash_json_with_limits(&value, JsonLimits::new().with_max_nodes(1));
+
+    assert!(matches!(
+        error,
+        BudgetError::Insufficient {
+            resource: JsonResource::Nodes,
+            remaining: 0,
+            requested: 1,
+            ..
+        }
+    ));
+}
+
 /// Verifies budgeted hashing checks each array's item count.
 #[cfg(feature = "json")]
 #[test]
