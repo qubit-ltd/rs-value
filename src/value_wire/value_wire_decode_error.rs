@@ -12,6 +12,7 @@
 use qubit_budget::BudgetError;
 use qubit_budget::JsonResource;
 use qubit_budget::JsonSerdeError;
+use qubit_budget::QuantityConversionError;
 use serde_json::Error as JsonError;
 use thiserror::Error;
 
@@ -23,8 +24,23 @@ pub enum ValueWireDecodeError {
     #[error("V1 JSON wire resource budget exceeded: {0}")]
     Budget(#[source] BudgetError<JsonResource, u64>),
 
+    /// A native JSON measurement could not fit the wire budget quantity.
+    #[error(
+        "V1 JSON wire resource quantity conversion failed for {resource:?}: {source}"
+    )]
+    Quantity {
+        /// Resource whose native measurement could not be represented.
+        resource: JsonResource,
+
+        /// Exact failed native quantity conversion.
+        #[source]
+        source: QuantityConversionError,
+    },
+
     /// The envelope declares a wire version that this decoder does not support.
-    #[error("unsupported qubit-value wire version {actual}; expected {expected}")]
+    #[error(
+        "unsupported qubit-value wire version {actual}; expected {expected}"
+    )]
     UnsupportedVersion {
         /// Wire version accepted by this decoder.
         expected: u8,
@@ -43,8 +59,13 @@ impl From<JsonSerdeError<JsonResource>> for ValueWireDecodeError {
     fn from(error: JsonSerdeError<JsonResource>) -> Self {
         match error {
             JsonSerdeError::Budget(error) => Self::Budget(error),
+            JsonSerdeError::Quantity { resource, source } => {
+                Self::Quantity { resource, source }
+            }
             JsonSerdeError::Json(error) => Self::InvalidJson(error),
-            JsonSerdeError::Io(error) => Self::InvalidJson(JsonError::io(error)),
+            JsonSerdeError::Io(error) => {
+                Self::InvalidJson(JsonError::io(error))
+            }
         }
     }
 }

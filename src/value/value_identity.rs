@@ -11,9 +11,11 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 #[cfg(feature = "json")]
-use qubit_budget::BudgetError;
-#[cfg(feature = "json")]
 use qubit_budget::JsonValueBudget;
+#[cfg(feature = "json")]
+use qubit_budget::MeasuredBudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::ResourceQuantity;
 
 use super::Value;
 use super::ValueRepr;
@@ -67,14 +69,15 @@ macro_rules! hash_payload {
 
 /// Hashes one value payload while applying a budget to JSON payloads.
 #[cfg(feature = "json")]
-pub(crate) fn hash_value_payload_with_json_budget<H, R>(
+pub(crate) fn hash_value_payload_with_json_budget<H, R, Q>(
     repr: &ValueRepr,
     state: &mut H,
-    budget: &mut JsonValueBudget<R, u64>,
-) -> Result<(), BudgetError<R, u64>>
+    budget: &mut JsonValueBudget<R, Q>,
+) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     H: Hasher,
     R: Clone,
+    Q: ResourceQuantity,
 {
     match repr {
         ValueRepr::Unset(data_type) => data_type.hash(state),
