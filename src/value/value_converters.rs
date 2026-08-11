@@ -10,7 +10,9 @@
 //!
 //! This module focuses on conversion helpers backed by `qubit_datatype`.
 
-use qubit_datatype::DataConversionOptions;
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionPolicy;
+use qubit_datatype::ConversionSession;
 use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataConverter;
 
@@ -52,12 +54,26 @@ fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
 /// source value is missing, unsupported, or invalid for `T`.
 pub(super) fn convert_with_data_converter_with<T>(
     value: &Value,
-    options: &DataConversionOptions,
+    policy: &ConversionPolicy,
+    limits: &ConversionLimits,
 ) -> ValueResult<T>
 where
     T: DataConversionTarget,
 {
     data_converter_from_value(value)
-        .to_with::<T>(options)
+        .to_with::<T>(policy, limits)
+        .map_err(ValueError::from)
+}
+
+/// Converts a single `Value` into `T` using an existing conversion session.
+pub(super) fn convert_with_data_converter_in<T>(
+    value: &Value,
+    session: &mut ConversionSession<'_>,
+) -> ValueResult<T>
+where
+    T: DataConversionTarget,
+{
+    data_converter_from_value(value)
+        .to_in::<T>(session)
         .map_err(ValueError::from)
 }

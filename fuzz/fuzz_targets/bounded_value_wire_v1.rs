@@ -10,7 +10,10 @@
 //! Fuzzes bounded V1 JSON decoding and successful wire round trips.
 
 use libfuzzer_sys::fuzz_target;
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonResource;
+use qubit_budget::ResourceLimit;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireV1;
 
@@ -18,21 +21,21 @@ use qubit_value::ValueWireV1;
 const MAX_JSON_BYTES: usize = 94;
 
 /// Keeps all JSON resource dimensions active while fuzzing bounded input.
-fn fuzz_limits(max_input_bytes: usize) -> JsonLimits {
-    JsonLimits::new()
-        .with_max_input_bytes(max_input_bytes)
-        .with_max_output_bytes(4_096)
-        .with_max_depth(16)
-        .with_max_nodes(128)
-        .with_max_sequence_items(16)
-        .with_max_map_entries(16)
-        .with_max_key_bytes(64)
-        .with_max_string_bytes(64)
-        .with_max_number_bytes(64)
+fn fuzz_decode_limits(max_input_bytes: usize) -> JsonDecodeLimits {
+    ValueWireV1::default_json_decode_limits().with_input_bytes_limit(
+        ResourceLimit::new(JsonResource::InputBytes, max_input_bytes),
+    )
+}
+
+/// Keeps output accounting active while encoding successful values.
+fn fuzz_encode_limits() -> JsonEncodeLimits {
+    ValueWireV1::default_json_encode_limits().with_output_bytes_limit(
+        ResourceLimit::new(JsonResource::OutputBytes, 4_096),
+    )
 }
 
 fuzz_target!(|data: &[u8]| {
-    let limits = fuzz_limits(MAX_JSON_BYTES);
+    let limits = fuzz_decode_limits(MAX_JSON_BYTES);
     let result = ValueWireV1::decode_json_slice_with_limits(data, limits);
     if data.len() > MAX_JSON_BYTES {
         assert!(matches!(result, Err(ValueWireDecodeError::Budget(_))));
@@ -41,21 +44,21 @@ fuzz_target!(|data: &[u8]| {
 
     match result {
         Ok(value) => {
-            let encoded = value
-                .to_json_vec_with_limits(fuzz_limits(MAX_JSON_BYTES))
-                .expect(
+            let encoded =
+                value.to_json_vec_with_limits(fuzz_encode_limits()).expect(
                     "a decoded ValueWireV1 must serialize within fuzz limits",
                 );
             let decoded = ValueWireV1::decode_json_slice_with_limits(
                 &encoded,
-                fuzz_limits(encoded.len()),
+                fuzz_decode_limits(encoded.len()),
             )
             .expect("a serialized ValueWireV1 must decode");
             assert_eq!(decoded, value);
         }
         Err(
             ValueWireDecodeError::InvalidJson(_)
-            | ValueWireDecodeError::Budget(_),
+            | ValueWireDecodeError::Budget(_)
+            | ValueWireDecodeError::UnsupportedVersion { .. },
         ) => {}
         Err(error) => {
             panic!("bounded input returned an unexpected error: {error}")

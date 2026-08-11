@@ -12,13 +12,19 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::from_slice_with_budget;
+use qubit_budget::JsonDecodeSession;
 #[cfg(feature = "json")]
-use qubit_budget::to_vec_with_budget;
+use qubit_budget::JsonEncodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::to_writer_with_budget;
+use qubit_budget::JsonEncodeSession;
+#[cfg(feature = "json")]
+use qubit_budget::decode_slice;
+#[cfg(feature = "json")]
+use qubit_budget::encode_to_vec;
+#[cfg(feature = "json")]
+use qubit_budget::encode_to_writer;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -56,8 +62,16 @@ impl ValueWirePayloadV1 {
     #[cfg(feature = "json")]
     #[must_use = "the V1 JSON profile should be applied to a budget"]
     #[inline]
-    pub const fn default_json_limits() -> JsonLimits {
-        super::default_json_limits()
+    pub fn default_json_decode_limits() -> JsonDecodeLimits {
+        super::default_json_decode_limits()
+    }
+
+    /// Returns the default JSON resource profile for complete V1 payloads.
+    #[cfg(feature = "json")]
+    #[must_use = "the V1 JSON profile should be applied to an encode session"]
+    #[inline]
+    pub fn default_json_encode_limits() -> JsonEncodeLimits {
+        super::default_json_encode_limits()
     }
 
     /// Decodes a complete V1 JSON payload using default resource limits.
@@ -75,7 +89,10 @@ impl ValueWirePayloadV1 {
     pub fn decode_json_slice(
         input: &[u8],
     ) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(input, Self::default_json_limits())
+        Self::decode_json_slice_with_limits(
+            input,
+            Self::default_json_decode_limits(),
+        )
     }
 
     /// Decodes a complete V1 JSON payload using explicit resource limits.
@@ -88,11 +105,10 @@ impl ValueWirePayloadV1 {
     #[inline]
     pub fn decode_json_slice_with_limits(
         input: &[u8],
-        limits: JsonLimits,
+        limits: JsonDecodeLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut budget = limits.budget();
-        from_slice_with_budget(input, &mut budget)
-            .map_err(ValueWireDecodeError::from)
+        let mut session = JsonDecodeSession::new(limits);
+        decode_slice(input, &mut session).map_err(ValueWireDecodeError::from)
     }
 
     /// Encodes this V1 payload into a compact JSON vector with default limits.
@@ -104,18 +120,17 @@ impl ValueWirePayloadV1 {
     #[cfg(feature = "json")]
     #[inline]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
-        self.to_json_vec_with_limits(Self::default_json_limits())
+        self.to_json_vec_with_limits(Self::default_json_encode_limits())
     }
 
     /// Encodes this V1 payload into a bounded compact JSON vector.
     #[cfg(feature = "json")]
     pub fn to_json_vec_with_limits(
         &self,
-        limits: JsonLimits,
+        limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
-        let mut budget = limits.budget();
-        to_vec_with_budget(self, &mut budget)
-            .map_err(ValueWireEncodeError::from)
+        let mut session = JsonEncodeSession::new(limits);
+        encode_to_vec(self, &mut session).map_err(ValueWireEncodeError::from)
     }
 
     /// Encodes this V1 payload to a writer with default limits.
@@ -137,7 +152,10 @@ impl ValueWirePayloadV1 {
     where
         W: Write,
     {
-        self.to_json_writer_with_limits(writer, Self::default_json_limits())
+        self.to_json_writer_with_limits(
+            writer,
+            Self::default_json_encode_limits(),
+        )
     }
 
     /// Encodes this V1 payload to a writer after enforcing JSON budgets.
@@ -145,13 +163,13 @@ impl ValueWirePayloadV1 {
     pub fn to_json_writer_with_limits<W>(
         &self,
         writer: W,
-        limits: JsonLimits,
+        limits: JsonEncodeLimits,
     ) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        let mut budget = limits.budget();
-        to_writer_with_budget(writer, self, &mut budget)
+        let mut session = JsonEncodeSession::new(limits);
+        encode_to_writer(writer, self, &mut session)
             .map_err(ValueWireEncodeError::from)
     }
 

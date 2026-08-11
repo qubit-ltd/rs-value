@@ -13,7 +13,7 @@ use std::hash::Hasher;
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
-use qubit_budget::JsonBudget;
+use qubit_budget::JsonValueBudget;
 
 use super::multi_values::MultiValues;
 use super::multi_values::MultiValuesRepr;
@@ -97,7 +97,7 @@ macro_rules! hash_payloads {
 pub(crate) fn hash_multi_values_payload_with_json_budget<H, R>(
     repr: &MultiValuesRepr,
     state: &mut H,
-    budget: &mut JsonBudget<R, usize>,
+    budget: &mut JsonValueBudget<R, usize>,
 ) -> Result<(), BudgetError<R, usize>>
 where
     H: Hasher,

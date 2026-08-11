@@ -15,12 +15,14 @@ use chrono::NaiveDateTime;
 use chrono::NaiveTime;
 use chrono::Utc;
 use qubit_budget::BudgetError;
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeLimits;
 use qubit_budget::JsonResource;
 use qubit_datatype::DataType;
 use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueWireDecodeError;
+
+use crate::json_budget_test_support_tests::JsonDecodeLimitsExt;
 
 /// Rejects schema fields outside the stable named-value wrapper contract.
 #[test]
@@ -53,7 +55,7 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
 
     let name_error = NamedValue::decode_json_slice_with_limits(
         &input,
-        JsonLimits::new()
+        JsonDecodeLimits::default()
             .with_max_input_bytes(input.len())
             .with_max_string_bytes(3),
     )
@@ -69,7 +71,7 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
 
     let node_error = NamedValue::decode_json_slice_with_limits(
         &input,
-        JsonLimits::new()
+        JsonDecodeLimits::default()
             .with_max_input_bytes(input.len())
             .with_max_nodes(1),
     )

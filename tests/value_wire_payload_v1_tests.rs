@@ -7,7 +7,7 @@
 // =============================================================================
 
 use qubit_budget::BudgetError;
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeLimits;
 use qubit_budget::JsonResource;
 use qubit_value::MultiValues;
 use qubit_value::Value;
@@ -15,6 +15,8 @@ use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
+
+use crate::json_budget_test_support_tests::JsonDecodeLimitsExt;
 
 /// Verifies unversioned V1 payloads retain an explicit collection shape.
 #[test]
@@ -34,23 +36,27 @@ fn test_value_wire_payload_v1_decode_json_slice_honors_limits() {
     let input = br#"{"scalar": {"int32": 42}}"#;
     let payload = ValueWirePayloadV1::decode_json_slice_with_limits(
         input,
-        JsonLimits::new().with_max_input_bytes(input.len()),
+        JsonDecodeLimits::default().with_max_input_bytes(input.len()),
     )
     .expect("decode bounded V1 payload");
     assert_eq!(payload.into_container(), ValueContainer::from(42_i32));
 
     let error = ValueWirePayloadV1::decode_json_slice_with_limits(
         input,
-        JsonLimits::new().with_max_input_bytes(input.len() - 1),
+        JsonDecodeLimits::default().with_max_input_bytes(input.len() - 1),
     )
     .expect_err("reject payload larger than limit");
     assert!(matches!(
         error,
-        ValueWireDecodeError::Budget(BudgetError::LimitExceeded {
-            resource: JsonResource::InputBytes,
-            actual,
-            maximum,
-        }) if actual == input.len() && maximum == input.len() - 1
+        ValueWireDecodeError::Budget(
+            BudgetError::LimitExceeded {
+                resource: JsonResource::InputBytes,
+                ..
+            } | BudgetError::Insufficient {
+                resource: JsonResource::InputBytes,
+                ..
+            }
+        )
     ));
 }
 

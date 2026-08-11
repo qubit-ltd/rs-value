@@ -19,7 +19,10 @@ use chrono::TimeZone;
 use chrono::Utc;
 use libfuzzer_sys::fuzz_target;
 use num_bigint::BigInt;
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonResource;
+use qubit_budget::ResourceLimit;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
@@ -29,17 +32,17 @@ use url::Url;
 const TAG_COUNT: u8 = 52;
 
 /// Bounds generated structured values during both sides of the wire round trip.
-fn fuzz_limits() -> JsonLimits {
-    JsonLimits::new()
-        .with_max_input_bytes(4_096)
-        .with_max_output_bytes(4_096)
-        .with_max_depth(16)
-        .with_max_nodes(128)
-        .with_max_sequence_items(16)
-        .with_max_map_entries(16)
-        .with_max_key_bytes(4_096)
-        .with_max_string_bytes(4_096)
-        .with_max_number_bytes(256)
+fn fuzz_decode_limits() -> JsonDecodeLimits {
+    ValueWireV1::default_json_decode_limits().with_input_bytes_limit(
+        ResourceLimit::new(JsonResource::InputBytes, 4_096),
+    )
+}
+
+/// Bounds generated JSON output while preserving the default value profile.
+fn fuzz_encode_limits() -> JsonEncodeLimits {
+    ValueWireV1::default_json_encode_limits().with_output_bytes_limit(
+        ResourceLimit::new(JsonResource::OutputBytes, 4_096),
+    )
 }
 
 /// Copies at most `N` fuzz bytes into a fixed-width little-endian buffer.
@@ -235,11 +238,11 @@ fuzz_target!(|data: &[u8]| {
     match wire {
         Ok(wire) => {
             let encoded = wire
-                .to_json_vec_with_limits(fuzz_limits())
+                .to_json_vec_with_limits(fuzz_encode_limits())
                 .expect("validated V1 values serialize within fuzz limits");
             let decoded = ValueWireV1::decode_json_slice_with_limits(
                 &encoded,
-                fuzz_limits(),
+                fuzz_decode_limits(),
             )
             .expect("serialized V1 values deserialize within fuzz limits");
             assert_eq!(decoded, wire);

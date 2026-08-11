@@ -11,8 +11,9 @@
 use std::collections::HashSet;
 use std::hash::Hash;
 
-use qubit_datatype::CollectionConversionOptions;
-use qubit_datatype::DataConversionOptions;
+use qubit_datatype::CollectionConversionPolicy;
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
 use qubit_redact::Redact;
@@ -169,8 +170,8 @@ fn test_value_container_shape_accessors_preserve_values_and_mismatches() {
 
 #[test]
 fn test_value_container_string_splitting_depends_on_explicit_shape() {
-    let options = DataConversionOptions::default().with_collection_options(
-        CollectionConversionOptions::default()
+    let policy = ConversionPolicy::default().with_collection_policy(
+        CollectionConversionPolicy::default()
             .with_split_scalar_strings(true)
             .with_delimiters([',']),
     );
@@ -179,13 +180,13 @@ fn test_value_container_string_splitting_depends_on_explicit_shape() {
 
     assert_eq!(
         scalar
-            .to_list_with::<String>(&options)
+            .to_list_with::<String>(&policy, ConversionLimits::default_ref())
             .expect("split scalar string"),
         vec!["a".to_string(), "b".to_string()]
     );
     assert_eq!(
         collection
-            .to_list_with::<String>(&options)
+            .to_list_with::<String>(&policy, ConversionLimits::default_ref())
             .expect("preserve collection string"),
         vec!["a,b".to_string()]
     );
@@ -374,18 +375,35 @@ fn test_value_container_strict_access_mutation_and_state_cover_both_shapes() {
 
 #[test]
 fn test_value_container_conversion_covers_scalar_and_collection_dispatch() {
-    let options = DataConversionOptions::default();
+    let policy = ConversionPolicy::default();
     let scalar = ValueContainer::from(42_i32);
     let collection = ValueContainer::from(vec![43_i32, 44]);
 
     assert_eq!(scalar.to_first::<i64>().unwrap(), 42);
-    assert_eq!(scalar.to_first_with::<i64>(&options).unwrap(), 42);
-    assert_eq!(collection.to_first_with::<i64>(&options).unwrap(), 43);
+    assert_eq!(
+        scalar
+            .to_first_with::<i64>(&policy, ConversionLimits::default_ref())
+            .unwrap(),
+        42,
+    );
+    assert_eq!(
+        collection
+            .to_first_with::<i64>(&policy, ConversionLimits::default_ref())
+            .unwrap(),
+        43,
+    );
     assert_eq!(scalar.to_list::<i64>().unwrap(), vec![42]);
     assert_eq!(collection.to_list::<i64>().unwrap(), vec![43, 44]);
-    assert_eq!(scalar.to_list_with::<i64>(&options).unwrap(), vec![42]);
     assert_eq!(
-        collection.to_list_with::<i64>(&options).unwrap(),
+        scalar
+            .to_list_with::<i64>(&policy, ConversionLimits::default_ref())
+            .unwrap(),
+        vec![42],
+    );
+    assert_eq!(
+        collection
+            .to_list_with::<i64>(&policy, ConversionLimits::default_ref())
+            .unwrap(),
         vec![43, 44]
     );
 }

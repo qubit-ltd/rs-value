@@ -21,7 +21,7 @@ use std::hash::Hasher;
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
-use qubit_budget::JsonBudget;
+use qubit_budget::JsonValueBudget;
 use qubit_datatype::DataType;
 
 #[cfg(feature = "json")]
@@ -188,11 +188,19 @@ impl MultiValues {
     /// ```
     /// use std::collections::hash_map::DefaultHasher;
     ///
-    /// use qubit_budget::JsonLimits;
+    /// use qubit_budget::{
+    ///     JsonResource, JsonValueBudget, JsonValueLimits, ResourceLimit,
+    ///     StructureLimits,
+    /// };
     /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Json(vec![serde_json::json!([null])]);
-    /// let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+    /// let structure = StructureLimits::empty().with_nodes_limit(
+    ///     ResourceLimit::new(JsonResource::Nodes, 1),
+    /// );
+    /// let mut budget = JsonValueBudget::new(
+    ///     JsonValueLimits::default().with_structure_limits(structure),
+    /// );
     /// let mut hasher = DefaultHasher::new();
     ///
     /// assert!(values.hash_with_json_budget(&mut hasher, &mut budget).is_err());
@@ -203,7 +211,7 @@ impl MultiValues {
     pub fn hash_with_json_budget<H, R>(
         &self,
         state: &mut H,
-        budget: &mut JsonBudget<R, usize>,
+        budget: &mut JsonValueBudget<R, usize>,
     ) -> Result<(), BudgetError<R, usize>>
     where
         H: Hasher,

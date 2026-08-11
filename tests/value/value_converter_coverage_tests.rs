@@ -967,12 +967,15 @@ fn test_to_f32_wrong_type() {
 #[test]
 fn test_to_f64_from_biginteger_normal() {
     use num_bigint::BigInt;
-    use qubit_datatype::DataConversionOptions;
-    use qubit_datatype::NumericConversionOptions;
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::NumericConversionPolicy;
     let big = BigInt::from(i64::MAX);
-    let options = DataConversionOptions::default()
-        .with_numeric_options(NumericConversionOptions::lossy());
-    let result = Value::BigInteger(big).to_with::<f64>(&options).unwrap();
+    let policy = ConversionPolicy::default()
+        .with_numeric_policy(NumericConversionPolicy::lossy());
+    let result = Value::BigInteger(big)
+        .to_with::<f64>(&policy, ConversionLimits::default_ref())
+        .unwrap();
     assert!((result - i64::MAX as f64).abs() < 1.0);
 }
 

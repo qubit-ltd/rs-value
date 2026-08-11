@@ -19,9 +19,13 @@ use std::hash::Hasher;
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
-use qubit_budget::JsonBudget;
+use qubit_budget::JsonValueBudget;
 #[cfg(feature = "converter")]
-use qubit_datatype::DataConversionOptions;
+use qubit_datatype::ConversionLimits;
+#[cfg(feature = "converter")]
+use qubit_datatype::ConversionPolicy;
+#[cfg(feature = "converter")]
+use qubit_datatype::ConversionSession;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataType;
@@ -199,11 +203,19 @@ impl Value {
     /// ```
     /// use std::collections::hash_map::DefaultHasher;
     ///
-    /// use qubit_budget::JsonLimits;
+    /// use qubit_budget::{
+    ///     JsonResource, JsonValueBudget, JsonValueLimits, ResourceLimit,
+    ///     StructureLimits,
+    /// };
     /// use qubit_value::Value;
     ///
     /// let value = Value::Json(serde_json::json!([null]));
-    /// let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+    /// let structure = StructureLimits::empty().with_nodes_limit(
+    ///     ResourceLimit::new(JsonResource::Nodes, 1),
+    /// );
+    /// let mut budget = JsonValueBudget::new(
+    ///     JsonValueLimits::default().with_structure_limits(structure),
+    /// );
     /// let mut hasher = DefaultHasher::new();
     ///
     /// assert!(value.hash_with_json_budget(&mut hasher, &mut budget).is_err());
@@ -214,7 +226,7 @@ impl Value {
     pub fn hash_with_json_budget<H, R>(
         &self,
         state: &mut H,
-        budget: &mut JsonBudget<R, usize>,
+        budget: &mut JsonValueBudget<R, usize>,
     ) -> Result<(), BudgetError<R, usize>>
     where
         H: Hasher,
@@ -500,7 +512,8 @@ impl Value {
     ///
     /// Unlike [`Self::get`], this method permits conversions supported by
     /// [`qubit_datatype::DataConverter`] and applies
-    /// [`qubit_datatype::DataConversionOptions`].
+    /// [`qubit_datatype::ConversionPolicy`] and
+    /// [`qubit_datatype::ConversionLimits`].
     ///
     /// # Errors
     ///
@@ -526,7 +539,10 @@ impl Value {
     where
         T: DataConversionTarget,
     {
-        self.to_with(DataConversionOptions::default_ref())
+        self.to_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Converts this value to `T`, or returns `default` when storage is unset
@@ -632,11 +648,31 @@ impl Value {
     /// or invalid for `T` under the provided options.
     #[inline(always)]
     #[cfg(feature = "converter")]
-    pub fn to_with<T>(&self, options: &DataConversionOptions) -> ValueResult<T>
+    pub fn to_with<T>(
+        &self,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
+    ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
-        super::value_converters::convert_with_data_converter_with(self, options)
+        super::value_converters::convert_with_data_converter_with(
+            self, policy, limits,
+        )
+    }
+
+    /// Converts this value to `T` while charging an existing conversion
+    /// session.
+    #[inline(always)]
+    #[cfg(feature = "converter")]
+    pub fn to_in<T>(
+        &self,
+        session: &mut ConversionSession<'_>,
+    ) -> ValueResult<T>
+    where
+        T: DataConversionTarget,
+    {
+        super::value_converters::convert_with_data_converter_in(self, session)
     }
 
     /// Converts this value to `T` using conversion options, or returns
@@ -668,12 +704,13 @@ impl Value {
     pub fn to_or_with<T>(
         &self,
         default: impl IntoValueDefault<T>,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
-        match self.to_with(options) {
+        match self.to_with(policy, limits) {
             Err(ValueError::Missing(missing))
                 if missing.is_defaultable_for_conversion() =>
             {
@@ -710,13 +747,14 @@ impl Value {
     pub fn to_or_else_with<T, F>(
         &self,
         default: F,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<T>
     where
         T: DataConversionTarget,
         F: FnOnce() -> T,
     {
-        match self.to_with(options) {
+        match self.to_with(policy, limits) {
             Err(ValueError::Missing(missing))
                 if missing.is_defaultable_for_conversion() =>
             {

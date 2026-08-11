@@ -23,12 +23,15 @@ use num_bigint::BigInt;
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
-use qubit_budget::JsonLimits;
-#[cfg(feature = "json")]
 use qubit_budget::JsonResource;
+#[cfg(feature = "json")]
+use qubit_budget::JsonValueLimits;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use url::Url;
+
+#[cfg(feature = "json")]
+use crate::json_budget_test_support_tests::JsonValueLimitsExt;
 
 /// Returns the standard-library hash for equality-contract assertions.
 ///
@@ -202,7 +205,7 @@ fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
         serde_json::json!(null),
         serde_json::json!(null),
     ]);
-    let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+    let mut budget = JsonValueLimits::default().with_max_nodes(1).budget();
     let mut state = DefaultHasher::new();
 
     let error = values
@@ -250,7 +253,7 @@ fn test_multi_values_hash_with_json_budget_matches_standard_hash_for_special_non
 
     for values in [&float, &string_map, &decimal] {
         let expected = hash(values);
-        let mut budget = JsonLimits::new().budget();
+        let mut budget = JsonValueLimits::default().budget();
         let mut state = DefaultHasher::new();
 
         values

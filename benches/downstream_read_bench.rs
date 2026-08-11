@@ -13,8 +13,9 @@ use std::hint::black_box;
 use criterion::Criterion;
 use criterion::criterion_group;
 use criterion::criterion_main;
-use qubit_datatype::CollectionConversionOptions;
-use qubit_datatype::DataConversionOptions;
+use qubit_datatype::CollectionConversionPolicy;
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionPolicy;
 use qubit_datatype::NumericComparisonPolicy;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
@@ -22,9 +23,9 @@ use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
 
 /// Builds the scalar-string splitting policy used by configuration readers.
-fn config_conversion_options() -> DataConversionOptions {
-    DataConversionOptions::default().with_collection_options(
-        CollectionConversionOptions::default()
+fn config_conversion_policy() -> ConversionPolicy {
+    ConversionPolicy::default().with_collection_policy(
+        CollectionConversionPolicy::default()
             .with_split_scalar_strings(true)
             .with_delimiters([',']),
     )
@@ -34,12 +35,13 @@ fn config_conversion_options() -> DataConversionOptions {
 fn benchmark_config_conversions(c: &mut Criterion) {
     let scalar = ValueContainer::from("65535");
     let ports = ValueContainer::from("8080,8081,8082,8083");
-    let options = config_conversion_options();
+    let policy = config_conversion_policy();
+    let limits = ConversionLimits::default();
 
     c.bench_function("value/config_scalar_string_to_u32", |bencher| {
         bencher.iter(|| {
             let value = scalar
-                .to_first_with::<u32>(black_box(&options))
+                .to_first_with::<u32>(black_box(&policy), black_box(&limits))
                 .expect("numeric configuration text should convert");
             black_box(value)
         });
@@ -47,7 +49,7 @@ fn benchmark_config_conversions(c: &mut Criterion) {
     c.bench_function("value/config_scalar_string_to_u16_list", |bencher| {
         bencher.iter(|| {
             let values = ports
-                .to_list_with::<u16>(black_box(&options))
+                .to_list_with::<u16>(black_box(&policy), black_box(&limits))
                 .expect("delimited port text should convert");
             black_box(values)
         });
@@ -77,12 +79,13 @@ fn benchmark_natural_json_projection(c: &mut Criterion) {
         "worker".to_string(),
         "scheduler".to_string(),
     ]);
-    let options = DataConversionOptions::default();
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::default();
 
     c.bench_function("value/value_container_to_natural_json", |bencher| {
         bencher.iter(|| {
             let json = values
-                .to_json_value_with(black_box(&options))
+                .to_json_value_with(black_box(&policy), black_box(&limits))
                 .expect("string collection should project to JSON");
             black_box(json)
         });
