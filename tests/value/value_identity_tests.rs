@@ -25,6 +25,8 @@ use qubit_budget::BudgetError;
 use qubit_budget::JsonResource;
 #[cfg(feature = "json")]
 use qubit_budget::JsonValueLimits;
+#[cfg(feature = "json")]
+use qubit_budget::MeasuredBudgetError;
 use qubit_datatype::DataType;
 use qubit_value::Value;
 use url::Url;
@@ -78,8 +80,12 @@ fn test_value_map_and_json_identity_is_order_independent() {
     assert_eq!(left, right);
     assert_eq!(hash(&left), hash(&right));
 
-    let left = Value::Json(serde_json::from_str(r#"{"b":{"y":2,"x":1},"a":0}"#).unwrap());
-    let right = Value::Json(serde_json::from_str(r#"{"a":0,"b":{"x":1,"y":2}}"#).unwrap());
+    let left = Value::Json(
+        serde_json::from_str(r#"{"b":{"y":2,"x":1},"a":0}"#).unwrap(),
+    );
+    let right = Value::Json(
+        serde_json::from_str(r#"{"a":0,"b":{"x":1,"y":2}}"#).unwrap(),
+    );
     assert_eq!(left, right);
     assert_eq!(hash(&left), hash(&right));
     assert_ne!(
@@ -131,10 +137,15 @@ fn test_value_identity_covers_every_variant() {
         Value::Date(date),
         Value::Time(time),
         Value::DateTime(datetime),
-        Value::Instant(DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc)),
+        Value::Instant(DateTime::<Utc>::from_naive_utc_and_offset(
+            datetime, Utc,
+        )),
         Value::Duration(Duration::new(8, 9)),
         Value::new(Url::parse("https://example.com/path").unwrap()),
-        Value::StringMap(HashMap::from([("key".to_owned(), "value".to_owned())])),
+        Value::StringMap(HashMap::from([(
+            "key".to_owned(),
+            "value".to_owned(),
+        )])),
         Value::Json(serde_json::json!({
             "items": [null, true, 42, "text", [], {}]
         })),
@@ -167,20 +178,25 @@ fn test_value_big_decimal_identity_normalizes_coefficient_and_scale() {
         );
     }
 
-    let values: HashSet<_> = encodings.into_iter().map(Value::BigDecimal).collect();
+    let values: HashSet<_> =
+        encodings.into_iter().map(Value::BigDecimal).collect();
     assert_eq!(values.len(), 1);
 }
 
 /// Verifies zero and extreme scales never trigger scale-sized hashing work.
 #[test]
 fn test_value_big_decimal_hash_handles_extreme_scales() {
-    let zero_min = Value::BigDecimal(BigDecimal::new(BigInt::from(0), i64::MIN));
-    let zero_max = Value::BigDecimal(BigDecimal::new(BigInt::from(0), i64::MAX));
+    let zero_min =
+        Value::BigDecimal(BigDecimal::new(BigInt::from(0), i64::MIN));
+    let zero_max =
+        Value::BigDecimal(BigDecimal::new(BigInt::from(0), i64::MAX));
     assert_eq!(zero_min, zero_max);
     assert_eq!(hash(&zero_min), hash(&zero_max));
 
-    let positive = Value::BigDecimal(BigDecimal::new(BigInt::from(1), i64::MIN));
-    let negative = Value::BigDecimal(BigDecimal::new(BigInt::from(-1), i64::MIN));
+    let positive =
+        Value::BigDecimal(BigDecimal::new(BigInt::from(1), i64::MIN));
+    let negative =
+        Value::BigDecimal(BigDecimal::new(BigInt::from(-1), i64::MIN));
     assert_eq!(positive, positive);
     assert_eq!(negative, negative);
     let _ = hash(&positive);
@@ -201,19 +217,20 @@ fn test_value_hash_with_json_budget_rejects_json_exceeding_node_budget() {
 
     assert!(matches!(
         error,
-        BudgetError::Insufficient {
+        MeasuredBudgetError::Budget(BudgetError::Insufficient {
             resource: JsonResource::Nodes,
             limit: 1,
             remaining: 0,
             requested: 1,
-        }
+        })
     ));
 }
 
 /// Verifies budgeted hashing preserves special non-JSON identity hashes.
 #[cfg(feature = "json")]
 #[test]
-fn test_value_hash_with_json_budget_matches_standard_hash_for_special_non_json_values() {
+fn test_value_hash_with_json_budget_matches_standard_hash_for_special_non_json_values()
+ {
     let float = Value::Float32(-0.0);
     let string_map = Value::StringMap(HashMap::from([
         ("second".to_owned(), "2".to_owned()),

@@ -971,7 +971,8 @@ fn test_to_f64_from_biginteger_normal() {
     use qubit_datatype::ConversionPolicy;
     use qubit_datatype::NumericConversionPolicy;
     let big = BigInt::from(i64::MAX);
-    let policy = ConversionPolicy::default().with_numeric_policy(NumericConversionPolicy::lossy());
+    let policy = ConversionPolicy::default()
+        .with_numeric_policy(NumericConversionPolicy::lossy());
     let result = Value::BigInteger(big)
         .to_with::<f64>(&policy, ConversionLimits::default_ref())
         .unwrap();
