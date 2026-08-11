@@ -35,3 +35,17 @@ fn test_value_wire_decode_error_preserves_json_source() {
     assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
     assert!(error.source().is_some());
 }
+
+#[test]
+fn test_value_wire_decode_error_reports_unsupported_version() {
+    let error = ValueWireDecodeError::UnsupportedVersion {
+        expected: 1,
+        actual: 2,
+    };
+
+    assert_eq!(
+        error.to_string(),
+        "unsupported qubit-value wire version 2; expected 1"
+    );
+    assert!(error.source().is_none());
+}

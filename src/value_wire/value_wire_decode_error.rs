@@ -23,6 +23,18 @@ pub enum ValueWireDecodeError {
     #[error("V1 JSON wire resource budget exceeded: {0}")]
     Budget(#[source] BudgetError<JsonResource, usize>),
 
+    /// The envelope declares a wire version that this decoder does not support.
+    #[error(
+        "unsupported qubit-value wire version {actual}; expected {expected}"
+    )]
+    UnsupportedVersion {
+        /// Wire version accepted by this decoder.
+        expected: u8,
+
+        /// Wire version declared by the input envelope.
+        actual: u8,
+    },
+
     /// The bounded input is not a valid V1 JSON wire value.
     #[error("failed to decode V1 JSON wire input: {0}")]
     InvalidJson(#[source] JsonError),
