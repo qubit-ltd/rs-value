@@ -10,8 +10,9 @@
 
 use std::str::FromStr;
 
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataConversionError;
-use qubit_datatype::DataConversionOptions;
 use qubit_datatype::DataConverter;
 use qubit_datatype::DataListConversionError;
 use qubit_datatype::DataType;
@@ -75,27 +76,27 @@ fn finite_float32(
 }
 
 macro_rules! scalar_to_json {
-    (json_bool, $value:expr, $from:expr, $options:expr) => {
+    (json_bool, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
         Ok(JsonValue::Bool(*$value))
     };
-    (json_number, $value:expr, $from:expr, $options:expr) => {
+    (json_number, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
         Ok(JsonValue::from(*$value))
     };
-    (json_float32, $value:expr, $from:expr, $options:expr) => {
+    (json_float32, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
         finite_float32(*$value, $from)
     };
-    (json_float64, $value:expr, $from:expr, $options:expr) => {
+    (json_float64, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
         finite_float64(*$value as f64, $from)
     };
-    (json_string, $value:expr, $from:expr, $options:expr) => {
+    (json_string, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
         Ok(JsonValue::String($value.to_string()))
     };
-    (json_duration, $value:expr, $from:expr, $options:expr) => {
+    (json_duration, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
         DataConverter::from(*$value)
-            .to_with::<String>($options)
+            .to_with::<String>($policy, $limits)
             .map(JsonValue::String)
     };
-    (json_object, $value:expr, $from:expr, $options:expr) => {{
+    (json_object, $value:expr, $from:expr, $policy:expr, $limits:expr) => {{
         let mut entries: Vec<_> = $value.iter().collect();
         entries.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
         let mut object = Map::with_capacity(entries.len());
@@ -104,17 +105,17 @@ macro_rules! scalar_to_json {
         }
         Ok(JsonValue::Object(object))
     }};
-    (json_identity, $value:expr, $from:expr, $options:expr) => {
+    (json_identity, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
         Ok(crate::wire::json::canonicalize_json_value($value))
     };
 }
 
 macro_rules! value_to_json_match {
-    ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {{
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {{
         let result: Result<JsonValue, DataConversionError> = match &$value.repr {
             ValueRepr::Unset(_) => Ok(JsonValue::Null),
             $($(#[$cfg])* ValueRepr::$variant(value) => {
-                scalar_to_json!($json_class, value, $data_type, $options)
+                scalar_to_json!($json_class, value, $data_type, $policy, $limits)
             },)+
         };
         result.map_err(ValueError::from)
@@ -164,12 +165,12 @@ where
 }
 
 macro_rules! multi_values_to_json_match {
-    ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(_) => Ok(JsonValue::Null),
             $($(#[$cfg])* MultiValuesRepr::$variant(values) => {
                 collection_to_json(values, |value| {
-                    scalar_to_json!($json_class, value, $data_type, $options)
+                    scalar_to_json!($json_class, value, $data_type, $policy, $limits)
                 })
             },)+
         }
@@ -193,7 +194,10 @@ impl Value {
     /// including non-finite floating-point values and inexact durations.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(DataConversionOptions::default_ref())
+        self.to_json_value_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Projects this typed value using explicit conversion options.
@@ -212,9 +216,10 @@ impl Value {
     /// formatting violates the requested options.
     pub fn to_json_value_with(
         &self,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<JsonValue> {
-        for_each_value_type!(value_to_json_match, self, options)
+        for_each_value_type!(value_to_json_match, self, policy, limits)
     }
 }
 
@@ -234,7 +239,10 @@ impl MultiValues {
     /// when an item cannot be represented as JSON.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(DataConversionOptions::default_ref())
+        self.to_json_value_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Projects this collection using explicit conversion options.
@@ -253,9 +261,10 @@ impl MultiValues {
     /// represented under the requested options.
     pub fn to_json_value_with(
         &self,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<JsonValue> {
-        for_each_value_type!(multi_values_to_json_match, self, options)
+        for_each_value_type!(multi_values_to_json_match, self, policy, limits)
     }
 }
 
@@ -275,7 +284,10 @@ impl ValueContainer {
     /// Returns the same structured projection error as the contained value.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(DataConversionOptions::default_ref())
+        self.to_json_value_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Projects this container using explicit conversion options.
@@ -295,11 +307,14 @@ impl ValueContainer {
     #[inline(always)]
     pub fn to_json_value_with(
         &self,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<JsonValue> {
         match self {
-            Self::Scalar(value) => value.to_json_value_with(options),
-            Self::Collection(values) => values.to_json_value_with(options),
+            Self::Scalar(value) => value.to_json_value_with(policy, limits),
+            Self::Collection(values) => {
+                values.to_json_value_with(policy, limits)
+            }
         }
     }
 }

@@ -15,7 +15,7 @@ use chrono::NaiveDateTime;
 use chrono::NaiveTime;
 use chrono::Utc;
 use qubit_budget::BudgetError;
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeLimits;
 use qubit_budget::JsonResource;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
@@ -24,6 +24,8 @@ use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueError;
 use qubit_value::ValueWireDecodeError;
+
+use crate::json_budget_test_support_tests::JsonDecodeLimitsExt;
 
 /// Rejects schema fields outside the stable named-collection wrapper contract.
 #[test]
@@ -57,7 +59,7 @@ fn test_named_multi_values_bounded_decode_reuses_collection_budget() {
 
     let error = NamedMultiValues::decode_json_slice_with_limits(
         &input,
-        JsonLimits::new()
+        JsonDecodeLimits::default()
             .with_max_input_bytes(input.len())
             .with_max_nodes(3),
     )

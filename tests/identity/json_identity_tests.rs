@@ -22,10 +22,13 @@ use std::process::Command;
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
-use qubit_budget::JsonLimits;
-#[cfg(feature = "json")]
 use qubit_budget::JsonResource;
+#[cfg(feature = "json")]
+use qubit_budget::JsonValueLimits;
 use qubit_value::Value;
+
+#[cfg(feature = "json")]
+use crate::json_budget_test_support_tests::JsonValueLimitsExt;
 
 #[cfg(feature = "json")]
 #[path = "../../src/identity/json_identity.rs"]
@@ -150,7 +153,7 @@ fn test_deep_json_identity_hash_child() {
 fn test_hash_json_with_budget_checks_root_inclusive_depth() {
     let error = hash_json_with_limits(
         &serde_json::json!([null]),
-        JsonLimits::new().with_max_depth(1),
+        JsonValueLimits::default().with_max_depth(1),
     );
     assert!(matches!(
         error,
@@ -168,7 +171,7 @@ fn test_hash_json_with_budget_checks_root_inclusive_depth() {
 fn test_hash_json_with_budget_charges_nodes() {
     let error = hash_json_with_limits(
         &serde_json::json!([null]),
-        JsonLimits::new().with_max_nodes(1),
+        JsonValueLimits::default().with_max_nodes(1),
     );
     assert!(matches!(
         error,
@@ -188,8 +191,10 @@ fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
     let value = serde_json::Value::Array(
         (0..10_000).map(|_| serde_json::Value::Null).collect(),
     );
-    let error =
-        hash_json_with_limits(&value, JsonLimits::new().with_max_nodes(1));
+    let error = hash_json_with_limits(
+        &value,
+        JsonValueLimits::default().with_max_nodes(1),
+    );
 
     assert!(matches!(
         error,
@@ -211,8 +216,10 @@ fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
             .map(|index| (format!("key-{index}"), serde_json::Value::Null))
             .collect(),
     );
-    let error =
-        hash_json_with_limits(&value, JsonLimits::new().with_max_nodes(1));
+    let error = hash_json_with_limits(
+        &value,
+        JsonValueLimits::default().with_max_nodes(1),
+    );
 
     assert!(matches!(
         error,
@@ -231,7 +238,7 @@ fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
 fn test_hash_json_with_budget_checks_sequence_items() {
     let error = hash_json_with_limits(
         &serde_json::json!([null, null]),
-        JsonLimits::new().with_max_sequence_items(1),
+        JsonValueLimits::default().with_max_sequence_items(1),
     );
     assert!(matches!(
         error,
@@ -249,7 +256,7 @@ fn test_hash_json_with_budget_checks_sequence_items() {
 fn test_hash_json_with_budget_checks_map_entries() {
     let error = hash_json_with_limits(
         &serde_json::json!({"first": null, "second": null}),
-        JsonLimits::new().with_max_map_entries(1),
+        JsonValueLimits::default().with_max_map_entries(1),
     );
     assert!(matches!(
         error,
@@ -267,7 +274,7 @@ fn test_hash_json_with_budget_checks_map_entries() {
 fn test_hash_json_with_budget_checks_key_bytes() {
     let error = hash_json_with_limits(
         &serde_json::json!({"é": null}),
-        JsonLimits::new().with_max_key_bytes(1),
+        JsonValueLimits::default().with_max_key_bytes(1),
     );
     assert!(matches!(
         error,
@@ -285,7 +292,7 @@ fn test_hash_json_with_budget_checks_key_bytes() {
 fn test_hash_json_with_budget_checks_string_bytes() {
     let error = hash_json_with_limits(
         &serde_json::json!("é"),
-        JsonLimits::new().with_max_string_bytes(1),
+        JsonValueLimits::default().with_max_string_bytes(1),
     );
     assert!(matches!(
         error,
@@ -303,7 +310,7 @@ fn test_hash_json_with_budget_checks_string_bytes() {
 fn test_hash_json_with_budget_checks_number_bytes() {
     let error = hash_json_with_limits(
         &serde_json::json!(1234),
-        JsonLimits::new().with_max_number_bytes(3),
+        JsonValueLimits::default().with_max_number_bytes(3),
     );
     assert!(matches!(
         error,
@@ -324,7 +331,7 @@ fn test_hash_json_with_budget_matches_unbounded_hash() {
         "flag": false
     });
     let expected = calculate_json_hash(&value);
-    let mut budget = JsonLimits::new().budget();
+    let mut budget = JsonValueLimits::default().budget();
     let mut state = DefaultHasher::new();
     json_identity::hash_json_with_budget(&value, &mut state, &mut budget)
         .expect("an unconfigured JSON budget must accept the value");
@@ -400,7 +407,7 @@ fn calculate_json_hash(value: &serde_json::Value) -> u64 {
 #[cfg(feature = "json")]
 fn hash_json_with_limits(
     value: &serde_json::Value,
-    limits: JsonLimits,
+    limits: JsonValueLimits,
 ) -> BudgetError<JsonResource, usize> {
     let mut budget = limits.budget();
     let mut state = DefaultHasher::new();

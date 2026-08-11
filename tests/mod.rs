@@ -17,6 +17,8 @@ mod finite_float {
 }
 mod identity;
 mod into_value_default_tests;
+#[cfg(feature = "json")]
+mod json_budget_test_support_tests;
 mod json_tests;
 mod multi_values;
 mod named_multi_values_tests;

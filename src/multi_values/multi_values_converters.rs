@@ -10,8 +10,10 @@
 //!
 //! This module keeps generic conversion logic (`to_first` and `to_list`).
 
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionPolicy;
+use qubit_datatype::ConversionSession;
 use qubit_datatype::DataConversionError;
-use qubit_datatype::DataConversionOptions;
 use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataConverter;
 use qubit_datatype::DataConverters;
@@ -23,7 +25,7 @@ use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
 
 macro_rules! multi_values_convert_first_match {
-    ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
@@ -31,7 +33,7 @@ macro_rules! multi_values_convert_first_match {
             $(
                 $(#[$cfg])*
                 MultiValuesRepr::$variant(values) => {
-                    convert_first_with(DataConverters::from(values), $options)
+                    convert_first_with(DataConverters::from(values), $policy, $limits)
                 }
             )+
         }
@@ -39,7 +41,7 @@ macro_rules! multi_values_convert_first_match {
 }
 
 macro_rules! multi_values_convert_list_match {
-    ($value:expr, $options:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
@@ -47,7 +49,43 @@ macro_rules! multi_values_convert_list_match {
             $(
                 $(#[$cfg])*
                 MultiValuesRepr::$variant(values) => {
-                    convert_values_with(DataConverters::from(values), $options)
+                    convert_values_with(DataConverters::from(values), $policy, $limits)
+                }
+            )+
+        }
+    };
+}
+
+macro_rules! multi_values_convert_first_in_match {
+    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+        match &$value.repr {
+            MultiValuesRepr::Unset(from) => {
+                Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
+            }
+            $(
+                $(#[$cfg])*
+                MultiValuesRepr::$variant(values) => {
+                    DataConverters::from(values)
+                        .to_first_in($session)
+                        .map_err(ValueError::from)
+                }
+            )+
+        }
+    };
+}
+
+macro_rules! multi_values_convert_list_in_match {
+    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+        match &$value.repr {
+            MultiValuesRepr::Unset(from) => {
+                Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
+            }
+            $(
+                $(#[$cfg])*
+                MultiValuesRepr::$variant(values) => {
+                    DataConverters::from(values)
+                        .to_vec_in($session)
+                        .map_err(ValueError::from)
                 }
             )+
         }
@@ -81,14 +119,17 @@ macro_rules! multi_values_convert_list_match {
 #[inline(always)]
 fn convert_first_with<'a, T, I>(
     values: DataConverters<I>,
-    options: &DataConversionOptions,
+    policy: &ConversionPolicy,
+    limits: &ConversionLimits,
 ) -> ValueResult<T>
 where
     T: DataConversionTarget,
     I: Iterator,
     I::Item: Into<DataConverter<'a>>,
 {
-    values.to_first_with(options).map_err(ValueError::from)
+    values
+        .to_first_with(policy, limits)
+        .map_err(ValueError::from)
 }
 
 /// Converts every item from a batch converter using conversion options.
@@ -113,14 +154,15 @@ where
 #[inline(always)]
 fn convert_values_with<'a, T, I>(
     values: DataConverters<I>,
-    options: &DataConversionOptions,
+    policy: &ConversionPolicy,
+    limits: &ConversionLimits,
 ) -> ValueResult<Vec<T>>
 where
     T: DataConversionTarget,
     I: Iterator,
     I::Item: Into<DataConverter<'a>>,
 {
-    values.to_vec_with(options).map_err(ValueError::from)
+    values.to_vec_with(policy, limits).map_err(ValueError::from)
 }
 
 impl MultiValues {
@@ -148,7 +190,10 @@ impl MultiValues {
     where
         T: DataConversionTarget,
     {
-        self.to_first_with(DataConversionOptions::default_ref())
+        self.to_first_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Converts the first stored value to `T`, or returns `default` when the
@@ -254,12 +299,29 @@ impl MultiValues {
     /// conversion error when the first value cannot be converted to `T`.
     pub fn to_first_with<T>(
         &self,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
-        for_each_value_type!(multi_values_convert_first_match, self, options)
+        for_each_value_type!(
+            multi_values_convert_first_match,
+            self,
+            policy,
+            limits
+        )
+    }
+
+    /// Converts the first stored value using an existing conversion session.
+    pub fn to_first_in<T>(
+        &self,
+        session: &mut ConversionSession<'_>,
+    ) -> ValueResult<T>
+    where
+        T: DataConversionTarget,
+    {
+        for_each_value_type!(multi_values_convert_first_in_match, self, session)
     }
 
     /// Converts the first stored value to `T` using conversion options, or
@@ -289,12 +351,13 @@ impl MultiValues {
     pub fn to_first_or_with<T>(
         &self,
         default: impl IntoValueDefault<T>,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
-        match self.to_first_with(options) {
+        match self.to_first_with(policy, limits) {
             Err(ValueError::Missing(missing))
                 if missing.is_defaultable_for_conversion() =>
             {
@@ -330,13 +393,14 @@ impl MultiValues {
     pub fn to_first_or_else_with<T, F>(
         &self,
         default: F,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<T>
     where
         T: DataConversionTarget,
         F: FnOnce() -> T,
     {
-        match self.to_first_with(options) {
+        match self.to_first_with(policy, limits) {
             Err(ValueError::Missing(missing))
                 if missing.is_defaultable_for_conversion() =>
             {
@@ -369,7 +433,10 @@ impl MultiValues {
     where
         T: DataConversionTarget,
     {
-        self.to_list_with(DataConversionOptions::default_ref())
+        self.to_list_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Converts all stored values to `T`, or returns `default` when storage is
@@ -470,12 +537,29 @@ impl MultiValues {
     /// element.
     pub fn to_list_with<T>(
         &self,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
-        for_each_value_type!(multi_values_convert_list_match, self, options)
+        for_each_value_type!(
+            multi_values_convert_list_match,
+            self,
+            policy,
+            limits
+        )
+    }
+
+    /// Converts every stored value using an existing conversion session.
+    pub fn to_list_in<T>(
+        &self,
+        session: &mut ConversionSession<'_>,
+    ) -> ValueResult<Vec<T>>
+    where
+        T: DataConversionTarget,
+    {
+        for_each_value_type!(multi_values_convert_list_in_match, self, session)
     }
 
     /// Converts all stored values to `T` using conversion options, or returns
@@ -503,12 +587,13 @@ impl MultiValues {
     pub fn to_list_or_with<T>(
         &self,
         default: impl IntoValueDefault<Vec<T>>,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
-        match self.to_list_with(options) {
+        match self.to_list_with(policy, limits) {
             Err(ValueError::Missing(missing))
                 if missing.is_defaultable_for_conversion() =>
             {
@@ -544,13 +629,14 @@ impl MultiValues {
     pub fn to_list_or_else_with<T, F>(
         &self,
         default: F,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
         F: FnOnce() -> Vec<T>,
     {
-        match self.to_list_with(options) {
+        match self.to_list_with(policy, limits) {
             Err(ValueError::Missing(missing))
                 if missing.is_defaultable_for_conversion() =>
             {

@@ -17,13 +17,19 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::from_slice_with_budget;
+use qubit_budget::JsonDecodeSession;
 #[cfg(feature = "json")]
-use qubit_budget::to_vec_with_budget;
+use qubit_budget::JsonEncodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::to_writer_with_budget;
+use qubit_budget::JsonEncodeSession;
+#[cfg(feature = "json")]
+use qubit_budget::decode_slice;
+#[cfg(feature = "json")]
+use qubit_budget::encode_to_vec;
+#[cfg(feature = "json")]
+use qubit_budget::encode_to_writer;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -139,7 +145,7 @@ impl NamedValue {
     ) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(
             input,
-            ValueWireV1::default_json_limits(),
+            ValueWireV1::default_json_decode_limits(),
         )
     }
 
@@ -162,11 +168,10 @@ impl NamedValue {
     #[cfg(feature = "json")]
     pub fn decode_json_slice_with_limits(
         input: &[u8],
-        limits: JsonLimits,
+        limits: JsonDecodeLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut budget = limits.budget();
-        from_slice_with_budget(input, &mut budget)
-            .map_err(ValueWireDecodeError::from)
+        let mut session = JsonDecodeSession::new(limits);
+        decode_slice(input, &mut session).map_err(ValueWireDecodeError::from)
     }
 
     /// Encodes this named scalar into a bounded compact JSON vector with the
@@ -174,18 +179,17 @@ impl NamedValue {
     #[cfg(feature = "json")]
     #[inline]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
-        self.to_json_vec_with_limits(ValueWireV1::default_json_limits())
+        self.to_json_vec_with_limits(ValueWireV1::default_json_encode_limits())
     }
 
     /// Encodes this named scalar into a bounded compact JSON vector.
     #[cfg(feature = "json")]
     pub fn to_json_vec_with_limits(
         &self,
-        limits: JsonLimits,
+        limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
-        let mut budget = limits.budget();
-        to_vec_with_budget(self, &mut budget)
-            .map_err(ValueWireEncodeError::from)
+        let mut session = JsonEncodeSession::new(limits);
+        encode_to_vec(self, &mut session).map_err(ValueWireEncodeError::from)
     }
 
     /// Encodes this named scalar to a writer with the default V1 JSON profile.
@@ -200,7 +204,7 @@ impl NamedValue {
     {
         self.to_json_writer_with_limits(
             writer,
-            ValueWireV1::default_json_limits(),
+            ValueWireV1::default_json_encode_limits(),
         )
     }
 
@@ -209,13 +213,13 @@ impl NamedValue {
     pub fn to_json_writer_with_limits<W>(
         &self,
         writer: W,
-        limits: JsonLimits,
+        limits: JsonEncodeLimits,
     ) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        let mut budget = limits.budget();
-        to_writer_with_budget(writer, self, &mut budget)
+        let mut session = JsonEncodeSession::new(limits);
+        encode_to_writer(writer, self, &mut session)
             .map_err(ValueWireEncodeError::from)
     }
 

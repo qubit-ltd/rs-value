@@ -13,11 +13,21 @@
 //! Borrowed values can use [`ValueWireRefV1`] or [`ValueWirePayloadRefV1`].
 
 #[cfg(feature = "json")]
-use qubit_budget::JsonBudget;
+use qubit_budget::JsonDecodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeSession;
 #[cfg(feature = "json")]
-use qubit_budget::from_slice_with_budget;
+use qubit_budget::JsonEncodeLimits;
+#[cfg(feature = "json")]
+use qubit_budget::JsonResource;
+#[cfg(feature = "json")]
+use qubit_budget::JsonValueLimits;
+#[cfg(feature = "json")]
+use qubit_budget::ResourceLimit;
+#[cfg(feature = "json")]
+use qubit_budget::StructureLimits;
+#[cfg(feature = "json")]
+use qubit_budget::decode_slice;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -82,20 +92,59 @@ pub use value_wire_payload_v1::ValueWirePayloadV1;
 pub use value_wire_ref_v1::ValueWireRefV1;
 pub use value_wire_v1::ValueWireV1;
 
-/// Returns the default resource profile used by complete V1 JSON documents.
+/// Returns the default value-resource profile used by V1 JSON documents.
 #[cfg(feature = "json")]
 #[inline]
-pub(crate) const fn default_json_limits() -> JsonLimits {
-    JsonLimits::new()
-        .with_max_input_bytes(1_048_576)
-        .with_max_output_bytes(1_048_576)
-        .with_max_depth(64)
-        .with_max_nodes(100_000)
-        .with_max_sequence_items(4_096)
-        .with_max_map_entries(4_096)
-        .with_max_key_bytes(256 * 1024)
-        .with_max_string_bytes(256 * 1024)
-        .with_max_number_bytes(4_096)
+pub(crate) fn default_json_value_limits() -> JsonValueLimits {
+    let structure = StructureLimits::empty()
+        .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 64))
+        .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 100_000))
+        .with_sequence_items_limit(ResourceLimit::new(
+            JsonResource::SequenceItems,
+            4_096,
+        ))
+        .with_map_entries_limit(ResourceLimit::new(
+            JsonResource::MapEntries,
+            4_096,
+        ))
+        .with_key_bytes_limit(ResourceLimit::new(
+            JsonResource::KeyBytes,
+            256 * 1024,
+        ));
+    JsonValueLimits::default()
+        .with_structure_limits(structure)
+        .with_string_bytes_limit(ResourceLimit::new(
+            JsonResource::StringBytes,
+            256 * 1024,
+        ))
+        .with_number_bytes_limit(ResourceLimit::new(
+            JsonResource::NumberBytes,
+            4_096,
+        ))
+}
+
+/// Returns the default resource profile used to decode V1 JSON documents.
+#[cfg(feature = "json")]
+#[inline]
+pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
+    JsonDecodeLimits::default()
+        .with_input_bytes_limit(ResourceLimit::new(
+            JsonResource::InputBytes,
+            1_048_576,
+        ))
+        .with_value_limits(default_json_value_limits())
+}
+
+/// Returns the default resource profile used to encode V1 JSON documents.
+#[cfg(feature = "json")]
+#[inline]
+pub(crate) fn default_json_encode_limits() -> JsonEncodeLimits {
+    JsonEncodeLimits::default()
+        .with_output_bytes_limit(ResourceLimit::new(
+            JsonResource::OutputBytes,
+            1_048_576,
+        ))
+        .with_value_limits(default_json_value_limits())
 }
 
 /// Decodes and validates a complete V1 envelope with one caller-owned budget.
@@ -116,13 +165,12 @@ pub(crate) const fn default_json_limits() -> JsonLimits {
 /// envelope declares another `u8` version, or
 /// [`ValueWireDecodeError::InvalidJson`] when typed decoding fails.
 #[cfg(feature = "json")]
-pub(crate) fn decode_wire_json_slice_with_budget(
+pub(crate) fn decode_wire_json_slice_with_session(
     input: &[u8],
-    budget: &mut JsonBudget,
+    session: &mut JsonDecodeSession,
 ) -> Result<ValueWireV1, ValueWireDecodeError> {
-    let envelope =
-        from_slice_with_budget::<WireEnvelopeOwned, _>(input, budget)
-            .map_err(ValueWireDecodeError::from)?;
+    let envelope = decode_slice::<WireEnvelopeOwned, _>(input, session)
+        .map_err(ValueWireDecodeError::from)?;
     if envelope.version != VALUE_WIRE_V1_VERSION {
         return Err(ValueWireDecodeError::UnsupportedVersion {
             expected: VALUE_WIRE_V1_VERSION,

@@ -22,12 +22,15 @@ use num_bigint::BigInt;
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
-use qubit_budget::JsonLimits;
-#[cfg(feature = "json")]
 use qubit_budget::JsonResource;
+#[cfg(feature = "json")]
+use qubit_budget::JsonValueLimits;
 use qubit_datatype::DataType;
 use qubit_value::Value;
 use url::Url;
+
+#[cfg(feature = "json")]
+use crate::json_budget_test_support_tests::JsonValueLimitsExt;
 
 /// Returns the standard-library hash of `value` for equality-contract tests.
 fn hash(value: &Value) -> u64 {
@@ -203,7 +206,7 @@ fn test_value_big_decimal_hash_handles_extreme_scales() {
 #[test]
 fn test_value_hash_with_json_budget_rejects_json_exceeding_node_budget() {
     let value = Value::Json(serde_json::json!([null]));
-    let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+    let mut budget = JsonValueLimits::default().with_max_nodes(1).budget();
     let mut state = DefaultHasher::new();
 
     let error = value
@@ -235,7 +238,7 @@ fn test_value_hash_with_json_budget_matches_standard_hash_for_special_non_json_v
 
     for value in [&float, &string_map, &decimal] {
         let expected = hash(value);
-        let mut budget = JsonLimits::new().budget();
+        let mut budget = JsonValueLimits::default().budget();
         let mut state = DefaultHasher::new();
 
         value

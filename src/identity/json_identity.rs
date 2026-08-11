@@ -13,8 +13,8 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 use qubit_budget::BudgetError;
-use qubit_budget::JsonBudget;
 use qubit_budget::JsonResource;
+use qubit_budget::JsonValueBudget;
 
 type IdentityHasher =
     BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
@@ -216,7 +216,7 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 pub(crate) fn hash_json_with_budget<H, R>(
     value: &serde_json::Value,
     state: &mut H,
-    budget: &mut JsonBudget<R, usize>,
+    budget: &mut JsonValueBudget<R, usize>,
 ) -> Result<(), BudgetError<R, usize>>
 where
     H: Hasher,
@@ -234,7 +234,7 @@ where
 fn hash_json_iterative<H, R>(
     value: &serde_json::Value,
     state: &mut H,
-    mut budget: Option<&mut JsonBudget<R, usize>>,
+    mut budget: Option<&mut JsonValueBudget<R, usize>>,
 ) -> Result<(), BudgetError<R, usize>>
 where
     H: Hasher,
@@ -318,7 +318,7 @@ where
             }
             HashFrame::StartObjectEntry(key) => {
                 if let Some(budget) = budget.as_deref_mut() {
-                    budget.check_key_bytes(key.len())?;
+                    budget.consume_key_bytes(key.len())?;
                 }
                 let mut entry = IdentityHasher::default().build_hasher();
                 key.hash(&mut entry);
@@ -356,7 +356,7 @@ where
 fn check_value_budget<R>(
     value: &serde_json::Value,
     depth: usize,
-    budget: Option<&mut JsonBudget<R, usize>>,
+    budget: Option<&mut JsonValueBudget<R, usize>>,
 ) -> Result<(), BudgetError<R, usize>>
 where
     R: Clone,
@@ -373,11 +373,11 @@ where
         }
         serde_json::Value::String(value) => {
             budget.enter_node(depth)?;
-            budget.check_string_bytes(value.len())
+            budget.consume_string_bytes(value.len())
         }
         serde_json::Value::Number(value) => {
             budget.enter_node(depth)?;
-            budget.check_number_bytes(value.as_str().len())
+            budget.consume_number_bytes(value.as_str().len())
         }
         serde_json::Value::Null | serde_json::Value::Bool(_) => {
             budget.enter_node(depth)

@@ -9,7 +9,11 @@
 //! Explicit scalar-or-collection value storage.
 
 #[cfg(feature = "converter")]
-use qubit_datatype::DataConversionOptions;
+use qubit_datatype::ConversionLimits;
+#[cfg(feature = "converter")]
+use qubit_datatype::ConversionPolicy;
+#[cfg(feature = "converter")]
+use qubit_datatype::ConversionSession;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataType;
@@ -529,7 +533,10 @@ impl ValueContainer {
     where
         T: DataConversionTarget,
     {
-        self.to_first_with(DataConversionOptions::default_ref())
+        self.to_first_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Converts a scalar or the first collection item using explicit options.
@@ -553,14 +560,32 @@ impl ValueContainer {
     #[inline(always)]
     pub fn to_first_with<T>(
         &self,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
         match self {
-            Self::Scalar(value) => value.to_with(options),
-            Self::Collection(values) => values.to_first_with(options),
+            Self::Scalar(value) => value.to_with(policy, limits),
+            Self::Collection(values) => values.to_first_with(policy, limits),
+        }
+    }
+
+    /// Converts the scalar or first collection item using an existing
+    /// conversion session.
+    #[cfg(feature = "converter")]
+    #[inline(always)]
+    pub fn to_first_in<T>(
+        &self,
+        session: &mut ConversionSession<'_>,
+    ) -> ValueResult<T>
+    where
+        T: DataConversionTarget,
+    {
+        match self {
+            Self::Scalar(value) => value.to_in(session),
+            Self::Collection(values) => values.to_first_in(session),
         }
     }
 
@@ -586,7 +611,10 @@ impl ValueContainer {
     where
         T: DataConversionTarget,
     {
-        self.to_list_with(DataConversionOptions::default_ref())
+        self.to_list_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Converts to a list using explicit conversion options.
@@ -609,7 +637,8 @@ impl ValueContainer {
     #[cfg(feature = "converter")]
     pub fn to_list_with<T>(
         &self,
-        options: &DataConversionOptions,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
     ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
@@ -618,12 +647,34 @@ impl ValueContainer {
             Self::Scalar(value) => match value.view() {
                 ValueRef::String(value) => {
                     ScalarStringDataConverters::from(value)
-                        .to_vec_with(options)
+                        .to_vec_with(policy, limits)
                         .map_err(ValueError::from)
                 }
-                _ => value.to_with(options).map(|value| vec![value]),
+                _ => value.to_with(policy, limits).map(|value| vec![value]),
             },
-            Self::Collection(values) => values.to_list_with(options),
+            Self::Collection(values) => values.to_list_with(policy, limits),
+        }
+    }
+
+    /// Converts this container to a list using an existing conversion session.
+    #[cfg(feature = "converter")]
+    pub fn to_list_in<T>(
+        &self,
+        session: &mut ConversionSession<'_>,
+    ) -> ValueResult<Vec<T>>
+    where
+        T: DataConversionTarget,
+    {
+        match self {
+            Self::Scalar(value) => match value.view() {
+                ValueRef::String(value) => {
+                    ScalarStringDataConverters::from(value)
+                        .to_vec_in(session)
+                        .map_err(ValueError::from)
+                }
+                _ => value.to_in(session).map(|value| vec![value]),
+            },
+            Self::Collection(values) => values.to_list_in(session),
         }
     }
 
