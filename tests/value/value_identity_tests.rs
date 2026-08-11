@@ -19,6 +19,8 @@ use chrono::NaiveDate;
 use chrono::NaiveTime;
 use chrono::Utc;
 use num_bigint::BigInt;
+#[cfg(feature = "json")]
+use qubit_budget::{BudgetError, JsonLimits, JsonResource};
 use qubit_datatype::DataType;
 use qubit_value::Value;
 use url::Url;
@@ -190,4 +192,51 @@ fn test_value_big_decimal_hash_handles_extreme_scales() {
     assert_eq!(negative, negative);
     let _ = hash(&positive);
     let _ = hash(&negative);
+}
+
+/// Verifies budgeted JSON hashing reports an exhausted node budget.
+#[cfg(feature = "json")]
+#[test]
+fn test_value_hash_with_json_budget_rejects_json_exceeding_node_budget() {
+    let value = Value::Json(serde_json::json!([null]));
+    let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+    let mut state = DefaultHasher::new();
+
+    let error = value
+        .hash_with_json_budget(&mut state, &mut budget)
+        .expect_err("the JSON node budget must reject the nested value");
+
+    assert!(matches!(
+        error,
+        BudgetError::Insufficient {
+            resource: JsonResource::Nodes,
+            limit: 1,
+            remaining: 0,
+            requested: 1,
+        }
+    ));
+}
+
+/// Verifies budgeted hashing preserves special non-JSON identity hashes.
+#[cfg(feature = "json")]
+#[test]
+fn test_value_hash_with_json_budget_matches_standard_hash_for_special_non_json_values() {
+    let float = Value::Float32(-0.0);
+    let string_map = Value::StringMap(HashMap::from([
+        ("second".to_owned(), "2".to_owned()),
+        ("first".to_owned(), "1".to_owned()),
+    ]));
+    let decimal = Value::BigDecimal(BigDecimal::new(BigInt::from(10), 1));
+
+    for value in [&float, &string_map, &decimal] {
+        let expected = hash(value);
+        let mut budget = JsonLimits::new().budget();
+        let mut state = DefaultHasher::new();
+
+        value
+            .hash_with_json_budget(&mut state, &mut budget)
+            .expect("non-JSON values must not consume the JSON budget");
+
+        assert_eq!(state.finish(), expected);
+    }
 }

@@ -11,6 +11,8 @@
 // qubit-style: allow multiple-public-types
 
 use std::fmt;
+#[cfg(feature = "json")]
+use std::hash::{Hash, Hasher};
 
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionOptions;
@@ -21,7 +23,11 @@ use qubit_datatype::DataType;
 use super::value_ref::ValueRef;
 use crate::IntoValueDefault;
 use crate::ValueError;
+#[cfg(feature = "json")]
+use crate::value::value_identity::hash_value_payload_with_json_budget;
 use crate::value_error::ValueResult;
+#[cfg(feature = "json")]
+use qubit_budget::{BudgetError, JsonBudget};
 
 /// Defines the private storage representation for the public single-value
 /// container from the shared value-type table.
@@ -167,6 +173,53 @@ macro_rules! impl_value_constructors {
 for_each_value_type!(impl_value_constructors);
 
 impl Value {
+    /// Hashes this value while applying `budget` to a JSON payload.
+    ///
+    /// # Parameters
+    ///
+    /// * `state` - Hasher that receives the same identity representation as
+    ///   [`Hash::hash`](std::hash::Hash::hash).
+    /// * `budget` - Mutable JSON traversal budget, used only when this value
+    ///   contains a JSON payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when the JSON payload exceeds a configured
+    /// limit. On error, both `state` and `budget` may already be partially
+    /// updated; callers must discard the hasher and either discard the budget
+    /// or continue from its consumed state. This method does not roll either
+    /// one back.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::hash_map::DefaultHasher;
+    ///
+    /// use qubit_budget::JsonLimits;
+    /// use qubit_value::Value;
+    ///
+    /// let value = Value::Json(serde_json::json!([null]));
+    /// let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+    /// let mut hasher = DefaultHasher::new();
+    ///
+    /// assert!(value.hash_with_json_budget(&mut hasher, &mut budget).is_err());
+    /// drop(hasher);
+    /// // `budget` is now consumed state and is intentionally not reused.
+    /// ```
+    #[cfg(feature = "json")]
+    pub fn hash_with_json_budget<H, R>(
+        &self,
+        state: &mut H,
+        budget: &mut JsonBudget<R, usize>,
+    ) -> Result<(), BudgetError<R, usize>>
+    where
+        H: Hasher,
+        R: Clone,
+    {
+        std::mem::discriminant(&self.repr).hash(state);
+        hash_value_payload_with_json_budget(&self.repr, state, budget)
+    }
+
     /// Borrows the stable semantic view of this value.
     #[inline(always)]
     pub fn view(&self) -> ValueRef<'_> {

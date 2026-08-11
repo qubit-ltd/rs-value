@@ -13,9 +13,15 @@
 // tests/multi_values/ rather than collected in multi_values_tests.rs.
 // qubit-style: allow multiple-public-types
 use std::fmt;
+#[cfg(feature = "json")]
+use std::hash::{Hash, Hasher};
 
+#[cfg(feature = "json")]
+use qubit_budget::{BudgetError, JsonBudget};
 use qubit_datatype::DataType;
 
+#[cfg(feature = "json")]
+use super::multi_values_identity::hash_multi_values_payload_with_json_budget;
 use super::multi_values_ref::MultiValuesRef;
 
 /// Defines the private storage representation for the public multi-value
@@ -157,6 +163,53 @@ macro_rules! impl_multi_values_constructors {
 for_each_value_type!(impl_multi_values_constructors);
 
 impl MultiValues {
+    /// Hashes this collection while applying `budget` to JSON elements.
+    ///
+    /// # Parameters
+    ///
+    /// * `state` - Hasher that receives the same identity representation as
+    ///   [`Hash::hash`](std::hash::Hash::hash).
+    /// * `budget` - Mutable JSON traversal budget, used only for JSON
+    ///   elements.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a JSON element exceeds a configured limit.
+    /// On error, both `state` and `budget` may already be partially updated;
+    /// callers must discard the hasher and either discard the budget or
+    /// continue from its consumed state. This method does not roll either one
+    /// back.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::hash_map::DefaultHasher;
+    ///
+    /// use qubit_budget::JsonLimits;
+    /// use qubit_value::MultiValues;
+    ///
+    /// let values = MultiValues::Json(vec![serde_json::json!([null])]);
+    /// let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+    /// let mut hasher = DefaultHasher::new();
+    ///
+    /// assert!(values.hash_with_json_budget(&mut hasher, &mut budget).is_err());
+    /// drop(hasher);
+    /// // `budget` is now consumed state and is intentionally not reused.
+    /// ```
+    #[cfg(feature = "json")]
+    pub fn hash_with_json_budget<H, R>(
+        &self,
+        state: &mut H,
+        budget: &mut JsonBudget<R, usize>,
+    ) -> Result<(), BudgetError<R, usize>>
+    where
+        H: Hasher,
+        R: Clone,
+    {
+        std::mem::discriminant(&self.repr).hash(state);
+        hash_multi_values_payload_with_json_budget(&self.repr, state, budget)
+    }
+
     /// Borrows the stable semantic view of this collection.
     #[inline(always)]
     pub fn view(&self) -> MultiValuesRef<'_> {
