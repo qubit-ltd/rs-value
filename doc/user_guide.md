@@ -317,24 +317,42 @@ owned Wire DTO, serializes it, applies input and semantic limits during decode,
 and restores the original container.
 
 ```rust
-use qubit_budget::JsonLimits;
-use qubit_value::{Value, ValueContainer, ValueWireV1};
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
+use qubit_value::Value;
+use qubit_value::ValueContainer;
+use qubit_value::ValueWireV1;
 
 let original = ValueContainer::Scalar(Value::new(8080i32));
 let wire = ValueWireV1::try_from(original.clone())?;
-let limits = JsonLimits::new()
-    .with_max_input_bytes(64 * 1024)
-    .with_max_output_bytes(64 * 1024)
-    .with_max_depth(32)
-    .with_max_nodes(128);
-let encoded = wire.to_json_vec_with_limits(limits)?;
+let structure = StructureLimits::empty()
+    .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 32))
+    .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 128));
+let values = JsonValueLimits::empty().with_structure_limits(structure);
+let encode_limits = JsonEncodeLimits::empty()
+    .with_output_bytes_limit(ResourceLimit::new(
+        JsonResource::OutputBytes,
+        64 * 1024,
+    ))
+    .with_value_limits(values);
+let encoded = wire.to_json_vec_with_limits(encode_limits)?;
 
 assert_eq!(
     encoded,
     br#"{"version":1,"value":{"scalar":{"int32":8080}}}"#
 );
 
-let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, limits)?;
+let decode_limits = JsonDecodeLimits::empty()
+    .with_input_bytes_limit(ResourceLimit::new(
+        JsonResource::InputBytes,
+        64 * 1024,
+    ))
+    .with_value_limits(values);
+let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, decode_limits)?;
 let restored: ValueContainer = decoded.into();
 
 assert_eq!(restored, original);
@@ -343,11 +361,11 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
 ```
 
 The decode helpers accept a complete top-level Wire document and use the
-generic `qubit-budget` JSON/Serde adapter. `ValueWireV1::default_json_limits()`
-provides the V1 profile; pass a `JsonLimits` value when the application owns a
-different input, output, or structural budget. Encoding can use the default V1
-profile through `to_json_vec()` or `to_json_writer()`, or an application-owned
-profile through `to_json_vec_with_limits` and `to_json_writer_with_limits`.
+generic `qubit-budget` JSON/Serde adapter.
+`ValueWireV1::default_json_decode_limits()` and
+`default_json_encode_limits()` provide the directional V1 profiles. Pass a
+`JsonDecodeLimits` or `JsonEncodeLimits` value when the application owns a
+different input, output, or value budget.
 
 ### Borrowed Wire encoding
 
@@ -374,7 +392,7 @@ constructors are fallible because they
 validate finite floats, bounded `BigDecimal` scale, and reserved JSON object
 keys before exposing a serializable payload.
 
-### Embedded values and a shared `JsonBudget`
+### Embedded values and a shared `JsonDecodeSession`
 
 `decode_json_slice_with_limits` is for a complete top-level Wire document. If a
 value is nested inside a larger JSON document, use the shared `qubit-budget`
@@ -382,9 +400,14 @@ Serde adapter for the complete outer document so every JSON node is charged in
 one session.
 
 ```rust
+use qubit_budget::decode_slice;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonDecodeSession;
+use qubit_budget::JsonResource;
+use qubit_budget::ResourceLimit;
+use qubit_value::ValueContainer;
+use qubit_value::ValueWireV1;
 use serde::Deserialize;
-use qubit_budget::{from_slice_with_budget, JsonLimits};
-use qubit_value::{ValueContainer, ValueWireV1};
 
 #[derive(Deserialize)]
 struct Request {
@@ -392,18 +415,17 @@ struct Request {
 }
 
 let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
-let mut budget = JsonLimits::new()
-    .with_max_input_bytes(64 * 1024)
-    .with_max_depth(32)
-    .with_max_nodes(128)
-    .budget();
-let request: Request = from_slice_with_budget(input, &mut budget)?;
+let limits = JsonDecodeLimits::empty().with_input_bytes_limit(
+    ResourceLimit::new(JsonResource::InputBytes, 64 * 1024),
+);
+let mut session = JsonDecodeSession::new(limits);
+let request: Request = decode_slice(input, &mut session)?;
 let restored: ValueContainer = request.value.into();
 assert!(restored.is_collection());
 ```
 
 The outer object and embedded V1 envelope are both part of the same generic JSON
-document budget. Reusing one `JsonBudget` accumulates usage across multiple
+document budget. Reusing one `JsonDecodeSession` accumulates usage across multiple
 embedded values and rejects trailing content after the complete document.
 
 ### Wire-specific type and input boundaries
@@ -528,7 +550,7 @@ Check, in order:
 2. `version` is numeric `1`;
 3. the `scalar`/`collection` shape matches the intended container;
 4. the receiving build enables the feature for the concrete type;
-5. the input and decoded structure fit the supplied `JsonLimits` profile;
+5. the input and decoded structure fit the supplied `JsonDecodeLimits` profile;
 6. the value contains no non-finite float or invalid bounded payload.
 
 ### A JSON boundary loses type information

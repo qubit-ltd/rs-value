@@ -79,6 +79,22 @@ shared conversion rules from `qubit-datatype`; failed conversions remain
 errors. The `converter` feature is required for `to()` and `to_or()`; `get_or()`
 only supplies a fallback for an unset value and does not convert.
 
+Use `to_with` when the boundary needs an explicit policy and limits. Every
+`to_with` call creates a fresh `ConversionSession`, so independent reads do not
+share cumulative consumption:
+
+```rust
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionPolicy;
+use qubit_value::Value;
+
+let policy = ConversionPolicy::env_friendly();
+let limits = ConversionLimits::default();
+let first = Value::new(" 8080 ").to_with::<u16>(&policy, &limits)?;
+let second = Value::new(" 8081 ").to_with::<u16>(&policy, &limits)?;
+assert_eq!((first, second), (8080, 8081));
+```
+
 ## Installation
 
 Add the core crate and its type vocabulary to `Cargo.toml`:
@@ -146,8 +162,11 @@ or reads it.
   changing the value's type semantics.
 - `ValueWireV1` provides a versioned, type-preserving JSON representation with
   bounded `to_json_vec()` and `to_json_writer()` entry points; explicit
-  `JsonLimits` are available through the corresponding `_with_limits` methods.
-  Use it when the receiver must reconstruct the exact `DataType` and shape.
+  `JsonDecodeLimits` and `JsonEncodeLimits` are accepted by the corresponding
+  directional `_with_limits` methods. Decode uses a caller-configured
+  `JsonDecodeSession`; encode uses `JsonEncodeSession` to enforce structure and
+  output bytes online. Use Wire V1 when the receiver must reconstruct the exact
+  `DataType` and shape.
 - Natural JSON helpers produce ordinary `null`, scalar, object, and array
   values when runtime type tags are not wanted.
 
@@ -184,6 +203,11 @@ the receiver only needs JSON semantics. Wire V1 is closed and versioned;
 Natural JSON intentionally omits runtime type tags. The user guide contains the
 full Wire workflow, borrowed payload examples, feature compatibility rules,
 and resource-limit handling.
+
+Directional failures retain operation accounting: a rejected charge does not
+consume that request, but accepted input, output, node, or payload consumption
+from earlier in the same session is not rolled back. Construct a fresh session
+for each independent wire operation.
 
 For example, Natural JSON produces these exact JSON strings:
 
