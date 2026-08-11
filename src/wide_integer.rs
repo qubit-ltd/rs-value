@@ -64,10 +64,7 @@ macro_rules! define_wide_integer_serde {
             use super::IntegerVisitor;
 
             /// Serializes a wide integer as a canonical decimal string.
-            pub(crate) fn serialize<S>(
-                value: &$type,
-                serializer: S,
-            ) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -75,9 +72,7 @@ macro_rules! define_wide_integer_serde {
             }
 
             /// Deserializes a wide integer from a canonical decimal string.
-            pub(crate) fn deserialize<'de, D>(
-                deserializer: D,
-            ) -> Result<$type, D::Error>
+            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -94,10 +89,7 @@ macro_rules! define_wide_integer_serde {
             use super::ParsedInteger;
 
             /// Serializes wide integers as canonical decimal strings.
-            pub(crate) fn serialize<S>(
-                values: &[$type],
-                serializer: S,
-            ) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -105,15 +97,12 @@ macro_rules! define_wide_integer_serde {
             }
 
             /// Deserializes wide integers from canonical decimal strings.
-            pub(crate) fn deserialize<'de, D>(
-                deserializer: D,
-            ) -> Result<Vec<$type>, D::Error>
+            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<$type>, D::Error>
             where
                 D: Deserializer<'de>,
             {
-                Vec::<ParsedInteger<$type>>::deserialize(deserializer).map(
-                    |values| values.into_iter().map(|value| value.0).collect(),
-                )
+                Vec::<ParsedInteger<$type>>::deserialize(deserializer)
+                    .map(|values| values.into_iter().map(|value| value.0).collect())
             }
         }
     };

@@ -62,10 +62,7 @@ fn test_natural_json_projects_scalar() {
 fn test_natural_json_projects_every_scalar_variant() {
     macro_rules! assert_scalar {
         ($value:expr, $expected:expr) => {
-            assert_eq!(
-                $value.to_json_value().expect("project scalar"),
-                $expected
-            );
+            assert_eq!($value.to_json_value().expect("project scalar"), $expected);
         };
     }
 
@@ -141,8 +138,7 @@ fn test_natural_json_reports_collection_and_float_projection_errors() {
 
     let value_project: fn(&Value) -> _ = Value::to_json_value;
     assert_eq!(value_project(&Value::Int32(3)).unwrap(), json!(3));
-    let container_project: fn(&ValueContainer) -> _ =
-        ValueContainer::to_json_value;
+    let container_project: fn(&ValueContainer) -> _ = ValueContainer::to_json_value;
     assert_eq!(
         container_project(&ValueContainer::Scalar(Value::Int32(4))).unwrap(),
         json!(4)
@@ -203,9 +199,7 @@ fn test_natural_json_projects_string_map_keys_in_dictionary_order() {
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_natural_json_canonicalizes_nested_json_object_keys() {
-    let value = Value::Json(
-        from_str(r#"{"z":{"b":1,"a":2},"a":0}"#).expect("parse JSON value"),
-    );
+    let value = Value::Json(from_str(r#"{"z":{"b":1,"a":2},"a":0}"#).expect("parse JSON value"));
     let projected = value.to_json_value().expect("project JSON value");
 
     assert_eq!(
@@ -226,10 +220,7 @@ fn test_natural_json_projects_every_collection_variant() {
         };
     }
 
-    assert_collection!(
-        MultiValues::Bool(vec![true, false]),
-        json!([true, false])
-    );
+    assert_collection!(MultiValues::Bool(vec![true, false]), json!([true, false]));
     assert_collection!(MultiValues::Char(vec!['a', 'b']), json!(["a", "b"]));
     assert_collection!(MultiValues::Int8(vec![-1, 2]), json!([-1, 2]));
     assert_collection!(MultiValues::Int16(vec![-1, 2]), json!([-1, 2]));
@@ -268,10 +259,7 @@ fn test_natural_json_projects_every_collection_variant() {
         MultiValues::Instant(vec![instant]),
         json!(["2025-01-01 01:02:03 UTC"])
     );
-    assert_collection!(
-        MultiValues::BigInteger(vec![BigInt::from(7)]),
-        json!(["7"])
-    );
+    assert_collection!(MultiValues::BigInteger(vec![BigInt::from(7)]), json!(["7"]));
     assert_collection!(
         MultiValues::BigDecimal(vec!["7.5".parse::<BigDecimal>().unwrap()]),
         json!(["7.5"])

@@ -33,15 +33,17 @@ use crate::identity::json_eq;
 macro_rules! payloads_eq {
     (Float32, $left:expr, $right:expr) => {
         $left.len() == $right.len()
-            && $left.iter().zip($right).all(|(left, right)| {
-                canonical_f32_bits(*left) == canonical_f32_bits(*right)
-            })
+            && $left
+                .iter()
+                .zip($right)
+                .all(|(left, right)| canonical_f32_bits(*left) == canonical_f32_bits(*right))
     };
     (Float64, $left:expr, $right:expr) => {
         $left.len() == $right.len()
-            && $left.iter().zip($right).all(|(left, right)| {
-                canonical_f64_bits(*left) == canonical_f64_bits(*right)
-            })
+            && $left
+                .iter()
+                .zip($right)
+                .all(|(left, right)| canonical_f64_bits(*left) == canonical_f64_bits(*right))
     };
     (Json, $left:expr, $right:expr) => {
         $left.len() == $right.len()
@@ -97,8 +99,8 @@ macro_rules! hash_payloads {
 pub(crate) fn hash_multi_values_payload_with_json_budget<H, R>(
     repr: &MultiValuesRepr,
     state: &mut H,
-    budget: &mut JsonValueBudget<R, usize>,
-) -> Result<(), BudgetError<R, usize>>
+    budget: &mut JsonValueBudget<R, u64>,
+) -> Result<(), BudgetError<R, u64>>
 where
     H: Hasher,
     R: Clone,

@@ -226,10 +226,7 @@ impl MultiValues {
     /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
     /// `T`.
     #[inline]
-    pub fn get_or<T>(
-        &self,
-        default: impl IntoValueDefault<Vec<T>>,
-    ) -> ValueResult<Vec<T>>
+    pub fn get_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
     where
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
@@ -270,9 +267,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
             result => result,
         }
     }
@@ -350,10 +345,7 @@ impl MultiValues {
     /// Returns [`ValueError::Missing`] for a concrete empty collection or
     /// [`ValueError::TypeMismatch`] when the stored type differs from `T`.
     #[inline]
-    pub fn get_first_or<T>(
-        &self,
-        default: impl IntoValueDefault<T>,
-    ) -> ValueResult<T>
+    pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
@@ -391,9 +383,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.get_first() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
             result => result,
         }
     }

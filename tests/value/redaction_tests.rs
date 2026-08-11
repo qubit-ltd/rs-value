@@ -72,8 +72,7 @@ fn test_value_redact_value_masks_non_strings_with_configured_opaque_value() {
 
 #[test]
 fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
-    let value =
-        NamedValue::new("token", Value::String("secret-token".to_owned()));
+    let value = NamedValue::new("token", Value::String("secret-token".to_owned()));
     let policy = RedactionPolicy::builder()
         .raise("token", Sensitivity::Low)
         .expect("the test builder input should be valid")
@@ -95,10 +94,7 @@ fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
 fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
     let value = NamedMultiValues::new(
         "tokens",
-        MultiValues::String(vec![
-            "first-secret".to_owned(),
-            "second-secret".to_owned(),
-        ]),
+        MultiValues::String(vec!["first-secret".to_owned(), "second-secret".to_owned()]),
     );
     let policy = RedactionPolicy::builder()
         .raise("tokens", Sensitivity::Low)
