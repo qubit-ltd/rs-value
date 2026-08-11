@@ -20,6 +20,8 @@ use chrono::NaiveDate;
 use chrono::NaiveTime;
 use chrono::Utc;
 use num_bigint::BigInt;
+#[cfg(feature = "json")]
+use qubit_budget::{BudgetError, JsonLimits, JsonResource};
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use url::Url;
@@ -186,4 +188,64 @@ fn test_multi_values_identity_covers_every_variant() {
     }
     let keys: HashSet<_> = values.into_iter().collect();
     assert_eq!(keys.len(), 26);
+}
+
+/// Verifies budgeted JSON hashing reports an exhausted node budget.
+#[cfg(feature = "json")]
+#[test]
+fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
+    let values = MultiValues::Json(vec![serde_json::json!(null), serde_json::json!(null)]);
+    let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+    let mut state = DefaultHasher::new();
+
+    let error = values
+        .hash_with_json_budget(&mut state, &mut budget)
+        .expect_err("the second JSON value must exhaust the shared node budget");
+
+    assert!(matches!(
+        error,
+        BudgetError::Insufficient {
+            resource: JsonResource::Nodes,
+            limit: 1,
+            remaining: 0,
+            requested: 1,
+        }
+    ));
+
+    let follow_up = budget
+        .charge_node()
+        .expect_err("the failed hash must retain the first JSON value's charge");
+    assert!(matches!(
+        follow_up,
+        BudgetError::Insufficient {
+            resource: JsonResource::Nodes,
+            limit: 1,
+            remaining: 0,
+            requested: 1,
+        }
+    ));
+}
+
+/// Verifies budgeted hashing preserves special non-JSON identity hashes.
+#[cfg(feature = "json")]
+#[test]
+fn test_multi_values_hash_with_json_budget_matches_standard_hash_for_special_non_json_values() {
+    let float = MultiValues::Float32(vec![-0.0]);
+    let string_map = MultiValues::StringMap(vec![HashMap::from([
+        ("second".to_owned(), "2".to_owned()),
+        ("first".to_owned(), "1".to_owned()),
+    ])]);
+    let decimal = MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(10), 1)]);
+
+    for values in [&float, &string_map, &decimal] {
+        let expected = hash(values);
+        let mut budget = JsonLimits::new().budget();
+        let mut state = DefaultHasher::new();
+
+        values
+            .hash_with_json_budget(&mut state, &mut budget)
+            .expect("non-JSON values must not consume the JSON budget");
+
+        assert_eq!(state.finish(), expected);
+    }
 }
