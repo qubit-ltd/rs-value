@@ -153,14 +153,10 @@ impl Value {
     /// or [`InvalidValueReason::Serialization`] when Serde cannot represent
     /// the input as JSON.
     #[cfg(all(feature = "converter", feature = "json"))]
-    pub fn from_serializable<T: ?Sized + Serialize>(
-        value: &T,
-    ) -> ValueResult<Self> {
+    pub fn from_serializable<T: ?Sized + Serialize>(value: &T) -> ValueResult<Self> {
         let json = crate::strict_json::to_value(value).map_err(|error| {
             let reason = match error {
-                crate::strict_json::StrictJsonError::NonFinite => {
-                    InvalidValueReason::NonFinite
-                }
+                crate::strict_json::StrictJsonError::NonFinite => InvalidValueReason::NonFinite,
                 crate::strict_json::StrictJsonError::Serialization => {
                     InvalidValueReason::Serialization {
                         format: DataFormat::Json,
