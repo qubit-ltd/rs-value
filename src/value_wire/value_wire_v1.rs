@@ -117,13 +117,8 @@ impl ValueWireV1 {
     /// [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(
-            input,
-            Self::default_json_decode_limits(),
-        )
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, Self::default_json_decode_limits())
     }
 
     /// Decodes a V1 JSON wire value using explicit structural limits.
@@ -153,7 +148,7 @@ impl ValueWireV1 {
         input: &[u8],
         limits: JsonDecodeLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut session = JsonDecodeSession::new(limits);
+        let mut session = JsonDecodeSession::owned(limits);
         super::decode_wire_json_slice_with_session(input, &mut session)
     }
 
@@ -179,7 +174,7 @@ impl ValueWireV1 {
         &self,
         limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
-        let mut session = JsonEncodeSession::new(limits);
+        let mut session = JsonEncodeSession::owned(limits);
         encode_to_vec(self, &mut session).map_err(ValueWireEncodeError::from)
     }
 
@@ -195,17 +190,11 @@ impl ValueWireV1 {
     /// [`ValueWireEncodeError::Io`] when `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer<W>(
-        &self,
-        writer: W,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        self.to_json_writer_with_limits(
-            writer,
-            Self::default_json_encode_limits(),
-        )
+        self.to_json_writer_with_limits(writer, Self::default_json_encode_limits())
     }
 
     /// Encodes this V1 document to a writer after enforcing JSON budgets.
@@ -218,9 +207,8 @@ impl ValueWireV1 {
     where
         W: Write,
     {
-        let mut session = JsonEncodeSession::new(limits);
-        encode_to_writer(writer, self, &mut session)
-            .map_err(ValueWireEncodeError::from)
+        let mut session = JsonEncodeSession::owned(limits);
+        encode_to_writer(writer, self, &mut session).map_err(ValueWireEncodeError::from)
     }
 
     /// Returns the runtime container represented by this DTO.

@@ -70,8 +70,8 @@ macro_rules! hash_payload {
 pub(crate) fn hash_value_payload_with_json_budget<H, R>(
     repr: &ValueRepr,
     state: &mut H,
-    budget: &mut JsonValueBudget<R, usize>,
-) -> Result<(), BudgetError<R, usize>>
+    budget: &mut JsonValueBudget<R, u64>,
+) -> Result<(), BudgetError<R, u64>>
 where
     H: Hasher,
     R: Clone,

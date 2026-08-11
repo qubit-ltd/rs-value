@@ -231,10 +231,7 @@ fn test_value_url_getters_cover_owned_and_borrowed_access() {
 
 #[test]
 fn test_value_map_getters_cover_owned_and_borrowed_access() {
-    let map = std::collections::HashMap::from([(
-        "key".to_string(),
-        "value".to_string(),
-    )]);
+    let map = std::collections::HashMap::from([("key".to_string(), "value".to_string())]);
     let value = Value::StringMap(map.clone());
     assert_eq!(value.get_string_map().unwrap(), map);
     assert_eq!(value.get_string_map_ref().unwrap(), &map);
@@ -341,8 +338,8 @@ fn test_value_json_borrowed_getter_reports_storage_errors() {
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_value_json_accessors_cover_serialization_and_deserialization() {
-    let value = Value::from_serializable(&serde_json::json!({"answer": 42}))
-        .expect("serialize JSON value");
+    let value =
+        Value::from_serializable(&serde_json::json!({"answer": 42})).expect("serialize JSON value");
     let decoded: std::collections::HashMap<String, i32> =
         value.deserialize_json().expect("deserialize JSON value");
     assert_eq!(decoded.get("answer"), Some(&42));
@@ -360,8 +357,7 @@ fn test_value_json_accessors_cover_serialization_and_deserialization() {
         })
     ));
     assert!(matches!(
-        Value::Json(serde_json::json!("not an integer"))
-            .deserialize_json::<i32>(),
+        Value::Json(serde_json::json!("not an integer")).deserialize_json::<i32>(),
         Err(ValueError::Conversion(_))
     ));
 }
