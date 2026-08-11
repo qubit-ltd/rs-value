@@ -86,13 +86,8 @@ impl ValueWirePayloadV1 {
     /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(
-            input,
-            Self::default_json_decode_limits(),
-        )
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, Self::default_json_decode_limits())
     }
 
     /// Decodes a complete V1 JSON payload using explicit resource limits.
@@ -107,7 +102,7 @@ impl ValueWirePayloadV1 {
         input: &[u8],
         limits: JsonDecodeLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut session = JsonDecodeSession::new(limits);
+        let mut session = JsonDecodeSession::owned(limits);
         decode_slice(input, &mut session).map_err(ValueWireDecodeError::from)
     }
 
@@ -129,7 +124,7 @@ impl ValueWirePayloadV1 {
         &self,
         limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
-        let mut session = JsonEncodeSession::new(limits);
+        let mut session = JsonEncodeSession::owned(limits);
         encode_to_vec(self, &mut session).map_err(ValueWireEncodeError::from)
     }
 
@@ -145,17 +140,11 @@ impl ValueWirePayloadV1 {
     /// [`ValueWireEncodeError::Io`] when `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer<W>(
-        &self,
-        writer: W,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        self.to_json_writer_with_limits(
-            writer,
-            Self::default_json_encode_limits(),
-        )
+        self.to_json_writer_with_limits(writer, Self::default_json_encode_limits())
     }
 
     /// Encodes this V1 payload to a writer after enforcing JSON budgets.
@@ -168,9 +157,8 @@ impl ValueWirePayloadV1 {
     where
         W: Write,
     {
-        let mut session = JsonEncodeSession::new(limits);
-        encode_to_writer(writer, self, &mut session)
-            .map_err(ValueWireEncodeError::from)
+        let mut session = JsonEncodeSession::owned(limits);
+        encode_to_writer(writer, self, &mut session).map_err(ValueWireEncodeError::from)
     }
 
     /// Borrows the preserved runtime value.
@@ -195,9 +183,7 @@ impl ValueWirePayloadV1 {
     }
 
     /// Wraps a payload decoded through V1's finite-number Serde adapters.
-    pub(in crate::value_wire) const fn from_decoded(
-        value: ValueContainer,
-    ) -> Self {
+    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
         Self { value }
     }
 }

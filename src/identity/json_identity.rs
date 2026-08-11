@@ -16,8 +16,7 @@ use qubit_budget::BudgetError;
 use qubit_budget::JsonResource;
 use qubit_budget::JsonValueBudget;
 
-type IdentityHasher =
-    BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
+type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
 /// One pending operation in the iterative JSON hashing traversal.
 enum HashFrame<'a> {
@@ -123,10 +122,7 @@ struct ObjectHash {
 /// significant and array element order is significant.
 #[must_use]
 #[inline(always)]
-pub(crate) fn json_eq(
-    left: &serde_json::Value,
-    right: &serde_json::Value,
-) -> bool {
+pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bool {
     let mut pending = Vec::with_capacity(1);
     pending.push((left, right));
     while let Some((left, right)) = pending.pop() {
@@ -137,26 +133,17 @@ pub(crate) fn json_eq(
                     return false;
                 }
             }
-            (
-                serde_json::Value::Number(left),
-                serde_json::Value::Number(right),
-            ) => {
+            (serde_json::Value::Number(left), serde_json::Value::Number(right)) => {
                 if left != right {
                     return false;
                 }
             }
-            (
-                serde_json::Value::String(left),
-                serde_json::Value::String(right),
-            ) => {
+            (serde_json::Value::String(left), serde_json::Value::String(right)) => {
                 if left != right {
                     return false;
                 }
             }
-            (
-                serde_json::Value::Array(left),
-                serde_json::Value::Array(right),
-            ) => {
+            (serde_json::Value::Array(left), serde_json::Value::Array(right)) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -164,10 +151,7 @@ pub(crate) fn json_eq(
                     pending.push((left, right));
                 }
             }
-            (
-                serde_json::Value::Object(left),
-                serde_json::Value::Object(right),
-            ) => {
+            (serde_json::Value::Object(left), serde_json::Value::Object(right)) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -216,8 +200,8 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 pub(crate) fn hash_json_with_budget<H, R>(
     value: &serde_json::Value,
     state: &mut H,
-    budget: &mut JsonValueBudget<R, usize>,
-) -> Result<(), BudgetError<R, usize>>
+    budget: &mut JsonValueBudget<R, u64>,
+) -> Result<(), BudgetError<R, u64>>
 where
     H: Hasher,
     R: Clone,
@@ -234,8 +218,8 @@ where
 fn hash_json_iterative<H, R>(
     value: &serde_json::Value,
     state: &mut H,
-    mut budget: Option<&mut JsonValueBudget<R, usize>>,
-) -> Result<(), BudgetError<R, usize>>
+    mut budget: Option<&mut JsonValueBudget<R, u64>>,
+) -> Result<(), BudgetError<R, u64>>
 where
     H: Hasher,
     R: Clone,
@@ -318,7 +302,9 @@ where
             }
             HashFrame::StartObjectEntry(key) => {
                 if let Some(budget) = budget.as_deref_mut() {
-                    budget.consume_key_bytes(key.len())?;
+                    budget.consume_key_bytes(
+                        u64::try_from(key.len()).expect("JSON key length must fit in u64"),
+                    )?;
                 }
                 let mut entry = IdentityHasher::default().build_hasher();
                 key.hash(&mut entry);
@@ -356,8 +342,8 @@ where
 fn check_value_budget<R>(
     value: &serde_json::Value,
     depth: usize,
-    budget: Option<&mut JsonValueBudget<R, usize>>,
-) -> Result<(), BudgetError<R, usize>>
+    budget: Option<&mut JsonValueBudget<R, u64>>,
+) -> Result<(), BudgetError<R, u64>>
 where
     R: Clone,
 {
@@ -365,22 +351,28 @@ where
         return Ok(());
     };
     match value {
-        serde_json::Value::Array(values) => {
-            budget.enter_array(depth, values.len())
-        }
-        serde_json::Value::Object(values) => {
-            budget.enter_object(depth, values.len())
-        }
+        serde_json::Value::Array(values) => budget.enter_array(
+            u64::try_from(depth).expect("JSON depth must fit in u64"),
+            u64::try_from(values.len()).expect("JSON array length must fit in u64"),
+        ),
+        serde_json::Value::Object(values) => budget.enter_object(
+            u64::try_from(depth).expect("JSON depth must fit in u64"),
+            u64::try_from(values.len()).expect("JSON object length must fit in u64"),
+        ),
         serde_json::Value::String(value) => {
-            budget.enter_node(depth)?;
-            budget.consume_string_bytes(value.len())
+            budget.enter_node(u64::try_from(depth).expect("JSON depth must fit in u64"))?;
+            budget.consume_string_bytes(
+                u64::try_from(value.len()).expect("JSON string length must fit in u64"),
+            )
         }
         serde_json::Value::Number(value) => {
-            budget.enter_node(depth)?;
-            budget.consume_number_bytes(value.as_str().len())
+            budget.enter_node(u64::try_from(depth).expect("JSON depth must fit in u64"))?;
+            budget.consume_number_bytes(
+                u64::try_from(value.as_str().len()).expect("JSON number length must fit in u64"),
+            )
         }
         serde_json::Value::Null | serde_json::Value::Bool(_) => {
-            budget.enter_node(depth)
+            budget.enter_node(u64::try_from(depth).expect("JSON depth must fit in u64"))
         }
     }
 }

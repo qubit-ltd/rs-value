@@ -59,9 +59,7 @@ where
                 let mut values = HashMap::new();
                 while let Some((key, value)) = map.next_entry::<String, V>()? {
                     if values.insert(key.clone(), value).is_some() {
-                        return Err(de::Error::custom(format!(
-                            "duplicate map key '{key}'"
-                        )));
+                        return Err(de::Error::custom(format!("duplicate map key '{key}'")));
                     }
                 }
                 Ok(StrictStringMap(values))
