@@ -70,7 +70,8 @@ impl ValueMissing {
             | Self::UnsetCollection { data_type }
             | Self::EmptyCollection { data_type } => Some(data_type),
             Self::EmptyCollectionConversion { .. } => None,
-            Self::Conversion { from, .. } | Self::CollectionItem { from, .. } => Some(from),
+            Self::Conversion { from, .. }
+            | Self::CollectionItem { from, .. } => Some(from),
         }
     }
 
@@ -118,7 +119,8 @@ impl ValueMissing {
     pub const fn is_empty_collection(self) -> bool {
         matches!(
             self,
-            Self::EmptyCollection { .. } | Self::EmptyCollectionConversion { .. }
+            Self::EmptyCollection { .. }
+                | Self::EmptyCollectionConversion { .. }
         )
     }
 
@@ -150,10 +152,16 @@ impl fmt::Display for ValueMissing {
                 write!(formatter, "unset scalar with declared type {data_type}")
             }
             Self::UnsetCollection { data_type } => {
-                write!(formatter, "unset collection with declared type {data_type}")
+                write!(
+                    formatter,
+                    "unset collection with declared type {data_type}"
+                )
             }
             Self::EmptyCollection { data_type } => {
-                write!(formatter, "empty collection with element type {data_type}")
+                write!(
+                    formatter,
+                    "empty collection with element type {data_type}"
+                )
             }
             Self::Conversion { from, to } => {
                 write!(

@@ -32,7 +32,8 @@ impl Serialize for CanonicalJson<'_> {
             Value::Number(value) => value.serialize(serializer),
             Value::String(value) => serializer.serialize_str(value),
             Value::Array(values) => {
-                let mut sequence = serializer.serialize_seq(Some(values.len()))?;
+                let mut sequence =
+                    serializer.serialize_seq(Some(values.len()))?;
                 for value in values {
                     sequence.serialize_element(&Self(value))?;
                 }
