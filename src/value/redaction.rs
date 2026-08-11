@@ -67,14 +67,11 @@ impl Redact for Value {
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match &self.repr {
-            ValueRepr::StringMap(values) => {
-                values.fmt_redacted_map(session, formatter)
-            }
+            ValueRepr::StringMap(values) => values.fmt_redacted_map(session, formatter),
             #[cfg(feature = "json")]
-            ValueRepr::Json(value) => fmt::Debug::fmt(
-                &RedactedJsonSession::new(value, session),
-                formatter,
-            ),
+            ValueRepr::Json(value) => {
+                fmt::Debug::fmt(&RedactedJsonSession::new(value, session), formatter)
+            }
             _ => fmt::Debug::fmt(self, formatter),
         }
     }
