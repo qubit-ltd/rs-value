@@ -37,7 +37,9 @@ impl<'a> From<&'a ValueContainer> for WireShapeRef<'a> {
     fn from(value: &'a ValueContainer) -> Self {
         match value {
             ValueContainer::Scalar(value) => Self::Scalar(value.into()),
-            ValueContainer::Collection(values) => Self::Collection(values.into()),
+            ValueContainer::Collection(values) => {
+                Self::Collection(values.into())
+            }
         }
     }
 }

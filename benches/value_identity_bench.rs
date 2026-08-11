@@ -30,7 +30,9 @@ fn hash_value(value: &Value) -> u64 {
 /// Builds the string-map fixture used by identity benchmarks.
 fn string_map_fixture() -> Value {
     let entries = (0..100)
-        .map(|index| (format!("key-{index:03}"), format!("value-{}", index * 17)))
+        .map(|index| {
+            (format!("key-{index:03}"), format!("value-{}", index * 17))
+        })
         .collect();
     Value::StringMap(entries)
 }
@@ -106,7 +108,10 @@ fn benchmark_hash_map_lookup(c: &mut Criterion) {
 
     c.bench_function("identity/hash_map_value_lookup", |bencher| {
         bencher.iter(|| {
-            let total = table.get(black_box(&scalar)).copied().unwrap_or_default()
+            let total = table
+                .get(black_box(&scalar))
+                .copied()
+                .unwrap_or_default()
                 + table
                     .get(black_box(&string_map))
                     .copied()

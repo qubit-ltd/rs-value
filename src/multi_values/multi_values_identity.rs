@@ -11,9 +11,11 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 #[cfg(feature = "json")]
-use qubit_budget::BudgetError;
-#[cfg(feature = "json")]
 use qubit_budget::JsonValueBudget;
+#[cfg(feature = "json")]
+use qubit_budget::MeasuredBudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::ResourceQuantity;
 
 use super::multi_values::MultiValues;
 use super::multi_values::MultiValuesRepr;
@@ -33,17 +35,15 @@ use crate::identity::json_eq;
 macro_rules! payloads_eq {
     (Float32, $left:expr, $right:expr) => {
         $left.len() == $right.len()
-            && $left
-                .iter()
-                .zip($right)
-                .all(|(left, right)| canonical_f32_bits(*left) == canonical_f32_bits(*right))
+            && $left.iter().zip($right).all(|(left, right)| {
+                canonical_f32_bits(*left) == canonical_f32_bits(*right)
+            })
     };
     (Float64, $left:expr, $right:expr) => {
         $left.len() == $right.len()
-            && $left
-                .iter()
-                .zip($right)
-                .all(|(left, right)| canonical_f64_bits(*left) == canonical_f64_bits(*right))
+            && $left.iter().zip($right).all(|(left, right)| {
+                canonical_f64_bits(*left) == canonical_f64_bits(*right)
+            })
     };
     (Json, $left:expr, $right:expr) => {
         $left.len() == $right.len()
@@ -96,14 +96,15 @@ macro_rules! hash_payloads {
 
 /// Hashes one multi-value payload while applying a budget to JSON elements.
 #[cfg(feature = "json")]
-pub(crate) fn hash_multi_values_payload_with_json_budget<H, R>(
+pub(crate) fn hash_multi_values_payload_with_json_budget<H, R, Q>(
     repr: &MultiValuesRepr,
     state: &mut H,
-    budget: &mut JsonValueBudget<R, u64>,
-) -> Result<(), BudgetError<R, u64>>
+    budget: &mut JsonValueBudget<R, Q>,
+) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     H: Hasher,
     R: Clone,
+    Q: ResourceQuantity,
 {
     match repr {
         MultiValuesRepr::Unset(data_type) => data_type.hash(state),

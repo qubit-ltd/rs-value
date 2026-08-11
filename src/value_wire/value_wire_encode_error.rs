@@ -14,6 +14,8 @@ use qubit_budget::BudgetError;
 use qubit_budget::JsonResource;
 #[cfg(feature = "json")]
 use qubit_budget::JsonSerdeError;
+#[cfg(feature = "json")]
+use qubit_budget::QuantityConversionError;
 use qubit_datatype::DataType;
 #[cfg(feature = "json")]
 use serde_json::Error as JsonError;
@@ -41,7 +43,9 @@ pub enum ValueWireEncodeError {
     },
     /// A JSON V1 object uses serde_json's private number marker key.
     #[cfg(feature = "json")]
-    #[error("V1 JSON wire cannot represent an object containing the reserved key '{key}'")]
+    #[error(
+        "V1 JSON wire cannot represent an object containing the reserved key '{key}'"
+    )]
     ReservedJsonObjectKey {
         /// Key reserved by serde_json's arbitrary-precision representation.
         key: &'static str,
@@ -50,6 +54,19 @@ pub enum ValueWireEncodeError {
     #[cfg(feature = "json")]
     #[error("V1 JSON wire resource budget exceeded: {0}")]
     Budget(#[source] BudgetError<JsonResource, u64>),
+    /// A native JSON measurement could not fit the wire budget quantity.
+    #[cfg(feature = "json")]
+    #[error(
+        "V1 JSON wire resource quantity conversion failed for {resource:?}: {source}"
+    )]
+    Quantity {
+        /// Resource whose native measurement could not be represented.
+        resource: JsonResource,
+
+        /// Exact failed native quantity conversion.
+        #[source]
+        source: QuantityConversionError,
+    },
     /// Serde JSON rejected the value during bounded encoding.
     #[cfg(feature = "json")]
     #[error("failed to encode V1 JSON wire value: {0}")]
@@ -66,6 +83,9 @@ impl From<JsonSerdeError<JsonResource>> for ValueWireEncodeError {
     fn from(error: JsonSerdeError<JsonResource>) -> Self {
         match error {
             JsonSerdeError::Budget(error) => Self::Budget(error),
+            JsonSerdeError::Quantity { resource, source } => {
+                Self::Quantity { resource, source }
+            }
             JsonSerdeError::Json(error) => Self::Json(error),
             JsonSerdeError::Io(error) => Self::Io(error),
         }
