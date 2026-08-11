@@ -14,10 +14,14 @@
 // qubit-style: allow multiple-public-types
 use std::fmt;
 #[cfg(feature = "json")]
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
+#[cfg(feature = "json")]
+use std::hash::Hasher;
 
 #[cfg(feature = "json")]
-use qubit_budget::{BudgetError, JsonBudget};
+use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::JsonBudget;
 use qubit_datatype::DataType;
 
 #[cfg(feature = "json")]
@@ -169,8 +173,7 @@ impl MultiValues {
     ///
     /// * `state` - Hasher that receives the same identity representation as
     ///   [`Hash::hash`](std::hash::Hash::hash).
-    /// * `budget` - Mutable JSON traversal budget, used only for JSON
-    ///   elements.
+    /// * `budget` - Mutable JSON traversal budget, used only for JSON elements.
     ///
     /// # Errors
     ///

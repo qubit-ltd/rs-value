@@ -73,7 +73,8 @@ fn test_deep_json_reserved_key_validation_child() {
         "this helper test must run through its parent test"
     );
 
-    let value = ManuallyDrop::new(Value::Json(build_deep_reserved_json_value()));
+    let value =
+        ManuallyDrop::new(Value::Json(build_deep_reserved_json_value()));
     let error = match ValueWirePayloadRefV1::try_from(&*value) {
         Err(error) => error,
         Ok(_) => panic!("deep reserved JSON key must be rejected"),
@@ -120,7 +121,9 @@ fn dismantle_json_value(value: serde_json::Value) {
     while let Some(value) = pending.pop() {
         match value {
             serde_json::Value::Array(values) => pending.extend(values),
-            serde_json::Value::Object(values) => pending.extend(values.into_values()),
+            serde_json::Value::Object(values) => {
+                pending.extend(values.into_values())
+            }
             serde_json::Value::Null
             | serde_json::Value::Bool(_)
             | serde_json::Value::Number(_)

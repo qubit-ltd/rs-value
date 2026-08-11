@@ -12,8 +12,14 @@
 
 use std::fmt;
 #[cfg(feature = "json")]
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
+#[cfg(feature = "json")]
+use std::hash::Hasher;
 
+#[cfg(feature = "json")]
+use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::JsonBudget;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionOptions;
 #[cfg(feature = "converter")]
@@ -26,8 +32,6 @@ use crate::ValueError;
 #[cfg(feature = "json")]
 use crate::value::value_identity::hash_value_payload_with_json_budget;
 use crate::value_error::ValueResult;
-#[cfg(feature = "json")]
-use qubit_budget::{BudgetError, JsonBudget};
 
 /// Defines the private storage representation for the public single-value
 /// container from the shared value-type table.

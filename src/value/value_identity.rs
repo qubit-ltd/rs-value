@@ -10,19 +10,24 @@
 use std::hash::Hash;
 use std::hash::Hasher;
 
+#[cfg(feature = "json")]
+use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::JsonBudget;
+
 use super::Value;
 use super::ValueRepr;
 use crate::identity::canonical_f32_bits;
 use crate::identity::canonical_f64_bits;
 #[cfg(feature = "big-decimal")]
 use crate::identity::hash_big_decimal;
+#[cfg(feature = "json")]
+use crate::identity::hash_json;
+#[cfg(feature = "json")]
+use crate::identity::hash_json_with_budget;
 use crate::identity::hash_string_map;
 #[cfg(feature = "json")]
 use crate::identity::json_eq;
-#[cfg(feature = "json")]
-use crate::identity::{hash_json, hash_json_with_budget};
-#[cfg(feature = "json")]
-use qubit_budget::{BudgetError, JsonBudget};
 
 macro_rules! payload_eq {
     (Float32, $left:expr, $right:expr) => {
@@ -104,7 +109,9 @@ where
         #[cfg(feature = "url")]
         ValueRepr::Url(value) => hash_payload!(Url, value, state),
         ValueRepr::StringMap(value) => hash_payload!(StringMap, value, state),
-        ValueRepr::Json(value) => return hash_json_with_budget(value, state, budget),
+        ValueRepr::Json(value) => {
+            return hash_json_with_budget(value, state, budget);
+        }
     }
     Ok(())
 }
