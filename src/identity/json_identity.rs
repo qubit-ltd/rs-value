@@ -15,7 +15,7 @@ use std::hash::Hasher;
 type IdentityHasher =
     BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
-/// Compares two JSON trees using structural JSON semantics.
+/// Compares two JSON trees using structural JSON semantics without recursion.
 ///
 /// # Parameters
 ///
@@ -32,7 +32,49 @@ pub(crate) fn json_eq(
     left: &serde_json::Value,
     right: &serde_json::Value,
 ) -> bool {
-    left == right
+    let mut pending = Vec::with_capacity(1);
+    pending.push((left, right));
+    while let Some((left, right)) = pending.pop() {
+        match (left, right) {
+            (serde_json::Value::Null, serde_json::Value::Null) => {}
+            (serde_json::Value::Bool(left), serde_json::Value::Bool(right)) => {
+                if left != right {
+                    return false;
+                }
+            }
+            (serde_json::Value::Number(left), serde_json::Value::Number(right)) => {
+                if left != right {
+                    return false;
+                }
+            }
+            (serde_json::Value::String(left), serde_json::Value::String(right)) => {
+                if left != right {
+                    return false;
+                }
+            }
+            (serde_json::Value::Array(left), serde_json::Value::Array(right)) => {
+                if left.len() != right.len() {
+                    return false;
+                }
+                for (left, right) in left.iter().rev().zip(right.iter().rev()) {
+                    pending.push((left, right));
+                }
+            }
+            (serde_json::Value::Object(left), serde_json::Value::Object(right)) => {
+                if left.len() != right.len() {
+                    return false;
+                }
+                for (key, left) in left {
+                    let Some(right) = right.get(key) else {
+                        return false;
+                    };
+                    pending.push((left, right));
+                }
+            }
+            _ => return false,
+        }
+    }
+    true
 }
 
 /// Hashes a JSON tree using structural, object-order-independent semantics.
