@@ -10,7 +10,7 @@
 // qubit-style: allow multiple-public-types
 
 use qubit_budget::BudgetError;
-use qubit_budget::JsonResource;
+use qubit_json::JsonResource;
 use qubit_budget::QuantityConversionError;
 use qubit_json::JsonSerdeError;
 use qubit_json::JsonSyntaxError;

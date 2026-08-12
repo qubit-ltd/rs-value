@@ -12,9 +12,9 @@ use std::io;
 use std::io::Write;
 
 use qubit_budget::BudgetError;
-use qubit_budget::JsonDecodeLimits;
-use qubit_budget::JsonEncodeLimits;
-use qubit_budget::JsonResource;
+use qubit_json::JsonDecodeLimits;
+use qubit_json::JsonEncodeLimits;
+use qubit_json::JsonResource;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireEncodeError;

@@ -66,7 +66,6 @@ json = [
     "dep:qubit-budget",
     "dep:serde_json",
     "dep:qubit-json",
-    "qubit-budget/json",
     "qubit-datatype/json",
     "qubit-redact?/json",
 ]
