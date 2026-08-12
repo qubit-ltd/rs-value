@@ -13,10 +13,12 @@ use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::JsonResource;
 #[cfg(feature = "json")]
-use qubit_budget::JsonSerdeError;
-#[cfg(feature = "json")]
 use qubit_budget::QuantityConversionError;
 use qubit_datatype::DataType;
+#[cfg(feature = "json")]
+use qubit_json::JsonSerdeError;
+#[cfg(feature = "json")]
+use qubit_json::JsonSyntaxError;
 #[cfg(feature = "json")]
 use serde_json::Error as JsonError;
 use thiserror::Error;
@@ -53,20 +55,24 @@ pub enum ValueWireEncodeError {
     /// The JSON output exceeded one configured resource budget.
     #[cfg(feature = "json")]
     #[error("V1 JSON wire resource budget exceeded: {0}")]
-    Budget(#[source] BudgetError<JsonResource, u64>),
-    /// A native JSON measurement could not fit the wire budget quantity.
+    Budget(#[source] BudgetError<JsonResource, usize>),
+    /// A native JSON measurement could not be represented by the budget
+    /// quantity type.
     #[cfg(feature = "json")]
     #[error(
         "V1 JSON wire resource quantity conversion failed for {resource:?}: {source}"
     )]
     Quantity {
-        /// Resource whose native measurement could not be represented.
+        /// Resource whose measurement failed.
         resource: JsonResource,
-
-        /// Exact failed native quantity conversion.
+        /// Native measurement conversion failure.
         #[source]
         source: QuantityConversionError,
     },
+    /// The encoded value contains invalid JSON syntax.
+    #[cfg(feature = "json")]
+    #[error("invalid V1 JSON wire syntax: {0}")]
+    Syntax(#[source] JsonSyntaxError),
     /// Serde JSON rejected the value during bounded encoding.
     #[cfg(feature = "json")]
     #[error("failed to encode V1 JSON wire value: {0}")]
@@ -78,7 +84,7 @@ pub enum ValueWireEncodeError {
 }
 
 #[cfg(feature = "json")]
-impl From<JsonSerdeError<JsonResource>> for ValueWireEncodeError {
+impl From<JsonSerdeError<JsonResource, usize>> for ValueWireEncodeError {
     #[inline]
     fn from(error: JsonSerdeError<JsonResource>) -> Self {
         match error {
@@ -86,8 +92,12 @@ impl From<JsonSerdeError<JsonResource>> for ValueWireEncodeError {
             JsonSerdeError::Quantity { resource, source } => {
                 Self::Quantity { resource, source }
             }
+            JsonSerdeError::Syntax(error) => Self::Syntax(error),
             JsonSerdeError::Json(error) => Self::Json(error),
             JsonSerdeError::Io(error) => Self::Io(error),
+            _ => Self::Json(JsonError::io(std::io::Error::other(
+                "unsupported JSON wire error",
+            ))),
         }
     }
 }

@@ -65,7 +65,8 @@ url = ["dep:url", "qubit-datatype/url"]
 json = [
     "dep:qubit-budget",
     "dep:serde_json",
-    "qubit-budget/serde-json",
+    "dep:qubit-json",
+    "qubit-budget/json",
     "qubit-datatype/json",
     "qubit-redact?/json",
 ]
@@ -76,7 +77,8 @@ all = ["converter", "chrono", "big-number", "url", "json", "redact"]
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
-qubit-budget = { version = "0.3", path = "../rs-budget", optional = true }
+qubit-budget = { version = "0.4", path = "../rs-budget", optional = true }
+qubit-json = { version = "0.7", path = "../rs-json", optional = true }
 serde_json = { version = "1.0", features = ["arbitrary_precision", "float_roundtrip"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["std", "serde"], optional = true }
 url = { version = "2.5", features = ["serde"], optional = true }
