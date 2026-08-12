@@ -11,7 +11,7 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 #[cfg(feature = "json")]
-use qubit_budget::JsonValueBudget;
+use qubit_json::JsonValueBudget;
 #[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]

@@ -12,8 +12,8 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hash;
 use std::hash::Hasher;
 
-use qubit_budget::JsonResource;
-use qubit_budget::JsonValueBudget;
+use qubit_json::JsonResource;
+use qubit_json::JsonValueBudget;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::ResourceQuantity;
 

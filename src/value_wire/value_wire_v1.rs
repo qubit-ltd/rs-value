@@ -12,13 +12,13 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
-use qubit_budget::JsonDecodeLimits;
+use qubit_json::JsonDecodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::JsonDecodeSession;
+use qubit_json::JsonDecodeSession;
 #[cfg(feature = "json")]
-use qubit_budget::JsonEncodeLimits;
+use qubit_json::JsonEncodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::JsonEncodeSession;
+use qubit_json::JsonEncodeSession;
 #[cfg(feature = "json")]
 use qubit_json::encode_to_vec;
 #[cfg(feature = "json")]
@@ -99,7 +99,7 @@ impl ValueWireV1 {
     ///
     /// The complete input length and decoded structure are checked before the
     /// value is returned. Embedded protocols should share one
-    /// [`qubit_budget::JsonDecodeSession`] across their complete document.
+    /// [`qubit_json::JsonDecodeSession`] across their complete document.
     ///
     /// # Parameters
     ///
@@ -130,7 +130,7 @@ impl ValueWireV1 {
     ///
     /// The complete input length and decoded structure are checked before the
     /// value is returned. Embedded values should be checked through the outer
-    /// protocol's shared [`qubit_budget::JsonDecodeSession`].
+    /// protocol's shared [`qubit_json::JsonDecodeSession`].
     ///
     /// # Parameters
     ///

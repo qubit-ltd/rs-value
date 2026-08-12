@@ -22,9 +22,9 @@ use std::process::Command;
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
-use qubit_budget::JsonResource;
+use qubit_json::JsonResource;
 #[cfg(feature = "json")]
-use qubit_budget::JsonValueLimits;
+use qubit_json::JsonValueLimits;
 #[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]

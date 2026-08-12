@@ -13,15 +13,15 @@
 //! Borrowed values can use [`ValueWireRefV1`] or [`ValueWirePayloadRefV1`].
 
 #[cfg(feature = "json")]
-use qubit_budget::JsonDecodeLimits;
+use qubit_json::JsonDecodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::JsonDecodeSession;
+use qubit_json::JsonDecodeSession;
 #[cfg(feature = "json")]
-use qubit_budget::JsonEncodeLimits;
+use qubit_json::JsonEncodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::JsonResource;
+use qubit_json::JsonResource;
 #[cfg(feature = "json")]
-use qubit_budget::JsonValueLimits;
+use qubit_json::JsonValueLimits;
 #[cfg(feature = "json")]
 use qubit_budget::ResourceLimit;
 #[cfg(feature = "json")]

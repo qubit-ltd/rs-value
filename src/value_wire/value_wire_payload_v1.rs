@@ -12,13 +12,13 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
-use qubit_budget::JsonDecodeLimits;
+use qubit_json::JsonDecodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::JsonDecodeSession;
+use qubit_json::JsonDecodeSession;
 #[cfg(feature = "json")]
-use qubit_budget::JsonEncodeLimits;
+use qubit_json::JsonEncodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::JsonEncodeSession;
+use qubit_json::JsonEncodeSession;
 #[cfg(feature = "json")]
 use qubit_json::decode_slice;
 #[cfg(feature = "json")]

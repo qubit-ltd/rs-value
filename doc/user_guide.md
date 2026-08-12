@@ -317,10 +317,10 @@ owned Wire DTO, serializes it, applies input and semantic limits during decode,
 and restores the original container.
 
 ```rust
-use qubit_budget::JsonDecodeLimits;
-use qubit_budget::JsonEncodeLimits;
-use qubit_budget::JsonResource;
-use qubit_budget::JsonValueLimits;
+use qubit_json::JsonDecodeLimits;
+use qubit_json::JsonEncodeLimits;
+use qubit_json::JsonResource;
+use qubit_json::JsonValueLimits;
 use qubit_budget::ResourceLimit;
 use qubit_budget::StructureLimits;
 use qubit_value::Value;
@@ -401,9 +401,9 @@ one session.
 
 ```rust
 use qubit_budget::decode_slice;
-use qubit_budget::JsonDecodeLimits;
-use qubit_budget::JsonDecodeSession;
-use qubit_budget::JsonResource;
+use qubit_json::JsonDecodeLimits;
+use qubit_json::JsonDecodeSession;
+use qubit_json::JsonResource;
 use qubit_budget::ResourceLimit;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireV1;

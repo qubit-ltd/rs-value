@@ -12,9 +12,9 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
-use qubit_budget::JsonEncodeLimits;
+use qubit_json::JsonEncodeLimits;
 #[cfg(feature = "json")]
-use qubit_budget::JsonEncodeSession;
+use qubit_json::JsonEncodeSession;
 #[cfg(feature = "json")]
 use qubit_json::encode_to_vec;
 #[cfg(feature = "json")]

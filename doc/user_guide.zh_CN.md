@@ -295,10 +295,10 @@ V1 是封闭格式。现有 tag、shape 和 payload 表示不能原地扩展；�
 语义资源限制下解码，最后恢复原来的 container。
 
 ```rust
-use qubit_budget::JsonDecodeLimits;
-use qubit_budget::JsonEncodeLimits;
-use qubit_budget::JsonResource;
-use qubit_budget::JsonValueLimits;
+use qubit_json::JsonDecodeLimits;
+use qubit_json::JsonEncodeLimits;
+use qubit_json::JsonResource;
+use qubit_json::JsonValueLimits;
 use qubit_budget::ResourceLimit;
 use qubit_budget::StructureLimits;
 use qubit_value::Value;
@@ -371,9 +371,9 @@ assert_eq!(
 
 ```rust
 use qubit_budget::decode_slice;
-use qubit_budget::JsonDecodeLimits;
-use qubit_budget::JsonDecodeSession;
-use qubit_budget::JsonResource;
+use qubit_json::JsonDecodeLimits;
+use qubit_json::JsonDecodeSession;
+use qubit_json::JsonResource;
 use qubit_budget::ResourceLimit;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireV1;

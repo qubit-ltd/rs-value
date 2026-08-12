@@ -19,7 +19,7 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 #[cfg(feature = "json")]
-use qubit_budget::JsonValueBudget;
+use qubit_json::JsonValueBudget;
 #[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]
@@ -190,10 +190,8 @@ impl MultiValues {
     /// ```
     /// use std::collections::hash_map::DefaultHasher;
     ///
-    /// use qubit_budget::{
-    ///     JsonResource, JsonValueBudget, JsonValueLimits, ResourceLimit,
-    ///     StructureLimits,
-    /// };
+    /// use qubit_budget::{ResourceLimit, StructureLimits};
+    /// use qubit_json::{JsonResource, JsonValueBudget, JsonValueLimits};
     /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Json(vec![serde_json::json!([null])]);

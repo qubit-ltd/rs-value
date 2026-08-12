@@ -7,8 +7,8 @@
 // =============================================================================
 
 use qubit_budget::BudgetError;
-use qubit_budget::JsonDecodeLimits;
-use qubit_budget::JsonResource;
+use qubit_json::JsonDecodeLimits;
+use qubit_json::JsonResource;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
