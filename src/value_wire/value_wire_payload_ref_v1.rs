@@ -16,9 +16,9 @@ use qubit_budget::JsonEncodeLimits;
 #[cfg(feature = "json")]
 use qubit_budget::JsonEncodeSession;
 #[cfg(feature = "json")]
-use qubit_budget::encode_to_vec;
+use qubit_json::encode_to_vec;
 #[cfg(feature = "json")]
-use qubit_budget::encode_to_writer;
+use qubit_json::encode_to_writer;
 use serde::Serialize;
 use serde::Serializer;
 
@@ -56,7 +56,9 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     }
 
     /// Borrows a collection after validating V1's finite-float invariant.
-    pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_values(
+        values: &'a MultiValues,
+    ) -> Result<Self, ValueWireEncodeError> {
         validate_values(values)?;
         Ok(Self {
             shape: WireShapeRef::Collection(values.into()),
@@ -64,7 +66,9 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     }
 
     /// Borrows an explicit shape after validating V1's finite-float invariant.
-    pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_container(
+        value: &'a ValueContainer,
+    ) -> Result<Self, ValueWireEncodeError> {
         match value {
             ValueContainer::Scalar(value) => validate_value(value)?,
             ValueContainer::Collection(values) => validate_values(values)?,
@@ -100,11 +104,17 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// Encodes the borrowed V1 payload to a writer with default limits.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer<W>(
+        &self,
+        writer: W,
+    ) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        self.to_json_writer_with_limits(writer, super::default_json_encode_limits())
+        self.to_json_writer_with_limits(
+            writer,
+            super::default_json_encode_limits(),
+        )
     }
 
     /// Encodes the borrowed V1 payload to a writer with explicit limits.
@@ -119,12 +129,15 @@ impl<'a> ValueWirePayloadRefV1<'a> {
         W: Write,
     {
         let mut session = JsonEncodeSession::owned(limits);
-        encode_to_writer(writer, self, &mut session).map_err(ValueWireEncodeError::from)
+        encode_to_writer(writer, self, &mut session)
+            .map_err(ValueWireEncodeError::from)
     }
 }
 
 /// Validates one scalar against V1's JSON finite-float invariant.
-pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
+pub(in crate::value_wire) fn validate_value(
+    value: &Value,
+) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "big-decimal")]
     if let ValueRepr::BigDecimal(value) = &value.repr {
         validate_big_decimal_scale(value.as_bigint_and_exponent().1)?;
@@ -154,8 +167,12 @@ pub(in crate::value_wire) fn validate_values(
         }
     }
     let non_finite = match &values.repr {
-        MultiValuesRepr::Float32(values) => values.iter().any(|value| !value.is_finite()),
-        MultiValuesRepr::Float64(values) => values.iter().any(|value| !value.is_finite()),
+        MultiValuesRepr::Float32(values) => {
+            values.iter().any(|value| !value.is_finite())
+        }
+        MultiValuesRepr::Float64(values) => {
+            values.iter().any(|value| !value.is_finite())
+        }
         _ => false,
     };
     if non_finite {
@@ -174,7 +191,9 @@ pub(in crate::value_wire) fn validate_values(
 
 /// Rejects JSON objects that collide with serde_json's number marker.
 #[cfg(feature = "json")]
-fn validate_json_value(value: &serde_json::Value) -> Result<(), ValueWireEncodeError> {
+fn validate_json_value(
+    value: &serde_json::Value,
+) -> Result<(), ValueWireEncodeError> {
     let mut pending = vec![value];
     while let Some(value) = pending.pop() {
         match value {
