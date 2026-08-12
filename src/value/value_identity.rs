@@ -11,11 +11,11 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 #[cfg(feature = "json")]
-use qubit_json::JsonValueBudget;
-#[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::ResourceQuantity;
+#[cfg(feature = "json")]
+use qubit_json::JsonValueBudget;
 
 use super::Value;
 use super::ValueRepr;

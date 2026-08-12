@@ -11,8 +11,8 @@
 use std::error::Error;
 
 use qubit_budget::BudgetError;
-use qubit_json::JsonResource;
 use qubit_budget::Observation;
+use qubit_json::JsonResource;
 use qubit_value::ValueWireDecodeError;
 
 #[test]
