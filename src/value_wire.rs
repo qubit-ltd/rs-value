@@ -27,7 +27,7 @@ use qubit_budget::ResourceLimit;
 #[cfg(feature = "json")]
 use qubit_budget::StructureLimits;
 #[cfg(feature = "json")]
-use qubit_budget::decode_slice;
+use qubit_json::decode_slice;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -120,6 +120,10 @@ pub(crate) fn default_json_value_limits() -> JsonValueLimits {
         .with_number_bytes_limit(ResourceLimit::new(
             JsonResource::NumberBytes,
             4_096,
+        ))
+        .with_payload_bytes_limit(ResourceLimit::new(
+            JsonResource::PayloadBytes,
+            1_048_576,
         ))
 }
 
