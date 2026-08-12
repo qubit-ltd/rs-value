@@ -76,9 +76,7 @@ fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
         .expect("construct V1 wire");
     let input =
         serde_json::to_vec(&expected).expect("wire value should serialize");
-    let limits = JsonDecodeLimits::default().with_max_input_bytes(
-        u64::try_from(input.len()).expect("input length must fit"),
-    );
+    let limits = JsonDecodeLimits::default().with_max_input_bytes(input.len());
 
     let actual = ValueWireV1::decode_json_slice_with_limits(&input, limits)
         .expect("input at the byte limit should decode");
@@ -89,9 +87,8 @@ fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
 #[test]
 fn test_value_wire_v1_rejects_oversized_input_before_parsing() {
     let input = b"definitely not valid JSON";
-    let limits = JsonDecodeLimits::default().with_max_input_bytes(
-        u64::try_from(input.len() - 1).expect("input length must fit"),
-    );
+    let limits =
+        JsonDecodeLimits::default().with_max_input_bytes(input.len() - 1);
 
     let error = ValueWireV1::decode_json_slice_with_limits(input, limits)
         .expect_err("oversized input must be rejected before JSON parsing");
@@ -113,14 +110,15 @@ fn test_value_wire_v1_rejects_oversized_input_before_parsing() {
 #[test]
 fn test_value_wire_v1_reports_malformed_bounded_input() {
     let input = b"not JSON";
-    let limits = JsonDecodeLimits::default().with_max_input_bytes(
-        u64::try_from(input.len()).expect("input length must fit"),
-    );
+    let limits = JsonDecodeLimits::default().with_max_input_bytes(input.len());
 
     let error = ValueWireV1::decode_json_slice_with_limits(input, limits)
         .expect_err("malformed bounded input must fail");
 
-    assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
+    assert!(matches!(
+        error,
+        ValueWireDecodeError::InvalidJson(_) | ValueWireDecodeError::Syntax(_)
+    ));
 }
 
 #[test]

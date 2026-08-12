@@ -60,9 +60,7 @@ fn test_named_multi_values_bounded_decode_reuses_collection_budget() {
     let error = NamedMultiValues::decode_json_slice_with_limits(
         &input,
         JsonDecodeLimits::default()
-            .with_max_input_bytes(
-                u64::try_from(input.len()).expect("input length must fit"),
-            )
+            .with_max_input_bytes(input.len())
             .with_max_nodes(3),
     )
     .expect_err("wrapper, collection, and two items should consume four nodes");

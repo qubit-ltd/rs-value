@@ -179,12 +179,11 @@ impl MultiValues {
     ///
     /// # Errors
     ///
-    /// Returns [`MeasuredBudgetError`] when a JSON element exceeds a
-    /// configured limit or a native measurement cannot fit the selected
-    /// quantity. On error, both `state` and `budget` may already be partially
-    /// updated; callers must discard the hasher and either discard the budget
-    /// or continue from its consumed state. This method does not roll either
-    /// one back.
+    /// Returns [`BudgetError`] when a JSON element exceeds a configured limit.
+    /// On error, both `state` and `budget` may already be partially updated;
+    /// callers must discard the hasher and either discard the budget or
+    /// continue from its consumed state. This method does not roll either one
+    /// back.
     ///
     /// # Examples
     ///
@@ -199,7 +198,7 @@ impl MultiValues {
     ///
     /// let values = MultiValues::Json(vec![serde_json::json!([null])]);
     /// let structure = StructureLimits::empty().with_nodes_limit(
-    ///     ResourceLimit::new(JsonResource::Nodes, 1_u64),
+    ///     ResourceLimit::new(JsonResource::Nodes, 1_usize),
     /// );
     /// let mut budget = JsonValueBudget::new(
     ///     JsonValueLimits::default().with_structure_limits(structure),
