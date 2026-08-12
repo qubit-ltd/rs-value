@@ -26,7 +26,6 @@ use qubit_budget::BudgetError;
 use qubit_budget::JsonResource;
 #[cfg(feature = "json")]
 use qubit_budget::JsonValueLimits;
-#[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;

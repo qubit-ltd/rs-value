@@ -161,11 +161,11 @@ fn test_hash_json_with_budget_checks_root_inclusive_depth() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::Depth,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -179,12 +179,12 @@ fn test_hash_json_with_budget_charges_nodes() {
     );
     assert!(matches!(
         error,
-        BudgetError::Insufficient {
+        MeasuredBudgetError::Budget(BudgetError::Insufficient {
             resource: JsonResource::Nodes,
             limit: 1,
             remaining: 0,
             requested: 1,
-        }
+        })
     ));
 }
 
@@ -202,12 +202,12 @@ fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
 
     assert!(matches!(
         error,
-        BudgetError::Insufficient {
+        MeasuredBudgetError::Budget(BudgetError::Insufficient {
             resource: JsonResource::Nodes,
             remaining: 0,
             requested: 1,
             ..
-        }
+        })
     ));
 }
 
@@ -227,12 +227,12 @@ fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
 
     assert!(matches!(
         error,
-        BudgetError::Insufficient {
+        MeasuredBudgetError::Budget(BudgetError::Insufficient {
             resource: JsonResource::Nodes,
             remaining: 0,
             requested: 1,
             ..
-        }
+        })
     ));
 }
 
@@ -246,11 +246,11 @@ fn test_hash_json_with_budget_checks_sequence_items() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::SequenceItems,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -264,11 +264,11 @@ fn test_hash_json_with_budget_checks_map_entries() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::MapEntries,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -282,11 +282,11 @@ fn test_hash_json_with_budget_checks_key_bytes() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::KeyBytes,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -300,11 +300,11 @@ fn test_hash_json_with_budget_checks_string_bytes() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::StringBytes,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -318,11 +318,11 @@ fn test_hash_json_with_budget_checks_number_bytes() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::NumberBytes,
             observed: Observation::Exact(4),
             maximum: 3,
-        }
+        })
     ));
 }
 
@@ -412,7 +412,7 @@ fn calculate_json_hash(value: &serde_json::Value) -> u64 {
 fn hash_json_with_limits(
     value: &serde_json::Value,
     limits: JsonValueLimits,
-) -> BudgetError<JsonResource, u64> {
+) -> MeasuredBudgetError<JsonResource, usize> {
     let mut budget = limits.budget();
     let mut state = DefaultHasher::new();
     match json_identity::hash_json_with_budget(value, &mut state, &mut budget)

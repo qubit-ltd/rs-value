@@ -20,9 +20,9 @@ use qubit_budget::JsonEncodeLimits;
 #[cfg(feature = "json")]
 use qubit_budget::JsonEncodeSession;
 #[cfg(feature = "json")]
-use qubit_budget::encode_to_vec;
+use qubit_json::encode_to_vec;
 #[cfg(feature = "json")]
-use qubit_budget::encode_to_writer;
+use qubit_json::encode_to_writer;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;

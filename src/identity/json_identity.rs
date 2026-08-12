@@ -213,9 +213,8 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 ///
 /// # Errors
 ///
-/// Returns [`MeasuredBudgetError`] when a node, container, key, string, or
-/// number text exceeds the corresponding budget constraint, or when a native
-/// measurement cannot fit the selected quantity type.
+/// Returns [`BudgetError`] when a node, container, key, string, or number text
+/// exceeds the corresponding budget constraint.
 pub(crate) fn hash_json_with_budget<H, R, Q>(
     value: &serde_json::Value,
     state: &mut H,
