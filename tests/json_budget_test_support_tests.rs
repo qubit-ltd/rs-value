@@ -9,12 +9,12 @@
 
 #![cfg(feature = "json")]
 
+use qubit_budget::ResourceLimit;
 use qubit_json::JsonDecodeLimits;
 use qubit_json::JsonEncodeLimits;
 use qubit_json::JsonResource;
 use qubit_json::JsonValueBudget;
 use qubit_json::JsonValueLimits;
-use qubit_budget::ResourceLimit;
 
 /// Test-only fluent builders for direction-independent JSON value limits.
 pub(crate) trait JsonValueLimitsExt {

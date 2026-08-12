@@ -10,10 +10,10 @@
 //! Fuzzes bounded V1 JSON decoding and successful wire round trips.
 
 use libfuzzer_sys::fuzz_target;
+use qubit_budget::ResourceLimit;
 use qubit_json::JsonDecodeLimits;
 use qubit_json::JsonEncodeLimits;
 use qubit_json::JsonResource;
-use qubit_budget::ResourceLimit;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireV1;
 

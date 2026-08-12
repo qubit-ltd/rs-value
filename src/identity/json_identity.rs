@@ -12,10 +12,10 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hash;
 use std::hash::Hasher;
 
-use qubit_json::JsonResource;
-use qubit_json::JsonValueBudget;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::ResourceQuantity;
+use qubit_json::JsonResource;
+use qubit_json::JsonValueBudget;
 
 type IdentityHasher =
     BuildHasherDefault<std::collections::hash_map::DefaultHasher>;

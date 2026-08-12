@@ -19,12 +19,12 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 #[cfg(feature = "json")]
-use qubit_json::JsonValueBudget;
-#[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::ResourceQuantity;
 use qubit_datatype::DataType;
+#[cfg(feature = "json")]
+use qubit_json::JsonValueBudget;
 
 #[cfg(feature = "json")]
 use super::multi_values_identity::hash_multi_values_payload_with_json_budget;

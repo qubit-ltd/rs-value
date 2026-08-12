@@ -11,10 +11,10 @@
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
-use qubit_json::JsonResource;
-#[cfg(feature = "json")]
 use qubit_budget::QuantityConversionError;
 use qubit_datatype::DataType;
+#[cfg(feature = "json")]
+use qubit_json::JsonResource;
 #[cfg(feature = "json")]
 use qubit_json::JsonSerdeError;
 #[cfg(feature = "json")]

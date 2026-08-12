@@ -17,8 +17,6 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 #[cfg(feature = "json")]
-use qubit_json::JsonValueBudget;
-#[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::ResourceQuantity;
@@ -31,6 +29,8 @@ use qubit_datatype::ConversionSession;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataType;
+#[cfg(feature = "json")]
+use qubit_json::JsonValueBudget;
 
 use super::value_ref::ValueRef;
 use crate::IntoValueDefault;
