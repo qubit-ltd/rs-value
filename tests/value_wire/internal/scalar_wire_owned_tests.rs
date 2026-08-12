@@ -15,9 +15,11 @@ fn test_owned_scalar_wire_round_trip() {
 
     let wire = ValueWireV1::try_from(Value::Int32(1)).expect("construct wire");
     assert_eq!(
-        serde_json::from_value::<ValueWireV1>(serde_json::to_value(wire).unwrap())
-            .unwrap()
-            .into_container(),
+        serde_json::from_value::<ValueWireV1>(
+            serde_json::to_value(wire).unwrap()
+        )
+        .unwrap()
+        .into_container(),
         Value::Int32(1).into()
     );
 }

@@ -26,6 +26,8 @@ use qubit_budget::JsonResource;
 #[cfg(feature = "json")]
 use qubit_budget::JsonValueLimits;
 #[cfg(feature = "json")]
+use qubit_budget::MeasuredBudgetError;
+#[cfg(feature = "json")]
 use qubit_budget::Observation;
 use qubit_value::Value;
 
@@ -37,7 +39,8 @@ use crate::json_budget_test_support_tests::JsonValueLimitsExt;
 mod json_identity;
 
 #[cfg(feature = "json")]
-const DEEP_JSON_IDENTITY_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_IDENTITY_CHILD";
+const DEEP_JSON_IDENTITY_CHILD_ENV: &str =
+    "QUBIT_VALUE_DEEP_JSON_IDENTITY_CHILD";
 #[cfg(feature = "json")]
 const DEEP_JSON_HASH_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_HASH_CHILD";
 #[cfg(feature = "json")]
@@ -107,13 +110,15 @@ fn test_hash_json_distinguishes_array_order() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_hash_does_not_recurse() {
-    let output = Command::new(std::env::current_exe().expect("locate test binary"))
-        .arg("--exact")
-        .arg("identity::json_identity_tests::test_deep_json_identity_hash_child")
-        .arg("--ignored")
-        .env(DEEP_JSON_HASH_CHILD_ENV, "1")
-        .output()
-        .expect("run deep JSON hash child test");
+    let output = Command::new(
+        std::env::current_exe().expect("locate test binary"),
+    )
+    .arg("--exact")
+    .arg("identity::json_identity_tests::test_deep_json_identity_hash_child")
+    .arg("--ignored")
+    .env(DEEP_JSON_HASH_CHILD_ENV, "1")
+    .output()
+    .expect("run deep JSON hash child test");
 
     assert!(
         output.status.success(),
@@ -156,11 +161,11 @@ fn test_hash_json_with_budget_checks_root_inclusive_depth() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::Depth,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -174,12 +179,12 @@ fn test_hash_json_with_budget_charges_nodes() {
     );
     assert!(matches!(
         error,
-        BudgetError::Insufficient {
+        MeasuredBudgetError::Budget(BudgetError::Insufficient {
             resource: JsonResource::Nodes,
             limit: 1,
             remaining: 0,
             requested: 1,
-        }
+        })
     ));
 }
 
@@ -187,17 +192,22 @@ fn test_hash_json_with_budget_charges_nodes() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
-    let value = serde_json::Value::Array((0..10_000).map(|_| serde_json::Value::Null).collect());
-    let error = hash_json_with_limits(&value, JsonValueLimits::default().with_max_nodes(1));
+    let value = serde_json::Value::Array(
+        (0..10_000).map(|_| serde_json::Value::Null).collect(),
+    );
+    let error = hash_json_with_limits(
+        &value,
+        JsonValueLimits::default().with_max_nodes(1),
+    );
 
     assert!(matches!(
         error,
-        BudgetError::Insufficient {
+        MeasuredBudgetError::Budget(BudgetError::Insufficient {
             resource: JsonResource::Nodes,
             remaining: 0,
             requested: 1,
             ..
-        }
+        })
     ));
 }
 
@@ -210,16 +220,19 @@ fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
             .map(|index| (format!("key-{index}"), serde_json::Value::Null))
             .collect(),
     );
-    let error = hash_json_with_limits(&value, JsonValueLimits::default().with_max_nodes(1));
+    let error = hash_json_with_limits(
+        &value,
+        JsonValueLimits::default().with_max_nodes(1),
+    );
 
     assert!(matches!(
         error,
-        BudgetError::Insufficient {
+        MeasuredBudgetError::Budget(BudgetError::Insufficient {
             resource: JsonResource::Nodes,
             remaining: 0,
             requested: 1,
             ..
-        }
+        })
     ));
 }
 
@@ -233,11 +246,11 @@ fn test_hash_json_with_budget_checks_sequence_items() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::SequenceItems,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -251,11 +264,11 @@ fn test_hash_json_with_budget_checks_map_entries() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::MapEntries,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -269,11 +282,11 @@ fn test_hash_json_with_budget_checks_key_bytes() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::KeyBytes,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -287,11 +300,11 @@ fn test_hash_json_with_budget_checks_string_bytes() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::StringBytes,
             observed: Observation::Exact(2),
             maximum: 1,
-        }
+        })
     ));
 }
 
@@ -305,11 +318,11 @@ fn test_hash_json_with_budget_checks_number_bytes() {
     );
     assert!(matches!(
         error,
-        BudgetError::LimitExceeded {
+        MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::NumberBytes,
             observed: Observation::Exact(4),
             maximum: 3,
-        }
+        })
     ));
 }
 
@@ -333,13 +346,17 @@ fn test_hash_json_with_budget_matches_unbounded_hash() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_equality_does_not_recurse() {
-    let output = Command::new(std::env::current_exe().expect("locate test binary"))
-        .arg("--exact")
-        .arg("identity::json_identity_tests::test_deep_json_identity_equality_child")
-        .arg("--ignored")
-        .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
-        .output()
-        .expect("run deep JSON identity child test");
+    let output = Command::new(
+        std::env::current_exe().expect("locate test binary"),
+    )
+    .arg("--exact")
+    .arg(
+        "identity::json_identity_tests::test_deep_json_identity_equality_child",
+    )
+    .arg("--ignored")
+    .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
+    .output()
+    .expect("run deep JSON identity child test");
 
     assert!(
         output.status.success(),
@@ -395,7 +412,7 @@ fn calculate_json_hash(value: &serde_json::Value) -> u64 {
 fn hash_json_with_limits(
     value: &serde_json::Value,
     limits: JsonValueLimits,
-) -> BudgetError<JsonResource, u64> {
+) -> MeasuredBudgetError<JsonResource, usize> {
     let mut budget = limits.budget();
     let mut state = DefaultHasher::new();
     json_identity::hash_json_with_budget(value, &mut state, &mut budget)
@@ -439,7 +456,9 @@ fn dismantle_json_value(value: serde_json::Value) {
     while let Some(value) = pending.pop() {
         match value {
             serde_json::Value::Array(values) => pending.extend(values),
-            serde_json::Value::Object(values) => pending.extend(values.into_values()),
+            serde_json::Value::Object(values) => {
+                pending.extend(values.into_values())
+            }
             serde_json::Value::Null
             | serde_json::Value::Bool(_)
             | serde_json::Value::Number(_)

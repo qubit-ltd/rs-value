@@ -96,7 +96,8 @@ use url::Url;
     feature = "json",
 ))]
 fn assert_json_round_trip(value: impl Into<ValueContainer>) {
-    let wire = ValueWirePayloadV1::try_from(value.into()).expect("construct wire payload");
+    let wire = ValueWirePayloadV1::try_from(value.into())
+        .expect("construct wire payload");
     let encoded = serde_json::to_string(&wire).expect("serialize wire payload");
     let decoded: ValueWirePayloadV1 =
         serde_json::from_str(&encoded).expect("deserialize wire payload");

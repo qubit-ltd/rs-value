@@ -47,7 +47,9 @@ fn test_multi_values_empty_conversion_preserves_conversion_semantics() {
         .to_first::<i32>()
         .expect_err("empty collection has no first converted value");
 
-    let ValueError::Missing(ValueMissing::EmptyCollectionConversion { to }) = error else {
+    let ValueError::Missing(ValueMissing::EmptyCollectionConversion { to }) =
+        error
+    else {
         panic!("expected an empty collection conversion error");
     };
     assert_eq!(to, DataType::Int32);
@@ -75,21 +77,66 @@ fn test_multi_values_converters_cover_every_runtime_variant() {
         'a',
         vec!['a', 'b']
     );
-    assert_multi_values_identity_conversion!(MultiValues::Int8(vec![-1, 2]), i8, -1, vec![-1, 2]);
-    assert_multi_values_identity_conversion!(MultiValues::Int16(vec![-1, 2]), i16, -1, vec![-1, 2]);
-    assert_multi_values_identity_conversion!(MultiValues::Int32(vec![-1, 2]), i32, -1, vec![-1, 2]);
-    assert_multi_values_identity_conversion!(MultiValues::Int64(vec![-1, 2]), i64, -1, vec![-1, 2]);
+    assert_multi_values_identity_conversion!(
+        MultiValues::Int8(vec![-1, 2]),
+        i8,
+        -1,
+        vec![-1, 2]
+    );
+    assert_multi_values_identity_conversion!(
+        MultiValues::Int16(vec![-1, 2]),
+        i16,
+        -1,
+        vec![-1, 2]
+    );
+    assert_multi_values_identity_conversion!(
+        MultiValues::Int32(vec![-1, 2]),
+        i32,
+        -1,
+        vec![-1, 2]
+    );
+    assert_multi_values_identity_conversion!(
+        MultiValues::Int64(vec![-1, 2]),
+        i64,
+        -1,
+        vec![-1, 2]
+    );
     assert_multi_values_identity_conversion!(
         MultiValues::Int128(vec![-1, 2]),
         i128,
         -1,
         vec![-1, 2]
     );
-    assert_multi_values_identity_conversion!(MultiValues::UInt8(vec![1, 2]), u8, 1, vec![1, 2]);
-    assert_multi_values_identity_conversion!(MultiValues::UInt16(vec![1, 2]), u16, 1, vec![1, 2]);
-    assert_multi_values_identity_conversion!(MultiValues::UInt32(vec![1, 2]), u32, 1, vec![1, 2]);
-    assert_multi_values_identity_conversion!(MultiValues::UInt64(vec![1, 2]), u64, 1, vec![1, 2]);
-    assert_multi_values_identity_conversion!(MultiValues::UInt128(vec![1, 2]), u128, 1, vec![1, 2]);
+    assert_multi_values_identity_conversion!(
+        MultiValues::UInt8(vec![1, 2]),
+        u8,
+        1,
+        vec![1, 2]
+    );
+    assert_multi_values_identity_conversion!(
+        MultiValues::UInt16(vec![1, 2]),
+        u16,
+        1,
+        vec![1, 2]
+    );
+    assert_multi_values_identity_conversion!(
+        MultiValues::UInt32(vec![1, 2]),
+        u32,
+        1,
+        vec![1, 2]
+    );
+    assert_multi_values_identity_conversion!(
+        MultiValues::UInt64(vec![1, 2]),
+        u64,
+        1,
+        vec![1, 2]
+    );
+    assert_multi_values_identity_conversion!(
+        MultiValues::UInt128(vec![1, 2]),
+        u128,
+        1,
+        vec![1, 2]
+    );
     assert_multi_values_identity_conversion!(
         MultiValues::Float32(vec![1.5, 2.5]),
         f32,
@@ -139,7 +186,10 @@ fn test_multi_values_converters_cover_every_runtime_variant() {
             vec![datetime]
         );
         let instant =
-            chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(datetime, chrono::Utc);
+            chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
+                datetime,
+                chrono::Utc,
+            );
         assert_multi_values_identity_conversion!(
             MultiValues::Instant(vec![instant]),
             chrono::DateTime<chrono::Utc>,
@@ -178,7 +228,10 @@ fn test_multi_values_converters_cover_every_runtime_variant() {
             vec![value]
         );
     }
-    let map = std::collections::HashMap::from([("key".to_string(), "value".to_string())]);
+    let map = std::collections::HashMap::from([(
+        "key".to_string(),
+        "value".to_string(),
+    )]);
     assert_multi_values_identity_conversion!(
         MultiValues::StringMap(vec![map.clone()]),
         std::collections::HashMap<String, String>,

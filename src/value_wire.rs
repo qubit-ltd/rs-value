@@ -27,7 +27,7 @@ use qubit_budget::ResourceLimit;
 #[cfg(feature = "json")]
 use qubit_budget::StructureLimits;
 #[cfg(feature = "json")]
-use qubit_budget::decode_slice;
+use qubit_json::decode_slice;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -99,13 +99,32 @@ pub(crate) fn default_json_value_limits() -> JsonValueLimits {
     let structure = StructureLimits::empty()
         .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 64))
         .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 100_000))
-        .with_sequence_items_limit(ResourceLimit::new(JsonResource::SequenceItems, 4_096))
-        .with_map_entries_limit(ResourceLimit::new(JsonResource::MapEntries, 4_096))
-        .with_key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, 256 * 1024));
+        .with_sequence_items_limit(ResourceLimit::new(
+            JsonResource::SequenceItems,
+            4_096,
+        ))
+        .with_map_entries_limit(ResourceLimit::new(
+            JsonResource::MapEntries,
+            4_096,
+        ))
+        .with_key_bytes_limit(ResourceLimit::new(
+            JsonResource::KeyBytes,
+            256 * 1024,
+        ));
     JsonValueLimits::default()
         .with_structure_limits(structure)
-        .with_string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, 256 * 1024))
-        .with_number_bytes_limit(ResourceLimit::new(JsonResource::NumberBytes, 4_096))
+        .with_string_bytes_limit(ResourceLimit::new(
+            JsonResource::StringBytes,
+            256 * 1024,
+        ))
+        .with_number_bytes_limit(ResourceLimit::new(
+            JsonResource::NumberBytes,
+            4_096,
+        ))
+        .with_payload_bytes_limit(ResourceLimit::new(
+            JsonResource::PayloadBytes,
+            1_048_576,
+        ))
 }
 
 /// Returns the default resource profile used to decode V1 JSON documents.
@@ -113,7 +132,10 @@ pub(crate) fn default_json_value_limits() -> JsonValueLimits {
 #[inline]
 pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
     JsonDecodeLimits::default()
-        .with_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 1_048_576))
+        .with_input_bytes_limit(ResourceLimit::new(
+            JsonResource::InputBytes,
+            1_048_576,
+        ))
         .with_value_limits(default_json_value_limits())
 }
 
@@ -122,7 +144,10 @@ pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
 #[inline]
 pub(crate) fn default_json_encode_limits() -> JsonEncodeLimits {
     JsonEncodeLimits::default()
-        .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 1_048_576))
+        .with_output_bytes_limit(ResourceLimit::new(
+            JsonResource::OutputBytes,
+            1_048_576,
+        ))
         .with_value_limits(default_json_value_limits())
 }
 
@@ -180,7 +205,10 @@ pub(crate) fn decode_wire_json_slice_with_session(
 ///
 /// Returns the error reported by `serializer`.
 #[inline(always)]
-fn serialize_wire<S>(value: WireShapeRef<'_>, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_wire<S>(
+    value: WireShapeRef<'_>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {

@@ -19,9 +19,11 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 #[cfg(feature = "json")]
-use qubit_budget::BudgetError;
-#[cfg(feature = "json")]
 use qubit_budget::JsonValueBudget;
+#[cfg(feature = "json")]
+use qubit_budget::MeasuredBudgetError;
+#[cfg(feature = "json")]
+use qubit_budget::ResourceQuantity;
 use qubit_datatype::DataType;
 
 #[cfg(feature = "json")]
@@ -196,7 +198,7 @@ impl MultiValues {
     ///
     /// let values = MultiValues::Json(vec![serde_json::json!([null])]);
     /// let structure = StructureLimits::empty().with_nodes_limit(
-    ///     ResourceLimit::new(JsonResource::Nodes, 1),
+    ///     ResourceLimit::new(JsonResource::Nodes, 1_usize),
     /// );
     /// let mut budget = JsonValueBudget::new(
     ///     JsonValueLimits::default().with_structure_limits(structure),
@@ -208,14 +210,15 @@ impl MultiValues {
     /// // `budget` is now consumed state and is intentionally not reused.
     /// ```
     #[cfg(feature = "json")]
-    pub fn hash_with_json_budget<H, R>(
+    pub fn hash_with_json_budget<H, R, Q>(
         &self,
         state: &mut H,
-        budget: &mut JsonValueBudget<R, u64>,
-    ) -> Result<(), BudgetError<R, u64>>
+        budget: &mut JsonValueBudget<R, Q>,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         H: Hasher,
         R: Clone,
+        Q: ResourceQuantity,
     {
         std::mem::discriminant(&self.repr).hash(state);
         hash_multi_values_payload_with_json_budget(&self.repr, state, budget)
@@ -225,7 +228,9 @@ impl MultiValues {
     #[inline(always)]
     pub fn view(&self) -> MultiValuesRef<'_> {
         match &self.repr {
-            MultiValuesRepr::Unset(data_type) => MultiValuesRef::Unset(*data_type),
+            MultiValuesRepr::Unset(data_type) => {
+                MultiValuesRef::Unset(*data_type)
+            }
             MultiValuesRepr::Bool(values) => MultiValuesRef::Bool(values),
             MultiValuesRepr::Char(values) => MultiValuesRef::Char(values),
             MultiValuesRepr::Int8(values) => MultiValuesRef::Int8(values),
@@ -241,22 +246,32 @@ impl MultiValues {
             MultiValuesRepr::Float32(values) => MultiValuesRef::Float32(values),
             MultiValuesRepr::Float64(values) => MultiValuesRef::Float64(values),
             #[cfg(feature = "big-integer")]
-            MultiValuesRepr::BigInteger(values) => MultiValuesRef::BigInteger(values),
+            MultiValuesRepr::BigInteger(values) => {
+                MultiValuesRef::BigInteger(values)
+            }
             #[cfg(feature = "big-decimal")]
-            MultiValuesRepr::BigDecimal(values) => MultiValuesRef::BigDecimal(values),
+            MultiValuesRepr::BigDecimal(values) => {
+                MultiValuesRef::BigDecimal(values)
+            }
             MultiValuesRepr::String(values) => MultiValuesRef::String(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Date(values) => MultiValuesRef::Date(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Time(values) => MultiValuesRef::Time(values),
             #[cfg(feature = "chrono")]
-            MultiValuesRepr::DateTime(values) => MultiValuesRef::DateTime(values),
+            MultiValuesRepr::DateTime(values) => {
+                MultiValuesRef::DateTime(values)
+            }
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Instant(values) => MultiValuesRef::Instant(values),
-            MultiValuesRepr::Duration(values) => MultiValuesRef::Duration(values),
+            MultiValuesRepr::Duration(values) => {
+                MultiValuesRef::Duration(values)
+            }
             #[cfg(feature = "url")]
             MultiValuesRepr::Url(values) => MultiValuesRef::Url(values),
-            MultiValuesRepr::StringMap(values) => MultiValuesRef::StringMap(values),
+            MultiValuesRepr::StringMap(values) => {
+                MultiValuesRef::StringMap(values)
+            }
             #[cfg(feature = "json")]
             MultiValuesRepr::Json(values) => MultiValuesRef::Json(values),
         }

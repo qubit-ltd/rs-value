@@ -11,9 +11,9 @@
 
 use qubit_budget::BudgetError;
 use qubit_budget::JsonResource;
-use qubit_budget::JsonSerdeError;
-use qubit_budget::JsonSyntaxError;
 use qubit_budget::QuantityConversionError;
+use qubit_json::JsonSerdeError;
+use qubit_json::JsonSyntaxError;
 use serde_json::Error as JsonError;
 use thiserror::Error;
 
@@ -27,7 +27,9 @@ pub enum ValueWireDecodeError {
 
     /// A native JSON measurement could not be represented by the budget
     /// quantity type.
-    #[error("V1 JSON wire resource quantity conversion failed for {resource:?}: {source}")]
+    #[error(
+        "V1 JSON wire resource quantity conversion failed for {resource:?}: {source}"
+    )]
     Quantity {
         /// Resource whose measurement failed.
         resource: JsonResource,
@@ -41,7 +43,9 @@ pub enum ValueWireDecodeError {
     Syntax(#[source] JsonSyntaxError),
 
     /// The envelope declares a wire version that this decoder does not support.
-    #[error("unsupported qubit-value wire version {actual}; expected {expected}")]
+    #[error(
+        "unsupported qubit-value wire version {actual}; expected {expected}"
+    )]
     UnsupportedVersion {
         /// Wire version accepted by this decoder.
         expected: u8,
@@ -60,10 +64,14 @@ impl From<JsonSerdeError<JsonResource, usize>> for ValueWireDecodeError {
     fn from(error: JsonSerdeError<JsonResource>) -> Self {
         match error {
             JsonSerdeError::Budget(error) => Self::Budget(error),
-            JsonSerdeError::Quantity { resource, source } => Self::Quantity { resource, source },
+            JsonSerdeError::Quantity { resource, source } => {
+                Self::Quantity { resource, source }
+            }
             JsonSerdeError::Syntax(error) => Self::Syntax(error),
             JsonSerdeError::Json(error) => Self::InvalidJson(error),
-            JsonSerdeError::Io(error) => Self::InvalidJson(JsonError::io(error)),
+            JsonSerdeError::Io(error) => {
+                Self::InvalidJson(JsonError::io(error))
+            }
             _ => Self::InvalidJson(JsonError::io(std::io::Error::other(
                 "unsupported JSON wire error",
             ))),

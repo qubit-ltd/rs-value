@@ -12,11 +12,13 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hash;
 use std::hash::Hasher;
 
-use qubit_budget::BudgetError;
 use qubit_budget::JsonResource;
 use qubit_budget::JsonValueBudget;
+use qubit_budget::MeasuredBudgetError;
+use qubit_budget::ResourceQuantity;
 
-type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
+type IdentityHasher =
+    BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
 /// One pending operation in the iterative JSON hashing traversal.
 enum HashFrame<'a> {
@@ -122,7 +124,10 @@ struct ObjectHash {
 /// significant and array element order is significant.
 #[must_use]
 #[inline(always)]
-pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bool {
+pub(crate) fn json_eq(
+    left: &serde_json::Value,
+    right: &serde_json::Value,
+) -> bool {
     let mut pending = Vec::with_capacity(1);
     pending.push((left, right));
     while let Some((left, right)) = pending.pop() {
@@ -133,17 +138,26 @@ pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bo
                     return false;
                 }
             }
-            (serde_json::Value::Number(left), serde_json::Value::Number(right)) => {
+            (
+                serde_json::Value::Number(left),
+                serde_json::Value::Number(right),
+            ) => {
                 if left != right {
                     return false;
                 }
             }
-            (serde_json::Value::String(left), serde_json::Value::String(right)) => {
+            (
+                serde_json::Value::String(left),
+                serde_json::Value::String(right),
+            ) => {
                 if left != right {
                     return false;
                 }
             }
-            (serde_json::Value::Array(left), serde_json::Value::Array(right)) => {
+            (
+                serde_json::Value::Array(left),
+                serde_json::Value::Array(right),
+            ) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -151,7 +165,10 @@ pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bo
                     pending.push((left, right));
                 }
             }
-            (serde_json::Value::Object(left), serde_json::Value::Object(right)) => {
+            (
+                serde_json::Value::Object(left),
+                serde_json::Value::Object(right),
+            ) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -175,7 +192,8 @@ pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bo
 /// * `value` - JSON tree to hash.
 /// * `state` - Destination hasher.
 pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
-    let result = hash_json_iterative::<H, JsonResource>(value, state, None);
+    let result =
+        hash_json_iterative::<H, JsonResource, usize>(value, state, None);
     if result.is_err() {
         unreachable!("unbudgeted JSON hashing cannot fail");
     }
@@ -197,14 +215,15 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 ///
 /// Returns [`BudgetError`] when a node, container, key, string, or number text
 /// exceeds the corresponding budget constraint.
-pub(crate) fn hash_json_with_budget<H, R>(
+pub(crate) fn hash_json_with_budget<H, R, Q>(
     value: &serde_json::Value,
     state: &mut H,
-    budget: &mut JsonValueBudget<R, u64>,
-) -> Result<(), BudgetError<R, u64>>
+    budget: &mut JsonValueBudget<R, Q>,
+) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     H: Hasher,
     R: Clone,
+    Q: ResourceQuantity,
 {
     hash_json_iterative(value, state, Some(budget))
 }
@@ -215,14 +234,15 @@ where
 /// behavior of [`hash_json`]. Container continuations visit one child at a
 /// time, so pending traversal storage depends on nesting depth rather than
 /// the width of any one array or object.
-fn hash_json_iterative<H, R>(
+fn hash_json_iterative<H, R, Q>(
     value: &serde_json::Value,
     state: &mut H,
-    mut budget: Option<&mut JsonValueBudget<R, u64>>,
-) -> Result<(), BudgetError<R, u64>>
+    mut budget: Option<&mut JsonValueBudget<R, Q>>,
+) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     H: Hasher,
     R: Clone,
+    Q: ResourceQuantity,
 {
     let mut frames = vec![HashFrame::Visit(value, 1)];
     let mut destinations = vec![HashDestination::Root(state)];
@@ -302,9 +322,7 @@ where
             }
             HashFrame::StartObjectEntry(key) => {
                 if let Some(budget) = budget.as_deref_mut() {
-                    budget.consume_key_bytes(
-                        u64::try_from(key.len()).expect("JSON key length must fit in u64"),
-                    )?;
+                    budget.consume_key_bytes_usize(key.len())?;
                 }
                 let mut entry = IdentityHasher::default().build_hasher();
                 key.hash(&mut entry);
@@ -339,40 +357,35 @@ where
 /// Charges one JSON node and checks its container or text-specific limits.
 ///
 /// A missing budget accepts the value without performing any work.
-fn check_value_budget<R>(
+fn check_value_budget<R, Q>(
     value: &serde_json::Value,
     depth: usize,
-    budget: Option<&mut JsonValueBudget<R, u64>>,
-) -> Result<(), BudgetError<R, u64>>
+    budget: Option<&mut JsonValueBudget<R, Q>>,
+) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     R: Clone,
+    Q: ResourceQuantity,
 {
     let Some(budget) = budget else {
         return Ok(());
     };
     match value {
-        serde_json::Value::Array(values) => budget.enter_array(
-            u64::try_from(depth).expect("JSON depth must fit in u64"),
-            u64::try_from(values.len()).expect("JSON array length must fit in u64"),
-        ),
-        serde_json::Value::Object(values) => budget.enter_object(
-            u64::try_from(depth).expect("JSON depth must fit in u64"),
-            u64::try_from(values.len()).expect("JSON object length must fit in u64"),
-        ),
+        serde_json::Value::Array(values) => {
+            budget.enter_array_usize(depth, values.len())
+        }
+        serde_json::Value::Object(values) => {
+            budget.enter_object_usize(depth, values.len())
+        }
         serde_json::Value::String(value) => {
-            budget.enter_node(u64::try_from(depth).expect("JSON depth must fit in u64"))?;
-            budget.consume_string_bytes(
-                u64::try_from(value.len()).expect("JSON string length must fit in u64"),
-            )
+            budget.enter_node_usize(depth)?;
+            budget.consume_string_bytes_usize(value.len())
         }
         serde_json::Value::Number(value) => {
-            budget.enter_node(u64::try_from(depth).expect("JSON depth must fit in u64"))?;
-            budget.consume_number_bytes(
-                u64::try_from(value.as_str().len()).expect("JSON number length must fit in u64"),
-            )
+            budget.enter_node_usize(depth)?;
+            budget.consume_number_bytes_usize(value.as_str().len())
         }
         serde_json::Value::Null | serde_json::Value::Bool(_) => {
-            budget.enter_node(u64::try_from(depth).expect("JSON depth must fit in u64"))
+            budget.enter_node_usize(depth)
         }
     }
 }
