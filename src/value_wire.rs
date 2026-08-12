@@ -148,8 +148,8 @@ pub(crate) fn decode_wire_json_slice_with_session(
     input: &[u8],
     session: &mut JsonDecodeSession,
 ) -> Result<ValueWireV1, ValueWireDecodeError> {
-    let envelope =
-        decode_slice::<WireEnvelopeOwned, _>(input, session).map_err(ValueWireDecodeError::from)?;
+    let envelope = decode_slice::<WireEnvelopeOwned, _, _>(input, session)
+        .map_err(ValueWireDecodeError::from)?;
     if envelope.version != VALUE_WIRE_V1_VERSION {
         return Err(ValueWireDecodeError::UnsupportedVersion {
             expected: VALUE_WIRE_V1_VERSION,
