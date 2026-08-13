@@ -22,6 +22,14 @@ include = [
     "/doc/**/user_guide*.md",
     "/src/**",
     "/tests/**",
+    "/.github/workflows/ci.yml",
+    "/.github/workflows/fuzz.yml",
+]
+
+[package.metadata.rs-ci]
+package-include-extra = [
+    "/.github/workflows/ci.yml",
+    "/.github/workflows/fuzz.yml",
 ]
 
 [lib]
@@ -84,7 +92,7 @@ url = { version = "2.5", features = ["serde"], optional = true }
 num-bigint = { version = "0.4", optional = true }
 bigdecimal = { version = "0.4", optional = true }
 
-qubit-datatype = { version = "0.10", path = "../rs-datatype", default-features = false }
+qubit-datatype = { version = "0.11", path = "../rs-datatype", default-features = false }
 qubit-redact = { version = "0.4", default-features = false, optional = true }
 
 [dev-dependencies]

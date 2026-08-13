@@ -102,7 +102,7 @@ Add the core crate and its type vocabulary to `Cargo.toml`:
 ```toml
 [dependencies]
 qubit-value = "0.10"
-qubit-datatype = { version = "0.10", default-features = false }
+qubit-datatype = { version = "0.11", default-features = false }
 ```
 
 The default feature set is empty. Enable only the families you use:

@@ -91,7 +91,7 @@ assert_eq!((first, second), (8080, 8081));
 ```toml
 [dependencies]
 qubit-value = "0.10"
-qubit-datatype = { version = "0.10", default-features = false }
+qubit-datatype = { version = "0.11", default-features = false }
 ```
 
 默认 feature 集为空。只启用实际使用的类型族：
