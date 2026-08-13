@@ -7,6 +7,7 @@
 // =============================================================================
 
 use qubit_datatype::DataConversionErrorKind;
+use qubit_datatype::DataConverter;
 use qubit_datatype::DataType;
 use qubit_value::Value;
 use qubit_value::ValueError;
@@ -30,4 +31,12 @@ fn test_value_converter_uses_default_only_for_empty_values() {
 
     let value = Value::String("actual".to_string());
     assert_eq!(value.to_or::<String>("fallback").unwrap(), "actual");
+}
+
+#[test]
+fn test_value_borrows_as_data_converter_without_reimplementing_dispatch() {
+    let value = Value::String("42".to_owned());
+    let source = DataConverter::from(&value);
+
+    assert_eq!(source.to::<i32>().unwrap(), 42);
 }
