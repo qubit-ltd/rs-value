@@ -14,11 +14,10 @@ use std::hash::Hasher;
 
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::ResourceQuantity;
-use qubit_json::JsonResource;
-use qubit_json::JsonValueBudget;
+use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonValueBudget;
 
-type IdentityHasher =
-    BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
+type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
 /// One pending operation in the iterative JSON hashing traversal.
 enum HashFrame<'a> {
@@ -124,10 +123,7 @@ struct ObjectHash {
 /// significant and array element order is significant.
 #[must_use]
 #[inline(always)]
-pub(crate) fn json_eq(
-    left: &serde_json::Value,
-    right: &serde_json::Value,
-) -> bool {
+pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bool {
     let mut pending = Vec::with_capacity(1);
     pending.push((left, right));
     while let Some((left, right)) = pending.pop() {
@@ -138,26 +134,17 @@ pub(crate) fn json_eq(
                     return false;
                 }
             }
-            (
-                serde_json::Value::Number(left),
-                serde_json::Value::Number(right),
-            ) => {
+            (serde_json::Value::Number(left), serde_json::Value::Number(right)) => {
                 if left != right {
                     return false;
                 }
             }
-            (
-                serde_json::Value::String(left),
-                serde_json::Value::String(right),
-            ) => {
+            (serde_json::Value::String(left), serde_json::Value::String(right)) => {
                 if left != right {
                     return false;
                 }
             }
-            (
-                serde_json::Value::Array(left),
-                serde_json::Value::Array(right),
-            ) => {
+            (serde_json::Value::Array(left), serde_json::Value::Array(right)) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -165,10 +152,7 @@ pub(crate) fn json_eq(
                     pending.push((left, right));
                 }
             }
-            (
-                serde_json::Value::Object(left),
-                serde_json::Value::Object(right),
-            ) => {
+            (serde_json::Value::Object(left), serde_json::Value::Object(right)) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -192,8 +176,7 @@ pub(crate) fn json_eq(
 /// * `value` - JSON tree to hash.
 /// * `state` - Destination hasher.
 pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
-    let result =
-        hash_json_iterative::<H, JsonResource, usize>(value, state, None);
+    let result = hash_json_iterative::<H, JsonResource, usize>(value, state, None);
     if result.is_err() {
         unreachable!("unbudgeted JSON hashing cannot fail");
     }
@@ -370,12 +353,8 @@ where
         return Ok(());
     };
     match value {
-        serde_json::Value::Array(values) => {
-            budget.enter_array_usize(depth, values.len())
-        }
-        serde_json::Value::Object(values) => {
-            budget.enter_object_usize(depth, values.len())
-        }
+        serde_json::Value::Array(values) => budget.enter_array_usize(depth, values.len()),
+        serde_json::Value::Object(values) => budget.enter_object_usize(depth, values.len()),
         serde_json::Value::String(value) => {
             budget.enter_node_usize(depth)?;
             budget.consume_string_bytes_usize(value.len())
@@ -384,8 +363,6 @@ where
             budget.enter_node_usize(depth)?;
             budget.consume_number_bytes_usize(value.as_str().len())
         }
-        serde_json::Value::Null | serde_json::Value::Bool(_) => {
-            budget.enter_node_usize(depth)
-        }
+        serde_json::Value::Null | serde_json::Value::Bool(_) => budget.enter_node_usize(depth),
     }
 }

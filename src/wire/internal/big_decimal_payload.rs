@@ -52,8 +52,8 @@ impl TryFrom<BigDecimalPayload> for BigDecimal {
         if !is_valid_big_decimal_scale(value.scale) {
             return Err("decimal scale exceeds the V1 maximum absolute scale");
         }
-        let coefficient = BigInt::from_str(&value.coefficient)
-            .map_err(|_| "invalid decimal coefficient")?;
+        let coefficient =
+            BigInt::from_str(&value.coefficient).map_err(|_| "invalid decimal coefficient")?;
         if coefficient.to_string() != value.coefficient {
             return Err("non-canonical decimal coefficient");
         }

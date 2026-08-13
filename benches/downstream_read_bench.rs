@@ -100,8 +100,7 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
         "scheduler".to_string(),
     ]))
     .expect("construct V1 wire");
-    let encoded = serde_json::to_vec(&wire)
-        .expect("benchmark wire value should serialize");
+    let encoded = serde_json::to_vec(&wire).expect("benchmark wire value should serialize");
 
     c.bench_function("value/value_wire_v1_encode_json_serde", |bencher| {
         bencher.iter(|| {
@@ -135,29 +134,24 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
         "value/value_wire_ref_v1_construct_and_encode_json_serde",
         |bencher| {
             bencher.iter(|| {
-                let wire =
-                    ValueWireRefV1::try_from(black_box(&borrowed_values))
-                        .expect("benchmark wire value should validate");
+                let wire = ValueWireRefV1::try_from(black_box(&borrowed_values))
+                    .expect("benchmark wire value should validate");
                 let bytes = serde_json::to_vec(black_box(&wire))
                     .expect("benchmark wire value should serialize");
                 black_box(bytes)
             });
         },
     );
-    c.bench_function(
-        "value/value_wire_ref_v1_encode_json_bounded",
-        |bencher| {
-            bencher.iter(|| {
-                let wire =
-                    ValueWireRefV1::try_from(black_box(&borrowed_values))
-                        .expect("benchmark wire value should validate");
-                let bytes = wire
-                    .to_json_vec()
-                    .expect("bounded wire value should serialize");
-                black_box(bytes)
-            });
-        },
-    );
+    c.bench_function("value/value_wire_ref_v1_encode_json_bounded", |bencher| {
+        bencher.iter(|| {
+            let wire = ValueWireRefV1::try_from(black_box(&borrowed_values))
+                .expect("benchmark wire value should validate");
+            let bytes = wire
+                .to_json_vec()
+                .expect("bounded wire value should serialize");
+            black_box(bytes)
+        });
+    });
 
     let borrowed_float_values = ValueContainer::from(
         (0..256)
@@ -180,9 +174,8 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
         "value/value_wire_ref_v1_float_construct_and_encode_json_serde",
         |bencher| {
             bencher.iter(|| {
-                let wire =
-                    ValueWireRefV1::try_from(black_box(&borrowed_float_values))
-                        .expect("benchmark float wire should validate");
+                let wire = ValueWireRefV1::try_from(black_box(&borrowed_float_values))
+                    .expect("benchmark float wire should validate");
                 let bytes = serde_json::to_vec(black_box(&wire))
                     .expect("benchmark float wire should serialize");
                 black_box(bytes)

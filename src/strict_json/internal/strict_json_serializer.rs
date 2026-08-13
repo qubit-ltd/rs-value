@@ -214,11 +214,7 @@ impl Serializer for StrictJsonSerializer {
 
     /// Delegates a newtype struct to its wrapped value.
     #[inline(always)]
-    fn serialize_newtype_struct<T>(
-        self,
-        _name: &'static str,
-        value: &T,
-    ) -> Result<Value>
+    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<Value>
     where
         T: ?Sized + Serialize,
     {
@@ -288,11 +284,7 @@ impl Serializer for StrictJsonSerializer {
 
     /// Creates a struct serializer with the declared capacity.
     #[inline(always)]
-    fn serialize_struct(
-        self,
-        name: &'static str,
-        len: usize,
-    ) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
         if name == super::json_number_serializer::NUMBER_TOKEN {
             return Ok(StructSerializer::Number(None));
         }

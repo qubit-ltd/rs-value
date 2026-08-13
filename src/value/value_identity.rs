@@ -15,7 +15,7 @@ use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::ResourceQuantity;
 #[cfg(feature = "json")]
-use qubit_json::JsonValueBudget;
+use qubit_budget::json::JsonValueBudget;
 
 use super::Value;
 use super::ValueRepr;

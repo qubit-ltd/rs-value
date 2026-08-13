@@ -22,9 +22,9 @@ use std::hash::Hasher;
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::ResourceQuantity;
-use qubit_datatype::DataType;
 #[cfg(feature = "json")]
-use qubit_json::JsonValueBudget;
+use qubit_budget::json::JsonValueBudget;
+use qubit_datatype::DataType;
 
 #[cfg(feature = "json")]
 use super::multi_values_identity::hash_multi_values_payload_with_json_budget;
@@ -191,7 +191,7 @@ impl MultiValues {
     /// use std::collections::hash_map::DefaultHasher;
     ///
     /// use qubit_budget::{ResourceLimit, StructureLimits};
-    /// use qubit_json::{JsonResource, JsonValueBudget, JsonValueLimits};
+    /// use qubit_budget::json::{JsonResource, JsonValueBudget, JsonValueLimits};
     /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Json(vec![serde_json::json!([null])]);
@@ -226,9 +226,7 @@ impl MultiValues {
     #[inline(always)]
     pub fn view(&self) -> MultiValuesRef<'_> {
         match &self.repr {
-            MultiValuesRepr::Unset(data_type) => {
-                MultiValuesRef::Unset(*data_type)
-            }
+            MultiValuesRepr::Unset(data_type) => MultiValuesRef::Unset(*data_type),
             MultiValuesRepr::Bool(values) => MultiValuesRef::Bool(values),
             MultiValuesRepr::Char(values) => MultiValuesRef::Char(values),
             MultiValuesRepr::Int8(values) => MultiValuesRef::Int8(values),
@@ -244,32 +242,22 @@ impl MultiValues {
             MultiValuesRepr::Float32(values) => MultiValuesRef::Float32(values),
             MultiValuesRepr::Float64(values) => MultiValuesRef::Float64(values),
             #[cfg(feature = "big-integer")]
-            MultiValuesRepr::BigInteger(values) => {
-                MultiValuesRef::BigInteger(values)
-            }
+            MultiValuesRepr::BigInteger(values) => MultiValuesRef::BigInteger(values),
             #[cfg(feature = "big-decimal")]
-            MultiValuesRepr::BigDecimal(values) => {
-                MultiValuesRef::BigDecimal(values)
-            }
+            MultiValuesRepr::BigDecimal(values) => MultiValuesRef::BigDecimal(values),
             MultiValuesRepr::String(values) => MultiValuesRef::String(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Date(values) => MultiValuesRef::Date(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Time(values) => MultiValuesRef::Time(values),
             #[cfg(feature = "chrono")]
-            MultiValuesRepr::DateTime(values) => {
-                MultiValuesRef::DateTime(values)
-            }
+            MultiValuesRepr::DateTime(values) => MultiValuesRef::DateTime(values),
             #[cfg(feature = "chrono")]
             MultiValuesRepr::Instant(values) => MultiValuesRef::Instant(values),
-            MultiValuesRepr::Duration(values) => {
-                MultiValuesRef::Duration(values)
-            }
+            MultiValuesRepr::Duration(values) => MultiValuesRef::Duration(values),
             #[cfg(feature = "url")]
             MultiValuesRepr::Url(values) => MultiValuesRef::Url(values),
-            MultiValuesRepr::StringMap(values) => {
-                MultiValuesRef::StringMap(values)
-            }
+            MultiValuesRepr::StringMap(values) => MultiValuesRef::StringMap(values),
             #[cfg(feature = "json")]
             MultiValuesRepr::Json(values) => MultiValuesRef::Json(values),
         }

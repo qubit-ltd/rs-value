@@ -12,17 +12,17 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
-use qubit_json::JsonDecodeLimits;
+use qubit_budget::json::JsonDecodeLimits;
 #[cfg(feature = "json")]
-use qubit_json::JsonDecodeSession;
+use qubit_budget::json::JsonDecodeSession;
 #[cfg(feature = "json")]
-use qubit_json::JsonEncodeLimits;
+use qubit_budget::json::JsonEncodeLimits;
 #[cfg(feature = "json")]
-use qubit_json::JsonEncodeSession;
+use qubit_budget::json::JsonEncodeSession;
 #[cfg(feature = "json")]
-use qubit_json::encode_to_vec;
+use qubit_json::text::encode_to_vec;
 #[cfg(feature = "json")]
-use qubit_json::encode_to_writer;
+use qubit_json::text::encode_to_writer;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -99,7 +99,7 @@ impl ValueWireV1 {
     ///
     /// The complete input length and decoded structure are checked before the
     /// value is returned. Embedded protocols should share one
-    /// [`qubit_json::JsonDecodeSession`] across their complete document.
+    /// [`qubit_budget::json::JsonDecodeSession`] across their complete document.
     ///
     /// # Parameters
     ///
@@ -117,20 +117,15 @@ impl ValueWireV1 {
     /// [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(
-            input,
-            Self::default_json_decode_limits(),
-        )
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, Self::default_json_decode_limits())
     }
 
     /// Decodes a V1 JSON wire value using explicit structural limits.
     ///
     /// The complete input length and decoded structure are checked before the
     /// value is returned. Embedded values should be checked through the outer
-    /// protocol's shared [`qubit_json::JsonDecodeSession`].
+    /// protocol's shared [`qubit_budget::json::JsonDecodeSession`].
     ///
     /// # Parameters
     ///
@@ -195,17 +190,11 @@ impl ValueWireV1 {
     /// [`ValueWireEncodeError::Io`] when `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer<W>(
-        &self,
-        writer: W,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        self.to_json_writer_with_limits(
-            writer,
-            Self::default_json_encode_limits(),
-        )
+        self.to_json_writer_with_limits(writer, Self::default_json_encode_limits())
     }
 
     /// Encodes this V1 document to a writer after enforcing JSON budgets.
@@ -219,8 +208,7 @@ impl ValueWireV1 {
         W: Write,
     {
         let mut session = JsonEncodeSession::owned(limits);
-        encode_to_writer(writer, self, &mut session)
-            .map_err(ValueWireEncodeError::from)
+        encode_to_writer(writer, self, &mut session).map_err(ValueWireEncodeError::from)
     }
 
     /// Returns the runtime container represented by this DTO.

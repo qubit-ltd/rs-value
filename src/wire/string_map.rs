@@ -37,12 +37,9 @@ where
 }
 
 /// Deserializes one string map from any Serde map representation.
-pub(crate) fn deserialize<'de, D>(
-    deserializer: D,
-) -> Result<HashMap<String, String>, D::Error>
+pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    StrictStringMap::<String>::deserialize(deserializer)
-        .map(StrictStringMap::into_inner)
+    StrictStringMap::<String>::deserialize(deserializer).map(StrictStringMap::into_inner)
 }

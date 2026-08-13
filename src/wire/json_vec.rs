@@ -19,10 +19,7 @@ use super::internal::CanonicalJson;
 use super::internal::StrictJsonValue;
 
 /// Serializes JSON values in a collection with recursively ordered keys.
-pub(crate) fn serialize<S>(
-    values: &[Value],
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+pub(crate) fn serialize<S>(values: &[Value], serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -34,9 +31,7 @@ where
 }
 
 /// Deserializes a collection of JSON values.
-pub(crate) fn deserialize<'de, D>(
-    deserializer: D,
-) -> Result<Vec<Value>, D::Error>
+pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Value>, D::Error>
 where
     D: Deserializer<'de>,
 {
