@@ -47,7 +47,9 @@ pub enum ValueWireEncodeError {
     },
     /// A JSON V1 object uses serde_json's private number marker key.
     #[cfg(feature = "json")]
-    #[error("V1 JSON wire cannot represent an object containing the reserved key '{key}'")]
+    #[error(
+        "V1 JSON wire cannot represent an object containing the reserved key '{key}'"
+    )]
     ReservedJsonObjectKey {
         /// Key reserved by serde_json's arbitrary-precision representation.
         key: &'static str,
@@ -59,7 +61,9 @@ pub enum ValueWireEncodeError {
     /// A native JSON measurement could not be represented by the budget
     /// quantity type.
     #[cfg(feature = "json")]
-    #[error("V1 JSON wire resource quantity conversion failed for {resource:?}: {source}")]
+    #[error(
+        "V1 JSON wire resource quantity conversion failed for {resource:?}: {source}"
+    )]
     Quantity {
         /// Resource whose measurement failed.
         resource: JsonResource,
@@ -92,9 +96,8 @@ impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
                     Self::Quantity { resource, source }
                 }
             },
-            JsonEncodeError::InvalidRawJson(error) | JsonEncodeError::Serialize(error) => {
-                Self::Json(error)
-            }
+            JsonEncodeError::InvalidRawJson(error)
+            | JsonEncodeError::Serialize(error) => Self::Json(error),
             JsonEncodeError::Write(error) => Self::Io(error),
         }
     }

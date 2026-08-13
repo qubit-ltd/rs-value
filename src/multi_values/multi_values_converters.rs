@@ -221,12 +221,17 @@ impl MultiValues {
     /// Returns an empty-collection error for a concrete empty vector, or a
     /// conversion error when the first value cannot be converted to `T`.
     #[inline]
-    pub fn to_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
+    pub fn to_first_or<T>(
+        &self,
+        default: impl IntoValueDefault<T>,
+    ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
         match self.to_first() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+            Err(ValueError::Missing(missing))
+                if missing.is_defaultable_for_conversion() =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -261,7 +266,9 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+            Err(ValueError::Missing(missing))
+                if missing.is_defaultable_for_conversion() =>
+            {
                 Ok(default())
             }
             result => result,
@@ -298,11 +305,19 @@ impl MultiValues {
     where
         T: DataConversionTarget,
     {
-        for_each_value_type!(multi_values_convert_first_match, self, policy, limits)
+        for_each_value_type!(
+            multi_values_convert_first_match,
+            self,
+            policy,
+            limits
+        )
     }
 
     /// Converts the first stored value using an existing conversion session.
-    pub fn to_first_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
+    pub fn to_first_in<T>(
+        &self,
+        session: &mut ConversionSession<'_>,
+    ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -343,7 +358,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_first_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+            Err(ValueError::Missing(missing))
+                if missing.is_defaultable_for_conversion() =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -384,7 +401,9 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+            Err(ValueError::Missing(missing))
+                if missing.is_defaultable_for_conversion() =>
+            {
                 Ok(default())
             }
             result => result,
@@ -441,12 +460,17 @@ impl MultiValues {
     ///
     /// Returns the first item conversion error for concrete storage.
     #[inline]
-    pub fn to_list_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
+    pub fn to_list_or<T>(
+        &self,
+        default: impl IntoValueDefault<Vec<T>>,
+    ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
         match self.to_list() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+            Err(ValueError::Missing(missing))
+                if missing.is_defaultable_for_conversion() =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -481,7 +505,9 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+            Err(ValueError::Missing(missing))
+                if missing.is_defaultable_for_conversion() =>
+            {
                 Ok(default())
             }
             result => result,
@@ -517,11 +543,19 @@ impl MultiValues {
     where
         T: DataConversionTarget,
     {
-        for_each_value_type!(multi_values_convert_list_match, self, policy, limits)
+        for_each_value_type!(
+            multi_values_convert_list_match,
+            self,
+            policy,
+            limits
+        )
     }
 
     /// Converts every stored value using an existing conversion session.
-    pub fn to_list_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<Vec<T>>
+    pub fn to_list_in<T>(
+        &self,
+        session: &mut ConversionSession<'_>,
+    ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
@@ -560,7 +594,9 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         match self.to_list_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+            Err(ValueError::Missing(missing))
+                if missing.is_defaultable_for_conversion() =>
+            {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -601,7 +637,9 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+            Err(ValueError::Missing(missing))
+                if missing.is_defaultable_for_conversion() =>
+            {
                 Ok(default())
             }
             result => result,
