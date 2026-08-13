@@ -36,13 +36,31 @@ fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
     for_each_value_type!(value_data_converter_match, value)
 }
 
-/// Converts a single `Value` into `T` using shared conversion helpers and
-/// options.
+impl<'a> From<&'a Value> for DataConverter<'a> {
+    /// Borrows a runtime value as a shared conversion source.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Runtime value whose storage is exposed to the converter.
+    ///
+    /// # Returns
+    ///
+    /// A [`DataConverter`] borrowing rich payloads from `value` without
+    /// cloning them.
+    #[inline(always)]
+    fn from(value: &'a Value) -> Self {
+        data_converter_from_value(value)
+    }
+}
+
+/// Converts a single `Value` into `T` using shared conversion helpers,
+/// conversion policy, and resource limits.
 ///
 /// # Parameters
 ///
 /// * `value` - Source value to convert.
-/// * `options` - Conversion options forwarded to `qubit_datatype`.
+/// * `policy` - Conversion policy forwarded to `qubit_datatype`.
+/// * `limits` - Conversion limits forwarded to `qubit_datatype`.
 ///
 /// # Returns
 ///
