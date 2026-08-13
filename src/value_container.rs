@@ -539,7 +539,8 @@ impl ValueContainer {
         )
     }
 
-    /// Converts a scalar or the first collection item using explicit policy and limits.
+    /// Converts a scalar or the first collection item using explicit policy and
+    /// limits.
     ///
     /// # Type Parameters
     ///
