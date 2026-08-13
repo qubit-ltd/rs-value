@@ -10,6 +10,7 @@
 // qubit-style: allow multiple-public-types
 
 use qubit_budget::BudgetError;
+use qubit_budget::MeasuredBudgetError;
 use qubit_budget::QuantityConversionError;
 use qubit_budget::json::JsonResource;
 use qubit_json::text::JsonDecodeError;
@@ -60,8 +61,8 @@ impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
     fn from(error: JsonDecodeError<JsonResource>) -> Self {
         match error {
             JsonDecodeError::Budget(error) => match error {
-                qubit_budget::MeasuredBudgetError::Budget(error) => Self::Budget(error),
-                qubit_budget::MeasuredBudgetError::Quantity { resource, source } => {
+                MeasuredBudgetError::Budget(error) => Self::Budget(error),
+                MeasuredBudgetError::Quantity { resource, source } => {
                     Self::Quantity { resource, source }
                 }
             },
