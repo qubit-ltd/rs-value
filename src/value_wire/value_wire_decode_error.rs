@@ -14,6 +14,7 @@ use qubit_budget::MeasuredBudgetError;
 use qubit_budget::QuantityConversionError;
 use qubit_budget::json::JsonResource;
 use qubit_json::text::JsonDecodeError;
+use qubit_json::text::JsonDeserializeError;
 use qubit_json::text::JsonSyntaxError;
 use serde_json::Error as JsonError;
 use thiserror::Error;
@@ -82,6 +83,8 @@ impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
 impl From<JsonError> for ValueWireDecodeError {
     #[inline]
     fn from(error: JsonError) -> Self {
-        Self::InvalidJson(error)
+        Self::InvalidJson(<JsonError as serde::de::Error>::custom(
+            JsonDeserializeError::from(error),
+        ))
     }
 }
