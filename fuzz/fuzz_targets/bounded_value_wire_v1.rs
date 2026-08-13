@@ -11,9 +11,9 @@
 
 use libfuzzer_sys::fuzz_target;
 use qubit_budget::ResourceLimit;
-use qubit_json::JsonDecodeLimits;
-use qubit_json::JsonEncodeLimits;
-use qubit_json::JsonResource;
+use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonEncodeLimits;
+use qubit_budget::json::JsonResource;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireV1;
 
@@ -56,7 +56,8 @@ fuzz_target!(|data: &[u8]| {
             assert_eq!(decoded, value);
         }
         Err(
-            ValueWireDecodeError::InvalidJson(_)
+            ValueWireDecodeError::Syntax(_)
+            | ValueWireDecodeError::InvalidJson(_)
             | ValueWireDecodeError::Budget(_)
             | ValueWireDecodeError::UnsupportedVersion { .. },
         ) => {}
