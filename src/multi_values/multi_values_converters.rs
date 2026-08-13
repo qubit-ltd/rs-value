@@ -96,7 +96,7 @@ macro_rules! multi_values_convert_list_in_match {
 // Inherent conversion APIs
 // ============================================================================
 
-/// Converts the first item from a batch converter using conversion options.
+/// Converts the first item from a batch converter using conversion policy and limits.
 ///
 /// # Type Parameters
 ///
@@ -106,7 +106,8 @@ macro_rules! multi_values_convert_list_in_match {
 /// # Parameters
 ///
 /// * `values` - Batch converter containing source values.
-/// * `options` - Conversion options forwarded to `qubit_datatype`.
+/// * `policy` - Conversion policy forwarded to `qubit_datatype`.
+/// * `limits` - Conversion limits forwarded to `qubit_datatype`.
 ///
 /// # Returns
 ///
@@ -132,7 +133,7 @@ where
         .map_err(ValueError::from)
 }
 
-/// Converts every item from a batch converter using conversion options.
+/// Converts every item from a batch converter using conversion policy and limits.
 ///
 /// # Type Parameters
 ///
@@ -142,7 +143,8 @@ where
 /// # Parameters
 ///
 /// * `values` - Batch converter containing source values.
-/// * `options` - Conversion options forwarded to `qubit_datatype`.
+/// * `policy` - Conversion policy forwarded to `qubit_datatype`.
+/// * `limits` - Conversion limits forwarded to `qubit_datatype`.
 ///
 /// # Returns
 ///
@@ -275,10 +277,10 @@ impl MultiValues {
         }
     }
 
-    /// Converts the first stored value to `T` using conversion options.
+    /// Converts the first stored value to `T` using conversion policy and limits.
     ///
     /// Stored strings are collection items and are never split again by scalar
-    /// string collection options.
+    /// string collection policy.
     ///
     /// # Type Parameters
     ///
@@ -286,7 +288,8 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `options` - Conversion options forwarded to `qubit_datatype`.
+    /// * `policy` - Conversion policy forwarded to `qubit_datatype`.
+    /// * `limits` - Conversion limits forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///
@@ -324,7 +327,7 @@ impl MultiValues {
         for_each_value_type!(multi_values_convert_first_in_match, self, session)
     }
 
-    /// Converts the first stored value to `T` using conversion options, or
+    /// Converts the first stored value to `T` using conversion policy and limits, or
     /// returns `default` when storage is unset or conversion reports a missing
     /// value.
     ///
@@ -336,7 +339,8 @@ impl MultiValues {
     ///
     /// * `default` - Lazily materialized value used for unset storage or a
     ///   conversion-missing result.
-    /// * `options` - Conversion options forwarded to `qubit_datatype`.
+    /// * `policy` - Conversion policy forwarded to `qubit_datatype`.
+    /// * `limits` - Conversion limits forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///
@@ -346,7 +350,7 @@ impl MultiValues {
     /// # Errors
     ///
     /// Returns an empty-collection error or a conversion error for concrete
-    /// values that cannot be converted under `options`.
+    /// values that cannot be converted under the provided policy and limits.
     #[inline]
     pub fn to_first_or_with<T>(
         &self,
@@ -367,7 +371,7 @@ impl MultiValues {
         }
     }
 
-    /// Converts the first value with `options`, or calls `default` when storage
+    /// Converts the first value with the provided policy and limits, or calls `default` when storage
     /// is unset or conversion reports a missing value.
     ///
     /// # Type Parameters
@@ -379,7 +383,8 @@ impl MultiValues {
     ///
     /// * `default` - Callback invoked for unset storage or a conversion-missing
     ///   result.
-    /// * `options` - Conversion options forwarded to the shared converter.
+    /// * `policy` - Conversion policy forwarded to the shared converter.
+    /// * `limits` - Conversion limits forwarded to the shared converter.
     ///
     /// # Returns
     ///
@@ -514,10 +519,10 @@ impl MultiValues {
         }
     }
 
-    /// Converts all stored values to `T` using conversion options.
+    /// Converts all stored values to `T` using conversion policy and limits.
     ///
     /// Stored strings are collection items and are never split again by scalar
-    /// string collection options.
+    /// string collection policy.
     ///
     /// # Type Parameters
     ///
@@ -525,7 +530,8 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `options` - Conversion options forwarded to `qubit_datatype`.
+    /// * `policy` - Conversion policy forwarded to `qubit_datatype`.
+    /// * `limits` - Conversion limits forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///
@@ -562,7 +568,7 @@ impl MultiValues {
         for_each_value_type!(multi_values_convert_list_in_match, self, session)
     }
 
-    /// Converts all stored values to `T` using conversion options, or returns
+    /// Converts all stored values to `T` using conversion policy and limits, or returns
     /// `default` when storage is unset or conversion reports a missing value.
     ///
     /// # Type Parameters
@@ -573,7 +579,8 @@ impl MultiValues {
     ///
     /// * `default` - Lazily materialized list used for unset storage or a
     ///   conversion-missing result.
-    /// * `options` - Conversion options forwarded to `qubit_datatype`.
+    /// * `policy` - Conversion policy forwarded to `qubit_datatype`.
+    /// * `limits` - Conversion limits forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///
@@ -603,7 +610,7 @@ impl MultiValues {
         }
     }
 
-    /// Converts all values with `options`, or calls `default` when storage is
+    /// Converts all values with the provided policy and limits, or calls `default` when storage is
     /// unset or conversion reports a missing value.
     ///
     /// # Type Parameters
@@ -615,7 +622,8 @@ impl MultiValues {
     ///
     /// * `default` - Callback invoked for unset storage or a conversion-missing
     ///   result.
-    /// * `options` - Conversion options forwarded to the shared converter.
+    /// * `policy` - Conversion policy forwarded to the shared converter.
+    /// * `limits` - Conversion limits forwarded to the shared converter.
     ///
     /// # Returns
     ///

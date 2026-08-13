@@ -539,7 +539,7 @@ impl ValueContainer {
         )
     }
 
-    /// Converts a scalar or the first collection item using explicit options.
+    /// Converts a scalar or the first collection item using explicit policy and limits.
     ///
     /// # Type Parameters
     ///
@@ -547,7 +547,8 @@ impl ValueContainer {
     ///
     /// # Parameters
     ///
-    /// * `options` - Conversion options forwarded to the contained value.
+    /// * `policy` - Conversion policy forwarded to the contained value.
+    /// * `limits` - Conversion limits forwarded to the contained value.
     ///
     /// # Returns
     ///
@@ -591,7 +592,7 @@ impl ValueContainer {
 
     /// Converts a scalar to a list or converts every collection item.
     ///
-    /// Scalar strings may be split according to collection conversion options;
+    /// Scalar strings may be split according to collection conversion policy;
     /// strings already stored in a collection are never split again.
     ///
     /// # Type Parameters
@@ -617,7 +618,7 @@ impl ValueContainer {
         )
     }
 
-    /// Converts to a list using explicit conversion options.
+    /// Converts to a list using explicit conversion policy and limits.
     ///
     /// # Type Parameters
     ///
@@ -625,7 +626,8 @@ impl ValueContainer {
     ///
     /// # Parameters
     ///
-    /// * `options` - Conversion options forwarded to the contained value.
+    /// * `policy` - Conversion policy forwarded to the contained value.
+    /// * `limits` - Conversion limits forwarded to the contained value.
     ///
     /// # Returns
     ///

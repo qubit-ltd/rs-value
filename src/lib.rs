@@ -28,7 +28,7 @@
 //! - [`Value::get`] and [`MultiValues::get`] perform strict typed reads.
 //! - [`ValueContainer`] preserves whether the source supplied a scalar or an
 //!   explicit collection, even when the collection contains one item.
-//! - `to` methods use `qubit-datatype` conversion rules and options.
+//! - `to` methods use `qubit-datatype` conversion policy and resource limits.
 //! - Optional type families and conversion methods are available only when the
 //!   corresponding crate features are enabled; all-features documentation shows
 //!   the superset of those APIs.
