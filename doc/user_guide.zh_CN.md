@@ -103,7 +103,7 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-datatype = { version = "0.10", default-features = false }
+qubit-datatype = { version = "0.11", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```
