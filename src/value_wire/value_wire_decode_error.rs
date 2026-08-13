@@ -28,7 +28,9 @@ pub enum ValueWireDecodeError {
 
     /// A native JSON measurement could not be represented by the budget
     /// quantity type.
-    #[error("V1 JSON wire resource quantity conversion failed for {resource:?}: {source}")]
+    #[error(
+        "V1 JSON wire resource quantity conversion failed for {resource:?}: {source}"
+    )]
     Quantity {
         /// Resource whose measurement failed.
         resource: JsonResource,
@@ -42,7 +44,9 @@ pub enum ValueWireDecodeError {
     Syntax(#[source] JsonSyntaxError),
 
     /// The envelope declares a wire version that this decoder does not support.
-    #[error("unsupported qubit-value wire version {actual}; expected {expected}")]
+    #[error(
+        "unsupported qubit-value wire version {actual}; expected {expected}"
+    )]
     UnsupportedVersion {
         /// Wire version accepted by this decoder.
         expected: u8,
