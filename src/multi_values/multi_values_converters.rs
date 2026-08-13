@@ -96,7 +96,8 @@ macro_rules! multi_values_convert_list_in_match {
 // Inherent conversion APIs
 // ============================================================================
 
-/// Converts the first item from a batch converter using conversion policy and limits.
+/// Converts the first item from a batch converter using conversion policy and
+/// limits.
 ///
 /// # Type Parameters
 ///
@@ -133,7 +134,8 @@ where
         .map_err(ValueError::from)
 }
 
-/// Converts every item from a batch converter using conversion policy and limits.
+/// Converts every item from a batch converter using conversion policy and
+/// limits.
 ///
 /// # Type Parameters
 ///
@@ -277,7 +279,8 @@ impl MultiValues {
         }
     }
 
-    /// Converts the first stored value to `T` using conversion policy and limits.
+    /// Converts the first stored value to `T` using conversion policy and
+    /// limits.
     ///
     /// Stored strings are collection items and are never split again by scalar
     /// string collection policy.
@@ -327,9 +330,9 @@ impl MultiValues {
         for_each_value_type!(multi_values_convert_first_in_match, self, session)
     }
 
-    /// Converts the first stored value to `T` using conversion policy and limits, or
-    /// returns `default` when storage is unset or conversion reports a missing
-    /// value.
+    /// Converts the first stored value to `T` using conversion policy and
+    /// limits, or returns `default` when storage is unset or conversion
+    /// reports a missing value.
     ///
     /// # Type Parameters
     ///
@@ -371,8 +374,9 @@ impl MultiValues {
         }
     }
 
-    /// Converts the first value with the provided policy and limits, or calls `default` when storage
-    /// is unset or conversion reports a missing value.
+    /// Converts the first value with the provided policy and limits, or calls
+    /// `default` when storage is unset or conversion reports a missing
+    /// value.
     ///
     /// # Type Parameters
     ///
@@ -568,8 +572,9 @@ impl MultiValues {
         for_each_value_type!(multi_values_convert_list_in_match, self, session)
     }
 
-    /// Converts all stored values to `T` using conversion policy and limits, or returns
-    /// `default` when storage is unset or conversion reports a missing value.
+    /// Converts all stored values to `T` using conversion policy and limits, or
+    /// returns `default` when storage is unset or conversion reports a
+    /// missing value.
     ///
     /// # Type Parameters
     ///
@@ -610,8 +615,9 @@ impl MultiValues {
         }
     }
 
-    /// Converts all values with the provided policy and limits, or calls `default` when storage is
-    /// unset or conversion reports a missing value.
+    /// Converts all values with the provided policy and limits, or calls
+    /// `default` when storage is unset or conversion reports a missing
+    /// value.
     ///
     /// # Type Parameters
     ///

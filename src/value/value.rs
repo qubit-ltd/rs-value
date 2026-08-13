@@ -624,12 +624,13 @@ impl Value {
         }
     }
 
-    /// Converts this value to `T` using the provided conversion policy and limits.
+    /// Converts this value to `T` using the provided conversion policy and
+    /// limits.
     ///
     /// This method uses the shared [`qubit_datatype`] conversion layer
-    /// directly, so policy settings such as string trimming, blank string handling,
-    /// and boolean aliases are applied consistently with other value
-    /// containers.
+    /// directly, so policy settings such as string trimming, blank string
+    /// handling, and boolean aliases are applied consistently with other
+    /// value containers.
     ///
     /// # Type Parameters
     ///
@@ -677,8 +678,9 @@ impl Value {
         super::value_converters::convert_with_data_converter_in(self, session)
     }
 
-    /// Converts this value to `T` using conversion policy and limits, or returns
-    /// `default` when storage is unset or conversion reports a missing value.
+    /// Converts this value to `T` using conversion policy and limits, or
+    /// returns `default` when storage is unset or conversion reports a
+    /// missing value.
     ///
     /// Conversion failures from concrete values are preserved.
     ///
@@ -723,8 +725,9 @@ impl Value {
         }
     }
 
-    /// Converts this value with the provided policy and limits, or calls `default` when storage is
-    /// unset or conversion reports a missing value.
+    /// Converts this value with the provided policy and limits, or calls
+    /// `default` when storage is unset or conversion reports a missing
+    /// value.
     ///
     /// # Type Parameters
     ///
