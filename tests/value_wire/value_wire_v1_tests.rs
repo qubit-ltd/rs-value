@@ -105,17 +105,26 @@ fn test_value_wire_v1_rejects_oversized_input_before_parsing() {
 }
 
 #[test]
-fn test_value_wire_v1_reports_malformed_bounded_input() {
+fn test_value_wire_v1_reports_malformed_bounded_input_as_syntax() {
     let input = b"not JSON";
     let limits = JsonDecodeLimits::default().with_max_input_bytes(input.len());
 
     let error = ValueWireV1::decode_json_slice_with_limits(input, limits)
         .expect_err("malformed bounded input must fail");
 
-    assert!(matches!(
-        error,
-        ValueWireDecodeError::InvalidJson(_) | ValueWireDecodeError::Syntax(_)
-    ));
+    assert!(matches!(error, ValueWireDecodeError::Syntax(_)));
+}
+
+#[test]
+fn test_value_wire_v1_reports_typed_mismatch_as_invalid_json() {
+    let error =
+        ValueWireV1::decode_json_slice(br#"{"version":1,"value":false}"#)
+            .expect_err("a boolean is not a V1 payload");
+
+    assert!(
+        matches!(error, ValueWireDecodeError::InvalidJson(_)),
+        "valid JSON with an invalid V1 DTO must be a typed decode error: {error:?}"
+    );
 }
 
 #[test]
