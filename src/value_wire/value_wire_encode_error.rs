@@ -11,6 +11,8 @@
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
+use qubit_budget::MeasuredBudgetError;
+#[cfg(feature = "json")]
 use qubit_budget::QuantityConversionError;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonResource;
@@ -85,8 +87,8 @@ impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
     fn from(error: JsonEncodeError<JsonResource>) -> Self {
         match error {
             JsonEncodeError::Budget(error) => match error {
-                qubit_budget::MeasuredBudgetError::Budget(error) => Self::Budget(error),
-                qubit_budget::MeasuredBudgetError::Quantity { resource, source } => {
+                MeasuredBudgetError::Budget(error) => Self::Budget(error),
+                MeasuredBudgetError::Quantity { resource, source } => {
                     Self::Quantity { resource, source }
                 }
             },
