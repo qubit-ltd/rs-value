@@ -24,11 +24,13 @@ use qubit_value::Value;
 fn test_value_numeric_cmp_compares_across_numeric_variants() {
     assert_ne!(Value::Int32(1), Value::Int64(1));
     assert_eq!(
-        Value::Int32(1).numeric_cmp(&Value::Int64(1), NumericComparisonPolicy::Exact),
+        Value::Int32(1)
+            .numeric_cmp(&Value::Int64(1), NumericComparisonPolicy::Exact),
         Ok(Ordering::Equal)
     );
     assert_eq!(
-        Value::Int128(-1).numeric_cmp(&Value::UInt128(0), NumericComparisonPolicy::Exact),
+        Value::Int128(-1)
+            .numeric_cmp(&Value::UInt128(0), NumericComparisonPolicy::Exact),
         Ok(Ordering::Less)
     );
 }
@@ -53,7 +55,8 @@ fn test_value_numeric_cmp_applies_explicit_policy() {
 #[test]
 fn test_value_numeric_cmp_distinguishes_missing_and_non_numeric_operands() {
     assert_eq!(
-        Value::Unset(DataType::Int32).numeric_cmp(&Value::Int32(1), NumericComparisonPolicy::Exact),
+        Value::Unset(DataType::Int32)
+            .numeric_cmp(&Value::Int32(1), NumericComparisonPolicy::Exact),
         Err(NumericComparisonError::LeftMissing {
             declared: DataType::Int32,
         }),
@@ -77,13 +80,15 @@ fn test_value_numeric_cmp_distinguishes_missing_and_non_numeric_operands() {
         }),
     );
     assert_eq!(
-        Value::String("x".to_owned()).numeric_cmp(&Value::Int32(1), NumericComparisonPolicy::Exact),
+        Value::String("x".to_owned())
+            .numeric_cmp(&Value::Int32(1), NumericComparisonPolicy::Exact),
         Err(NumericComparisonError::LeftNotNumeric {
             actual: DataType::String,
         }),
     );
     assert_eq!(
-        Value::Int32(1).numeric_cmp(&Value::Bool(true), NumericComparisonPolicy::Exact),
+        Value::Int32(1)
+            .numeric_cmp(&Value::Bool(true), NumericComparisonPolicy::Exact),
         Err(NumericComparisonError::RightNotNumeric {
             actual: DataType::Bool,
         }),
@@ -104,7 +109,10 @@ fn test_value_numeric_cmp_reports_nan_position_after_type_validation() {
         Err(NumericComparisonError::RightNaN),
     );
     assert_eq!(
-        nan.numeric_cmp(&Value::Float32(f32::NAN), NumericComparisonPolicy::Exact),
+        nan.numeric_cmp(
+            &Value::Float32(f32::NAN),
+            NumericComparisonPolicy::Exact
+        ),
         Err(NumericComparisonError::BothNaN),
     );
     assert_eq!(

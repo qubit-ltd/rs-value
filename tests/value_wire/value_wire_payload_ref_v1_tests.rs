@@ -21,7 +21,8 @@ use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWirePayloadRefV1;
 
 #[cfg(feature = "json")]
-const DEEP_JSON_RESERVED_KEY_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_RESERVED_KEY_CHILD";
+const DEEP_JSON_RESERVED_KEY_CHILD_ENV: &str =
+    "QUBIT_VALUE_DEEP_JSON_RESERVED_KEY_CHILD";
 #[cfg(feature = "json")]
 const DEEP_JSON_DEPTH: usize = 10_000;
 #[cfg(feature = "json")]
@@ -33,7 +34,10 @@ fn test_borrowed_payload_omits_envelope() {
     use qubit_value::ValueWirePayloadRefV1;
 
     assert_eq!(
-        serde_json::to_value(ValueWirePayloadRefV1::try_from(&Value::Int32(1)).unwrap()).unwrap(),
+        serde_json::to_value(
+            ValueWirePayloadRefV1::try_from(&Value::Int32(1)).unwrap()
+        )
+        .unwrap(),
         serde_json::json!({"scalar": {"int32": 1}})
     );
 }
@@ -69,7 +73,8 @@ fn test_deep_json_reserved_key_validation_child() {
         "this helper test must run through its parent test"
     );
 
-    let value = ManuallyDrop::new(Value::Json(build_deep_reserved_json_value()));
+    let value =
+        ManuallyDrop::new(Value::Json(build_deep_reserved_json_value()));
     let error = match ValueWirePayloadRefV1::try_from(&*value) {
         Err(error) => error,
         Ok(_) => panic!("deep reserved JSON key must be rejected"),
@@ -116,7 +121,9 @@ fn dismantle_json_value(value: serde_json::Value) {
     while let Some(value) = pending.pop() {
         match value {
             serde_json::Value::Array(values) => pending.extend(values),
-            serde_json::Value::Object(values) => pending.extend(values.into_values()),
+            serde_json::Value::Object(values) => {
+                pending.extend(values.into_values())
+            }
             serde_json::Value::Null
             | serde_json::Value::Bool(_)
             | serde_json::Value::Number(_)
