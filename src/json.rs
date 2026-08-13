@@ -200,11 +200,12 @@ impl Value {
         )
     }
 
-    /// Projects this typed value using explicit conversion options.
+    /// Projects this typed value using explicit conversion policy and limits.
     ///
     /// # Parameters
     ///
-    /// * `options` - Controls duration units and precision-loss behavior.
+    /// * `policy` - Controls duration units and precision-loss behavior.
+    /// * `limits` - Bounds conversion resource consumption.
     ///
     /// # Returns
     ///
@@ -213,7 +214,7 @@ impl Value {
     /// # Errors
     ///
     /// Returns a structured conversion error when JSON projection or duration
-    /// formatting violates the requested options.
+    /// formatting violates the requested policy or limits.
     pub fn to_json_value_with(
         &self,
         policy: &ConversionPolicy,
@@ -245,11 +246,12 @@ impl MultiValues {
         )
     }
 
-    /// Projects this collection using explicit conversion options.
+    /// Projects this collection using explicit conversion policy and limits.
     ///
     /// # Parameters
     ///
-    /// * `options` - Controls duration units and precision-loss behavior.
+    /// * `policy` - Controls duration units and precision-loss behavior.
+    /// * `limits` - Bounds conversion resource consumption.
     ///
     /// # Returns
     ///
@@ -258,7 +260,7 @@ impl MultiValues {
     /// # Errors
     ///
     /// Returns an indexed list conversion error when an item cannot be
-    /// represented under the requested options.
+    /// represented under the requested policy and limits.
     pub fn to_json_value_with(
         &self,
         policy: &ConversionPolicy,
@@ -290,11 +292,12 @@ impl ValueContainer {
         )
     }
 
-    /// Projects this container using explicit conversion options.
+    /// Projects this container using explicit conversion policy and limits.
     ///
     /// # Parameters
     ///
-    /// * `options` - Controls duration units and precision-loss behavior.
+    /// * `policy` - Controls duration units and precision-loss behavior.
+    /// * `limits` - Bounds conversion resource consumption.
     ///
     /// # Returns
     ///

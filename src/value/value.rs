@@ -624,10 +624,10 @@ impl Value {
         }
     }
 
-    /// Converts this value to `T` using the provided conversion options.
+    /// Converts this value to `T` using the provided conversion policy and limits.
     ///
     /// This method uses the shared [`qubit_datatype`] conversion layer
-    /// directly, so options such as string trimming, blank string handling,
+    /// directly, so policy settings such as string trimming, blank string handling,
     /// and boolean aliases are applied consistently with other value
     /// containers.
     ///
@@ -637,7 +637,8 @@ impl Value {
     ///
     /// # Parameters
     ///
-    /// * `options` - Conversion options forwarded to the shared converter.
+    /// * `policy` - Conversion policy forwarded to the shared converter.
+    /// * `limits` - Conversion limits forwarded to the shared converter.
     ///
     /// # Returns
     ///
@@ -646,7 +647,7 @@ impl Value {
     /// # Errors
     ///
     /// Returns a [`crate::ValueError`] when the value is missing, unsupported,
-    /// or invalid for `T` under the provided options.
+    /// or invalid for `T` under the provided policy and limits.
     #[inline(always)]
     #[cfg(feature = "converter")]
     pub fn to_with<T>(
@@ -676,7 +677,7 @@ impl Value {
         super::value_converters::convert_with_data_converter_in(self, session)
     }
 
-    /// Converts this value to `T` using conversion options, or returns
+    /// Converts this value to `T` using conversion policy and limits, or returns
     /// `default` when storage is unset or conversion reports a missing value.
     ///
     /// Conversion failures from concrete values are preserved.
@@ -689,7 +690,8 @@ impl Value {
     ///
     /// * `default` - Lazily materialized value used for unset or conversion-
     ///   missing storage.
-    /// * `options` - Conversion options forwarded to the shared converter.
+    /// * `policy` - Conversion policy forwarded to the shared converter.
+    /// * `limits` - Conversion limits forwarded to the shared converter.
     ///
     /// # Returns
     ///
@@ -699,7 +701,7 @@ impl Value {
     /// # Errors
     ///
     /// Returns a mapped conversion error for concrete values that cannot be
-    /// converted under `options`.
+    /// converted under the provided policy and limits.
     #[inline]
     #[cfg(feature = "converter")]
     pub fn to_or_with<T>(
@@ -721,7 +723,7 @@ impl Value {
         }
     }
 
-    /// Converts this value with `options`, or calls `default` when storage is
+    /// Converts this value with the provided policy and limits, or calls `default` when storage is
     /// unset or conversion reports a missing value.
     ///
     /// # Type Parameters
@@ -732,7 +734,8 @@ impl Value {
     /// # Parameters
     ///
     /// * `default` - Callback invoked only for a missing source value.
-    /// * `options` - Conversion options forwarded to the shared converter.
+    /// * `policy` - Conversion policy forwarded to the shared converter.
+    /// * `limits` - Conversion limits forwarded to the shared converter.
     ///
     /// # Returns
     ///
