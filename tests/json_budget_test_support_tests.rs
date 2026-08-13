@@ -10,11 +10,11 @@
 #![cfg(feature = "json")]
 
 use qubit_budget::ResourceLimit;
-use qubit_json::JsonDecodeLimits;
-use qubit_json::JsonEncodeLimits;
-use qubit_json::JsonResource;
-use qubit_json::JsonValueBudget;
-use qubit_json::JsonValueLimits;
+use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonEncodeLimits;
+use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonValueBudget;
+use qubit_budget::json::JsonValueLimits;
 
 /// Test-only fluent builders for direction-independent JSON value limits.
 pub(crate) trait JsonValueLimitsExt {
@@ -57,10 +57,7 @@ pub(crate) trait JsonDecodeLimitsExt {
 
 impl JsonDecodeLimitsExt for JsonDecodeLimits {
     fn with_max_input_bytes(self, maximum: usize) -> Self {
-        self.with_input_bytes_limit(ResourceLimit::new(
-            JsonResource::InputBytes,
-            maximum,
-        ))
+        self.with_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, maximum))
     }
 
     fn with_max_nodes(self, maximum: usize) -> Self {
@@ -103,10 +100,7 @@ pub(crate) trait JsonEncodeLimitsExt {
 
 impl JsonEncodeLimitsExt for JsonEncodeLimits {
     fn with_max_output_bytes(self, maximum: usize) -> Self {
-        self.with_output_bytes_limit(ResourceLimit::new(
-            JsonResource::OutputBytes,
-            maximum,
-        ))
+        self.with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, maximum))
     }
 
     fn with_max_depth(self, maximum: usize) -> Self {
@@ -161,44 +155,32 @@ impl JsonValueLimitsExt for JsonValueLimits {
     }
 
     fn with_max_sequence_items(self, maximum: usize) -> Self {
-        let structure = self.structure_limits().with_sequence_items_limit(
-            ResourceLimit::new(JsonResource::SequenceItems, maximum),
-        );
+        let structure = self
+            .structure_limits()
+            .with_sequence_items_limit(ResourceLimit::new(JsonResource::SequenceItems, maximum));
         self.with_structure_limits(structure)
     }
 
     fn with_max_map_entries(self, maximum: usize) -> Self {
-        let structure =
-            self.structure_limits()
-                .with_map_entries_limit(ResourceLimit::new(
-                    JsonResource::MapEntries,
-                    maximum,
-                ));
+        let structure = self
+            .structure_limits()
+            .with_map_entries_limit(ResourceLimit::new(JsonResource::MapEntries, maximum));
         self.with_structure_limits(structure)
     }
 
     fn with_max_key_bytes(self, maximum: usize) -> Self {
-        let structure =
-            self.structure_limits()
-                .with_key_bytes_limit(ResourceLimit::new(
-                    JsonResource::KeyBytes,
-                    maximum,
-                ));
+        let structure = self
+            .structure_limits()
+            .with_key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, maximum));
         self.with_structure_limits(structure)
     }
 
     fn with_max_string_bytes(self, maximum: usize) -> Self {
-        self.with_string_bytes_limit(ResourceLimit::new(
-            JsonResource::StringBytes,
-            maximum,
-        ))
+        self.with_string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, maximum))
     }
 
     fn with_max_number_bytes(self, maximum: usize) -> Self {
-        self.with_number_bytes_limit(ResourceLimit::new(
-            JsonResource::NumberBytes,
-            maximum,
-        ))
+        self.with_number_bytes_limit(ResourceLimit::new(JsonResource::NumberBytes, maximum))
     }
 
     fn budget(self) -> JsonValueBudget {

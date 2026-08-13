@@ -16,9 +16,9 @@ use chrono::NaiveTime;
 use chrono::Utc;
 use qubit_budget::BudgetError;
 use qubit_budget::Observation;
+use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonResource;
 use qubit_datatype::DataType;
-use qubit_json::JsonDecodeLimits;
-use qubit_json::JsonResource;
 use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueWireDecodeError;
@@ -28,7 +28,8 @@ use crate::json_budget_test_support_tests::JsonDecodeLimitsExt;
 /// Rejects schema fields outside the stable named-value wrapper contract.
 #[test]
 fn test_named_value_rejects_unknown_fields() {
-    let input = r#"{"name":"port","value":{"version":1,"value":{"scalar":{"int32":42}}},"extra":true}"#;
+    let input =
+        r#"{"name":"port","value":{"version":1,"value":{"scalar":{"int32":42}}},"extra":true}"#;
 
     assert!(serde_json::from_str::<NamedValue>(input).is_err());
 }
@@ -51,8 +52,7 @@ fn test_named_value_serializes_with_v1_wire_contract() {
 #[test]
 fn test_named_value_bounded_decode_reuses_value_budget() {
     let named = NamedValue::new("port", Value::Int32(42));
-    let input =
-        serde_json::to_vec(&named).expect("named value should serialize");
+    let input = serde_json::to_vec(&named).expect("named value should serialize");
 
     let name_error = NamedValue::decode_json_slice_with_limits(
         &input,
@@ -96,8 +96,7 @@ fn test_named_value_default_encoding_round_trips() {
         .expect("default limits should encode named value");
 
     assert_eq!(
-        NamedValue::decode_json_slice(&encoded)
-            .expect("default limits should decode named value"),
+        NamedValue::decode_json_slice(&encoded).expect("default limits should decode named value"),
         named
     );
 }
@@ -291,8 +290,8 @@ fn test_named_value_get_datetime() {
 
 #[test]
 fn test_named_value_get_instant() {
-    let inst: UtcDateTime<Utc> = UtcDateTime::from_timestamp(1_700_000_000, 0)
-        .expect("fixed test instant must be valid");
+    let inst: UtcDateTime<Utc> =
+        UtcDateTime::from_timestamp(1_700_000_000, 0).expect("fixed test instant must be valid");
     let nv = NamedValue::new("inst", Value::Instant(inst));
     assert_eq!(nv.value().get_instant().unwrap(), inst);
 }
@@ -434,10 +433,7 @@ fn test_named_value_set_get_date() {
 
 #[test]
 fn test_named_value_set_get_time() {
-    let mut nv = NamedValue::new(
-        "t",
-        Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
-    );
+    let mut nv = NamedValue::new("t", Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()));
     let time = NaiveTime::from_hms_milli_opt(13, 14, 15, 123).unwrap();
     nv.value_mut().set(time);
     let got: NaiveTime = nv.value().get().unwrap();
@@ -464,8 +460,8 @@ fn test_named_value_set_get_datetime() {
 
 #[test]
 fn test_named_value_set_get_instant() {
-    let inst: UtcDateTime<Utc> = UtcDateTime::from_timestamp(1_700_000_000, 0)
-        .expect("fixed test instant must be valid");
+    let inst: UtcDateTime<Utc> =
+        UtcDateTime::from_timestamp(1_700_000_000, 0).expect("fixed test instant must be valid");
     let mut nv = NamedValue::new("inst", Value::Instant(inst));
     nv.value_mut().set(inst);
     let got: UtcDateTime<Utc> = nv.value().get().unwrap();

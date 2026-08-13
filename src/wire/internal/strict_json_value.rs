@@ -64,9 +64,7 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
             {
                 Number::from_i128(value)
                     .map(|number| StrictJsonValue(Value::Number(number)))
-                    .ok_or_else(|| {
-                        de::Error::custom("JSON number out of range")
-                    })
+                    .ok_or_else(|| de::Error::custom("JSON number out of range"))
             }
 
             /// Decodes an unsigned JSON integer.
@@ -81,9 +79,7 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
             {
                 Number::from_u128(value)
                     .map(|number| StrictJsonValue(Value::Number(number)))
-                    .ok_or_else(|| {
-                        de::Error::custom("JSON number out of range")
-                    })
+                    .ok_or_else(|| de::Error::custom("JSON number out of range"))
             }
 
             /// Decodes a finite JSON floating-point number.
@@ -117,10 +113,7 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
             }
 
             /// Decodes a present optional JSON value.
-            fn visit_some<D>(
-                self,
-                deserializer: D,
-            ) -> Result<Self::Value, D::Error>
+            fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -128,17 +121,12 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
             }
 
             /// Decodes a JSON array recursively.
-            fn visit_seq<A>(
-                self,
-                mut sequence: A,
-            ) -> Result<Self::Value, A::Error>
+            fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
             where
                 A: SeqAccess<'de>,
             {
                 let mut values = Vec::new();
-                while let Some(value) =
-                    sequence.next_element::<StrictJsonValue>()?
-                {
+                while let Some(value) = sequence.next_element::<StrictJsonValue>()? {
                     values.push(value.into_inner());
                 }
                 Ok(StrictJsonValue(Value::Array(values)))
@@ -164,20 +152,15 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
                             "arbitrary-precision number contains extra fields",
                         ));
                     }
-                    let number = number_text
-                        .parse::<Number>()
-                        .map_err(de::Error::custom)?;
+                    let number = number_text.parse::<Number>().map_err(de::Error::custom)?;
                     return Ok(StrictJsonValue(Value::Number(number)));
                 }
 
                 let mut values = Map::new();
                 let first_value = map.next_value::<StrictJsonValue>()?;
                 values.insert(first_key.clone(), first_value.into_inner());
-                while let Some((key, value)) =
-                    map.next_entry::<String, StrictJsonValue>()?
-                {
-                    if values.insert(key.clone(), value.into_inner()).is_some()
-                    {
+                while let Some((key, value)) = map.next_entry::<String, StrictJsonValue>()? {
+                    if values.insert(key.clone(), value.into_inner()).is_some() {
                         return Err(de::Error::custom(format!(
                             "duplicate JSON object key '{key}'"
                         )));

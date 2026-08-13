@@ -20,6 +20,8 @@ use std::hash::Hasher;
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::ResourceQuantity;
+#[cfg(feature = "json")]
+use qubit_budget::json::JsonValueBudget;
 #[cfg(feature = "converter")]
 use qubit_datatype::ConversionLimits;
 #[cfg(feature = "converter")]
@@ -29,8 +31,6 @@ use qubit_datatype::ConversionSession;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataType;
-#[cfg(feature = "json")]
-use qubit_json::JsonValueBudget;
 
 use super::value_ref::ValueRef;
 use crate::IntoValueDefault;
@@ -206,7 +206,7 @@ impl Value {
     /// use std::collections::hash_map::DefaultHasher;
     ///
     /// use qubit_budget::{ResourceLimit, StructureLimits};
-    /// use qubit_json::{JsonResource, JsonValueBudget, JsonValueLimits};
+    /// use qubit_budget::json::{JsonResource, JsonValueBudget, JsonValueLimits};
     /// use qubit_value::Value;
     ///
     /// let value = Value::Json(serde_json::json!([null]));
@@ -496,9 +496,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
             result => result,
         }
     }
@@ -576,9 +574,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -615,9 +611,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,
@@ -649,27 +643,18 @@ impl Value {
     /// or invalid for `T` under the provided options.
     #[inline(always)]
     #[cfg(feature = "converter")]
-    pub fn to_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<T>
+    pub fn to_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
-        super::value_converters::convert_with_data_converter_with(
-            self, policy, limits,
-        )
+        super::value_converters::convert_with_data_converter_with(self, policy, limits)
     }
 
     /// Converts this value to `T` while charging an existing conversion
     /// session.
     #[inline(always)]
     #[cfg(feature = "converter")]
-    pub fn to_in<T>(
-        &self,
-        session: &mut ConversionSession<'_>,
-    ) -> ValueResult<T>
+    pub fn to_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -712,9 +697,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to_with(policy, limits) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -756,9 +739,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(policy, limits) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default())
             }
             result => result,

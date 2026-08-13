@@ -15,19 +15,19 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
-use qubit_json::JsonDecodeLimits;
+use qubit_budget::json::JsonDecodeLimits;
 #[cfg(feature = "json")]
-use qubit_json::JsonDecodeSession;
+use qubit_budget::json::JsonDecodeSession;
 #[cfg(feature = "json")]
-use qubit_json::JsonEncodeLimits;
+use qubit_budget::json::JsonEncodeLimits;
 #[cfg(feature = "json")]
-use qubit_json::JsonEncodeSession;
+use qubit_budget::json::JsonEncodeSession;
 #[cfg(feature = "json")]
-use qubit_json::decode_slice;
+use qubit_json::text::decode_slice;
 #[cfg(feature = "json")]
-use qubit_json::encode_to_vec;
+use qubit_json::text::encode_to_vec;
 #[cfg(feature = "json")]
-use qubit_json::encode_to_writer;
+use qubit_json::text::encode_to_writer;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -156,13 +156,8 @@ impl NamedMultiValues {
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(
-            input,
-            ValueWireV1::default_json_decode_limits(),
-        )
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, ValueWireV1::default_json_decode_limits())
     }
 
     /// Decodes a complete named collection JSON document with explicit limits.
@@ -212,17 +207,11 @@ impl NamedMultiValues {
     /// profile.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer<W>(
-        &self,
-        writer: W,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        self.to_json_writer_with_limits(
-            writer,
-            ValueWireV1::default_json_encode_limits(),
-        )
+        self.to_json_writer_with_limits(writer, ValueWireV1::default_json_encode_limits())
     }
 
     /// Encodes this named collection to a writer after enforcing JSON budgets.
@@ -236,8 +225,7 @@ impl NamedMultiValues {
         W: Write,
     {
         let mut session = JsonEncodeSession::owned(limits);
-        encode_to_writer(writer, self, &mut session)
-            .map_err(ValueWireEncodeError::from)
+        encode_to_writer(writer, self, &mut session).map_err(ValueWireEncodeError::from)
     }
 
     /// Get a reference to the name
@@ -377,8 +365,7 @@ impl Serialize for NamedMultiValues {
     where
         S: Serializer,
     {
-        let value = ValueWireRefV1::try_from(self.values())
-            .map_err(SerializeError::custom)?;
+        let value = ValueWireRefV1::try_from(self.values()).map_err(SerializeError::custom)?;
         NamedMultiValuesWireRef {
             name: self.name(),
             value,
@@ -397,9 +384,7 @@ impl<'de> Deserialize<'de> for NamedMultiValues {
         let NamedMultiValuesWireOwned { name, value } =
             NamedMultiValuesWireOwned::deserialize(deserializer)?;
         let value = value.into_container().into_collection().map_err(|_| {
-            DeserializeError::custom(
-                "named multi-values wire payload must contain a collection",
-            )
+            DeserializeError::custom("named multi-values wire payload must contain a collection")
         })?;
         Ok(Self::new(name, value))
     }

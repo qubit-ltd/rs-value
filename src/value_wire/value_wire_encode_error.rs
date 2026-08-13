@@ -12,13 +12,13 @@
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::QuantityConversionError;
+#[cfg(feature = "json")]
+use qubit_budget::json::JsonResource;
 use qubit_datatype::DataType;
 #[cfg(feature = "json")]
-use qubit_json::JsonResource;
+use qubit_json::text::JsonEncodeError;
 #[cfg(feature = "json")]
-use qubit_json::JsonSerdeError;
-#[cfg(feature = "json")]
-use qubit_json::JsonSyntaxError;
+use qubit_json::text::JsonSyntaxError;
 #[cfg(feature = "json")]
 use serde_json::Error as JsonError;
 use thiserror::Error;
@@ -45,9 +45,7 @@ pub enum ValueWireEncodeError {
     },
     /// A JSON V1 object uses serde_json's private number marker key.
     #[cfg(feature = "json")]
-    #[error(
-        "V1 JSON wire cannot represent an object containing the reserved key '{key}'"
-    )]
+    #[error("V1 JSON wire cannot represent an object containing the reserved key '{key}'")]
     ReservedJsonObjectKey {
         /// Key reserved by serde_json's arbitrary-precision representation.
         key: &'static str,
@@ -59,9 +57,7 @@ pub enum ValueWireEncodeError {
     /// A native JSON measurement could not be represented by the budget
     /// quantity type.
     #[cfg(feature = "json")]
-    #[error(
-        "V1 JSON wire resource quantity conversion failed for {resource:?}: {source}"
-    )]
+    #[error("V1 JSON wire resource quantity conversion failed for {resource:?}: {source}")]
     Quantity {
         /// Resource whose measurement failed.
         resource: JsonResource,
@@ -84,20 +80,20 @@ pub enum ValueWireEncodeError {
 }
 
 #[cfg(feature = "json")]
-impl From<JsonSerdeError<JsonResource, usize>> for ValueWireEncodeError {
+impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
     #[inline]
-    fn from(error: JsonSerdeError<JsonResource>) -> Self {
+    fn from(error: JsonEncodeError<JsonResource>) -> Self {
         match error {
-            JsonSerdeError::Budget(error) => Self::Budget(error),
-            JsonSerdeError::Quantity { resource, source } => {
-                Self::Quantity { resource, source }
+            JsonEncodeError::Budget(error) => match error {
+                qubit_budget::MeasuredBudgetError::Budget(error) => Self::Budget(error),
+                qubit_budget::MeasuredBudgetError::Quantity { resource, source } => {
+                    Self::Quantity { resource, source }
+                }
+            },
+            JsonEncodeError::InvalidRawJson(error) | JsonEncodeError::Serialize(error) => {
+                Self::Json(error)
             }
-            JsonSerdeError::Syntax(error) => Self::Syntax(error),
-            JsonSerdeError::Json(error) => Self::Json(error),
-            JsonSerdeError::Io(error) => Self::Io(error),
-            _ => Self::Json(JsonError::io(std::io::Error::other(
-                "unsupported JSON wire error",
-            ))),
+            JsonEncodeError::Write(error) => Self::Io(error),
         }
     }
 }

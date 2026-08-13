@@ -12,13 +12,13 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
-use qubit_json::JsonEncodeLimits;
+use qubit_budget::json::JsonEncodeLimits;
 #[cfg(feature = "json")]
-use qubit_json::JsonEncodeSession;
+use qubit_budget::json::JsonEncodeSession;
 #[cfg(feature = "json")]
-use qubit_json::encode_to_vec;
+use qubit_json::text::encode_to_vec;
 #[cfg(feature = "json")]
-use qubit_json::encode_to_writer;
+use qubit_json::text::encode_to_writer;
 use serde::Serialize;
 use serde::Serializer;
 
@@ -41,15 +41,11 @@ impl<'a> ValueWireRefV1<'a> {
         ValueWirePayloadRefV1::from_value(value).map(Self::new)
     }
     /// Borrows a collection after validating V1's finite-float invariant.
-    pub fn from_values(
-        values: &'a MultiValues,
-    ) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_values(values).map(Self::new)
     }
     /// Borrows an explicit shape after validating V1's finite-float invariant.
-    pub fn from_container(
-        value: &'a ValueContainer,
-    ) -> Result<Self, ValueWireEncodeError> {
+    pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_container(value).map(Self::new)
     }
     /// Wraps an already validated borrowed payload.
@@ -78,17 +74,11 @@ impl<'a> ValueWireRefV1<'a> {
     /// Encodes the borrowed V1 envelope to a writer with default limits.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer<W>(
-        &self,
-        writer: W,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        self.to_json_writer_with_limits(
-            writer,
-            super::default_json_encode_limits(),
-        )
+        self.to_json_writer_with_limits(writer, super::default_json_encode_limits())
     }
 
     /// Encodes the borrowed V1 envelope to a writer with explicit limits.
@@ -103,8 +93,7 @@ impl<'a> ValueWireRefV1<'a> {
         W: Write,
     {
         let mut session = JsonEncodeSession::owned(limits);
-        encode_to_writer(writer, self, &mut session)
-            .map_err(ValueWireEncodeError::from)
+        encode_to_writer(writer, self, &mut session).map_err(ValueWireEncodeError::from)
     }
 }
 
