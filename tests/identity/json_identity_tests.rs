@@ -32,14 +32,13 @@ use qubit_budget::json::JsonValueLimits;
 use qubit_value::Value;
 
 #[cfg(feature = "json")]
-use crate::json_budget_test_support_tests::JsonValueLimitsExt;
-
 #[cfg(feature = "json")]
 #[path = "../../src/identity/json_identity.rs"]
 mod json_identity;
 
 #[cfg(feature = "json")]
-const DEEP_JSON_IDENTITY_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_IDENTITY_CHILD";
+const DEEP_JSON_IDENTITY_CHILD_ENV: &str =
+    "QUBIT_VALUE_DEEP_JSON_IDENTITY_CHILD";
 #[cfg(feature = "json")]
 const DEEP_JSON_HASH_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_HASH_CHILD";
 #[cfg(feature = "json")]
@@ -109,13 +108,15 @@ fn test_hash_json_distinguishes_array_order() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_hash_does_not_recurse() {
-    let output = Command::new(std::env::current_exe().expect("locate test binary"))
-        .arg("--exact")
-        .arg("identity::json_identity_tests::test_deep_json_identity_hash_child")
-        .arg("--ignored")
-        .env(DEEP_JSON_HASH_CHILD_ENV, "1")
-        .output()
-        .expect("run deep JSON hash child test");
+    let output = Command::new(
+        std::env::current_exe().expect("locate test binary"),
+    )
+    .arg("--exact")
+    .arg("identity::json_identity_tests::test_deep_json_identity_hash_child")
+    .arg("--ignored")
+    .env(DEEP_JSON_HASH_CHILD_ENV, "1")
+    .output()
+    .expect("run deep JSON hash child test");
 
     assert!(
         output.status.success(),
@@ -189,8 +190,13 @@ fn test_hash_json_with_budget_charges_nodes() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
-    let value = serde_json::Value::Array((0..10_000).map(|_| serde_json::Value::Null).collect());
-    let error = hash_json_with_limits(&value, JsonValueLimits::default().with_max_nodes(1));
+    let value = serde_json::Value::Array(
+        (0..10_000).map(|_| serde_json::Value::Null).collect(),
+    );
+    let error = hash_json_with_limits(
+        &value,
+        JsonValueLimits::default().with_max_nodes(1),
+    );
 
     assert!(matches!(
         error,
@@ -212,7 +218,10 @@ fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
             .map(|index| (format!("key-{index}"), serde_json::Value::Null))
             .collect(),
     );
-    let error = hash_json_with_limits(&value, JsonValueLimits::default().with_max_nodes(1));
+    let error = hash_json_with_limits(
+        &value,
+        JsonValueLimits::default().with_max_nodes(1),
+    );
 
     assert!(matches!(
         error,
@@ -335,13 +344,17 @@ fn test_hash_json_with_budget_matches_unbounded_hash() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_equality_does_not_recurse() {
-    let output = Command::new(std::env::current_exe().expect("locate test binary"))
-        .arg("--exact")
-        .arg("identity::json_identity_tests::test_deep_json_identity_equality_child")
-        .arg("--ignored")
-        .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
-        .output()
-        .expect("run deep JSON identity child test");
+    let output = Command::new(
+        std::env::current_exe().expect("locate test binary"),
+    )
+    .arg("--exact")
+    .arg(
+        "identity::json_identity_tests::test_deep_json_identity_equality_child",
+    )
+    .arg("--ignored")
+    .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
+    .output()
+    .expect("run deep JSON identity child test");
 
     assert!(
         output.status.success(),
@@ -403,7 +416,9 @@ fn hash_json_with_limits(
     match json_identity::hash_json_with_budget(value, &mut state, &mut budget)
         .expect_err("the configured JSON limit must reject the value")
     {
-        MeasuredBudgetError::Budget(error) => MeasuredBudgetError::Budget(error),
+        MeasuredBudgetError::Budget(error) => {
+            MeasuredBudgetError::Budget(error)
+        }
         MeasuredBudgetError::Quantity { .. } => {
             panic!("u64 JSON budget must represent native test measurements")
         }
@@ -447,7 +462,9 @@ fn dismantle_json_value(value: serde_json::Value) {
     while let Some(value) = pending.pop() {
         match value {
             serde_json::Value::Array(values) => pending.extend(values),
-            serde_json::Value::Object(values) => pending.extend(values.into_values()),
+            serde_json::Value::Object(values) => {
+                pending.extend(values.into_values())
+            }
             serde_json::Value::Null
             | serde_json::Value::Bool(_)
             | serde_json::Value::Number(_)
