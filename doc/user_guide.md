@@ -317,10 +317,7 @@ owned Wire DTO, serializes it, applies input and semantic limits during decode,
 and restores the original container.
 
 ```rust
-use qubit_json::JsonDecodeLimits;
-use qubit_json::JsonEncodeLimits;
-use qubit_json::JsonResource;
-use qubit_json::JsonValueLimits;
+use qubit_budget::json::{JsonDecodeLimits, JsonEncodeLimits, JsonResource, JsonValueLimits};
 use qubit_budget::ResourceLimit;
 use qubit_budget::StructureLimits;
 use qubit_value::Value;
@@ -400,10 +397,8 @@ Serde adapter for the complete outer document so every JSON node is charged in
 one session.
 
 ```rust
-use qubit_budget::decode_slice;
-use qubit_json::JsonDecodeLimits;
-use qubit_json::JsonDecodeSession;
-use qubit_json::JsonResource;
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession, JsonResource};
+use qubit_json::text::decode_slice;
 use qubit_budget::ResourceLimit;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireV1;

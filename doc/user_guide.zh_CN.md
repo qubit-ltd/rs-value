@@ -295,10 +295,7 @@ V1 是封闭格式。现有 tag、shape 和 payload 表示不能原地扩展；�
 语义资源限制下解码，最后恢复原来的 container。
 
 ```rust
-use qubit_json::JsonDecodeLimits;
-use qubit_json::JsonEncodeLimits;
-use qubit_json::JsonResource;
-use qubit_json::JsonValueLimits;
+use qubit_budget::json::{JsonDecodeLimits, JsonEncodeLimits, JsonResource, JsonValueLimits};
 use qubit_budget::ResourceLimit;
 use qubit_budget::StructureLimits;
 use qubit_value::Value;
@@ -370,10 +367,8 @@ assert_eq!(
 应使用 `qubit-budget` 的 Serde adapter 处理完整外层文档，让同一个 session 计费所有 JSON 节点。
 
 ```rust
-use qubit_budget::decode_slice;
-use qubit_json::JsonDecodeLimits;
-use qubit_json::JsonDecodeSession;
-use qubit_json::JsonResource;
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession, JsonResource};
+use qubit_json::text::decode_slice;
 use qubit_budget::ResourceLimit;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireV1;
