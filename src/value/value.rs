@@ -194,8 +194,8 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when the JSON payload exceeds a configured
-    /// limit. On error, both `state` and `budget` may already be partially
+    /// Returns [`MeasuredBudgetError`] when the JSON payload exceeds a
+    /// configured limit. On error, both `state` and `budget` may already be
     /// updated; callers must discard the hasher and either discard the budget
     /// or continue from its consumed state. This method does not roll either
     /// one back.
