@@ -31,6 +31,35 @@ use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use url::Url;
 
+#[cfg(feature = "json")]
+#[derive(Default)]
+struct RecordingHasher(Vec<u8>);
+
+#[cfg(feature = "json")]
+impl Hasher for RecordingHasher {
+    fn finish(&self) -> u64 {
+        0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.extend_from_slice(bytes);
+    }
+}
+
+#[cfg(feature = "json")]
+struct PanickingHasher;
+
+#[cfg(feature = "json")]
+impl Hasher for PanickingHasher {
+    fn finish(&self) -> u64 {
+        0
+    }
+
+    fn write(&mut self, _bytes: &[u8]) {
+        panic!("test hasher panic");
+    }
+}
+
 /// Returns the standard-library hash for equality-contract assertions.
 ///
 /// # Parameters
@@ -196,7 +225,7 @@ fn test_multi_values_identity_covers_every_variant() {
     assert_eq!(keys.len(), 26);
 }
 
-/// Verifies budgeted JSON hashing reports an exhausted node budget.
+/// Verifies budgeted JSON hashing rolls back when a later element is rejected.
 #[cfg(feature = "json")]
 #[test]
 fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
@@ -205,7 +234,7 @@ fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
         serde_json::json!(null),
     ]);
     let mut budget = JsonValueLimits::default().with_max_nodes(1).budget();
-    let mut state = DefaultHasher::new();
+    let mut state = RecordingHasher::default();
 
     let error = values
         .hash_with_json_budget(&mut state, &mut budget)
@@ -223,18 +252,49 @@ fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
         })
     ));
 
-    let follow_up = budget.charge_node().expect_err(
-        "the failed hash must retain the first JSON value's charge",
-    );
-    assert!(matches!(
-        follow_up,
-        BudgetError::Insufficient {
-            resource: JsonResource::Nodes,
-            limit: 1,
-            remaining: 0,
-            requested: 1,
-        }
-    ));
+    assert!(state.0.is_empty());
+    assert_eq!(budget.used_nodes(), Some(0));
+}
+
+/// Verifies successful bounded multi-value JSON hashing preserves identity.
+#[cfg(feature = "json")]
+#[test]
+fn test_multi_values_hash_with_json_budget_preserves_identity() {
+    let values = MultiValues::Json(vec![
+        serde_json::json!({"items": [null]}),
+        serde_json::json!(true),
+    ]);
+    let expected = hash(&values);
+    let mut budget = JsonValueLimits::empty().budget();
+    let mut state = DefaultHasher::new();
+
+    values
+        .hash_with_json_budget(&mut state, &mut budget)
+        .expect("an empty budget must accept the JSON values");
+    assert_eq!(state.finish(), expected);
+}
+
+/// Verifies a hasher panic drops staged multi-value budget state and allows
+/// the same budget to be reused.
+#[cfg(feature = "json")]
+#[test]
+fn test_multi_values_hash_with_json_budget_panic_rolls_back_and_reuses_budget()
+{
+    let values = MultiValues::Json(vec![serde_json::json!(null)]);
+    let mut budget = JsonValueLimits::empty().with_max_nodes(1).budget();
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        values.hash_with_json_budget(&mut PanickingHasher, &mut budget)
+    }));
+    assert!(result.is_err());
+    assert_eq!(budget.used_nodes(), Some(0));
+
+    let mut state = DefaultHasher::new();
+    values
+        .hash_with_json_budget(&mut state, &mut budget)
+        .expect("the rolled-back budget must accept a later value");
+    assert_eq!(state.finish(), hash(&values));
+    assert_eq!(budget.used_nodes(), Some(1));
 }
 
 /// Verifies budgeted hashing preserves special non-JSON identity hashes.

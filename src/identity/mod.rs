@@ -21,7 +21,7 @@ pub(crate) use float_identity::canonical_f64_bits;
 #[cfg(feature = "json")]
 pub(crate) use json_identity::hash_json;
 #[cfg(feature = "json")]
-pub(crate) use json_identity::hash_json_with_budget;
-#[cfg(feature = "json")]
 pub(crate) use json_identity::json_eq;
+#[cfg(feature = "json")]
+pub(crate) use json_identity::preflight_json;
 pub(crate) use string_map_hash::hash_string_map;

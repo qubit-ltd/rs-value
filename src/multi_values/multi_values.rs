@@ -29,6 +29,10 @@ use qubit_datatype::DataType;
 #[cfg(feature = "json")]
 use super::multi_values_identity::hash_multi_values_payload_with_json_budget;
 use super::multi_values_ref::MultiValuesRef;
+#[cfg(feature = "json")]
+use crate::identity::hash_json;
+#[cfg(feature = "json")]
+use crate::identity::preflight_json;
 
 /// Defines the private storage representation for the public multi-value
 /// container from the shared value-type table.
@@ -179,12 +183,10 @@ impl MultiValues {
     ///
     /// # Errors
     ///
-    /// Returns [`MeasuredBudgetError`] when a JSON element exceeds a configured
-    /// limit.
-    /// On error, both `state` and `budget` may already be partially updated;
-    /// callers must discard the hasher and either discard the budget or
-    /// continue from its consumed state. This method does not roll either one
-    /// back.
+    /// Returns [`qubit_budget::MeasuredBudgetError`] when a JSON element
+    /// exceeds a configured limit.
+    /// On error, neither `state` nor the committed portion of `budget` is
+    /// modified. A hasher panic also drops the staged budget transaction.
     ///
     /// # Examples
     ///
@@ -206,7 +208,7 @@ impl MultiValues {
     ///
     /// assert!(values.hash_with_json_budget(&mut hasher, &mut budget).is_err());
     /// drop(hasher);
-    /// // `budget` is now consumed state and is intentionally not reused.
+    /// // The rejected values did not consume committed budget state.
     /// ```
     #[cfg(feature = "json")]
     pub fn hash_with_json_budget<H, R, Q>(
@@ -219,8 +221,27 @@ impl MultiValues {
         R: Clone,
         Q: ResourceQuantity,
     {
-        std::mem::discriminant(&self.repr).hash(state);
-        hash_multi_values_payload_with_json_budget(&self.repr, state, budget)
+        match &self.repr {
+            MultiValuesRepr::Json(values) => {
+                let mut transaction = budget.transaction();
+                for value in values {
+                    preflight_json(value, &mut transaction)?;
+                }
+                std::mem::discriminant(&self.repr).hash(state);
+                values.len().hash(state);
+                for value in values {
+                    hash_json(value, state);
+                }
+                transaction.commit();
+                Ok(())
+            }
+            _ => {
+                std::mem::discriminant(&self.repr).hash(state);
+                hash_multi_values_payload_with_json_budget(
+                    &self.repr, state, budget,
+                )
+            }
+        }
     }
 
     /// Borrows the stable semantic view of this collection.

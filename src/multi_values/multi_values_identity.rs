@@ -25,8 +25,6 @@ use crate::identity::canonical_f64_bits;
 use crate::identity::hash_big_decimal;
 #[cfg(feature = "json")]
 use crate::identity::hash_json;
-#[cfg(feature = "json")]
-use crate::identity::hash_json_with_budget;
 use crate::identity::hash_string_map;
 #[cfg(feature = "json")]
 use crate::identity::json_eq;
@@ -99,7 +97,7 @@ macro_rules! hash_payloads {
 pub(crate) fn hash_multi_values_payload_with_json_budget<H, R, Q>(
     repr: &MultiValuesRepr,
     state: &mut H,
-    budget: &mut JsonValueBudget<R, Q>,
+    _budget: &mut JsonValueBudget<R, Q>,
 ) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     H: Hasher,
@@ -167,11 +165,10 @@ where
         MultiValuesRepr::StringMap(values) => {
             hash_payloads!(StringMap, values, state)
         }
-        MultiValuesRepr::Json(values) => {
-            values.len().hash(state);
-            for value in values {
-                hash_json_with_budget(value, state, budget)?;
-            }
+        MultiValuesRepr::Json(_) => {
+            unreachable!(
+                "JSON payload hashing is handled by MultiValues::hash_with_json_budget"
+            )
         }
     }
     Ok(())
