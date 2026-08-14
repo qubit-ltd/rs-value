@@ -36,6 +36,10 @@ use super::value_ref::ValueRef;
 use crate::IntoValueDefault;
 use crate::ValueError;
 #[cfg(feature = "json")]
+use crate::identity::hash_json;
+#[cfg(feature = "json")]
+use crate::identity::preflight_json;
+#[cfg(feature = "json")]
 use crate::value::value_identity::hash_value_payload_with_json_budget;
 use crate::value_error::ValueResult;
 
@@ -194,11 +198,10 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`MeasuredBudgetError`] when the JSON payload exceeds a
-    /// configured limit. On error, both `state` and `budget` may already be
-    /// updated; callers must discard the hasher and either discard the budget
-    /// or continue from its consumed state. This method does not roll either
-    /// one back.
+    /// Returns [`qubit_budget::MeasuredBudgetError`] when the JSON payload
+    /// exceeds a configured limit. On error, neither `state` nor the committed
+    /// portion of `budget` is modified. A hasher panic also drops the
+    /// staged budget transaction.
     ///
     /// # Examples
     ///
@@ -220,7 +223,7 @@ impl Value {
     ///
     /// assert!(value.hash_with_json_budget(&mut hasher, &mut budget).is_err());
     /// drop(hasher);
-    /// // `budget` is now consumed state and is intentionally not reused.
+    /// // The rejected value did not consume committed budget state.
     /// ```
     #[cfg(feature = "json")]
     pub fn hash_with_json_budget<H, R, Q>(
@@ -233,8 +236,20 @@ impl Value {
         R: Clone,
         Q: ResourceQuantity,
     {
-        std::mem::discriminant(&self.repr).hash(state);
-        hash_value_payload_with_json_budget(&self.repr, state, budget)
+        match &self.repr {
+            ValueRepr::Json(value) => {
+                let mut transaction = budget.transaction();
+                preflight_json(value, &mut transaction)?;
+                std::mem::discriminant(&self.repr).hash(state);
+                hash_json(value, state);
+                transaction.commit();
+                Ok(())
+            }
+            _ => {
+                std::mem::discriminant(&self.repr).hash(state);
+                hash_value_payload_with_json_budget(&self.repr, state, budget)
+            }
+        }
     }
 
     /// Borrows the stable semantic view of this value.
