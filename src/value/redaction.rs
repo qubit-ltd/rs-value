@@ -104,12 +104,14 @@ fn value_input_bytes(value: &Value) -> usize {
         ValueRef::Duration(value) => debug_len(value),
         #[cfg(feature = "url")]
         ValueRef::Url(value) => value.as_str().len(),
-        ValueRef::StringMap(values) => values.iter().fold(2, |total, (key, value)| {
-            total
-                .saturating_add(debug_len(key))
-                .saturating_add(debug_len(value))
-                .saturating_add(4)
-        }),
+        ValueRef::StringMap(values) => {
+            values.iter().fold(2, |total, (key, value)| {
+                total
+                    .saturating_add(debug_len(key))
+                    .saturating_add(debug_len(value))
+                    .saturating_add(4)
+            })
+        }
         #[cfg(feature = "json")]
         ValueRef::Json(value) => json_len(value),
     }
@@ -310,9 +312,10 @@ impl Redact for Value {
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match &self.repr {
-            ValueRepr::StringMap(values) => {
-                fmt::Debug::fmt(&RedactedMapResult::new(values, session), formatter)
-            }
+            ValueRepr::StringMap(values) => fmt::Debug::fmt(
+                &RedactedMapResult::new(values, session),
+                formatter,
+            ),
             #[cfg(feature = "json")]
             ValueRepr::Json(value) => {
                 let redacted = session.json().redact_value(value);
