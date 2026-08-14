@@ -2,10 +2,12 @@
   "threshold_exempt_files": {
     "qubit-value": [
       "src/finite_float.rs",
+      "src/identity/json_identity.rs",
       "src/json.rs",
       "src/multi_values/multi_values.rs",
       "src/multi_values/multi_values_converters.rs",
       "src/multi_values/multi_values_core.rs",
+      "src/multi_values/multi_values_identity.rs",
       "src/named_multi_values.rs",
       "src/named_value.rs",
       "src/strict_json/internal/map_key_serializer.rs",
