@@ -14,8 +14,9 @@ use std::hash::Hasher;
 
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::ResourceQuantity;
-use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonValueBudget;
+use qubit_budget::json::JsonValueTransaction;
 
 type IdentityHasher =
     BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
@@ -192,11 +193,7 @@ pub(crate) fn json_eq(
 /// * `value` - JSON tree to hash.
 /// * `state` - Destination hasher.
 pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
-    let result =
-        hash_json_iterative::<H, JsonResource, usize>(value, state, None);
-    if result.is_err() {
-        unreachable!("unbudgeted JSON hashing cannot fail");
-    }
+    hash_json_iterative(value, state);
 }
 
 /// Hashes a JSON tree while enforcing one mutable JSON budget.
@@ -204,7 +201,7 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 /// # Parameters
 ///
 /// * `value` - JSON tree to hash.
-/// * `state` - Destination hasher, which may be partially updated on failure.
+/// * `state` - Destination hasher receiving the structural JSON identity.
 /// * `budget` - Mutable session receiving structural and text checks.
 ///
 /// # Returns
@@ -214,7 +211,10 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 /// # Errors
 ///
 /// Returns [`BudgetError`] when a node, container, key, string, or number text
-/// exceeds the corresponding budget constraint.
+/// exceeds the corresponding budget constraint. On error, neither `state` nor
+/// the committed portion of `budget` is modified. If hashing panics after
+/// preflight, the staged budget is also discarded.
+#[allow(dead_code)]
 pub(crate) fn hash_json_with_budget<H, R, Q>(
     value: &serde_json::Value,
     state: &mut H,
@@ -225,24 +225,126 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
-    hash_json_iterative(value, state, Some(budget))
+    let mut transaction = budget.transaction();
+    preflight_json(value, &mut transaction)?;
+    hash_json(value, state);
+    transaction.commit();
+    Ok(())
 }
 
-/// Runs the shared explicit-stack hashing engine with an optional budget.
+/// Checks every JSON event in `value` against a staged value transaction.
 ///
-/// A missing budget skips every constraint check, preserving the infallible
-/// behavior of [`hash_json`]. Container continuations visit one child at a
-/// time, so pending traversal storage depends on nesting depth rather than
-/// the width of any one array or object.
-fn hash_json_iterative<H, R, Q>(
+/// No caller-owned hasher or committed budget state is touched. Dropping the
+/// transaction after an error therefore leaves both external states unchanged.
+pub(crate) fn preflight_json<R, Q>(
     value: &serde_json::Value,
-    state: &mut H,
-    mut budget: Option<&mut JsonValueBudget<R, Q>>,
+    transaction: &mut JsonValueTransaction<'_, R, Q>,
 ) -> Result<(), MeasuredBudgetError<R, Q>>
 where
-    H: Hasher,
     R: Clone,
     Q: ResourceQuantity,
+{
+    enum Frame<'a> {
+        Visit(&'a serde_json::Value, usize),
+        VisitArray {
+            values: &'a [serde_json::Value],
+            depth: usize,
+            next: usize,
+        },
+        VisitObject {
+            entries: serde_json::map::Iter<'a>,
+            depth: usize,
+        },
+    }
+
+    let mut frames = vec![Frame::Visit(value, 1)];
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Visit(value, depth) => {
+                let measurement = match value {
+                    serde_json::Value::Null => JsonMeasurement::Null { depth },
+                    serde_json::Value::Bool(_) => {
+                        JsonMeasurement::Boolean { depth }
+                    }
+                    serde_json::Value::String(value) => {
+                        JsonMeasurement::String {
+                            depth,
+                            bytes: value.len(),
+                        }
+                    }
+                    serde_json::Value::Number(value) => {
+                        JsonMeasurement::Number {
+                            depth,
+                            bytes: value.as_str().len(),
+                        }
+                    }
+                    serde_json::Value::Array(values) => {
+                        JsonMeasurement::Array {
+                            depth,
+                            items: values.len(),
+                        }
+                    }
+                    serde_json::Value::Object(values) => {
+                        JsonMeasurement::Object {
+                            depth,
+                            entries: values.len(),
+                        }
+                    }
+                };
+                transaction.try_admit(measurement)?;
+
+                match value {
+                    serde_json::Value::Array(values) => {
+                        frames.push(Frame::VisitArray {
+                            values,
+                            depth: depth.saturating_add(1),
+                            next: 0,
+                        });
+                    }
+                    serde_json::Value::Object(values) => {
+                        frames.push(Frame::VisitObject {
+                            entries: values.iter(),
+                            depth: depth.saturating_add(1),
+                        });
+                    }
+                    _ => {}
+                }
+            }
+            Frame::VisitArray {
+                values,
+                depth,
+                next,
+            } => {
+                if let Some(value) = values.get(next) {
+                    frames.push(Frame::VisitArray {
+                        values,
+                        depth,
+                        next: next.saturating_add(1),
+                    });
+                    frames.push(Frame::Visit(value, depth));
+                }
+            }
+            Frame::VisitObject { mut entries, depth } => {
+                if let Some((key, value)) = entries.next() {
+                    frames.push(Frame::VisitObject { entries, depth });
+                    transaction
+                        .try_admit(JsonMeasurement::Key { bytes: key.len() })?;
+                    frames.push(Frame::Visit(value, depth));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Runs the infallible explicit-stack hashing engine.
+///
+/// Container continuations visit one child at a time, so pending traversal
+/// storage depends on nesting depth rather than the width of any one array or
+/// object.
+fn hash_json_iterative<H>(value: &serde_json::Value, state: &mut H)
+where
+    H: Hasher,
 {
     let mut frames = vec![HashFrame::Visit(value, 1)];
     let mut destinations = vec![HashDestination::Root(state)];
@@ -251,7 +353,6 @@ where
     while let Some(frame) = frames.pop() {
         match frame {
             HashFrame::Visit(value, depth) => {
-                check_value_budget(value, depth, budget.as_deref_mut())?;
                 let destination = destinations
                     .last_mut()
                     .expect("a JSON node must have a hash destination");
@@ -321,9 +422,6 @@ where
                 }
             }
             HashFrame::StartObjectEntry(key) => {
-                if let Some(budget) = budget.as_deref_mut() {
-                    budget.consume_key_bytes_usize(key.len())?;
-                }
                 let mut entry = IdentityHasher::default().build_hasher();
                 key.hash(&mut entry);
                 destinations.push(HashDestination::ObjectEntry(entry));
@@ -349,43 +447,6 @@ where
                 destination.hash(&sum);
                 destination.hash(&xor);
             }
-        }
-    }
-    Ok(())
-}
-
-/// Charges one JSON node and checks its container or text-specific limits.
-///
-/// A missing budget accepts the value without performing any work.
-fn check_value_budget<R, Q>(
-    value: &serde_json::Value,
-    depth: usize,
-    budget: Option<&mut JsonValueBudget<R, Q>>,
-) -> Result<(), MeasuredBudgetError<R, Q>>
-where
-    R: Clone,
-    Q: ResourceQuantity,
-{
-    let Some(budget) = budget else {
-        return Ok(());
-    };
-    match value {
-        serde_json::Value::Array(values) => {
-            budget.enter_array_usize(depth, values.len())
-        }
-        serde_json::Value::Object(values) => {
-            budget.enter_object_usize(depth, values.len())
-        }
-        serde_json::Value::String(value) => {
-            budget.enter_node_usize(depth)?;
-            budget.consume_string_bytes_usize(value.len())
-        }
-        serde_json::Value::Number(value) => {
-            budget.enter_node_usize(depth)?;
-            budget.consume_number_bytes_usize(value.as_str().len())
-        }
-        serde_json::Value::Null | serde_json::Value::Bool(_) => {
-            budget.enter_node_usize(depth)
         }
     }
 }
