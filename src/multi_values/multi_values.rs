@@ -179,7 +179,8 @@ impl MultiValues {
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a JSON element exceeds a configured limit.
+    /// Returns [`MeasuredBudgetError`] when a JSON element exceeds a configured
+    /// limit.
     /// On error, both `state` and `budget` may already be partially updated;
     /// callers must discard the hasher and either discard the budget or
     /// continue from its consumed state. This method does not roll either one
