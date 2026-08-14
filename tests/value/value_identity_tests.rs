@@ -30,6 +30,35 @@ use qubit_datatype::DataType;
 use qubit_value::Value;
 use url::Url;
 
+#[cfg(feature = "json")]
+#[derive(Default)]
+struct RecordingHasher(Vec<u8>);
+
+#[cfg(feature = "json")]
+impl Hasher for RecordingHasher {
+    fn finish(&self) -> u64 {
+        0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.extend_from_slice(bytes);
+    }
+}
+
+#[cfg(feature = "json")]
+struct PanickingHasher;
+
+#[cfg(feature = "json")]
+impl Hasher for PanickingHasher {
+    fn finish(&self) -> u64 {
+        0
+    }
+
+    fn write(&mut self, _bytes: &[u8]) {
+        panic!("test hasher panic");
+    }
+}
+
 /// Returns the standard-library hash of `value` for equality-contract tests.
 #[cfg(feature = "json")]
 fn hash(value: &Value) -> u64 {
@@ -221,6 +250,60 @@ fn test_value_hash_with_json_budget_rejects_json_exceeding_node_budget() {
             requested: 1,
         })
     ));
+}
+
+/// Verifies a rejected JSON value leaves both external hash state and budget
+/// state unchanged.
+#[cfg(feature = "json")]
+#[test]
+fn test_value_hash_with_json_budget_error_is_atomic() {
+    let value = Value::Json(serde_json::json!([null]));
+    let mut budget = JsonValueLimits::empty().with_max_nodes(1).budget();
+    let mut state = RecordingHasher::default();
+
+    assert!(
+        value
+            .hash_with_json_budget(&mut state, &mut budget)
+            .is_err()
+    );
+    assert!(state.0.is_empty());
+    assert_eq!(budget.used_nodes(), Some(0));
+}
+
+/// Verifies successful bounded JSON hashing preserves the ordinary identity.
+#[cfg(feature = "json")]
+#[test]
+fn test_value_hash_with_json_budget_preserves_identity() {
+    let value = Value::Json(serde_json::json!({"items": [null, 1]}));
+    let expected = hash(&value);
+    let mut budget = JsonValueLimits::empty().budget();
+    let mut state = DefaultHasher::new();
+
+    value
+        .hash_with_json_budget(&mut state, &mut budget)
+        .expect("an empty budget must accept the JSON value");
+    assert_eq!(state.finish(), expected);
+}
+
+/// Verifies a hasher panic drops the staged JSON budget transaction.
+#[cfg(feature = "json")]
+#[test]
+fn test_value_hash_with_json_budget_panic_rolls_back_budget() {
+    let value = Value::Json(serde_json::json!(null));
+    let mut budget = JsonValueLimits::empty().with_max_nodes(1).budget();
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        value.hash_with_json_budget(&mut PanickingHasher, &mut budget)
+    }));
+    assert!(result.is_err());
+    assert_eq!(budget.used_nodes(), Some(0));
+
+    let mut state = DefaultHasher::new();
+    value
+        .hash_with_json_budget(&mut state, &mut budget)
+        .expect("the rolled-back budget must accept a later value");
+    assert_eq!(state.finish(), hash(&value));
+    assert_eq!(budget.used_nodes(), Some(1));
 }
 
 /// Verifies budgeted hashing preserves special non-JSON identity hashes.
