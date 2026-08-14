@@ -9,6 +9,8 @@
 //! Tests for the explicit scalar-or-collection value container.
 
 use std::collections::HashSet;
+#[cfg(feature = "redact")]
+use std::fmt;
 use std::hash::Hash;
 
 use qubit_datatype::CollectionConversionPolicy;
@@ -29,8 +31,6 @@ use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWireV1;
 use serde_json::json;
 use serde_json::to_value;
-#[cfg(feature = "redact")]
-use std::fmt;
 
 /// Proves every public value wrapper can be rendered through a redaction
 /// policy.
@@ -76,7 +76,9 @@ fn test_public_value_wrappers_report_finite_redaction_input_bytes() {
         usize::MAX,
     );
     assert_ne!(
-        Redact::redaction_input_bytes(&MultiValues::String(vec!["value".to_owned(),])),
+        Redact::redaction_input_bytes(&MultiValues::String(vec![
+            "value".to_owned(),
+        ])),
         usize::MAX,
     );
     assert_ne!(
@@ -84,9 +86,10 @@ fn test_public_value_wrappers_report_finite_redaction_input_bytes() {
         usize::MAX,
     );
     assert_ne!(
-        Redact::redaction_input_bytes(
-            &NamedValue::new("field", Value::String("value".to_owned()),)
-        ),
+        Redact::redaction_input_bytes(&NamedValue::new(
+            "field",
+            Value::String("value".to_owned()),
+        )),
         usize::MAX,
     );
     assert_ne!(
@@ -106,7 +109,8 @@ fn test_public_value_wrappers_render_after_input_admission() {
     use qubit_redact::RedactionPolicy;
 
     let named = NamedValue::new("field", Value::String("value".to_owned()));
-    let output = format!("{:?}", named.redacted_with(&RedactionPolicy::default()),);
+    let output =
+        format!("{:?}", named.redacted_with(&RedactionPolicy::default()),);
     assert!(output.contains("value"), "{output}");
 
     let map = Value::StringMap(std::collections::HashMap::from([(
@@ -132,7 +136,10 @@ fn test_public_value_wrappers_account_numeric_and_escaped_payloads() {
     assert!(Redact::redaction_input_bytes(&numeric) >= 2 + 1 + 3 + 3);
 
     let escaped = Value::String("line\nquote\"".to_owned());
-    assert!(Redact::redaction_input_bytes(&escaped) >= escaped.get_string().unwrap().len());
+    assert!(
+        Redact::redaction_input_bytes(&escaped)
+            >= escaped.get_string().unwrap().len()
+    );
 }
 
 /// Requires a type to satisfy the complete hash-key contract.
@@ -181,7 +188,8 @@ fn test_value_container_preserves_scalar_and_collection_shapes() {
 #[test]
 fn test_value_container_len_and_is_unset_preserve_shape_semantics() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
-    let unset_collection = ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let unset_collection =
+        ValueContainer::Collection(MultiValues::Unset(DataType::String));
     let scalar = ValueContainer::from(42_i32);
     let empty_collection = ValueContainer::from(Vec::<String>::new());
     let collection = ValueContainer::from(vec!["alpha", "beta"]);
@@ -227,7 +235,8 @@ fn test_value_container_new_unset_constructors_are_shape_specific() {
 #[test]
 fn test_value_container_is_unset_distinguishes_concrete_scalars() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
-    let unset_collection = ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let unset_collection =
+        ValueContainer::Collection(MultiValues::Unset(DataType::String));
     let empty_collection = ValueContainer::from(Vec::<String>::new());
     let empty_string = ValueContainer::from("");
 
@@ -340,8 +349,11 @@ fn test_value_container_tagged_wire_preserves_shape() {
         json!({"version": 1, "value": {"scalar": {"int32": 42}}})
     );
     assert_eq!(
-        to_value(ValueWireV1::try_from(collection).expect("collection should fit V1"),)
-            .expect("serialize collection"),
+        to_value(
+            ValueWireV1::try_from(collection)
+                .expect("collection should fit V1"),
+        )
+        .expect("serialize collection"),
         json!({"version": 1, "value": {"collection": {"int32": [42]}}})
     );
 }
@@ -383,23 +395,38 @@ fn test_value_container_constructors_cover_borrowed_and_owned_collections() {
     let string_array = ["c", "d"];
     assert_eq!(
         ValueContainer::from(strings.clone()),
-        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
+        ValueContainer::Collection(MultiValues::String(vec![
+            "a".into(),
+            "b".into()
+        ]))
     );
     assert_eq!(
         ValueContainer::from(strings.as_slice()),
-        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
+        ValueContainer::Collection(MultiValues::String(vec![
+            "a".into(),
+            "b".into()
+        ]))
     );
     assert_eq!(
         ValueContainer::from(&strings),
-        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
+        ValueContainer::Collection(MultiValues::String(vec![
+            "a".into(),
+            "b".into()
+        ]))
     );
     assert_eq!(
         ValueContainer::from(string_array),
-        ValueContainer::Collection(MultiValues::String(vec!["c".into(), "d".into()]))
+        ValueContainer::Collection(MultiValues::String(vec![
+            "c".into(),
+            "d".into()
+        ]))
     );
     assert_eq!(
         ValueContainer::from(&string_array),
-        ValueContainer::Collection(MultiValues::String(vec!["c".into(), "d".into()]))
+        ValueContainer::Collection(MultiValues::String(vec![
+            "c".into(),
+            "d".into()
+        ]))
     );
 
     assert_eq!(

@@ -59,7 +59,6 @@ pub enum ValueWireDecodeError {
     /// The bounded input is not a valid V1 JSON wire value.
     #[error("failed to decode V1 JSON wire input: {0}")]
     InvalidJson(#[source] JsonError),
-
 }
 
 impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
