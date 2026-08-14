@@ -17,6 +17,8 @@ use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
 use qubit_redact::Redact;
+#[cfg(feature = "redact")]
+use qubit_redact::RedactionSession;
 use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
@@ -27,6 +29,8 @@ use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWireV1;
 use serde_json::json;
 use serde_json::to_value;
+#[cfg(feature = "redact")]
+use std::fmt;
 
 /// Proves every public value wrapper can be rendered through a redaction
 /// policy.
@@ -40,6 +44,95 @@ fn test_public_value_wrappers_implement_redact() {
     assert_redact::<ValueContainer>();
     assert_redact::<NamedValue>();
     assert_redact::<NamedMultiValues>();
+}
+
+/// Keeps downstream hand-written implementations on the mutable-session
+/// redaction contract.
+#[cfg(feature = "redact")]
+#[test]
+fn test_public_value_wrappers_use_mutable_redaction_sessions() {
+    fn assert_signature<T: Redact>() {
+        let _: for<'session, 'policy, 'formatter> fn(
+            &T,
+            &'session mut RedactionSession<'policy>,
+            &'formatter mut fmt::Formatter<'formatter>,
+        ) -> fmt::Result = T::fmt_redacted;
+    }
+
+    assert_signature::<Value>();
+    assert_signature::<MultiValues>();
+    assert_signature::<ValueContainer>();
+    assert_signature::<NamedValue>();
+    assert_signature::<NamedMultiValues>();
+}
+
+/// Every downstream value wrapper must provide a finite structural input size
+/// so shared-session admission can proceed without fail-closed empties.
+#[cfg(feature = "redact")]
+#[test]
+fn test_public_value_wrappers_report_finite_redaction_input_bytes() {
+    assert_ne!(
+        Redact::redaction_input_bytes(&Value::String("value".to_owned())),
+        usize::MAX,
+    );
+    assert_ne!(
+        Redact::redaction_input_bytes(&MultiValues::String(vec!["value".to_owned(),])),
+        usize::MAX,
+    );
+    assert_ne!(
+        Redact::redaction_input_bytes(&ValueContainer::Scalar(Value::Int32(1))),
+        usize::MAX,
+    );
+    assert_ne!(
+        Redact::redaction_input_bytes(
+            &NamedValue::new("field", Value::String("value".to_owned()),)
+        ),
+        usize::MAX,
+    );
+    assert_ne!(
+        Redact::redaction_input_bytes(&NamedMultiValues::new(
+            "field",
+            MultiValues::String(vec!["value".to_owned()]),
+        )),
+        usize::MAX,
+    );
+}
+
+/// Confirms creation-time keyed/map results render their safe value instead
+/// of becoming empty after the input admission check.
+#[cfg(feature = "redact")]
+#[test]
+fn test_public_value_wrappers_render_after_input_admission() {
+    use qubit_redact::RedactionPolicy;
+
+    let named = NamedValue::new("field", Value::String("value".to_owned()));
+    let output = format!("{:?}", named.redacted_with(&RedactionPolicy::default()),);
+    assert!(output.contains("value"), "{output}");
+
+    let map = Value::StringMap(std::collections::HashMap::from([(
+        "field".to_owned(),
+        "value".to_owned(),
+    )]));
+    let output = format!("{:?}", map.redacted());
+    assert!(output.contains("value"), "{output}");
+}
+
+#[cfg(all(feature = "redact", feature = "big-integer"))]
+#[test]
+fn test_public_value_wrappers_account_numeric_and_escaped_payloads() {
+    use num_bigint::BigInt;
+
+    let big = Value::BigInteger(
+        BigInt::parse_bytes(b"123456789012345678901234567890", 10)
+            .expect("the fixture should parse"),
+    );
+    assert!(Redact::redaction_input_bytes(&big) > 10);
+
+    let numeric = MultiValues::Int64(vec![1, -20, 300]);
+    assert!(Redact::redaction_input_bytes(&numeric) >= 2 + 1 + 3 + 3);
+
+    let escaped = Value::String("line\nquote\"".to_owned());
+    assert!(Redact::redaction_input_bytes(&escaped) >= escaped.get_string().unwrap().len());
 }
 
 /// Requires a type to satisfy the complete hash-key contract.
@@ -88,8 +181,7 @@ fn test_value_container_preserves_scalar_and_collection_shapes() {
 #[test]
 fn test_value_container_len_and_is_unset_preserve_shape_semantics() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
-    let unset_collection =
-        ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let unset_collection = ValueContainer::Collection(MultiValues::Unset(DataType::String));
     let scalar = ValueContainer::from(42_i32);
     let empty_collection = ValueContainer::from(Vec::<String>::new());
     let collection = ValueContainer::from(vec!["alpha", "beta"]);
@@ -135,8 +227,7 @@ fn test_value_container_new_unset_constructors_are_shape_specific() {
 #[test]
 fn test_value_container_is_unset_distinguishes_concrete_scalars() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
-    let unset_collection =
-        ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let unset_collection = ValueContainer::Collection(MultiValues::Unset(DataType::String));
     let empty_collection = ValueContainer::from(Vec::<String>::new());
     let empty_string = ValueContainer::from("");
 
@@ -249,11 +340,8 @@ fn test_value_container_tagged_wire_preserves_shape() {
         json!({"version": 1, "value": {"scalar": {"int32": 42}}})
     );
     assert_eq!(
-        to_value(
-            ValueWireV1::try_from(collection)
-                .expect("collection should fit V1"),
-        )
-        .expect("serialize collection"),
+        to_value(ValueWireV1::try_from(collection).expect("collection should fit V1"),)
+            .expect("serialize collection"),
         json!({"version": 1, "value": {"collection": {"int32": [42]}}})
     );
 }
@@ -295,38 +383,23 @@ fn test_value_container_constructors_cover_borrowed_and_owned_collections() {
     let string_array = ["c", "d"];
     assert_eq!(
         ValueContainer::from(strings.clone()),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "a".into(),
-            "b".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
     );
     assert_eq!(
         ValueContainer::from(strings.as_slice()),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "a".into(),
-            "b".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
     );
     assert_eq!(
         ValueContainer::from(&strings),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "a".into(),
-            "b".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
     );
     assert_eq!(
         ValueContainer::from(string_array),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "c".into(),
-            "d".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["c".into(), "d".into()]))
     );
     assert_eq!(
         ValueContainer::from(&string_array),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "c".into(),
-            "d".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["c".into(), "d".into()]))
     );
 
     assert_eq!(
