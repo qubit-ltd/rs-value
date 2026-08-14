@@ -96,8 +96,8 @@ impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
                     Self::Quantity { resource, source }
                 }
             },
-            JsonEncodeError::InvalidRawJson(error)
-            | JsonEncodeError::Serialize(error) => Self::Json(error),
+            JsonEncodeError::InvalidRawJson(error) => Self::Syntax(error),
+            JsonEncodeError::Serialize(error) => Self::Json(error),
             JsonEncodeError::Write(error) => Self::Io(error),
         }
     }
