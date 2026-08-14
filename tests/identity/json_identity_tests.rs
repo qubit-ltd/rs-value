@@ -32,6 +32,35 @@ use qubit_budget::json::JsonValueLimits;
 use qubit_value::Value;
 
 #[cfg(feature = "json")]
+#[derive(Default)]
+struct RecordingHasher(Vec<u8>);
+
+#[cfg(feature = "json")]
+impl Hasher for RecordingHasher {
+    fn finish(&self) -> u64 {
+        0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.extend_from_slice(bytes);
+    }
+}
+
+#[cfg(feature = "json")]
+struct PanickingHasher;
+
+#[cfg(feature = "json")]
+impl Hasher for PanickingHasher {
+    fn finish(&self) -> u64 {
+        0
+    }
+
+    fn write(&mut self, _bytes: &[u8]) {
+        panic!("test hasher panic");
+    }
+}
+
+#[cfg(feature = "json")]
 #[cfg(feature = "json")]
 #[path = "../../src/identity/json_identity.rs"]
 mod json_identity;
@@ -322,6 +351,47 @@ fn test_hash_json_with_budget_checks_number_bytes() {
             maximum: 3,
         })
     ));
+}
+
+/// Verifies a rejected JSON value does not modify its hasher or budget.
+#[cfg(feature = "json")]
+#[test]
+fn test_hash_json_with_budget_error_is_atomic() {
+    let value = serde_json::json!([null]);
+    let mut budget = JsonValueLimits::empty().with_max_nodes(1).budget();
+    let mut state = RecordingHasher::default();
+
+    assert!(
+        json_identity::hash_json_with_budget(&value, &mut state, &mut budget,)
+            .is_err()
+    );
+    assert!(state.0.is_empty());
+    assert_eq!(budget.used_nodes(), Some(0));
+}
+
+/// Verifies a hasher panic leaves the direct JSON transaction staged and
+/// reusable for a later successful value.
+#[cfg(feature = "json")]
+#[test]
+fn test_hash_json_with_budget_panic_rolls_back_and_reuses_budget() {
+    let value = serde_json::json!(null);
+    let mut budget = JsonValueLimits::empty().with_max_nodes(1).budget();
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        json_identity::hash_json_with_budget(
+            &value,
+            &mut PanickingHasher,
+            &mut budget,
+        )
+    }));
+    assert!(result.is_err());
+    assert_eq!(budget.used_nodes(), Some(0));
+
+    let mut state = RecordingHasher::default();
+    json_identity::hash_json_with_budget(&value, &mut state, &mut budget)
+        .expect("the rolled-back budget must accept a later value");
+    assert!(!state.0.is_empty());
+    assert_eq!(budget.used_nodes(), Some(1));
 }
 
 /// Verifies an unconfigured budget preserves the ordinary hash result.
