@@ -398,7 +398,7 @@ one session.
 
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession, JsonResource};
-use qubit_json::text::decode_slice;
+use qubit_json::text::JsonTextDecoder;
 use qubit_budget::ResourceLimit;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireV1;
@@ -414,7 +414,7 @@ let limits = JsonDecodeLimits::empty().with_input_bytes_limit(
     ResourceLimit::new(JsonResource::InputBytes, 64 * 1024),
 );
 let mut session = JsonDecodeSession::new(limits);
-let request: Request = decode_slice(input, &mut session)?;
+let request: Request = JsonTextDecoder::new(&mut session).decode(input)?;
 let restored: ValueContainer = request.value.into();
 assert!(restored.is_collection());
 ```
