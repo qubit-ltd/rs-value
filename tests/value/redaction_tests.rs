@@ -10,14 +10,35 @@
 use std::collections::HashMap;
 
 use qubit_redact::MaskPolicy;
-use qubit_redact::Redact as _;
-use qubit_redact::RedactValue as _;
 use qubit_redact::RedactionPolicy;
 use qubit_redact::Sensitivity;
+use qubit_redact::domain::Redact as _;
+use qubit_redact::domain::RedactValue as _;
+use qubit_redact::policy::DomainRedactionLimits;
 use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
 use qubit_value::Value;
+
+/// Builds a policy that classifies one field and limits domain nodes.
+fn sensitive_policy_with_nodes(
+    field: &str,
+    max_nodes: usize,
+) -> RedactionPolicy {
+    let limits = DomainRedactionLimits::new(
+        max_nodes,
+        DomainRedactionLimits::DEFAULT_MAX_COLLECTION_ITEMS,
+        DomainRedactionLimits::DEFAULT_MAX_DEPTH,
+    )
+    .expect("the test domain limits should be valid");
+    let mut builder = RedactionPolicy::builder();
+    builder
+        .fields()
+        .raise(field, Sensitivity::Secret)
+        .expect("the test field rule should be valid");
+    builder.limits().domain(limits);
+    builder.build().expect("policy should build")
+}
 
 #[test]
 fn test_value_redacted_view_masks_sensitive_string_map_entries() {
@@ -25,11 +46,12 @@ fn test_value_redacted_view_masks_sensitive_string_map_entries() {
         ("api_key".to_owned(), "raw-secret".to_owned()),
         ("label".to_owned(), "visible".to_owned()),
     ]));
-    let policy = RedactionPolicy::builder()
+    let mut builder = RedactionPolicy::builder();
+    builder
+        .fields()
         .raise("api_key", Sensitivity::Secret)
-        .expect("the test builder input should be valid")
-        .build()
-        .expect("policy should build");
+        .expect("the test builder input should be valid");
+    let policy = builder.build().expect("policy should build");
 
     let output = format!("{:?}", value.redacted_with(&policy));
 
@@ -40,11 +62,12 @@ fn test_value_redacted_view_masks_sensitive_string_map_entries() {
 #[test]
 fn test_value_redacted_view_preserves_scalar_without_key_context() {
     let value = Value::String("visible-without-key".to_owned());
-    let policy = RedactionPolicy::builder()
+    let mut builder = RedactionPolicy::builder();
+    builder
+        .fields()
         .raise("password", Sensitivity::Secret)
-        .expect("the test builder input should be valid")
-        .build()
-        .expect("policy should build");
+        .expect("the test builder input should be valid");
+    let policy = builder.build().expect("policy should build");
 
     let output = format!("{:?}", value.redacted_with(&policy));
 
@@ -54,12 +77,15 @@ fn test_value_redacted_view_preserves_scalar_without_key_context() {
 #[test]
 fn test_value_redact_value_masks_non_strings_with_configured_opaque_value() {
     let value = Value::Int32(12345);
-    let masking = RedactionPolicy::builder()
+    let mut builder = RedactionPolicy::builder();
+    builder
+        .fields()
         .mask(
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
         )
-        .expect("the test mask policy should be valid")
+        .expect("the test mask policy should be valid");
+    let masking = builder
         .build()
         .expect("policy should build")
         .masking()
@@ -74,16 +100,17 @@ fn test_value_redact_value_masks_non_strings_with_configured_opaque_value() {
 fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
     let value =
         NamedValue::new("token", Value::String("secret-token".to_owned()));
-    let policy = RedactionPolicy::builder()
+    let mut builder = RedactionPolicy::builder();
+    builder
+        .fields()
         .raise("token", Sensitivity::Low)
         .expect("the test builder input should be valid")
         .mask(
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "MASK", 0),
         )
-        .expect("the test mask policy should be valid")
-        .build()
-        .expect("policy should build");
+        .expect("the test mask policy should be valid");
+    let policy = builder.build().expect("policy should build");
 
     let output = format!("{:?}", value.redacted_with(&policy));
 
@@ -100,20 +127,59 @@ fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
             "second-secret".to_owned(),
         ]),
     );
-    let policy = RedactionPolicy::builder()
+    let mut builder = RedactionPolicy::builder();
+    builder
+        .fields()
         .raise("tokens", Sensitivity::Low)
         .expect("the test builder input should be valid")
         .mask(
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
         )
-        .expect("the test mask policy should be valid")
-        .build()
-        .expect("policy should build");
+        .expect("the test mask policy should be valid");
+    let policy = builder.build().expect("policy should build");
 
     let output = format!("{:?}", value.redacted_with(&policy));
 
     assert!(!output.contains("first-secret"));
     assert!(!output.contains("second-secret"));
     assert!(output.contains("OPAQUE"));
+}
+
+#[test]
+fn test_named_value_exact_wrapper_node_budget_is_complete() {
+    let value =
+        NamedValue::new("token", Value::String("secret-token".to_owned()));
+    let policy = sensitive_policy_with_nodes("token", 3);
+
+    let output = format!("{:?}", value.redacted_with(&policy));
+
+    assert!(!output.contains("secret-token"), "{output}");
+    assert!(!output.contains("<truncated>"), "{output}");
+}
+
+#[test]
+fn test_named_value_one_less_wrapper_node_truncates() {
+    let value =
+        NamedValue::new("token", Value::String("secret-token".to_owned()));
+    let policy = sensitive_policy_with_nodes("token", 2);
+
+    let output = format!("{:?}", value.redacted_with(&policy));
+
+    assert!(!output.contains("secret-token"), "{output}");
+    assert!(output.contains("<truncated>"), "{output}");
+}
+
+#[test]
+fn test_named_multi_values_exact_wrapper_node_budget_is_complete() {
+    let value = NamedMultiValues::new(
+        "tokens",
+        MultiValues::String(vec!["first-secret".to_owned()]),
+    );
+    let policy = sensitive_policy_with_nodes("tokens", 3);
+
+    let output = format!("{:?}", value.redacted_with(&policy));
+
+    assert!(!output.contains("first-secret"), "{output}");
+    assert!(!output.contains("<truncated>"), "{output}");
 }
