@@ -25,7 +25,7 @@ use qubit_budget::json::JsonResource;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonValueLimits;
 #[cfg(feature = "json")]
-use qubit_json::text::decode_slice;
+use qubit_json::text::JsonTextDecoder;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -151,7 +151,8 @@ pub(crate) fn decode_wire_json_slice_with_session(
     input: &[u8],
     session: &mut JsonDecodeSession,
 ) -> Result<ValueWireV1, ValueWireDecodeError> {
-    let envelope = decode_slice::<WireEnvelopeOwned, _, _>(input, session)
+    let envelope = JsonTextDecoder::new(session)
+        .decode::<WireEnvelopeOwned>(input)
         .map_err(ValueWireDecodeError::from)?;
     if envelope.version != VALUE_WIRE_V1_VERSION {
         return Err(ValueWireDecodeError::UnsupportedVersion {

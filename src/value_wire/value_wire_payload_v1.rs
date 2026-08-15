@@ -20,11 +20,9 @@ use qubit_budget::json::JsonEncodeLimits;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonEncodeSession;
 #[cfg(feature = "json")]
-use qubit_json::text::decode_slice;
+use qubit_json::text::JsonTextDecoder;
 #[cfg(feature = "json")]
-use qubit_json::text::encode_to_vec;
-#[cfg(feature = "json")]
-use qubit_json::text::encode_to_writer;
+use qubit_json::text::JsonTextEncoder;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -108,7 +106,9 @@ impl ValueWirePayloadV1 {
         limits: JsonDecodeLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut session = JsonDecodeSession::owned(limits);
-        decode_slice(input, &mut session).map_err(ValueWireDecodeError::from)
+        JsonTextDecoder::new(&mut session)
+            .decode(input)
+            .map_err(ValueWireDecodeError::from)
     }
 
     /// Encodes this V1 payload into a compact JSON vector with default limits.
@@ -130,7 +130,9 @@ impl ValueWirePayloadV1 {
         limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
         let mut session = JsonEncodeSession::owned(limits);
-        encode_to_vec(self, &mut session).map_err(ValueWireEncodeError::from)
+        JsonTextEncoder::new(&mut session)
+            .to_vec(self)
+            .map_err(ValueWireEncodeError::from)
     }
 
     /// Encodes this V1 payload to a writer with default limits.
@@ -169,7 +171,8 @@ impl ValueWirePayloadV1 {
         W: Write,
     {
         let mut session = JsonEncodeSession::owned(limits);
-        encode_to_writer(writer, self, &mut session)
+        JsonTextEncoder::new(&mut session)
+            .write_buffered(writer, self)
             .map_err(ValueWireEncodeError::from)
     }
 

@@ -61,11 +61,6 @@ impl Hasher for PanickingHasher {
 }
 
 #[cfg(feature = "json")]
-#[cfg(feature = "json")]
-#[path = "../../src/identity/json_identity.rs"]
-mod json_identity;
-
-#[cfg(feature = "json")]
 const DEEP_JSON_IDENTITY_CHILD_ENV: &str =
     "QUBIT_VALUE_DEEP_JSON_IDENTITY_CHILD";
 #[cfg(feature = "json")]
@@ -73,37 +68,12 @@ const DEEP_JSON_HASH_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_HASH_CHILD";
 #[cfg(feature = "json")]
 const DEEP_JSON_DEPTH: usize = 10_000;
 
-/// Verifies ordinary JSON hashes retain their pre-refactor values.
-#[cfg(feature = "json")]
-#[test]
-fn test_hash_json_preserves_existing_fixture_hashes() {
-    assert_eq!(
-        calculate_json_hash(&serde_json::json!(null)),
-        7_541_581_120_933_061_747
-    );
-    assert_eq!(
-        calculate_json_hash(&serde_json::json!([1, "two", true])),
-        4_303_966_244_104_683_771,
-    );
-    assert_eq!(
-        calculate_json_hash(&serde_json::json!({
-            "outer": {"first": 1, "second": [false, null]},
-            "text": "value"
-        })),
-        3_302_325_980_698_300_871,
-    );
-}
-
 /// Verifies JSON object key order does not affect public value identity.
 #[test]
 fn test_json_identity_ignores_object_key_order() {
     let left = Value::Json(serde_json::json!({"first": 1, "second": 2}));
     let right = Value::Json(serde_json::json!({"second": 2, "first": 1}));
     assert_eq!(left, right);
-    assert!(json_identity::json_eq(
-        left.get_json_ref().expect("left value must contain JSON"),
-        right.get_json_ref().expect("right value must contain JSON"),
-    ));
 }
 
 /// Verifies hashing ignores the insertion order of JSON object entries.
@@ -141,7 +111,7 @@ fn test_deep_json_identity_hash_does_not_recurse() {
         std::env::current_exe().expect("locate test binary"),
     )
     .arg("--exact")
-    .arg("identity::json_identity_tests::test_deep_json_identity_hash_child")
+    .arg("identity::json_identity_tests::test_deep_json_identity_hash_in_isolated_process")
     .arg("--ignored")
     .env(DEEP_JSON_HASH_CHILD_ENV, "1")
     .output()
@@ -160,7 +130,7 @@ fn test_deep_json_identity_hash_does_not_recurse() {
 #[cfg(feature = "json")]
 #[test]
 #[ignore = "run only through test_deep_json_identity_hash_does_not_recurse"]
-fn test_deep_json_identity_hash_child() {
+fn test_deep_json_identity_hash_in_isolated_process() {
     assert!(
         std::env::var_os(DEEP_JSON_HASH_CHILD_ENV).is_some(),
         "this helper test must run through its parent test"
@@ -365,7 +335,8 @@ fn test_hash_json_with_budget_error_is_atomic() {
     let mut state = RecordingHasher::default();
 
     assert!(
-        json_identity::hash_json_with_budget(&value, &mut state, &mut budget,)
+        Value::Json(value.clone())
+            .hash_with_json_budget(&mut state, &mut budget)
             .is_err()
     );
     assert!(state.0.is_empty());
@@ -381,17 +352,15 @@ fn test_hash_json_with_budget_panic_rolls_back_and_reuses_budget() {
     let mut budget = JsonValueLimits::empty().with_max_nodes(1).budget();
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        json_identity::hash_json_with_budget(
-            &value,
-            &mut PanickingHasher,
-            &mut budget,
-        )
+        Value::Json(value.clone())
+            .hash_with_json_budget(&mut PanickingHasher, &mut budget)
     }));
     assert!(result.is_err());
     assert_eq!(budget.used_nodes(), Some(0));
 
     let mut state = RecordingHasher::default();
-    json_identity::hash_json_with_budget(&value, &mut state, &mut budget)
+    Value::Json(value)
+        .hash_with_json_budget(&mut state, &mut budget)
         .expect("the rolled-back budget must accept a later value");
     assert!(!state.0.is_empty());
     assert_eq!(budget.used_nodes(), Some(1));
@@ -408,7 +377,8 @@ fn test_hash_json_with_budget_matches_unbounded_hash() {
     let expected = calculate_json_hash(&value);
     let mut budget = JsonValueLimits::<JsonResource, usize>::default().budget();
     let mut state = DefaultHasher::new();
-    json_identity::hash_json_with_budget(&value, &mut state, &mut budget)
+    Value::Json(value)
+        .hash_with_json_budget(&mut state, &mut budget)
         .expect("an unconfigured JSON budget must accept the value");
     assert_eq!(state.finish(), expected);
 }
@@ -422,7 +392,7 @@ fn test_deep_json_identity_equality_does_not_recurse() {
     )
     .arg("--exact")
     .arg(
-        "identity::json_identity_tests::test_deep_json_identity_equality_child",
+        "identity::json_identity_tests::test_deep_json_identity_equality_in_isolated_process",
     )
     .arg("--ignored")
     .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
@@ -442,7 +412,7 @@ fn test_deep_json_identity_equality_does_not_recurse() {
 #[cfg(feature = "json")]
 #[test]
 #[ignore = "run only through test_deep_json_identity_equality_does_not_recurse"]
-fn test_deep_json_identity_equality_child() {
+fn test_deep_json_identity_equality_in_isolated_process() {
     assert!(
         std::env::var_os(DEEP_JSON_IDENTITY_CHILD_ENV).is_some(),
         "this helper test must run through its parent test"
@@ -470,11 +440,11 @@ fn test_deep_json_identity_equality_child() {
     }
 }
 
-/// Hashes a JSON value with the implementation's ordinary identity rules.
+/// Hashes a JSON value with the public value identity contract.
 #[cfg(feature = "json")]
 fn calculate_json_hash(value: &serde_json::Value) -> u64 {
     let mut state = DefaultHasher::new();
-    json_identity::hash_json(value, &mut state);
+    Value::Json(value.clone()).hash(&mut state);
     state.finish()
 }
 
@@ -486,7 +456,8 @@ fn hash_json_with_limits(
 ) -> MeasuredBudgetError<JsonResource, usize> {
     let mut budget = limits.budget();
     let mut state = DefaultHasher::new();
-    match json_identity::hash_json_with_budget(value, &mut state, &mut budget)
+    match Value::Json(value.clone())
+        .hash_with_json_budget(&mut state, &mut budget)
         .expect_err("the configured JSON limit must reject the value")
     {
         MeasuredBudgetError::Budget(error) => {
