@@ -673,14 +673,14 @@ fn value_wire_v1_rejects_invalid_envelopes_and_unknown_tags() {
 }
 
 #[test]
-fn value_wire_v1_rejects_all_legacy_external_tag_shapes() {
-    for legacy in [
+fn value_wire_v1_rejects_noncanonical_external_tag_shapes() {
+    for noncanonical in [
         json!({"Int32": 42}),
         json!({"Unset": "int32"}),
         json!({"Scalar": {"Int32": 42}}),
         json!({"Collection": {"Int32": [42]}}),
     ] {
-        assert!(from_value::<ValueWireV1>(legacy).is_err());
+        assert!(from_value::<ValueWireV1>(noncanonical).is_err());
     }
 }
 
