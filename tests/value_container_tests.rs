@@ -18,9 +18,13 @@ use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
-use qubit_redact::Redact;
+use qubit_redact::RedactionPolicy;
 #[cfg(feature = "redact")]
 use qubit_redact::RedactionSession;
+#[cfg(feature = "redact")]
+use qubit_redact::domain::Redact;
+#[cfg(feature = "redact")]
+use qubit_redact::policy::DomainRedactionLimits;
 use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
@@ -66,39 +70,68 @@ fn test_public_value_wrappers_use_mutable_redaction_sessions() {
     assert_signature::<NamedMultiValues>();
 }
 
-/// Every downstream value wrapper must provide a finite structural input size
-/// so shared-session admission can proceed without fail-closed empties.
+/// Builds a policy with an explicit domain-structure budget.
+#[cfg(feature = "redact")]
+fn policy_with_domain_limits(
+    max_nodes: usize,
+    max_collection_items: usize,
+) -> RedactionPolicy {
+    let limits = DomainRedactionLimits::new(
+        max_nodes,
+        max_collection_items,
+        DomainRedactionLimits::DEFAULT_MAX_DEPTH,
+    )
+    .expect("the test domain limits should be valid");
+    let mut builder = RedactionPolicy::builder();
+    builder.limits().domain(limits);
+    builder
+        .build()
+        .expect("the test domain limits should build a policy")
+}
+
+/// Collection admission must stop before formatting an unadmitted element.
 #[cfg(feature = "redact")]
 #[test]
-fn test_public_value_wrappers_report_finite_redaction_input_bytes() {
-    assert_ne!(
-        Redact::redaction_input_bytes(&Value::String("value".to_owned())),
-        usize::MAX,
-    );
-    assert_ne!(
-        Redact::redaction_input_bytes(&MultiValues::String(vec![
-            "value".to_owned(),
-        ])),
-        usize::MAX,
-    );
-    assert_ne!(
-        Redact::redaction_input_bytes(&ValueContainer::Scalar(Value::Int32(1))),
-        usize::MAX,
-    );
-    assert_ne!(
-        Redact::redaction_input_bytes(&NamedValue::new(
-            "field",
-            Value::String("value".to_owned()),
-        )),
-        usize::MAX,
-    );
-    assert_ne!(
-        Redact::redaction_input_bytes(&NamedMultiValues::new(
-            "field",
-            MultiValues::String(vec!["value".to_owned()]),
-        )),
-        usize::MAX,
-    );
+fn test_multi_values_stop_before_unadmitted_collection_elements() {
+    let values = MultiValues::String(vec![
+        "visible".to_owned(),
+        "must-not-be-formatted".to_owned(),
+    ]);
+    let policy = policy_with_domain_limits(64, 1);
+
+    let output = format!("{:?}", values.redacted_with(&policy));
+
+    assert!(output.contains("visible"), "{output}");
+    assert!(!output.contains("must-not-be-formatted"), "{output}");
+    assert!(output.contains("<truncated>"), "{output}");
+}
+
+/// An exactly full collection budget must not add a false truncation marker.
+#[cfg(feature = "redact")]
+#[test]
+fn test_multi_values_exact_collection_limit_is_complete() {
+    let values = MultiValues::String(vec!["visible".to_owned()]);
+    let policy = policy_with_domain_limits(64, 1);
+
+    let output = format!("{:?}", values.redacted_with(&policy));
+
+    assert!(output.contains("visible"), "{output}");
+    assert!(!output.contains("<truncated>"), "{output}");
+}
+
+/// Wrapper fields are charged before the contained value is formatted.
+#[cfg(feature = "redact")]
+#[test]
+fn test_value_container_stops_before_unadmitted_variant_payload() {
+    let value = ValueContainer::Scalar(Value::String(
+        "must-not-be-formatted".to_owned(),
+    ));
+    let policy = policy_with_domain_limits(1, 8);
+
+    let output = format!("{:?}", value.redacted_with(&policy));
+
+    assert!(!output.contains("must-not-be-formatted"), "{output}");
+    assert!(output.contains("<truncated>"), "{output}");
 }
 
 /// Confirms creation-time keyed/map results render their safe value instead
@@ -106,8 +139,6 @@ fn test_public_value_wrappers_report_finite_redaction_input_bytes() {
 #[cfg(feature = "redact")]
 #[test]
 fn test_public_value_wrappers_render_after_input_admission() {
-    use qubit_redact::RedactionPolicy;
-
     let named = NamedValue::new("field", Value::String("value".to_owned()));
     let output =
         format!("{:?}", named.redacted_with(&RedactionPolicy::default()),);
@@ -119,27 +150,6 @@ fn test_public_value_wrappers_render_after_input_admission() {
     )]));
     let output = format!("{:?}", map.redacted());
     assert!(output.contains("value"), "{output}");
-}
-
-#[cfg(all(feature = "redact", feature = "big-integer"))]
-#[test]
-fn test_public_value_wrappers_account_numeric_and_escaped_payloads() {
-    use num_bigint::BigInt;
-
-    let big = Value::BigInteger(
-        BigInt::parse_bytes(b"123456789012345678901234567890", 10)
-            .expect("the fixture should parse"),
-    );
-    assert!(Redact::redaction_input_bytes(&big) > 10);
-
-    let numeric = MultiValues::Int64(vec![1, -20, 300]);
-    assert!(Redact::redaction_input_bytes(&numeric) >= 2 + 1 + 3 + 3);
-
-    let escaped = Value::String("line\nquote\"".to_owned());
-    assert!(
-        Redact::redaction_input_bytes(&escaped)
-            >= escaped.get_string().unwrap().len()
-    );
 }
 
 /// Requires a type to satisfy the complete hash-key contract.
