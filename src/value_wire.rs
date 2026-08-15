@@ -15,7 +15,6 @@
 #[cfg(feature = "json")]
 use qubit_budget::ResourceLimit;
 #[cfg(feature = "json")]
-#[cfg(feature = "json")]
 use qubit_budget::json::JsonDecodeLimits;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonDecodeSession;
@@ -79,17 +78,17 @@ mod value_wire_payload_v1;
 mod value_wire_ref_v1;
 mod value_wire_v1;
 
-use internal::WireEnvelopeOwned;
-use internal::WireEnvelopeRef;
-use internal::WireShapeOwned;
-use internal::WireShapeRef;
+use self::internal::WireEnvelopeOwned;
+use self::internal::WireEnvelopeRef;
+use self::internal::WireShapeOwned;
+use self::internal::WireShapeRef;
 #[cfg(feature = "json")]
-pub use value_wire_decode_error::ValueWireDecodeError;
-pub use value_wire_encode_error::ValueWireEncodeError;
-pub use value_wire_payload_ref_v1::ValueWirePayloadRefV1;
-pub use value_wire_payload_v1::ValueWirePayloadV1;
-pub use value_wire_ref_v1::ValueWireRefV1;
-pub use value_wire_v1::ValueWireV1;
+pub use self::value_wire_decode_error::ValueWireDecodeError;
+pub use self::value_wire_encode_error::ValueWireEncodeError;
+pub use self::value_wire_payload_ref_v1::ValueWirePayloadRefV1;
+pub use self::value_wire_payload_v1::ValueWirePayloadV1;
+pub use self::value_wire_ref_v1::ValueWireRefV1;
+pub use self::value_wire_v1::ValueWireV1;
 
 /// Returns the default value-resource profile used by V1 JSON documents.
 #[cfg(feature = "json")]

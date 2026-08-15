@@ -21,6 +21,6 @@ mod multi_values_getters;
 mod multi_values_identity;
 mod multi_values_ref;
 
-pub use multi_values::MultiValues;
-pub(crate) use multi_values::MultiValuesRepr;
-pub use multi_values_ref::MultiValuesRef;
+pub use self::multi_values::MultiValues;
+pub(crate) use self::multi_values::MultiValuesRepr;
+pub use self::multi_values_ref::MultiValuesRef;

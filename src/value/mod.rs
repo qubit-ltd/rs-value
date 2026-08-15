@@ -22,6 +22,6 @@ mod value_identity;
 mod value_numeric_comparison;
 mod value_ref;
 
-pub use value::Value;
-pub(crate) use value::ValueRepr;
-pub use value_ref::ValueRef;
+pub use self::value::Value;
+pub(crate) use self::value::ValueRepr;
+pub use self::value_ref::ValueRef;

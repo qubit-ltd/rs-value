@@ -13,8 +13,8 @@ use serde_json::Value;
 
 mod internal;
 
-pub(crate) use internal::StrictJsonError;
-use internal::StrictJsonSerializer;
+pub(crate) use self::internal::StrictJsonError;
+use self::internal::StrictJsonSerializer;
 
 /// Result returned by strict JSON serialization helpers.
 type Result<T> = std::result::Result<T, StrictJsonError>;
