@@ -32,11 +32,13 @@ use qubit_datatype::DataTypeOf;
 #[cfg(feature = "redact")]
 use qubit_redact::MaskPolicy;
 #[cfg(feature = "redact")]
-use qubit_redact::Redact as _;
-#[cfg(feature = "redact")]
 use qubit_redact::RedactionPolicy;
 #[cfg(feature = "redact")]
 use qubit_redact::Sensitivity;
+#[cfg(feature = "redact")]
+use qubit_redact::domain::Redact as _;
+#[cfg(feature = "redact")]
+use qubit_redact::policy::DomainRedactionLimits;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -44,6 +46,7 @@ use qubit_redact::Sensitivity;
     feature = "big-decimal",
     feature = "url",
     feature = "json",
+    feature = "redact",
 ))]
 use qubit_value::MultiValues;
 #[cfg(feature = "redact")]
@@ -242,11 +245,12 @@ fn redact_feature_masks_sensitive_string_map_entries() {
         ("api_key".to_owned(), "raw-secret".to_owned()),
         ("label".to_owned(), "visible".to_owned()),
     ]));
-    let policy = RedactionPolicy::builder()
+    let mut builder = RedactionPolicy::builder();
+    builder
+        .fields()
         .raise("api_key", Sensitivity::Secret)
-        .expect("the test builder input should be valid")
-        .build()
-        .expect("policy should build");
+        .expect("the test builder input should be valid");
+    let policy = builder.build().expect("policy should build");
 
     let output = format!("{:?}", value.redacted_with(&policy));
 
@@ -258,16 +262,17 @@ fn redact_feature_masks_sensitive_string_map_entries() {
 #[test]
 fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
     let value = NamedValue::new("secret_number", Value::Int32(12345));
-    let policy = RedactionPolicy::builder()
+    let mut builder = RedactionPolicy::builder();
+    builder
+        .fields()
         .raise("secret_number", Sensitivity::Low)
         .expect("the test builder input should be valid")
         .mask(
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
         )
-        .expect("the test mask policy should be valid")
-        .build()
-        .expect("policy should build");
+        .expect("the test mask policy should be valid");
+    let policy = builder.build().expect("policy should build");
 
     let output = format!("{:?}", value.redacted_with(&policy));
 
@@ -288,13 +293,14 @@ fn redact_feature_recursively_masks_sensitive_json_object_entries() {
             "unkeyed-value"
         ]
     }));
-    let policy = RedactionPolicy::builder()
+    let mut builder = RedactionPolicy::builder();
+    builder
+        .fields()
         .raise("api_key", Sensitivity::Secret)
         .expect("the test builder input should be valid")
         .raise("token", Sensitivity::Secret)
-        .expect("the test builder input should be valid")
-        .build()
-        .expect("policy should build");
+        .expect("the test builder input should be valid");
+    let policy = builder.build().expect("policy should build");
 
     let debug = format!("{:#?}", value.redacted_with(&policy));
     let display = format!("{}", value.redacted_with(&policy));
@@ -306,6 +312,28 @@ fn redact_feature_recursively_masks_sensitive_json_object_entries() {
     assert!(!display.contains("nested-secret"));
     assert!(!display.contains("array-secret"));
     assert!(!display.contains('\n'));
+}
+
+#[cfg(feature = "redact")]
+#[test]
+fn redact_feature_stops_before_unadmitted_collection_elements() {
+    let values = MultiValues::String(vec![
+        "visible".to_owned(),
+        "must-not-be-formatted".to_owned(),
+    ]);
+    let limits = DomainRedactionLimits::new(64, 1, 8)
+        .expect("the test domain limits should be valid");
+    let mut builder = RedactionPolicy::builder();
+    builder.limits().domain(limits);
+    let policy = builder
+        .build()
+        .expect("the test domain limits should build a policy");
+
+    let output = format!("{:?}", values.redacted_with(&policy));
+
+    assert!(output.contains("visible"), "{output}");
+    assert!(!output.contains("must-not-be-formatted"), "{output}");
+    assert!(output.contains("<truncated>"), "{output}");
 }
 
 #[cfg(all(feature = "converter", feature = "chrono"))]
