@@ -8,16 +8,21 @@
 //! Policy-aware redaction for structured [`super::Value`] instances.
 
 use std::fmt;
-use std::fmt::Write as _;
 
 use qubit_redact::MaskingPolicy;
-use qubit_redact::Redact;
-use qubit_redact::RedactValue;
-use qubit_redact::RedactedKeyedResult;
-use qubit_redact::RedactedMapResult;
-use qubit_redact::RedactedValue;
-use qubit_redact::RedactionSession;
+#[cfg(feature = "json")]
+use qubit_redact::RedactionCompletion;
 use qubit_redact::Sensitivity;
+use qubit_redact::domain::DomainTruncated;
+use qubit_redact::domain::Redact;
+use qubit_redact::domain::RedactValue;
+use qubit_redact::domain::RedactedMapResult;
+use qubit_redact::domain::RedactedResult;
+use qubit_redact::domain::RedactedValue;
+use qubit_redact::policy::DomainTraversalAdmission;
+use qubit_redact::policy::DomainValueAdmission;
+use qubit_redact::policy::DomainValueScope;
+use qubit_redact::policy::RedactionSession;
 
 use super::Value;
 use super::ValueRepr;
@@ -25,248 +30,9 @@ use crate::MultiValues;
 use crate::NamedMultiValues;
 use crate::NamedValue;
 use crate::ValueContainer;
-use crate::ValueRef;
-use crate::multi_values::MultiValuesRef;
 use crate::multi_values::MultiValuesRepr;
 
-struct ByteCounter(usize);
-
-impl fmt::Write for ByteCounter {
-    fn write_str(&mut self, value: &str) -> fmt::Result {
-        self.0 = self.0.saturating_add(value.len());
-        Ok(())
-    }
-}
-
-fn display_len<T: fmt::Display + ?Sized>(value: &T) -> usize {
-    let mut counter = ByteCounter(0);
-    let _ = write!(&mut counter, "{value}");
-    counter.0
-}
-
-fn debug_len<T: fmt::Debug + ?Sized>(value: &T) -> usize {
-    let mut counter = ByteCounter(0);
-    let _ = write!(&mut counter, "{value:?}");
-    counter.0
-}
-
-#[cfg(feature = "json")]
-struct JsonByteCounter(usize);
-
-#[cfg(feature = "json")]
-impl std::io::Write for JsonByteCounter {
-    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        self.0 = self.0.saturating_add(bytes.len());
-        Ok(bytes.len())
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "json")]
-fn json_len(value: &serde_json::Value) -> usize {
-    let mut counter = JsonByteCounter(0);
-    serde_json::to_writer(&mut counter, value).map_or(usize::MAX, |_| counter.0)
-}
-
-fn value_input_bytes(value: &Value) -> usize {
-    match value.view() {
-        ValueRef::Unset(_) => 1,
-        ValueRef::Bool(value) => display_len(&value),
-        ValueRef::Char(value) => display_len(&value),
-        ValueRef::Int8(value) => display_len(&value),
-        ValueRef::Int16(value) => display_len(&value),
-        ValueRef::Int32(value) => display_len(&value),
-        ValueRef::Int64(value) => display_len(&value),
-        ValueRef::Int128(value) => display_len(&value),
-        ValueRef::UInt8(value) => display_len(&value),
-        ValueRef::UInt16(value) => display_len(&value),
-        ValueRef::UInt32(value) => display_len(&value),
-        ValueRef::UInt64(value) => display_len(&value),
-        ValueRef::UInt128(value) => display_len(&value),
-        ValueRef::Float32(value) => display_len(&value),
-        ValueRef::Float64(value) => display_len(&value),
-        #[cfg(feature = "big-integer")]
-        ValueRef::BigInteger(value) => display_len(value),
-        #[cfg(feature = "big-decimal")]
-        ValueRef::BigDecimal(value) => display_len(value),
-        ValueRef::String(value) => value.len(),
-        #[cfg(feature = "chrono")]
-        ValueRef::Date(value) => display_len(value),
-        #[cfg(feature = "chrono")]
-        ValueRef::Time(value) => display_len(value),
-        #[cfg(feature = "chrono")]
-        ValueRef::DateTime(value) => display_len(value),
-        #[cfg(feature = "chrono")]
-        ValueRef::Instant(value) => display_len(value),
-        ValueRef::Duration(value) => debug_len(value),
-        #[cfg(feature = "url")]
-        ValueRef::Url(value) => value.as_str().len(),
-        ValueRef::StringMap(values) => {
-            values.iter().fold(2, |total, (key, value)| {
-                total
-                    .saturating_add(debug_len(key))
-                    .saturating_add(debug_len(value))
-                    .saturating_add(4)
-            })
-        }
-        #[cfg(feature = "json")]
-        ValueRef::Json(value) => json_len(value),
-    }
-}
-
-fn multi_values_input_bytes(values: &MultiValues) -> usize {
-    match values.view() {
-        MultiValuesRef::Unset(_) => 1,
-        MultiValuesRef::Bool(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::Char(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::Int8(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::Int16(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::Int32(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::Int64(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::Int128(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::UInt8(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::UInt16(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::UInt32(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::UInt64(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::UInt128(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::Float32(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::Float64(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        #[cfg(feature = "big-integer")]
-        MultiValuesRef::BigInteger(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        #[cfg(feature = "big-decimal")]
-        MultiValuesRef::BigDecimal(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::String(values) => values
-            .iter()
-            .map(debug_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        #[cfg(feature = "chrono")]
-        MultiValuesRef::Date(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        #[cfg(feature = "chrono")]
-        MultiValuesRef::Time(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        #[cfg(feature = "chrono")]
-        MultiValuesRef::DateTime(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        #[cfg(feature = "chrono")]
-        MultiValuesRef::Instant(values) => values
-            .iter()
-            .map(display_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::Duration(values) => values
-            .iter()
-            .map(debug_len)
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        #[cfg(feature = "url")]
-        MultiValuesRef::Url(values) => values
-            .iter()
-            .map(|value| value.as_str().len())
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        MultiValuesRef::StringMap(values) => values
-            .iter()
-            .map(|map| {
-                map.iter().fold(2usize, |total, (key, value)| {
-                    total
-                        .saturating_add(debug_len(key))
-                        .saturating_add(debug_len(value))
-                        .saturating_add(4)
-                })
-            })
-            .sum::<usize>()
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-        #[cfg(feature = "json")]
-        MultiValuesRef::Json(values) => values
-            .iter()
-            .fold(0usize, |total, value| total.saturating_add(json_len(value)))
-            .saturating_add(2 + values.len().saturating_sub(1) * 2),
-    }
-}
-
 impl RedactValue for Value {
-    fn redaction_input_bytes(&self) -> usize {
-        value_input_bytes(self)
-    }
-
     /// Redacts string contents while replacing every other variant opaquely.
     fn redact_value<'a>(
         &'a self,
@@ -281,10 +47,6 @@ impl RedactValue for Value {
 }
 
 impl RedactValue for MultiValues {
-    fn redaction_input_bytes(&self) -> usize {
-        multi_values_input_bytes(self)
-    }
-
     /// Replaces a sensitive collection without formatting its contents.
     #[inline(always)]
     fn redact_value<'a>(
@@ -296,30 +58,196 @@ impl RedactValue for MultiValues {
     }
 }
 
-impl Redact for Value {
-    fn redaction_input_bytes(&self) -> usize {
-        value_input_bytes(self)
+/// Formats one typed collection after charging each item before access.
+///
+/// The exact slice length is checked before attempting the next structural
+/// admission, so a collection that exactly fills its item budget completes
+/// without a false marker. Once admission fails, the function writes one safe
+/// marker and stops without advancing the iterator or formatting the rejected
+/// item. The enclosing variant name is preserved in ordinary compact output.
+///
+/// # Parameters
+///
+/// * `variant` - Stable [`MultiValuesRepr`] variant name.
+/// * `values` - Homogeneous values to format.
+/// * `scope` - Active scope that owns the shared collection-item budget.
+/// * `formatter` - Destination formatting context.
+///
+/// # Errors
+///
+/// Returns [`fmt::Error`] when the destination rejects the variant, an
+/// admitted item, the truncation marker, or the closing delimiter.
+fn fmt_debug_collection<T: fmt::Debug>(
+    variant: &str,
+    values: &[T],
+    scope: &mut DomainValueScope<'_, '_>,
+    formatter: &mut fmt::Formatter<'_>,
+) -> fmt::Result {
+    formatter.write_str(variant)?;
+    formatter.write_str("(")?;
+    let mut output = formatter.debug_list();
+    let mut values = values.iter();
+    loop {
+        if scope.session().is_exhausted() || values.len() == 0 {
+            break;
+        }
+        if scope.admit_collection_item()
+            == DomainTraversalAdmission::LimitReached
+        {
+            output.entry(&DomainTruncated);
+            break;
+        }
+        let Some(value) = values.next() else {
+            break;
+        };
+        output.entry(value);
     }
+    output.finish()?;
+    formatter.write_str(")")
+}
 
-    /// Writes this value through `policy` without altering its ordinary debug
+/// Formats string-map collection items through the shared redaction session.
+///
+/// Collection admission always precedes iterator advancement. Each admitted
+/// map then performs its own node and entry accounting through
+/// [`RedactedMapResult`], so all nested work shares the caller's budgets.
+///
+/// # Parameters
+///
+/// * `values` - String maps to redact in source order.
+/// * `scope` - Active collection scope and shared session owner.
+/// * `formatter` - Destination formatting context.
+///
+/// # Errors
+///
+/// Returns [`fmt::Error`] when the destination rejects safe output.
+fn fmt_map_collection(
+    values: &[std::collections::HashMap<String, String>],
+    scope: &mut DomainValueScope<'_, '_>,
+    formatter: &mut fmt::Formatter<'_>,
+) -> fmt::Result {
+    formatter.write_str("StringMap(")?;
+    let mut output = formatter.debug_list();
+    let mut values = values.iter();
+    loop {
+        if scope.session().is_exhausted() || values.len() == 0 {
+            break;
+        }
+        if scope.admit_collection_item()
+            == DomainTraversalAdmission::LimitReached
+        {
+            output.entry(&DomainTruncated);
+            break;
+        }
+        let Some(value) = values.next() else {
+            break;
+        };
+        output.entry(&RedactedMapResult::new(value, scope.session()));
+    }
+    output.finish()?;
+    formatter.write_str(")")
+}
+
+/// Formats JSON collection items with structural and adapter byte admission.
+///
+/// The collection-item budget is charged before the slice iterator advances.
+/// The JSON adapter then charges the exact encoded input for the admitted item;
+/// a rejected collection item is never passed to that adapter. Complete and
+/// non-empty truncated fragments are written verbatim. An exhausted fragment
+/// is replaced by one structural marker and terminates iteration, so empty
+/// adapter text cannot masquerade as an absent JSON item.
+///
+/// # Parameters
+///
+/// * `values` - JSON values to redact in source order.
+/// * `scope` - Active collection scope and shared session owner.
+/// * `formatter` - Destination formatting context.
+///
+/// # Errors
+///
+/// Returns [`fmt::Error`] when the destination rejects safe output.
+#[cfg(feature = "json")]
+fn fmt_json_collection(
+    values: &[serde_json::Value],
+    scope: &mut DomainValueScope<'_, '_>,
+    formatter: &mut fmt::Formatter<'_>,
+) -> fmt::Result {
+    formatter.write_str("Json([")?;
+    let mut values = values.iter();
+    let mut first = true;
+    loop {
+        if scope.session().is_exhausted() || values.len() == 0 {
+            break;
+        }
+        if scope.admit_collection_item()
+            == DomainTraversalAdmission::LimitReached
+        {
+            if !first {
+                formatter.write_str(", ")?;
+            }
+            fmt::Debug::fmt(&DomainTruncated, formatter)?;
+            break;
+        }
+        let Some(value) = values.next() else {
+            break;
+        };
+        let redacted = scope.session().json().redact_value(value);
+        if !first {
+            formatter.write_str(", ")?;
+        }
+        match redacted.completion() {
+            RedactionCompletion::Complete | RedactionCompletion::Truncated => {
+                formatter.write_str(redacted.as_str())?;
+                first = false;
+            }
+            RedactionCompletion::Exhausted => {
+                fmt::Debug::fmt(&DomainTruncated, formatter)?;
+                break;
+            }
+        }
+    }
+    formatter.write_str("])")
+}
+
+impl Redact for Value {
+    /// Writes this value through the session without altering ordinary debug
     /// representation when no key context is available.
     ///
-    /// String maps classify every entry by its key. Other variants retain their
-    /// ordinary debug representation until a structured redaction rule applies.
+    /// The value node and its private representation field are admitted before
+    /// the representation is inspected. String maps classify every entry by
+    /// key, JSON uses exact adapter input charging, and scalar variants retain
+    /// their ordinary debug representation. A rejected value or field emits a
+    /// safe structural marker without reading the payload.
     fn fmt_redacted(
         &self,
         session: &mut RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
+        let DomainValueAdmission::Entered(mut scope) =
+            session.enter_domain_value()
+        else {
+            return fmt::Debug::fmt(&DomainTruncated, formatter);
+        };
+        if scope.admit_field() == DomainTraversalAdmission::LimitReached {
+            return fmt::Debug::fmt(&DomainTruncated, formatter);
+        }
         match &self.repr {
             ValueRepr::StringMap(values) => fmt::Debug::fmt(
-                &RedactedMapResult::new(values, session),
+                &RedactedMapResult::new(values, scope.session()),
                 formatter,
             ),
             #[cfg(feature = "json")]
             ValueRepr::Json(value) => {
-                let redacted = session.json().redact_value(value);
-                formatter.write_str(redacted.as_str())
+                let redacted = scope.session().json().redact_value(value);
+                match redacted.completion() {
+                    RedactionCompletion::Complete
+                    | RedactionCompletion::Truncated => {
+                        formatter.write_str(redacted.as_str())
+                    }
+                    RedactionCompletion::Exhausted => {
+                        fmt::Debug::fmt(&DomainTruncated, formatter)
+                    }
+                }
             }
             _ => fmt::Debug::fmt(self, formatter),
         }
@@ -327,123 +255,238 @@ impl Redact for Value {
 }
 
 impl Redact for MultiValues {
-    fn redaction_input_bytes(&self) -> usize {
-        multi_values_input_bytes(self)
-    }
-
-    /// Writes collection entries through the policy where their structure has
-    /// key-bearing values; other typed collections retain normal debug output.
+    /// Writes each admitted collection item through one shared session.
+    ///
+    /// The collection node and private representation field are charged before
+    /// inspection. Every non-empty slice checks its exact remaining length,
+    /// charges one collection item, and only then advances the iterator. Map
+    /// and JSON items delegate to their adapters after admission; ordinary
+    /// items retain their typed variant and debug representation.
     fn fmt_redacted(
         &self,
         session: &mut RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
+        let DomainValueAdmission::Entered(mut scope) =
+            session.enter_domain_value()
+        else {
+            return fmt::Debug::fmt(&DomainTruncated, formatter);
+        };
+        if scope.admit_field() == DomainTraversalAdmission::LimitReached {
+            return fmt::Debug::fmt(&DomainTruncated, formatter);
+        }
         match &self.repr {
+            MultiValuesRepr::Unset(_) => fmt::Debug::fmt(self, formatter),
+            MultiValuesRepr::Bool(values) => {
+                fmt_debug_collection("Bool", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::Char(values) => {
+                fmt_debug_collection("Char", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::Int8(values) => {
+                fmt_debug_collection("Int8", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::Int16(values) => {
+                fmt_debug_collection("Int16", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::Int32(values) => {
+                fmt_debug_collection("Int32", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::Int64(values) => {
+                fmt_debug_collection("Int64", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::Int128(values) => {
+                fmt_debug_collection("Int128", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::UInt8(values) => {
+                fmt_debug_collection("UInt8", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::UInt16(values) => {
+                fmt_debug_collection("UInt16", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::UInt32(values) => {
+                fmt_debug_collection("UInt32", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::UInt64(values) => {
+                fmt_debug_collection("UInt64", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::UInt128(values) => {
+                fmt_debug_collection("UInt128", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::Float32(values) => {
+                fmt_debug_collection("Float32", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::Float64(values) => {
+                fmt_debug_collection("Float64", values, &mut scope, formatter)
+            }
+            #[cfg(feature = "big-integer")]
+            MultiValuesRepr::BigInteger(values) => fmt_debug_collection(
+                "BigInteger",
+                values,
+                &mut scope,
+                formatter,
+            ),
+            #[cfg(feature = "big-decimal")]
+            MultiValuesRepr::BigDecimal(values) => fmt_debug_collection(
+                "BigDecimal",
+                values,
+                &mut scope,
+                formatter,
+            ),
+            MultiValuesRepr::String(values) => {
+                fmt_debug_collection("String", values, &mut scope, formatter)
+            }
+            #[cfg(feature = "chrono")]
+            MultiValuesRepr::Date(values) => {
+                fmt_debug_collection("Date", values, &mut scope, formatter)
+            }
+            #[cfg(feature = "chrono")]
+            MultiValuesRepr::Time(values) => {
+                fmt_debug_collection("Time", values, &mut scope, formatter)
+            }
+            #[cfg(feature = "chrono")]
+            MultiValuesRepr::DateTime(values) => {
+                fmt_debug_collection("DateTime", values, &mut scope, formatter)
+            }
+            #[cfg(feature = "chrono")]
+            MultiValuesRepr::Instant(values) => {
+                fmt_debug_collection("Instant", values, &mut scope, formatter)
+            }
+            MultiValuesRepr::Duration(values) => {
+                fmt_debug_collection("Duration", values, &mut scope, formatter)
+            }
+            #[cfg(feature = "url")]
+            MultiValuesRepr::Url(values) => {
+                fmt_debug_collection("Url", values, &mut scope, formatter)
+            }
             MultiValuesRepr::StringMap(values) => {
-                let mut output = formatter.debug_list();
-                for value in values {
-                    output.entry(&RedactedMapResult::new(value, session));
-                }
-                output.finish()
+                fmt_map_collection(values, &mut scope, formatter)
             }
             #[cfg(feature = "json")]
             MultiValuesRepr::Json(values) => {
-                formatter.write_str("[")?;
-                for (index, value) in values.iter().enumerate() {
-                    if index != 0 {
-                        formatter.write_str(", ")?;
-                    }
-                    let redacted = session.json().redact_value(value);
-                    formatter.write_str(redacted.as_str())?;
-                }
-                formatter.write_str("]")
+                fmt_json_collection(values, &mut scope, formatter)
             }
-            _ => fmt::Debug::fmt(self, formatter),
         }
     }
 }
 
 impl Redact for ValueContainer {
-    fn redaction_input_bytes(&self) -> usize {
-        match self {
-            Self::Scalar(value) => value_input_bytes(value),
-            Self::Collection(values) => multi_values_input_bytes(values),
-        }
-    }
-
-    /// Delegates policy-aware rendering to the explicit scalar or collection.
+    /// Delegates an admitted variant payload to the shared session.
+    ///
+    /// The wrapper first charges its own node. Each enum payload is read only
+    /// after one field admission, then the child enters another value scope so
+    /// node and depth limits accumulate instead of being reset.
     fn fmt_redacted(
         &self,
         session: &mut RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
+        let DomainValueAdmission::Entered(mut scope) =
+            session.enter_domain_value()
+        else {
+            return fmt::Debug::fmt(&DomainTruncated, formatter);
+        };
         match self {
-            Self::Scalar(value) => value.fmt_redacted(session, formatter),
-            Self::Collection(values) => values.fmt_redacted(session, formatter),
+            Self::Scalar(value) => {
+                if scope.admit_field() == DomainTraversalAdmission::LimitReached
+                {
+                    return fmt::Debug::fmt(&DomainTruncated, formatter);
+                }
+                value.fmt_redacted(scope.session(), formatter)
+            }
+            Self::Collection(values) => {
+                if scope.admit_field() == DomainTraversalAdmission::LimitReached
+                {
+                    return fmt::Debug::fmt(&DomainTruncated, formatter);
+                }
+                values.fmt_redacted(scope.session(), formatter)
+            }
         }
     }
-}
-
-/// Formats a named value while applying its name as the policy lookup key.
-fn fmt_named_value<T: Redact + RedactValue>(
-    name: &str,
-    value: &T,
-    type_name: &str,
-    value_name: &str,
-    session: &mut RedactionSession<'_>,
-    formatter: &mut fmt::Formatter<'_>,
-) -> fmt::Result {
-    let mut output = formatter.debug_struct(type_name);
-    output.field("name", &name);
-    output.field(value_name, &RedactedKeyedResult::new(name, value, session));
-    output.finish()
 }
 
 impl Redact for NamedValue {
-    fn redaction_input_bytes(&self) -> usize {
-        self.name()
-            .len()
-            .saturating_add(value_input_bytes(self.value()))
-    }
-
-    /// Uses the wrapper name to determine whether its complete value is masked.
+    /// Uses the admitted wrapper name to classify its admitted value.
+    ///
+    /// The wrapper node, name field, and value field are charged in source
+    /// order. A failed field admission stops before invoking the corresponding
+    /// accessor. Classification is resolved directly for the already-admitted
+    /// value field: sensitive values are masked without another structural
+    /// charge, while pass-through values enter their own legitimate child
+    /// scope through [`RedactedResult`].
     fn fmt_redacted(
         &self,
         session: &mut RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
-        fmt_named_value(
-            self.name(),
-            self.value(),
-            "NamedValue",
-            "value",
-            session,
-            formatter,
-        )
+        let DomainValueAdmission::Entered(mut scope) =
+            session.enter_domain_value()
+        else {
+            return fmt::Debug::fmt(&DomainTruncated, formatter);
+        };
+        let mut output = formatter.debug_struct("NamedValue");
+        if scope.admit_field() == DomainTraversalAdmission::LimitReached {
+            return output.field("...", &DomainTruncated).finish();
+        }
+        output.field("name", &self.name());
+        if scope.admit_field() == DomainTraversalAdmission::LimitReached {
+            return output.field("...", &DomainTruncated).finish();
+        }
+        let sensitivity = scope.session().policy().sensitivity_for(self.name());
+        match sensitivity {
+            Some(level) => {
+                let redacted = self
+                    .value()
+                    .redact_value(level, scope.session().policy().masking());
+                output.field("value", &redacted).finish()
+            }
+            None => {
+                let redacted =
+                    RedactedResult::new(self.value(), scope.session());
+                output.field("value", &redacted).finish()
+            }
+        }
     }
 }
 
 impl Redact for NamedMultiValues {
-    fn redaction_input_bytes(&self) -> usize {
-        self.name()
-            .len()
-            .saturating_add(multi_values_input_bytes(self.values()))
-    }
-
-    /// Uses the wrapper name to determine whether its complete collection is
-    /// masked.
+    /// Uses the admitted wrapper name to classify its admitted collection.
+    ///
+    /// Like [`NamedValue`], this wrapper performs all field admission before
+    /// accessor calls. It resolves the already-admitted value directly, so a
+    /// sensitive collection is masked without charging a duplicate keyed root
+    /// and field; pass-through traversal still enters the collection itself.
     fn fmt_redacted(
         &self,
         session: &mut RedactionSession<'_>,
         formatter: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
-        fmt_named_value(
-            self.name(),
-            self.values(),
-            "NamedMultiValues",
-            "value",
-            session,
-            formatter,
-        )
+        let DomainValueAdmission::Entered(mut scope) =
+            session.enter_domain_value()
+        else {
+            return fmt::Debug::fmt(&DomainTruncated, formatter);
+        };
+        let mut output = formatter.debug_struct("NamedMultiValues");
+        if scope.admit_field() == DomainTraversalAdmission::LimitReached {
+            return output.field("...", &DomainTruncated).finish();
+        }
+        output.field("name", &self.name());
+        if scope.admit_field() == DomainTraversalAdmission::LimitReached {
+            return output.field("...", &DomainTruncated).finish();
+        }
+        let sensitivity = scope.session().policy().sensitivity_for(self.name());
+        match sensitivity {
+            Some(level) => {
+                let redacted = self
+                    .values()
+                    .redact_value(level, scope.session().policy().masking());
+                output.field("value", &redacted).finish()
+            }
+            None => {
+                let redacted =
+                    RedactedResult::new(self.values(), scope.session());
+                output.field("value", &redacted).finish()
+            }
+        }
     }
 }
