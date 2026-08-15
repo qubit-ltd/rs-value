@@ -14,9 +14,9 @@ use qubit_budget::MeasuredBudgetError;
 use qubit_budget::QuantityConversionError;
 use qubit_budget::json::JsonResource;
 use qubit_json::text::JsonDecodeError;
-use qubit_json::text::JsonDeserializeError;
 use qubit_json::text::JsonSyntaxError;
 use serde_json::Error as JsonError;
+use serde_json::error::Category;
 use thiserror::Error;
 
 /// Error produced by a bounded [`crate::ValueWireV1`] JSON decoder.
@@ -61,6 +61,16 @@ pub enum ValueWireDecodeError {
     InvalidJson(#[source] JsonError),
 }
 
+impl ValueWireDecodeError {
+    /// Constructs a privacy-safe Serde error from structured decode metadata.
+    fn deserialize(category: Category, line: usize, column: usize) -> Self {
+        let error = <JsonError as serde::de::Error>::custom(format_args!(
+            "JSON deserialization failed ({category:?}) at line {line}, column {column}"
+        ));
+        Self::InvalidJson(error)
+    }
+}
+
 impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
     #[inline]
     fn from(error: JsonDecodeError<JsonResource>) -> Self {
@@ -72,9 +82,11 @@ impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
                 }
             },
             JsonDecodeError::Syntax(error) => Self::Syntax(error),
-            JsonDecodeError::Deserialize(error) => Self::InvalidJson(
-                <JsonError as serde::de::Error>::custom(error),
-            ),
+            JsonDecodeError::Deserialize {
+                category,
+                line,
+                column,
+            } => Self::deserialize(category, line, column),
         }
     }
 }
@@ -82,8 +94,9 @@ impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
 impl From<JsonError> for ValueWireDecodeError {
     #[inline]
     fn from(error: JsonError) -> Self {
-        Self::InvalidJson(<JsonError as serde::de::Error>::custom(
-            JsonDeserializeError::from(error),
-        ))
+        let category = error.classify();
+        let line = error.line();
+        let column = error.column();
+        Self::deserialize(category, line, column)
     }
 }
