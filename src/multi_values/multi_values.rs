@@ -198,7 +198,7 @@ impl MultiValues {
     /// use qubit_value::MultiValues;
     ///
     /// let values = MultiValues::Json(vec![serde_json::json!([null])]);
-    /// let structure = StructureLimits::empty().with_nodes_limit(
+    /// let structure = StructureLimits::<StructureResource, usize>::new().with_nodes_limit(
     ///     ResourceLimit::new(JsonResource::Nodes, 1_usize),
     /// );
     /// let mut budget = JsonValueBudget::new(
