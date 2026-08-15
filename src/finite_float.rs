@@ -10,7 +10,7 @@
 
 mod internal;
 
-use internal::FiniteFloat;
+use self::internal::FiniteFloat;
 
 /// Stable Serde error message used to identify non-finite values through
 /// nested serializers.

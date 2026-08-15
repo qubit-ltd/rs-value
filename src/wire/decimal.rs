@@ -20,9 +20,9 @@ use serde::de;
 
 mod internal;
 
-use internal::DecimalVisitor;
-use internal::DisplayDecimal;
-use internal::ParsedDecimal;
+use self::internal::DecimalVisitor;
+use self::internal::DisplayDecimal;
+use self::internal::ParsedDecimal;
 
 /// Parses and validates the unique textual form emitted by serialization.
 ///

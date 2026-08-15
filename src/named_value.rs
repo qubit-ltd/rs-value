@@ -48,8 +48,8 @@ use crate::ValueWireV1;
 
 mod internal;
 
-use internal::NamedValueWireOwned;
-use internal::NamedValueWireRef;
+use self::internal::NamedValueWireOwned;
+use self::internal::NamedValueWireRef;
 
 /// Named single value
 ///

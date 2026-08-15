@@ -15,9 +15,9 @@ use serde::de;
 
 mod internal;
 
-use internal::DisplayInteger;
-use internal::IntegerVisitor;
-use internal::ParsedInteger;
+use self::internal::DisplayInteger;
+use self::internal::IntegerVisitor;
+use self::internal::ParsedInteger;
 
 /// Parses and validates the unique textual form emitted by serialization.
 ///

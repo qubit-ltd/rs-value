@@ -47,8 +47,8 @@ use crate::ValueWireV1;
 
 mod internal;
 
-use internal::NamedMultiValuesWireOwned;
-use internal::NamedMultiValuesWireRef;
+use self::internal::NamedMultiValuesWireOwned;
+use self::internal::NamedMultiValuesWireRef;
 
 /// Named multiple values
 ///

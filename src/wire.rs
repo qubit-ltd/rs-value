@@ -49,8 +49,8 @@ mod decimal;
 mod internal;
 
 #[cfg(feature = "big-decimal")]
-use internal::BigDecimalPayload;
-use internal::DurationPayload;
+use self::internal::BigDecimalPayload;
+use self::internal::DurationPayload;
 
 /// Largest decimal exponent magnitude accepted by the V1 wire format.
 #[cfg(feature = "big-decimal")]
