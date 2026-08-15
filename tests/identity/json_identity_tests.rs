@@ -202,7 +202,8 @@ fn test_hash_json_with_budget_checks_root_inclusive_depth() {
 fn test_hash_json_with_budget_charges_nodes() {
     let error = hash_json_with_limits(
         &serde_json::json!([null]),
-        JsonValueLimits::default().with_max_nodes(1),
+        JsonValueLimits::<JsonResource, usize>::default()
+            .with_max_nodes(1_usize),
     );
     assert!(matches!(
         error,
@@ -224,7 +225,8 @@ fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
     );
     let error = hash_json_with_limits(
         &value,
-        JsonValueLimits::default().with_max_nodes(1),
+        JsonValueLimits::<JsonResource, usize>::default()
+            .with_max_nodes(1_usize),
     );
 
     assert!(matches!(
@@ -249,7 +251,8 @@ fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
     );
     let error = hash_json_with_limits(
         &value,
-        JsonValueLimits::default().with_max_nodes(1),
+        JsonValueLimits::<JsonResource, usize>::default()
+            .with_max_nodes(1_usize),
     );
 
     assert!(matches!(
@@ -403,7 +406,7 @@ fn test_hash_json_with_budget_matches_unbounded_hash() {
         "flag": false
     });
     let expected = calculate_json_hash(&value);
-    let mut budget = JsonValueLimits::default().budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::default().budget();
     let mut state = DefaultHasher::new();
     json_identity::hash_json_with_budget(&value, &mut state, &mut budget)
         .expect("an unconfigured JSON budget must accept the value");

@@ -233,7 +233,9 @@ fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
         serde_json::json!(null),
         serde_json::json!(null),
     ]);
-    let mut budget = JsonValueLimits::default().with_max_nodes(1).budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::default()
+        .with_max_nodes(1_usize)
+        .budget();
     let mut state = RecordingHasher::default();
 
     let error = values
@@ -312,7 +314,8 @@ fn test_multi_values_hash_with_json_budget_matches_standard_hash_for_special_non
 
     for values in [&float, &string_map, &decimal] {
         let expected = hash(values);
-        let mut budget = JsonValueLimits::default().budget();
+        let mut budget =
+            JsonValueLimits::<JsonResource, usize>::default().budget();
         let mut state = DefaultHasher::new();
 
         values
