@@ -15,7 +15,6 @@
 #[cfg(feature = "json")]
 use qubit_budget::ResourceLimit;
 #[cfg(feature = "json")]
-use qubit_budget::StructureLimits;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonDecodeLimits;
 #[cfg(feature = "json")]
@@ -96,35 +95,15 @@ pub use value_wire_v1::ValueWireV1;
 #[cfg(feature = "json")]
 #[inline]
 pub(crate) fn default_json_value_limits() -> JsonValueLimits {
-    let structure = StructureLimits::empty()
-        .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 64))
-        .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 100_000))
-        .with_sequence_items_limit(ResourceLimit::new(
-            JsonResource::SequenceItems,
-            4_096,
-        ))
-        .with_map_entries_limit(ResourceLimit::new(
-            JsonResource::MapEntries,
-            4_096,
-        ))
-        .with_key_bytes_limit(ResourceLimit::new(
-            JsonResource::KeyBytes,
-            256 * 1024,
-        ));
-    JsonValueLimits::default()
-        .with_structure_limits(structure)
-        .with_string_bytes_limit(ResourceLimit::new(
-            JsonResource::StringBytes,
-            256 * 1024,
-        ))
-        .with_number_bytes_limit(ResourceLimit::new(
-            JsonResource::NumberBytes,
-            4_096,
-        ))
-        .with_payload_bytes_limit(ResourceLimit::new(
-            JsonResource::PayloadBytes,
-            1_048_576,
-        ))
+    JsonValueLimits::<JsonResource, usize>::unconfigured()
+        .with_max_depth(64_usize)
+        .with_max_nodes(100_000_usize)
+        .with_max_sequence_items(4_096_usize)
+        .with_max_map_entries(4_096_usize)
+        .with_max_key_bytes(256 * 1024_usize)
+        .with_max_string_bytes(256 * 1024_usize)
+        .with_max_number_bytes(4_096_usize)
+        .with_max_payload_bytes(1_048_576_usize)
 }
 
 /// Returns the default resource profile used to decode V1 JSON documents.
