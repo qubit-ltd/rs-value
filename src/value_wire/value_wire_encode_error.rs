@@ -18,9 +18,9 @@ use qubit_budget::QuantityConversionError;
 use qubit_budget::json::JsonResource;
 use qubit_datatype::DataType;
 #[cfg(feature = "json")]
-use qubit_json::text::JsonEncodeError;
+use qubit_json::decode::JsonSyntaxError;
 #[cfg(feature = "json")]
-use qubit_json::text::JsonSyntaxError;
+use qubit_json::encode::JsonEncodeError;
 #[cfg(feature = "json")]
 use serde_json::Error as JsonError;
 use thiserror::Error;
