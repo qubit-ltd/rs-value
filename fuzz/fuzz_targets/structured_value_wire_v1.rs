@@ -33,16 +33,23 @@ const TAG_COUNT: u8 = 52;
 
 /// Bounds generated structured values during both sides of the wire round trip.
 fn fuzz_decode_limits() -> JsonDecodeLimits {
-    ValueWireV1::default_json_decode_limits().with_input_bytes_limit(
-        ResourceLimit::new(JsonResource::InputBytes, 4_096),
-    )
+    let base = ValueWireV1::default_json_decode_limits();
+    JsonDecodeLimits::builder()
+        .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 4_096))
+        .value_limits(base.into_value_limits())
+        .build()
 }
 
 /// Bounds generated JSON output while preserving the default value profile.
 fn fuzz_encode_limits() -> JsonEncodeLimits {
-    ValueWireV1::default_json_encode_limits().with_output_bytes_limit(
-        ResourceLimit::new(JsonResource::OutputBytes, 4_096),
-    )
+    let base = ValueWireV1::default_json_encode_limits();
+    JsonEncodeLimits::builder()
+        .output_bytes_limit(ResourceLimit::new(
+            JsonResource::OutputBytes,
+            4_096,
+        ))
+        .value_limits(base.into_value_limits())
+        .build()
 }
 
 /// Copies at most `N` fuzz bytes into a fixed-width little-endian buffer.

@@ -73,7 +73,9 @@ fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
         .expect("construct V1 wire");
     let input =
         serde_json::to_vec(&expected).expect("wire value should serialize");
-    let limits = JsonDecodeLimits::default().with_max_input_bytes(input.len());
+    let limits = JsonDecodeLimits::builder()
+        .max_input_bytes(input.len())
+        .build();
 
     let actual = ValueWireV1::decode_json_slice_with_limits(&input, limits)
         .expect("input at the byte limit should decode");
@@ -84,8 +86,9 @@ fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
 #[test]
 fn test_value_wire_v1_rejects_oversized_input_before_parsing() {
     let input = b"definitely not valid JSON";
-    let limits =
-        JsonDecodeLimits::default().with_max_input_bytes(input.len() - 1);
+    let limits = JsonDecodeLimits::builder()
+        .max_input_bytes(input.len() - 1)
+        .build();
 
     let error = ValueWireV1::decode_json_slice_with_limits(input, limits)
         .expect_err("oversized input must be rejected before JSON parsing");
@@ -107,7 +110,9 @@ fn test_value_wire_v1_rejects_oversized_input_before_parsing() {
 #[test]
 fn test_value_wire_v1_reports_malformed_bounded_input_as_syntax() {
     let input = b"not JSON";
-    let limits = JsonDecodeLimits::default().with_max_input_bytes(input.len());
+    let limits = JsonDecodeLimits::builder()
+        .max_input_bytes(input.len())
+        .build();
 
     let error = ValueWireV1::decode_json_slice_with_limits(input, limits)
         .expect_err("malformed bounded input must fail");
@@ -168,7 +173,7 @@ fn test_value_wire_v1_bounded_encoding_reports_budget_source() {
         .expect("construct V1 wire");
     let error = wire
         .to_json_vec_with_limits(
-            JsonEncodeLimits::default().with_max_output_bytes(1),
+            JsonEncodeLimits::builder().max_output_bytes(1).build(),
         )
         .expect_err("the encoded wire should exceed one byte");
 
@@ -244,31 +249,31 @@ fn test_value_wire_v1_encoding_honors_structural_budgets() {
     let cases = [
         (
             scalar.to_json_vec_with_limits(
-                JsonEncodeLimits::default().with_max_depth(1),
+                JsonEncodeLimits::builder().max_depth(1).build(),
             ),
             JsonResource::Depth,
         ),
         (
             scalar.to_json_vec_with_limits(
-                JsonEncodeLimits::default().with_max_nodes(1),
+                JsonEncodeLimits::builder().max_nodes(1).build(),
             ),
             JsonResource::Nodes,
         ),
         (
             collection.to_json_vec_with_limits(
-                JsonEncodeLimits::default().with_max_sequence_items(1),
+                JsonEncodeLimits::builder().max_sequence_items(1).build(),
             ),
             JsonResource::SequenceItems,
         ),
         (
             scalar.to_json_vec_with_limits(
-                JsonEncodeLimits::default().with_max_map_entries(1),
+                JsonEncodeLimits::builder().max_map_entries(1).build(),
             ),
             JsonResource::MapEntries,
         ),
         (
             scalar.to_json_vec_with_limits(
-                JsonEncodeLimits::default().with_max_key_bytes(1),
+                JsonEncodeLimits::builder().max_key_bytes(1).build(),
             ),
             JsonResource::KeyBytes,
         ),
@@ -276,13 +281,13 @@ fn test_value_wire_v1_encoding_honors_structural_budgets() {
             ValueWireV1::try_from(ValueContainer::from("ready"))
                 .expect("construct string wire")
                 .to_json_vec_with_limits(
-                    JsonEncodeLimits::default().with_max_string_bytes(1),
+                    JsonEncodeLimits::builder().max_string_bytes(1).build(),
                 ),
             JsonResource::StringBytes,
         ),
         (
             scalar.to_json_vec_with_limits(
-                JsonEncodeLimits::default().with_max_number_bytes(0),
+                JsonEncodeLimits::builder().max_number_bytes(0).build(),
             ),
             JsonResource::NumberBytes,
         ),
@@ -323,7 +328,7 @@ fn test_value_wire_v1_writer_budget_failure_does_not_write() {
     let error = wire
         .to_json_writer_with_limits(
             &mut output,
-            JsonEncodeLimits::default().with_max_output_bytes(1),
+            JsonEncodeLimits::builder().max_output_bytes(1).build(),
         )
         .expect_err("output budget should reject the document");
 

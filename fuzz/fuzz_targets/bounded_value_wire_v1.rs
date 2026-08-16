@@ -22,16 +22,26 @@ const MAX_JSON_BYTES: usize = 94;
 
 /// Keeps all JSON resource dimensions active while fuzzing bounded input.
 fn fuzz_decode_limits(max_input_bytes: usize) -> JsonDecodeLimits {
-    ValueWireV1::default_json_decode_limits().with_input_bytes_limit(
-        ResourceLimit::new(JsonResource::InputBytes, max_input_bytes),
-    )
+    let base = ValueWireV1::default_json_decode_limits();
+    JsonDecodeLimits::builder()
+        .input_bytes_limit(ResourceLimit::new(
+            JsonResource::InputBytes,
+            max_input_bytes,
+        ))
+        .value_limits(base.into_value_limits())
+        .build()
 }
 
 /// Keeps output accounting active while encoding successful values.
 fn fuzz_encode_limits() -> JsonEncodeLimits {
-    ValueWireV1::default_json_encode_limits().with_output_bytes_limit(
-        ResourceLimit::new(JsonResource::OutputBytes, 4_096),
-    )
+    let base = ValueWireV1::default_json_encode_limits();
+    JsonEncodeLimits::builder()
+        .output_bytes_limit(ResourceLimit::new(
+            JsonResource::OutputBytes,
+            4_096,
+        ))
+        .value_limits(base.into_value_limits())
+        .build()
 }
 
 fuzz_target!(|data: &[u8]| {
