@@ -106,8 +106,8 @@ impl ValueWirePayloadV1 {
         limits: JsonDecodeLimits,
     ) -> Result<Self, ValueWireDecodeError> {
         let mut session = JsonDecodeSession::owned(limits);
-        JsonDecoder::new(&mut session)
-            .decode(input)
+        JsonDecoder::default()
+            .decode_utf8(input, &mut session)
             .map_err(ValueWireDecodeError::from)
     }
 
