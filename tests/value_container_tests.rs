@@ -280,11 +280,14 @@ fn test_value_container_shape_accessors_preserve_values_and_mismatches() {
 
 #[test]
 fn test_value_container_string_splitting_depends_on_explicit_shape() {
-    let policy = ConversionPolicy::default().with_collection_policy(
-        CollectionConversionPolicy::default()
-            .with_split_scalar_strings(true)
-            .with_delimiters([',']),
-    );
+    let policy = ConversionPolicy::builder()
+        .collection_policy(
+            CollectionConversionPolicy::builder()
+                .split_scalar_strings(true)
+                .delimiters([','])
+                .build(),
+        )
+        .build();
     let scalar = ValueContainer::from("a,b");
     let collection = ValueContainer::from(vec!["a,b"]);
 

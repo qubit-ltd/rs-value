@@ -24,11 +24,14 @@ use qubit_value::ValueWireV1;
 
 /// Builds the scalar-string splitting policy used by configuration readers.
 fn config_conversion_policy() -> ConversionPolicy {
-    ConversionPolicy::default().with_collection_policy(
-        CollectionConversionPolicy::default()
-            .with_split_scalar_strings(true)
-            .with_delimiters([',']),
-    )
+    ConversionPolicy::builder()
+        .collection_policy(
+            CollectionConversionPolicy::builder()
+                .split_scalar_strings(true)
+                .delimiters([','])
+                .build(),
+        )
+        .build()
 }
 
 /// Benchmarks scalar and list conversion capabilities.
