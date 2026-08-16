@@ -94,7 +94,7 @@ pub use self::value_wire_v1::ValueWireV1;
 #[cfg(feature = "json")]
 #[inline]
 pub(crate) fn default_json_value_limits() -> JsonValueLimits {
-    JsonValueLimits::<JsonResource, usize>::unconfigured()
+    JsonValueLimits::<JsonResource, usize>::new()
         .with_max_depth(64_usize)
         .with_max_nodes(100_000_usize)
         .with_max_sequence_items(4_096_usize)

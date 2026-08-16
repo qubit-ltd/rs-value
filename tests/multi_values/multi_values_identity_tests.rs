@@ -267,7 +267,7 @@ fn test_multi_values_hash_with_json_budget_preserves_identity() {
         serde_json::json!(true),
     ]);
     let expected = hash(&values);
-    let mut budget = JsonValueLimits::empty().budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new().budget();
     let mut state = DefaultHasher::new();
 
     values
@@ -283,7 +283,9 @@ fn test_multi_values_hash_with_json_budget_preserves_identity() {
 fn test_multi_values_hash_with_json_budget_panic_rolls_back_and_reuses_budget()
 {
     let values = MultiValues::Json(vec![serde_json::json!(null)]);
-    let mut budget = JsonValueLimits::empty().with_max_nodes(1).budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
+        .with_max_nodes(1)
+        .budget();
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         values.hash_with_json_budget(&mut PanickingHasher, &mut budget)
