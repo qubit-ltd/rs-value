@@ -321,7 +321,11 @@ fn redact_feature_stops_before_unadmitted_collection_elements() {
         "visible".to_owned(),
         "must-not-be-formatted".to_owned(),
     ]);
-    let limits = DomainRedactionLimits::new(64, 1, 8)
+    let limits = DomainRedactionLimits::builder()
+        .max_nodes(64)
+        .max_collection_items(1)
+        .max_depth(8)
+        .build()
         .expect("the test domain limits should be valid");
     let mut builder = RedactionPolicy::builder();
     builder.limits().domain(limits);

@@ -61,7 +61,10 @@ fn test_redacted_json_collection_reports_exhausted_later_item() {
         serde_json::json!(visible_prefix),
         serde_json::json!({"secret": "must-not-be-formatted"}),
     ]);
-    let limit = InputOutputLimit::new(41, 64)
+    let limit = InputOutputLimit::builder()
+        .max_input_bytes(41)
+        .max_output_bytes(64)
+        .build()
         .expect("the test diagnostic limit should be valid");
     let mut builder = RedactionPolicy::builder();
     builder

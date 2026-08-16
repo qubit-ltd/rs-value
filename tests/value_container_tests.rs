@@ -76,12 +76,12 @@ fn policy_with_domain_limits(
     max_nodes: usize,
     max_collection_items: usize,
 ) -> RedactionPolicy {
-    let limits = DomainRedactionLimits::new(
-        max_nodes,
-        max_collection_items,
-        DomainRedactionLimits::DEFAULT_MAX_DEPTH,
-    )
-    .expect("the test domain limits should be valid");
+    let limits = DomainRedactionLimits::builder()
+        .max_nodes(max_nodes)
+        .max_collection_items(max_collection_items)
+        .max_depth(DomainRedactionLimits::DEFAULT_MAX_DEPTH)
+        .build()
+        .expect("the test domain limits should be valid");
     let mut builder = RedactionPolicy::builder();
     builder.limits().domain(limits);
     builder
