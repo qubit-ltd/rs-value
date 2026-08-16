@@ -389,7 +389,7 @@ let limits = JsonDecodeLimits::<JsonResource, usize>::builder()
     .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 64 * 1024))
     .build();
 let mut session = JsonDecodeSession::new(limits);
-let request: Request = JsonDecoder::new(&mut session).decode(input)?;
+let request: Request = JsonDecoder::default().decode_utf8(input, &mut session)?;
 let restored: ValueContainer = request.value.into();
 assert!(restored.is_collection());
 ```
