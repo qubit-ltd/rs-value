@@ -260,7 +260,9 @@ fn test_value_hash_with_json_budget_rejects_json_exceeding_node_budget() {
 #[test]
 fn test_value_hash_with_json_budget_error_is_atomic() {
     let value = Value::Json(serde_json::json!([null]));
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new().with_max_nodes(1).budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
+        .with_max_nodes(1)
+        .budget();
     let mut state = RecordingHasher::default();
 
     assert!(
@@ -292,7 +294,9 @@ fn test_value_hash_with_json_budget_preserves_identity() {
 #[test]
 fn test_value_hash_with_json_budget_panic_rolls_back_budget() {
     let value = Value::Json(serde_json::json!(null));
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new().with_max_nodes(1).budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
+        .with_max_nodes(1)
+        .budget();
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         value.hash_with_json_budget(&mut PanickingHasher, &mut budget)
