@@ -107,15 +107,13 @@ fn test_hash_json_distinguishes_array_order() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_hash_does_not_recurse() {
-    let output = Command::new(
-        std::env::current_exe().expect("locate test binary"),
-    )
-    .arg("--exact")
-    .arg("identity::json_identity_tests::test_deep_json_identity_hash_in_isolated_process")
-    .arg("--ignored")
-    .env(DEEP_JSON_HASH_CHILD_ENV, "1")
-    .output()
-    .expect("run deep JSON hash child test");
+    let output = Command::new(std::env::current_exe().expect("locate test binary"))
+        .arg("--exact")
+        .arg("identity::json_identity_tests::test_deep_json_identity_hash_in_isolated_process")
+        .arg("--ignored")
+        .env(DEEP_JSON_HASH_CHILD_ENV, "1")
+        .output()
+        .expect("run deep JSON hash child test");
 
     assert!(
         output.status.success(),
@@ -392,17 +390,13 @@ fn test_hash_json_with_budget_matches_unbounded_hash() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_equality_does_not_recurse() {
-    let output = Command::new(
-        std::env::current_exe().expect("locate test binary"),
-    )
-    .arg("--exact")
-    .arg(
-        "identity::json_identity_tests::test_deep_json_identity_equality_in_isolated_process",
-    )
-    .arg("--ignored")
-    .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
-    .output()
-    .expect("run deep JSON identity child test");
+    let output = Command::new(std::env::current_exe().expect("locate test binary"))
+        .arg("--exact")
+        .arg("identity::json_identity_tests::test_deep_json_identity_equality_in_isolated_process")
+        .arg("--ignored")
+        .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
+        .output()
+        .expect("run deep JSON identity child test");
 
     assert!(
         output.status.success(),
