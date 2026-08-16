@@ -54,9 +54,10 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
 
     let name_error = NamedValue::decode_json_slice_with_limits(
         &input,
-        JsonDecodeLimits::default()
-            .with_max_input_bytes(input.len())
-            .with_max_string_bytes(3),
+        JsonDecodeLimits::builder()
+            .max_input_bytes(input.len())
+            .max_string_bytes(3)
+            .build(),
     )
     .expect_err("the name should exceed the string limit");
     assert!(matches!(
@@ -70,9 +71,10 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
 
     let node_error = NamedValue::decode_json_slice_with_limits(
         &input,
-        JsonDecodeLimits::default()
-            .with_max_input_bytes(input.len())
-            .with_max_nodes(1),
+        JsonDecodeLimits::builder()
+            .max_input_bytes(input.len())
+            .max_nodes(1)
+            .build(),
     )
     .expect_err("the wrapper and scalar should consume two nodes");
     assert!(matches!(

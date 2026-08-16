@@ -154,7 +154,7 @@ fn test_deep_json_identity_hash_in_isolated_process() {
 fn test_hash_json_with_budget_checks_root_inclusive_depth() {
     let error = hash_json_with_limits(
         &serde_json::json!([null]),
-        JsonValueLimits::default().with_max_depth(1),
+        JsonValueLimits::builder().max_depth(1).build(),
     );
     assert!(matches!(
         error,
@@ -172,8 +172,9 @@ fn test_hash_json_with_budget_checks_root_inclusive_depth() {
 fn test_hash_json_with_budget_charges_nodes() {
     let error = hash_json_with_limits(
         &serde_json::json!([null]),
-        JsonValueLimits::<JsonResource, usize>::default()
-            .with_max_nodes(1_usize),
+        JsonValueLimits::<JsonResource, usize>::builder()
+            .max_nodes(1_usize)
+            .build(),
     );
     assert!(matches!(
         error,
@@ -195,10 +196,10 @@ fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
     );
     let error = hash_json_with_limits(
         &value,
-        JsonValueLimits::<JsonResource, usize>::default()
-            .with_max_nodes(1_usize),
+        JsonValueLimits::<JsonResource, usize>::builder()
+            .max_nodes(1_usize)
+            .build(),
     );
-
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::Insufficient {
@@ -221,10 +222,10 @@ fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
     );
     let error = hash_json_with_limits(
         &value,
-        JsonValueLimits::<JsonResource, usize>::default()
-            .with_max_nodes(1_usize),
+        JsonValueLimits::<JsonResource, usize>::builder()
+            .max_nodes(1_usize)
+            .build(),
     );
-
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::Insufficient {
@@ -242,7 +243,7 @@ fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
 fn test_hash_json_with_budget_checks_sequence_items() {
     let error = hash_json_with_limits(
         &serde_json::json!([null, null]),
-        JsonValueLimits::default().with_max_sequence_items(1),
+        JsonValueLimits::builder().max_sequence_items(1).build(),
     );
     assert!(matches!(
         error,
@@ -260,7 +261,7 @@ fn test_hash_json_with_budget_checks_sequence_items() {
 fn test_hash_json_with_budget_checks_map_entries() {
     let error = hash_json_with_limits(
         &serde_json::json!({"first": null, "second": null}),
-        JsonValueLimits::default().with_max_map_entries(1),
+        JsonValueLimits::builder().max_map_entries(1).build(),
     );
     assert!(matches!(
         error,
@@ -278,7 +279,7 @@ fn test_hash_json_with_budget_checks_map_entries() {
 fn test_hash_json_with_budget_checks_key_bytes() {
     let error = hash_json_with_limits(
         &serde_json::json!({"é": null}),
-        JsonValueLimits::default().with_max_key_bytes(1),
+        JsonValueLimits::builder().max_key_bytes(1).build(),
     );
     assert!(matches!(
         error,
@@ -296,7 +297,7 @@ fn test_hash_json_with_budget_checks_key_bytes() {
 fn test_hash_json_with_budget_checks_string_bytes() {
     let error = hash_json_with_limits(
         &serde_json::json!("é"),
-        JsonValueLimits::default().with_max_string_bytes(1),
+        JsonValueLimits::builder().max_string_bytes(1).build(),
     );
     assert!(matches!(
         error,
@@ -314,7 +315,7 @@ fn test_hash_json_with_budget_checks_string_bytes() {
 fn test_hash_json_with_budget_checks_number_bytes() {
     let error = hash_json_with_limits(
         &serde_json::json!(1234),
-        JsonValueLimits::default().with_max_number_bytes(3),
+        JsonValueLimits::builder().max_number_bytes(3).build(),
     );
     assert!(matches!(
         error,
@@ -331,8 +332,8 @@ fn test_hash_json_with_budget_checks_number_bytes() {
 #[test]
 fn test_hash_json_with_budget_error_is_atomic() {
     let value = serde_json::json!([null]);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
         .budget();
     let mut state = RecordingHasher::default();
 
@@ -351,8 +352,8 @@ fn test_hash_json_with_budget_error_is_atomic() {
 #[test]
 fn test_hash_json_with_budget_panic_rolls_back_and_reuses_budget() {
     let value = serde_json::json!(null);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
         .budget();
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -379,7 +380,7 @@ fn test_hash_json_with_budget_matches_unbounded_hash() {
         "flag": false
     });
     let expected = calculate_json_hash(&value);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::default().budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder().budget();
     let mut state = DefaultHasher::new();
     Value::Json(value)
         .hash_with_json_budget(&mut state, &mut budget)

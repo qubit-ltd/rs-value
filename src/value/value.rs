@@ -213,11 +213,11 @@ impl Value {
     /// use qubit_value::Value;
     ///
     /// let value = Value::Json(serde_json::json!([null]));
-    /// let structure = StructureLimits::<StructureResource, usize>::new().with_nodes_limit(
+    /// let structure = StructureLimits::<JsonResource, usize>::builder().nodes_limit(
     ///     ResourceLimit::new(JsonResource::Nodes, 1_usize),
-    /// );
+    /// ).build();
     /// let mut budget = JsonValueBudget::new(
-    ///     JsonValueLimits::default().with_structure_limits(structure),
+    ///     JsonValueLimits::builder().structure_limits(structure).build(),
     /// );
     /// let mut hasher = DefaultHasher::new();
     ///

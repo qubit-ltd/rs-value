@@ -94,39 +94,42 @@ pub use self::value_wire_v1::ValueWireV1;
 #[cfg(feature = "json")]
 #[inline]
 pub(crate) fn default_json_value_limits() -> JsonValueLimits {
-    JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_depth(64_usize)
-        .with_max_nodes(100_000_usize)
-        .with_max_sequence_items(4_096_usize)
-        .with_max_map_entries(4_096_usize)
-        .with_max_key_bytes(256 * 1024_usize)
-        .with_max_string_bytes(256 * 1024_usize)
-        .with_max_number_bytes(4_096_usize)
-        .with_max_payload_bytes(1_048_576_usize)
+    JsonValueLimits::<JsonResource, usize>::builder()
+        .max_depth(64_usize)
+        .max_nodes(100_000_usize)
+        .max_sequence_items(4_096_usize)
+        .max_map_entries(4_096_usize)
+        .max_key_bytes(256 * 1024_usize)
+        .max_string_bytes(256 * 1024_usize)
+        .max_number_bytes(4_096_usize)
+        .max_payload_bytes(1_048_576_usize)
+        .build()
 }
 
 /// Returns the default resource profile used to decode V1 JSON documents.
 #[cfg(feature = "json")]
 #[inline]
 pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
-    JsonDecodeLimits::default()
-        .with_input_bytes_limit(ResourceLimit::new(
+    JsonDecodeLimits::builder()
+        .input_bytes_limit(ResourceLimit::new(
             JsonResource::InputBytes,
             1_048_576,
         ))
-        .with_value_limits(default_json_value_limits())
+        .value_limits(default_json_value_limits())
+        .build()
 }
 
 /// Returns the default resource profile used to encode V1 JSON documents.
 #[cfg(feature = "json")]
 #[inline]
 pub(crate) fn default_json_encode_limits() -> JsonEncodeLimits {
-    JsonEncodeLimits::default()
-        .with_output_bytes_limit(ResourceLimit::new(
+    JsonEncodeLimits::builder()
+        .output_bytes_limit(ResourceLimit::new(
             JsonResource::OutputBytes,
             1_048_576,
         ))
-        .with_value_limits(default_json_value_limits())
+        .value_limits(default_json_value_limits())
+        .build()
 }
 
 /// Decodes and validates a complete V1 envelope with one caller-owned budget.
