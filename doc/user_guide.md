@@ -326,11 +326,11 @@ use qubit_value::ValueWireV1;
 
 let original = ValueContainer::Scalar(Value::new(8080i32));
 let wire = ValueWireV1::try_from(original.clone())?;
-let structure = StructureLimits::empty()
+let structure = StructureLimits::<StructureResource, usize>::new()
     .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 32))
     .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 128));
-let values = JsonValueLimits::empty().with_structure_limits(structure);
-let encode_limits = JsonEncodeLimits::empty()
+let values = JsonValueLimits::<JsonResource, usize>::new().with_structure_limits(structure);
+let encode_limits = JsonEncodeLimits::<JsonResource, usize>::new()
     .with_output_bytes_limit(ResourceLimit::new(
         JsonResource::OutputBytes,
         64 * 1024,
@@ -343,7 +343,7 @@ assert_eq!(
     br#"{"version":1,"value":{"scalar":{"int32":8080}}}"#
 );
 
-let decode_limits = JsonDecodeLimits::empty()
+let decode_limits = JsonDecodeLimits::<JsonResource, usize>::new()
     .with_input_bytes_limit(ResourceLimit::new(
         JsonResource::InputBytes,
         64 * 1024,
@@ -410,7 +410,7 @@ struct Request {
 }
 
 let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
-let limits = JsonDecodeLimits::empty().with_input_bytes_limit(
+let limits = JsonDecodeLimits::<JsonResource, usize>::new().with_input_bytes_limit(
     ResourceLimit::new(JsonResource::InputBytes, 64 * 1024),
 );
 let mut session = JsonDecodeSession::new(limits);
