@@ -25,12 +25,14 @@ fn sensitive_policy_with_nodes(
     field: &str,
     max_nodes: usize,
 ) -> RedactionPolicy {
-    let limits = DomainRedactionLimits::new(
-        max_nodes,
-        DomainRedactionLimits::DEFAULT_MAX_COLLECTION_ITEMS,
-        DomainRedactionLimits::DEFAULT_MAX_DEPTH,
-    )
-    .expect("the test domain limits should be valid");
+    let limits = DomainRedactionLimits::builder()
+        .max_nodes(max_nodes)
+        .max_collection_items(
+            DomainRedactionLimits::DEFAULT_MAX_COLLECTION_ITEMS,
+        )
+        .max_depth(DomainRedactionLimits::DEFAULT_MAX_DEPTH)
+        .build()
+        .expect("the test domain limits should be valid");
     let mut builder = RedactionPolicy::builder();
     builder
         .fields()
