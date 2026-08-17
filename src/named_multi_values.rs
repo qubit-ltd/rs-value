@@ -184,9 +184,9 @@ impl NamedMultiValues {
         input: &[u8],
         limits: JsonDecodeLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut session = JsonDecodeSession::owned(limits);
-        JsonDecoder::default()
-            .decode_utf8(input, &mut session)
+        let session = JsonDecodeSession::owned(limits);
+        JsonDecoder::new(session)
+            .decode_utf8(input)
             .map_err(ValueWireDecodeError::from)
     }
 
@@ -205,7 +205,7 @@ impl NamedMultiValues {
         limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
         let mut session = JsonEncodeSession::owned(limits);
-        JsonEncoder::new(&mut session)
+        JsonEncoder::new(session)
             .to_vec(self)
             .map_err(ValueWireEncodeError::from)
     }
@@ -238,7 +238,7 @@ impl NamedMultiValues {
         W: Write,
     {
         let mut session = JsonEncodeSession::owned(limits);
-        JsonEncoder::new(&mut session)
+        JsonEncoder::new(session)
             .write_buffered(writer, self)
             .map_err(ValueWireEncodeError::from)
     }
