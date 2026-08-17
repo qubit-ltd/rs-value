@@ -183,7 +183,7 @@ impl ValueWireV1 {
         limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
         let mut session = JsonEncodeSession::owned(limits);
-        JsonEncoder::new(&mut session)
+        JsonEncoder::new(session)
             .to_vec(self)
             .map_err(ValueWireEncodeError::from)
     }
@@ -224,7 +224,7 @@ impl ValueWireV1 {
         W: Write,
     {
         let mut session = JsonEncodeSession::owned(limits);
-        JsonEncoder::new(&mut session)
+        JsonEncoder::new(session)
             .write_buffered(writer, self)
             .map_err(ValueWireEncodeError::from)
     }
