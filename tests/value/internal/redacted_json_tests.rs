@@ -28,7 +28,7 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
     }));
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .raise("secret_number", Sensitivity::Low)
         .expect("the test builder input should be valid")
         .raise("secret_object", Sensitivity::Low)
@@ -68,7 +68,7 @@ fn test_redacted_json_collection_reports_exhausted_later_item() {
         .expect("the test diagnostic limit should be valid");
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .mask(Sensitivity::Secret, MaskPolicy::fixed(&"M".repeat(30)))
         .expect("the test mask policy should be valid");
     builder.limits().diagnostic_event(limit);

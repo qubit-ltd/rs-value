@@ -35,7 +35,7 @@ fn sensitive_policy_with_nodes(
         .expect("the test domain limits should be valid");
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .raise(field, Sensitivity::Secret)
         .expect("the test field rule should be valid");
     builder.limits().domain(limits);
@@ -50,7 +50,7 @@ fn test_value_redacted_view_masks_sensitive_string_map_entries() {
     ]));
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .raise("api_key", Sensitivity::Secret)
         .expect("the test builder input should be valid");
     let policy = builder.build().expect("policy should build");
@@ -66,7 +66,7 @@ fn test_value_redacted_view_preserves_scalar_without_key_context() {
     let value = Value::String("visible-without-key".to_owned());
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .raise("password", Sensitivity::Secret)
         .expect("the test builder input should be valid");
     let policy = builder.build().expect("policy should build");
@@ -81,7 +81,7 @@ fn test_value_redact_value_masks_non_strings_with_configured_opaque_value() {
     let value = Value::Int32(12345);
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .mask(
             Sensitivity::Low,
             MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
@@ -104,7 +104,7 @@ fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
         NamedValue::new("token", Value::String("secret-token".to_owned()));
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .raise("token", Sensitivity::Low)
         .expect("the test builder input should be valid")
         .mask(
@@ -131,7 +131,7 @@ fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
     );
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .raise("tokens", Sensitivity::Low)
         .expect("the test builder input should be valid")
         .mask(
@@ -152,7 +152,7 @@ fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
 fn test_named_value_exact_wrapper_node_budget_is_complete() {
     let value =
         NamedValue::new("token", Value::String("secret-token".to_owned()));
-    let policy = sensitive_policy_with_nodes("token", 3);
+    let policy = sensitive_policy_with_nodes("token", 5);
 
     let output = format!("{:?}", value.redacted_with(&policy));
 
@@ -164,7 +164,7 @@ fn test_named_value_exact_wrapper_node_budget_is_complete() {
 fn test_named_value_one_less_wrapper_node_truncates() {
     let value =
         NamedValue::new("token", Value::String("secret-token".to_owned()));
-    let policy = sensitive_policy_with_nodes("token", 2);
+    let policy = sensitive_policy_with_nodes("token", 4);
 
     let output = format!("{:?}", value.redacted_with(&policy));
 
@@ -178,7 +178,7 @@ fn test_named_multi_values_exact_wrapper_node_budget_is_complete() {
         "tokens",
         MultiValues::String(vec!["first-secret".to_owned()]),
     );
-    let policy = sensitive_policy_with_nodes("tokens", 3);
+    let policy = sensitive_policy_with_nodes("tokens", 5);
 
     let output = format!("{:?}", value.redacted_with(&policy));
 

@@ -13,6 +13,8 @@
 //! Borrowed values can use [`ValueWireRefV1`] or [`ValueWirePayloadRefV1`].
 
 #[cfg(feature = "json")]
+use qubit_budget::MeasuredBudgetError;
+#[cfg(feature = "json")]
 use qubit_budget::ResourceLimit;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonDecodeLimits;
@@ -154,6 +156,17 @@ pub(crate) fn decode_wire_json_slice_with_session(
     input: &[u8],
     session: &mut JsonDecodeSession,
 ) -> Result<ValueWireV1, ValueWireDecodeError> {
+    let mut attempt = session.begin_value();
+    attempt.try_consume_input_bytes(input.len()).map_err(
+        |error| match error {
+            MeasuredBudgetError::Budget(error) => {
+                ValueWireDecodeError::Budget(error)
+            }
+            MeasuredBudgetError::Quantity { resource, source } => {
+                ValueWireDecodeError::Quantity { resource, source }
+            }
+        },
+    )?;
     let envelope = JsonDecoder::default()
         .decode_utf8::<WireEnvelopeOwned>(input)
         .map_err(ValueWireDecodeError::from)?;

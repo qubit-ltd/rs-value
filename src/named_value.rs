@@ -188,7 +188,7 @@ impl NamedValue {
         &self,
         limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
-        let mut session = JsonEncodeSession::owned(limits);
+        let session = JsonEncodeSession::owned(limits);
         JsonEncoder::new(session)
             .to_vec(self)
             .map_err(ValueWireEncodeError::from)
@@ -220,7 +220,7 @@ impl NamedValue {
     where
         W: Write,
     {
-        let mut session = JsonEncodeSession::owned(limits);
+        let session = JsonEncodeSession::owned(limits);
         JsonEncoder::new(session)
             .write_buffered(writer, self)
             .map_err(ValueWireEncodeError::from)

@@ -9,8 +9,6 @@
 //! Tests for the explicit scalar-or-collection value container.
 
 use std::collections::HashSet;
-#[cfg(feature = "redact")]
-use std::fmt;
 use std::hash::Hash;
 
 use qubit_datatype::CollectionConversionPolicy;
@@ -20,9 +18,9 @@ use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
 use qubit_redact::RedactionPolicy;
 #[cfg(feature = "redact")]
-use qubit_redact::RedactionSession;
-#[cfg(feature = "redact")]
 use qubit_redact::domain::Redact;
+#[cfg(feature = "redact")]
+use qubit_redact::domain::RedactionWriter;
 #[cfg(feature = "redact")]
 use qubit_redact::policy::DomainRedactionLimits;
 use qubit_value::MultiValues;
@@ -50,17 +48,15 @@ fn test_public_value_wrappers_implement_redact() {
     assert_redact::<NamedMultiValues>();
 }
 
-/// Keeps downstream hand-written implementations on the mutable-session
-/// redaction contract.
+/// Keeps downstream wrappers on the structured writer contract.
 #[cfg(feature = "redact")]
 #[test]
 fn test_public_value_wrappers_use_mutable_redaction_sessions() {
     fn assert_signature<T: Redact>() {
-        let _: for<'session, 'policy, 'formatter> fn(
+        let _: for<'session, 'policy> fn(
             &T,
-            &'session mut RedactionSession<'policy>,
-            &'formatter mut fmt::Formatter<'formatter>,
-        ) -> fmt::Result = T::fmt_redacted;
+            &'session mut RedactionWriter<'session, 'policy>,
+        ) = T::write_redacted;
     }
 
     assert_signature::<Value>();
