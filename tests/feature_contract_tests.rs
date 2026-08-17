@@ -247,7 +247,7 @@ fn redact_feature_masks_sensitive_string_map_entries() {
     ]));
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .raise("api_key", Sensitivity::Secret)
         .expect("the test builder input should be valid");
     let policy = builder.build().expect("policy should build");
@@ -264,7 +264,7 @@ fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
     let value = NamedValue::new("secret_number", Value::Int32(12345));
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .raise("secret_number", Sensitivity::Low)
         .expect("the test builder input should be valid")
         .mask(
@@ -295,7 +295,7 @@ fn redact_feature_recursively_masks_sensitive_json_object_entries() {
     }));
     let mut builder = RedactionPolicy::builder();
     builder
-        .fields()
+        .edit_fields()
         .raise("api_key", Sensitivity::Secret)
         .expect("the test builder input should be valid")
         .raise("token", Sensitivity::Secret)
