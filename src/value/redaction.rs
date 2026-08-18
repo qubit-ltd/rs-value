@@ -54,8 +54,7 @@ impl Redact for Value {
     fn write_redacted(&self, writer: &mut RedactionWriter<'_, '_>) {
         match &self.repr {
             ValueRepr::StringMap(values) => {
-                writer
-                    .render(|writer| writer.redacted_map(values));
+                writer.render(|writer| writer.redacted_map(values));
             }
             #[cfg(feature = "json")]
             ValueRepr::Json(value) => {
