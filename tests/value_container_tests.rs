@@ -11,6 +11,8 @@
 use std::collections::HashSet;
 use std::hash::Hash;
 
+#[cfg(feature = "redact")]
+use qubit_budget::StructureLimits;
 use qubit_datatype::CollectionConversionPolicy;
 use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;
@@ -21,8 +23,6 @@ use qubit_redact::RedactionPolicy;
 use qubit_redact::domain::Redact;
 #[cfg(feature = "redact")]
 use qubit_redact::domain::RedactionWriter;
-#[cfg(feature = "redact")]
-use qubit_redact::policy::DomainRedactionLimits;
 use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
@@ -72,12 +72,11 @@ fn policy_with_domain_limits(
     max_nodes: usize,
     max_collection_items: usize,
 ) -> RedactionPolicy {
-    let limits = DomainRedactionLimits::builder()
+    let limits = StructureLimits::builder()
         .max_nodes(max_nodes)
-        .max_collection_items(max_collection_items)
-        .max_depth(DomainRedactionLimits::DEFAULT_MAX_DEPTH)
-        .build()
-        .expect("the test domain limits should be valid");
+        .max_sequence_items(max_collection_items)
+        .max_depth(32)
+        .build();
     let mut builder = RedactionPolicy::builder();
     builder.limits().domain(limits);
     builder

@@ -17,6 +17,8 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
+#[cfg(feature = "redact")]
+use qubit_budget::StructureLimits;
 #[cfg(feature = "converter")]
 use qubit_datatype::ConversionSession;
 #[cfg(feature = "converter")]
@@ -37,8 +39,6 @@ use qubit_redact::RedactionPolicy;
 use qubit_redact::Sensitivity;
 #[cfg(feature = "redact")]
 use qubit_redact::domain::Redact as _;
-#[cfg(feature = "redact")]
-use qubit_redact::policy::DomainRedactionLimits;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -321,12 +321,11 @@ fn redact_feature_stops_before_unadmitted_collection_elements() {
         "visible".to_owned(),
         "must-not-be-formatted".to_owned(),
     ]);
-    let limits = DomainRedactionLimits::builder()
+    let limits = StructureLimits::builder()
         .max_nodes(64)
-        .max_collection_items(1)
+        .max_sequence_items(1)
         .max_depth(8)
-        .build()
-        .expect("the test domain limits should be valid");
+        .build();
     let mut builder = RedactionPolicy::builder();
     builder.limits().domain(limits);
     let policy = builder
