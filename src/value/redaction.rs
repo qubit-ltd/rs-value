@@ -12,9 +12,6 @@ use qubit_redact::Redactor;
 use qubit_redact::Sensitivity;
 use qubit_redact::domain::Redact;
 use qubit_redact::domain::RedactValue;
-use qubit_redact::domain::RedactedKeyedResult;
-use qubit_redact::domain::RedactedMapResult;
-use qubit_redact::domain::RedactedResult;
 use qubit_redact::domain::RedactedValue;
 use qubit_redact::domain::RedactionWriter;
 
@@ -58,12 +55,12 @@ impl Redact for Value {
         match &self.repr {
             ValueRepr::StringMap(values) => {
                 writer
-                    .render(|session| RedactedMapResult::new(values, session));
+                    .render(|writer| writer.redacted_map(values));
             }
             #[cfg(feature = "json")]
             ValueRepr::Json(value) => {
-                writer.render(|session| {
-                    Redactor::new(session.policy().clone())
+                writer.render(|writer| {
+                    Redactor::new(writer.policy().clone())
                         .json()
                         .redact_value(value)
                 });
@@ -158,10 +155,10 @@ impl Redact for ValueContainer {
     fn write_redacted(&self, writer: &mut RedactionWriter<'_, '_>) {
         match self {
             Self::Scalar(value) => {
-                writer.render(|session| RedactedResult::new(value, session));
+                writer.render(|writer| writer.redacted(value));
             }
             Self::Collection(values) => {
-                writer.render(|session| RedactedResult::new(values, session));
+                writer.render(|writer| writer.redacted(values));
             }
         }
     }
@@ -172,8 +169,8 @@ impl Redact for NamedValue {
     fn write_redacted(&self, writer: &mut RedactionWriter<'_, '_>) {
         writer.record("NamedValue", |fields| {
             let _ = fields.field("name", || self.name());
-            let _ = fields.value("value", |session| {
-                RedactedKeyedResult::new(self.name(), self.value(), session)
+            let _ = fields.value("value", |writer| {
+                writer.redacted_keyed(self.name(), self.value())
             });
         });
     }
@@ -184,8 +181,8 @@ impl Redact for NamedMultiValues {
     fn write_redacted(&self, writer: &mut RedactionWriter<'_, '_>) {
         writer.record("NamedMultiValues", |fields| {
             let _ = fields.field("name", || self.name());
-            let _ = fields.value("value", |session| {
-                RedactedKeyedResult::new(self.name(), self.values(), session)
+            let _ = fields.value("value", |writer| {
+                writer.redacted_keyed(self.name(), self.values())
             });
         });
     }
