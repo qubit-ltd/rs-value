@@ -8,6 +8,7 @@
 //! Policy-aware redaction for structured [`super::Value`] instances.
 
 use qubit_redact::MaskingPolicy;
+use qubit_redact::Redactor;
 use qubit_redact::Sensitivity;
 use qubit_redact::domain::Redact;
 use qubit_redact::domain::RedactValue;
@@ -62,7 +63,9 @@ impl Redact for Value {
             #[cfg(feature = "json")]
             ValueRepr::Json(value) => {
                 writer.render(|session| {
-                    session.json_with_mut(|json| json.redact_value(value))
+                    Redactor::new(session.policy().clone())
+                        .json()
+                        .redact_value(value)
                 });
             }
             _ => writer.render(|_| self),
@@ -136,9 +139,11 @@ impl Redact for MultiValues {
                     fields.list(|items| {
                         for value in values {
                             let _ = items.item_text(|session| {
-                                session.json_with_mut(|json| {
-                                    json.redact_value(value).as_str().to_owned()
-                                })
+                                Redactor::new(session.policy().clone())
+                                    .json()
+                                    .redact_value(value)
+                                    .as_str()
+                                    .to_owned()
                             });
                         }
                     });
