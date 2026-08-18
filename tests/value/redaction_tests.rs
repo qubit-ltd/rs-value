@@ -9,12 +9,12 @@
 
 use std::collections::HashMap;
 
+use qubit_budget::StructureLimits;
 use qubit_redact::MaskPolicy;
 use qubit_redact::RedactionPolicy;
 use qubit_redact::Sensitivity;
 use qubit_redact::domain::Redact as _;
 use qubit_redact::domain::RedactValue as _;
-use qubit_redact::policy::DomainRedactionLimits;
 use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
@@ -25,14 +25,11 @@ fn sensitive_policy_with_nodes(
     field: &str,
     max_nodes: usize,
 ) -> RedactionPolicy {
-    let limits = DomainRedactionLimits::builder()
+    let limits = StructureLimits::builder()
         .max_nodes(max_nodes)
-        .max_collection_items(
-            DomainRedactionLimits::DEFAULT_MAX_COLLECTION_ITEMS,
-        )
-        .max_depth(DomainRedactionLimits::DEFAULT_MAX_DEPTH)
-        .build()
-        .expect("the test domain limits should be valid");
+        .max_sequence_items(1024)
+        .max_depth(32)
+        .build();
     let mut builder = RedactionPolicy::builder();
     builder
         .edit_fields()
