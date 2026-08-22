@@ -8,6 +8,7 @@
 
 //! Canonical Serde adapter for JSON values.
 
+use qubit_json::value::StrictJsonValue;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -17,7 +18,6 @@ use serde_json::Map;
 use serde_json::Value;
 
 use super::internal::CanonicalJson;
-use super::internal::StrictJsonValue;
 
 /// Serializes one JSON value with recursively ordered object keys.
 pub(crate) fn serialize<S>(
