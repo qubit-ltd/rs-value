@@ -17,8 +17,6 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
-#[cfg(feature = "redact")]
-use qubit_budget::StructureLimits;
 #[cfg(feature = "converter")]
 use qubit_datatype::ConversionSession;
 #[cfg(feature = "converter")]
@@ -34,11 +32,21 @@ use qubit_datatype::DataTypeOf;
 #[cfg(feature = "redact")]
 use qubit_redact::MaskPolicy;
 #[cfg(feature = "redact")]
+use qubit_redact::Redact;
+#[cfg(feature = "redact")]
 use qubit_redact::RedactionPolicy;
 #[cfg(feature = "redact")]
-use qubit_redact::Sensitivity;
+use qubit_redact::Redactor;
 #[cfg(feature = "redact")]
-use qubit_redact::domain::Redact as _;
+use qubit_redact::Sensitivity;
+
+#[cfg(feature = "redact")]
+fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
+    Redactor::new(policy.clone())
+        .redact(value)
+        .into_text()
+        .into_string()
+}
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -245,14 +253,15 @@ fn redact_feature_masks_sensitive_string_map_entries() {
         ("api_key".to_owned(), "raw-secret".to_owned()),
         ("label".to_owned(), "visible".to_owned()),
     ]));
-    let mut builder = RedactionPolicy::builder();
-    builder
-        .edit_fields()
-        .raise("api_key", Sensitivity::Secret)
-        .expect("the test builder input should be valid");
-    let policy = builder.build().expect("policy should build");
+    let policy = RedactionPolicy::builder()
+        .fields(|fields| {
+            fields.raise("api_key", Sensitivity::Secret);
+        })
+        .expect("the test builder input should be valid")
+        .build()
+        .expect("policy should build");
 
-    let output = format!("{:?}", value.redacted_with(&policy));
+    let output = redacted_text(&value, &policy);
 
     assert!(!output.contains("raw-secret"));
     assert!(output.contains("visible"));
@@ -262,19 +271,18 @@ fn redact_feature_masks_sensitive_string_map_entries() {
 #[test]
 fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
     let value = NamedValue::new("secret_number", Value::Int32(12345));
-    let mut builder = RedactionPolicy::builder();
-    builder
-        .edit_fields()
-        .raise("secret_number", Sensitivity::Low)
-        .expect("the test builder input should be valid")
-        .mask(
-            Sensitivity::Low,
-            MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
-        )
-        .expect("the test mask policy should be valid");
-    let policy = builder.build().expect("policy should build");
+    let policy = RedactionPolicy::builder()
+        .fields(|fields| {
+            fields.raise("secret_number", Sensitivity::Low).mask(
+                Sensitivity::Low,
+                MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
+            );
+        })
+        .expect("the test policy should be valid")
+        .build()
+        .expect("policy should build");
 
-    let output = format!("{:?}", value.redacted_with(&policy));
+    let output = redacted_text(&value, &policy);
 
     assert!(!output.contains("12345"), "{output}");
     assert!(output.contains("OPAQUE"), "{output}");
@@ -293,17 +301,18 @@ fn redact_feature_recursively_masks_sensitive_json_object_entries() {
             "unkeyed-value"
         ]
     }));
-    let mut builder = RedactionPolicy::builder();
-    builder
-        .edit_fields()
-        .raise("api_key", Sensitivity::Secret)
+    let policy = RedactionPolicy::builder()
+        .fields(|fields| {
+            fields
+                .raise("api_key", Sensitivity::Secret)
+                .raise("token", Sensitivity::Secret);
+        })
         .expect("the test builder input should be valid")
-        .raise("token", Sensitivity::Secret)
-        .expect("the test builder input should be valid");
-    let policy = builder.build().expect("policy should build");
+        .build()
+        .expect("policy should build");
 
-    let debug = format!("{:#?}", value.redacted_with(&policy));
-    let display = format!("{}", value.redacted_with(&policy));
+    let debug = redacted_text(&value, &policy);
+    let display = debug.clone();
 
     assert!(!debug.contains("nested-secret"));
     assert!(!debug.contains("array-secret"));
@@ -321,18 +330,15 @@ fn redact_feature_stops_before_unadmitted_collection_elements() {
         "visible".to_owned(),
         "must-not-be-formatted".to_owned(),
     ]);
-    let limits = StructureLimits::builder()
-        .max_nodes(64)
-        .max_sequence_items(1)
-        .max_depth(8)
-        .build();
-    let mut builder = RedactionPolicy::builder();
-    builder.limits().domain(limits);
-    let policy = builder
+    let policy = RedactionPolicy::builder()
+        .limits(|limits| {
+            limits.max_nodes(64).max_collection_items(1).max_depth(8);
+        })
+        .expect("the test domain limits should build a policy")
         .build()
         .expect("the test domain limits should build a policy");
 
-    let output = format!("{:?}", values.redacted_with(&policy));
+    let output = redacted_text(&values, &policy);
 
     assert!(output.contains("visible"), "{output}");
     assert!(!output.contains("must-not-be-formatted"), "{output}");
