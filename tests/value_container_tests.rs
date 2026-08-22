@@ -11,18 +11,18 @@
 use std::collections::HashSet;
 use std::hash::Hash;
 
-#[cfg(feature = "redact")]
-use qubit_budget::StructureLimits;
 use qubit_datatype::CollectionConversionPolicy;
 use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
+use qubit_redact::Redact;
+#[cfg(feature = "redact")]
 use qubit_redact::RedactionPolicy;
 #[cfg(feature = "redact")]
-use qubit_redact::domain::Redact;
+use qubit_redact::RedactionWriter;
 #[cfg(feature = "redact")]
-use qubit_redact::domain::RedactionWriter;
+use qubit_redact::Redactor;
 use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
@@ -53,10 +53,8 @@ fn test_public_value_wrappers_implement_redact() {
 #[test]
 fn test_public_value_wrappers_use_mutable_redaction_sessions() {
     fn assert_signature<T: Redact>() {
-        let _: for<'session, 'policy> fn(
-            &T,
-            &'session mut RedactionWriter<'session, 'policy>,
-        ) = T::write_redacted;
+        let _: for<'session> fn(&T, &'session mut RedactionWriter<'session>) =
+            T::write_redacted;
     }
 
     assert_signature::<Value>();
@@ -72,14 +70,14 @@ fn policy_with_domain_limits(
     max_nodes: usize,
     max_collection_items: usize,
 ) -> RedactionPolicy {
-    let limits = StructureLimits::builder()
-        .max_nodes(max_nodes)
-        .max_sequence_items(max_collection_items)
-        .max_depth(32)
-        .build();
-    let mut builder = RedactionPolicy::builder();
-    builder.limits().domain(limits);
-    builder
+    RedactionPolicy::builder()
+        .limits(|limits| {
+            limits
+                .max_nodes(max_nodes)
+                .max_collection_items(max_collection_items)
+                .max_depth(32);
+        })
+        .expect("the test domain limits should build a policy")
         .build()
         .expect("the test domain limits should build a policy")
 }
@@ -94,7 +92,10 @@ fn test_multi_values_stop_before_unadmitted_collection_elements() {
     ]);
     let policy = policy_with_domain_limits(64, 1);
 
-    let output = format!("{:?}", values.redacted_with(&policy));
+    let output = Redactor::new(policy)
+        .redact(&values)
+        .into_text()
+        .into_string();
 
     assert!(output.contains("visible"), "{output}");
     assert!(!output.contains("must-not-be-formatted"), "{output}");
@@ -108,7 +109,10 @@ fn test_multi_values_exact_collection_limit_is_complete() {
     let values = MultiValues::String(vec!["visible".to_owned()]);
     let policy = policy_with_domain_limits(64, 1);
 
-    let output = format!("{:?}", values.redacted_with(&policy));
+    let output = Redactor::new(policy)
+        .redact(&values)
+        .into_text()
+        .into_string();
 
     assert!(output.contains("visible"), "{output}");
     assert!(!output.contains("<truncated>"), "{output}");
@@ -123,7 +127,10 @@ fn test_value_container_stops_before_unadmitted_variant_payload() {
     ));
     let policy = policy_with_domain_limits(1, 8);
 
-    let output = format!("{:?}", value.redacted_with(&policy));
+    let output = Redactor::new(policy)
+        .redact(&value)
+        .into_text()
+        .into_string();
 
     assert!(!output.contains("must-not-be-formatted"), "{output}");
     assert!(output.contains("<truncated>"), "{output}");
@@ -135,8 +142,10 @@ fn test_value_container_stops_before_unadmitted_variant_payload() {
 #[test]
 fn test_public_value_wrappers_render_after_input_admission() {
     let named = NamedValue::new("field", Value::String("value".to_owned()));
-    let output =
-        format!("{:?}", named.redacted_with(&RedactionPolicy::default()),);
+    let output = Redactor::standard()
+        .redact(&named)
+        .into_text()
+        .into_string();
     assert!(output.contains("value"), "{output}");
 
     let map = Value::StringMap(std::collections::HashMap::from([(

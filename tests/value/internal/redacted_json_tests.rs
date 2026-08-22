@@ -10,8 +10,8 @@
 
 use qubit_redact::MaskPolicy;
 use qubit_redact::RedactionPolicy;
+use qubit_redact::Redactor;
 use qubit_redact::Sensitivity;
-use qubit_redact::domain::Redact as _;
 use qubit_value::Value;
 
 /// Verifies sensitive JSON containers are masked without exposing their data.
@@ -24,25 +24,26 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
         "secret_null": null,
         "visible": "public"
     }));
-    let mut builder = RedactionPolicy::builder();
-    builder
-        .edit_fields()
-        .raise("secret_number", Sensitivity::Low)
-        .expect("the test builder input should be valid")
-        .raise("secret_object", Sensitivity::Low)
-        .expect("the test builder input should be valid")
-        .raise("secret_array", Sensitivity::Low)
-        .expect("the test builder input should be valid")
-        .raise("secret_null", Sensitivity::Low)
-        .expect("the test builder input should be valid")
-        .mask(
-            Sensitivity::Low,
-            MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
-        )
-        .expect("the test mask policy should be valid");
-    let policy = builder.build().expect("policy should build");
+    let policy = RedactionPolicy::builder()
+        .fields(|fields| {
+            fields
+                .raise("secret_number", Sensitivity::Low)
+                .raise("secret_object", Sensitivity::Low)
+                .raise("secret_array", Sensitivity::Low)
+                .raise("secret_null", Sensitivity::Low)
+                .mask(
+                    Sensitivity::Low,
+                    MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
+                );
+        })
+        .expect("the test policy should be valid")
+        .build()
+        .expect("policy should build");
 
-    let output = format!("{:?}", value.redacted_with(&policy));
+    let output = Redactor::new(policy)
+        .redact(&value)
+        .into_text()
+        .into_string();
 
     assert!(!output.contains("42"));
     assert!(!output.contains("nested-object-secret"));
