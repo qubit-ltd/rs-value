@@ -133,6 +133,49 @@ fn test_value_wire_v1_reports_typed_mismatch_as_invalid_json() {
 }
 
 #[test]
+fn test_value_wire_v1_decoding_honors_structural_budgets() {
+    let scalar = ValueWireV1::try_from(ValueContainer::from(42_i32))
+        .expect("construct V1 wire");
+    let string = ValueWireV1::try_from(ValueContainer::from("ready"))
+        .expect("construct string wire");
+    let scalar_input =
+        serde_json::to_vec(&scalar).expect("scalar wire should serialize");
+    let string_input =
+        serde_json::to_vec(&string).expect("string wire should serialize");
+    let cases = [
+        (
+            scalar_input.as_slice(),
+            JsonDecodeLimits::builder().max_depth(1).build(),
+            JsonResource::Depth,
+        ),
+        (
+            scalar_input.as_slice(),
+            JsonDecodeLimits::builder().max_nodes(1).build(),
+            JsonResource::Nodes,
+        ),
+        (
+            string_input.as_slice(),
+            JsonDecodeLimits::builder().max_string_bytes(1).build(),
+            JsonResource::StringBytes,
+        ),
+    ];
+
+    for (input, limits, resource) in cases {
+        let result = ValueWireV1::decode_json_slice_with_limits(input, limits);
+        assert!(
+            matches!(
+                result,
+                Err(ValueWireDecodeError::Budget(
+                    BudgetError::LimitExceeded { resource: actual, .. }
+                        | BudgetError::Insufficient { resource: actual, .. }
+                )) if actual == resource
+            ),
+            "unexpected resource error: {result:?}, expected {resource:?}"
+        );
+    }
+}
+
+#[test]
 fn test_bounded_decode_reports_unsupported_version() {
     let error = ValueWireV1::decode_json_slice(
         br#"{"version":2,"value":{"scalar":{"int32":1}}}"#,

@@ -156,8 +156,8 @@ impl ValueWireV1 {
         input: &[u8],
         limits: JsonDecodeLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let mut session = JsonDecodeSession::owned(limits);
-        super::decode_wire_json_slice_with_session(input, &mut session)
+        let session = JsonDecodeSession::owned(limits);
+        super::decode_wire_json_slice_with_session(input, session)
     }
 
     /// Encodes this V1 document into a compact JSON vector with default limits.
