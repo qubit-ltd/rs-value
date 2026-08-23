@@ -25,7 +25,7 @@ impl Redact for Value {
         match &self.repr {
             ValueRepr::StringMap(values) => {
                 writer.record("Value", |fields| {
-                    fields.map("StringMap", values.iter());
+                    fields.map("StringMap", values);
                 });
             }
             #[cfg(feature = "json")]

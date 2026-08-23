@@ -42,7 +42,8 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
 
     let output = Redactor::new(policy)
         .redact(&value)
-        .into_text()
+        .into_complete_text()
+        .expect("test output must be complete")
         .into_string();
 
     assert!(!output.contains("42"));

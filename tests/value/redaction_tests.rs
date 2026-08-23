@@ -23,7 +23,8 @@ use qubit_value::Value;
 fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
     Redactor::new(policy.clone())
         .redact(value)
-        .into_text()
+        .into_complete_text()
+        .expect("test output must be complete")
         .into_string()
 }
 
