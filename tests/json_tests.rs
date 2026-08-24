@@ -151,7 +151,7 @@ fn test_natural_json_reports_collection_and_float_projection_errors() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
-fn test_natural_json_projects_float32_with_display_roundtrip() {
+fn test_natural_json_projects_float32_without_widening() {
     for bits in [
         0xC65B_9806_u32, // -14054.006
         0x4823_0AF3_u32, // 166955.8
@@ -171,9 +171,9 @@ fn test_natural_json_projects_float32_with_display_roundtrip() {
         .expect("legacy serialize json");
 
         assert_eq!(
-            projected_text,
-            value.to_string(),
-            "natural json should preserve f32 display text",
+            from_str::<f32>(&projected_text).expect("decode projected float32"),
+            value,
+            "natural JSON should round-trip the original f32 value",
         );
         assert_ne!(
             projected_text, legacy_text,

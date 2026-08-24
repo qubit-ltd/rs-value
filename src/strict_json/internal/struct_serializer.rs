@@ -6,24 +6,18 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-//! Serializer state for ordinary structs and `serde_json` number tokens.
+//! Serializer state for ordinary structs.
 
 use serde::Serialize;
 use serde::ser::SerializeStruct;
 use serde_json::Value;
 
 use super::ObjectSerializer;
-use super::json_number_serializer;
 use crate::strict_json::Result;
 use crate::strict_json::StrictJsonError;
 
-/// Collects either an ordinary JSON object or one arbitrary-precision number.
-pub(in crate::strict_json) enum StructSerializer {
-    /// Ordinary struct fields collected as a JSON object.
-    Object(ObjectSerializer),
-    /// The single number value emitted by `serde_json`'s private token.
-    Number(Option<Value>),
-}
+/// Collects ordinary struct fields as a JSON object.
+pub(in crate::strict_json) struct StructSerializer(pub(super) ObjectSerializer);
 
 impl SerializeStruct for StructSerializer {
     type Ok = Value;
@@ -34,27 +28,11 @@ impl SerializeStruct for StructSerializer {
     where
         T: ?Sized + Serialize,
     {
-        match self {
-            Self::Object(serializer) => serializer.serialize_field(key, value),
-            Self::Number(output) => {
-                if key != json_number_serializer::NUMBER_TOKEN
-                    || output.is_some()
-                {
-                    return Err(StrictJsonError::Serialization);
-                }
-                *output =
-                    Some(json_number_serializer::serialize_number(value)?);
-                Ok(())
-            }
-        }
+        self.0.serialize_field(key, value)
     }
 
-    /// Completes the ordinary object or arbitrary-precision number.
+    /// Completes the ordinary object.
     fn end(self) -> Result<Value> {
-        match self {
-            Self::Object(serializer) => serializer.end(),
-            Self::Number(Some(value)) => Ok(value),
-            Self::Number(None) => Err(StrictJsonError::Serialization),
-        }
+        self.0.end()
     }
 }

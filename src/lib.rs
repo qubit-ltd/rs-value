@@ -49,9 +49,10 @@
 //! - Version one rejects the pre-0.10 externally tagged representation.
 //! - Non-finite floats may exist in memory, but V1 Serde and natural JSON
 //!   reject them because JSON has no `NaN` or infinity number literals.
-//! - V1 JSON payloads reject objects containing serde_json's private
-//!   `"$serde_json::private::Number"` key because arbitrary-precision number
-//!   decoding uses that same Serde marker.
+//! - JSON numbers follow `qubit-json`'s explicit range contract: negative
+//!   integers fit `i64`, non-negative integers fit `u64`, and fractional or
+//!   exponential values are finite `f64`. Wider exact values use the crate's
+//!   explicit string-based integer and decimal wire representations.
 //!
 //! # Usage Examples
 //!
