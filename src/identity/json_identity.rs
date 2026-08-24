@@ -14,10 +14,9 @@ use std::hash::Hasher;
 
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::ResourceQuantity;
-use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonValueBudget;
 use qubit_budget::json::JsonValueTransaction;
-use qubit_json::value::json_number_lexeme_length;
+use qubit_json::value::traverse::JsonTreeReader;
 
 type IdentityHasher =
     BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
@@ -245,97 +244,7 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
-    enum Frame<'a> {
-        Visit(&'a serde_json::Value, usize),
-        VisitArray {
-            values: &'a [serde_json::Value],
-            depth: usize,
-            next: usize,
-        },
-        VisitObject {
-            entries: serde_json::map::Iter<'a>,
-            depth: usize,
-        },
-    }
-
-    let mut frames = vec![Frame::Visit(value, 1)];
-    while let Some(frame) = frames.pop() {
-        match frame {
-            Frame::Visit(value, depth) => {
-                let measurement = match value {
-                    serde_json::Value::Null => JsonMeasurement::Null { depth },
-                    serde_json::Value::Bool(_) => {
-                        JsonMeasurement::Boolean { depth }
-                    }
-                    serde_json::Value::String(value) => {
-                        JsonMeasurement::String {
-                            depth,
-                            bytes: value.len(),
-                        }
-                    }
-                    serde_json::Value::Number(value) => {
-                        JsonMeasurement::Number {
-                            depth,
-                            bytes: json_number_lexeme_length(value),
-                        }
-                    }
-                    serde_json::Value::Array(values) => {
-                        JsonMeasurement::Array {
-                            depth,
-                            items: values.len(),
-                        }
-                    }
-                    serde_json::Value::Object(values) => {
-                        JsonMeasurement::Object {
-                            depth,
-                            entries: values.len(),
-                        }
-                    }
-                };
-                transaction.try_admit(measurement)?;
-
-                match value {
-                    serde_json::Value::Array(values) => {
-                        frames.push(Frame::VisitArray {
-                            values,
-                            depth: depth.saturating_add(1),
-                            next: 0,
-                        });
-                    }
-                    serde_json::Value::Object(values) => {
-                        frames.push(Frame::VisitObject {
-                            entries: values.iter(),
-                            depth: depth.saturating_add(1),
-                        });
-                    }
-                    _ => {}
-                }
-            }
-            Frame::VisitArray {
-                values,
-                depth,
-                next,
-            } => {
-                if let Some(value) = values.get(next) {
-                    frames.push(Frame::VisitArray {
-                        values,
-                        depth,
-                        next: next.saturating_add(1),
-                    });
-                    frames.push(Frame::Visit(value, depth));
-                }
-            }
-            Frame::VisitObject { mut entries, depth } => {
-                if let Some((key, value)) = entries.next() {
-                    frames.push(Frame::VisitObject { entries, depth });
-                    transaction
-                        .try_admit(JsonMeasurement::Key { bytes: key.len() })?;
-                    frames.push(Frame::Visit(value, depth));
-                }
-            }
-        }
-    }
-    Ok(())
+    JsonTreeReader::new(transaction).account(value)
 }
 
 /// Runs the infallible explicit-stack hashing engine.
