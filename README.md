@@ -170,6 +170,19 @@ or reads it.
 - Natural JSON helpers produce ordinary `null`, scalar, object, and array
   values when runtime type tags are not wanted.
 
+## JSON number boundary
+
+Generic `Json(serde_json::Value)` and Natural JSON follow `qubit-json`'s number
+contract: negative integers fit `i64`, non-negative integers fit `u64`, and
+fractional values use finite `f64`. Objects using serde_json's former private
+number-marker key are ordinary objects; the key is not reserved.
+
+This does not restrict the runtime value model. `Int128`, `UInt128`, and
+`BigInteger` remain exact and use canonical decimal strings in Wire V1;
+`BigDecimal` uses its explicit coefficient/scale payload. JSON clients that
+receive 64-bit integers above `2^53 - 1` must preserve them with a suitable
+parser/`BigInt` mapping. JavaScript's `n` suffix is not valid JSON.
+
 The crate does not provide a complete configuration store, schema registry,
 file format, or distributed cache. It provides the typed value layer those
 systems can build on. Its `Eq`/`Hash` implementations are suitable for

@@ -363,8 +363,9 @@ assert_eq!(
 ```
 
 对于已经版本化的外层协议，可以使用 `ValueWirePayloadRefV1::from_value`、`from_values` 或
-`from_container`，然后调用借用 payload 的 `to_json_vec()` 或 `to_json_writer()`。这些构造器会在返回可序列化 payload 前校验有限浮点、
-有界的 `BigDecimal scale` 以及保留的 JSON object key，因此它们是可能失败的。
+`from_container`，然后调用借用 payload 的 `to_json_vec()` 或 `to_json_writer()`。这些构造器会在返回可序列化 payload 前校验有限浮点和
+有界的 `BigDecimal scale`，因此它们是可能失败的。JSON object key 不再有 serde_json Number
+marker 保留规则。
 
 ### 嵌入值与共享 `JsonDecodeSession`
 
@@ -405,6 +406,10 @@ assert!(restored.is_collection());
 - `Float32` 和 `Float64` 可以在内存中保存非有限值，但 V1 会拒绝 NaN 和无穷，因为 JSON 没有
   对应的数字字面量。
 - `Json(null)` 是具体 JSON 值，与 `Unset(Json)` 不同。
+- 通用 `Json` 值使用 `qubit-json` 数字契约：负整数装入 `i64`，非负整数装入 `u64`，小数为
+  有限 `f64`；serde_json 旧私有 Number marker key 是普通 key。
+- 前端收到大于 `2^53 - 1` 的整数时，需要保持精度的 parser，并映射为 `BigInt` 或字符串。
+  JavaScript 的 `n` 后缀不是合法 JSON。
 - 具体扩展类型只有在接收方启用对应 feature 时才能解码；不支持的 payload 会被拒绝，不会
   被猜测成其他类型。
 - 未知字段、未知类型、错误的 scalar/collection shape、不是数字 `1` 的版本，以及 0.10 之前

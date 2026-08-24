@@ -151,6 +151,17 @@ feature。
   和形态时，应使用 Wire V1。
 - 自然 JSON 工具方法生成普通的 `null`、标量、对象和数组；当边界只需要 JSON 语义时使用它。
 
+## JSON 数字边界
+
+通用 `Json(serde_json::Value)` 与自然 JSON 遵循 `qubit-json` 数字契约：负整数装入 `i64`，
+非负整数装入 `u64`，小数使用有限 `f64`。使用 serde_json 旧私有 number marker 作为 key 的
+对象仍是普通对象，该 key 不再保留。
+
+这不会限制运行时 value 模型。`Int128`、`UInt128`、`BigInteger` 仍保持精确，并在 Wire V1
+中使用 canonical 十进制字符串；`BigDecimal` 使用显式 coefficient/scale payload。JSON 客户端
+收到大于 `2^53 - 1` 的 64 位整数时，必须用合适的 parser/`BigInt` 映射保持精度；JavaScript
+的 `n` 后缀不是合法 JSON。
+
 这个 crate 不提供完整的配置存储、schema registry、文件格式或分布式缓存；它提供这些系统
 可以复用的类型化值层。`Eq`/`Hash` 适合进程内 Rust 集合，不是持久化指纹或分布式缓存 key。
 
