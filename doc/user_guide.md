@@ -390,9 +390,9 @@ assert_eq!(
 For an already versioned outer protocol, use
 `ValueWirePayloadRefV1::from_value`, `from_values`, or `from_container` and
 call `to_json_vec()` or `to_json_writer()` on the borrowed payload. These
-constructors are fallible because they
-validate finite floats, bounded `BigDecimal` scale, and reserved JSON object
-keys before exposing a serializable payload.
+constructors are fallible because they validate finite floats and bounded
+`BigDecimal` scale before exposing a serializable payload. JSON object keys
+have no serde_json Number-marker reservation.
 
 ### Embedded values and a shared `JsonDecodeSession`
 
@@ -439,6 +439,11 @@ embedded values and rejects trailing content after the complete document.
 - `Float32` and `Float64` may contain non-finite values in memory, but V1
   rejects NaN and infinities because JSON has no such number literals.
 - `Json(null)` is a concrete JSON value and is distinct from `Unset(Json)`.
+- Generic `Json` values use the `qubit-json` numeric contract: negative
+  integers fit `i64`, non-negative integers fit `u64`, and fractions are finite
+  `f64`. A former serde_json private Number-marker key is ordinary.
+- Frontends receiving integers above `2^53 - 1` need a preserving parser and
+  `BigInt` or string mapping. A JavaScript `n` suffix is not valid JSON.
 - A concrete rich type can be decoded only by a build with its corresponding
   feature. Unsupported feature-gated payloads are rejected rather than guessed.
 - Unknown fields, unknown types, wrong scalar/collection shapes, non-numeric
