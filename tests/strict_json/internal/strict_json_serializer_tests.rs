@@ -29,6 +29,8 @@ use serde::ser::SerializeTuple;
 use serde::ser::SerializeTupleStruct;
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde::ser::SerializeTupleVariant;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde_json::json;
 
 #[cfg(all(feature = "converter", feature = "json"))]
 struct ScalarProbe(u8);
@@ -135,10 +137,11 @@ fn test_strict_json_serializes_scalar_variants() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
-fn test_strict_json_serializer_preserves_float32_text() {
+fn test_strict_json_serializer_preserves_float32_value() {
     use qubit_value::Value;
     use serde_json::Number;
     use serde_json::Value as JsonValue;
+    use serde_json::from_str;
     use serde_json::to_string;
 
     for bits in [
@@ -161,9 +164,9 @@ fn test_strict_json_serializer_preserves_float32_text() {
         .expect("legacy serialize json");
 
         assert_eq!(
-            projected,
-            f32_value.to_string(),
-            "strict json should preserve f32 display text",
+            from_str::<f32>(&projected).expect("decode projected float32"),
+            f32_value,
+            "strict JSON should round-trip the original f32 value",
         );
         assert_ne!(
             projected, legacy_text,
@@ -184,38 +187,26 @@ fn test_strict_json_serializer_covers_serde_entry_points() {
     }
 }
 
-/// Preserves arbitrary-precision numbers emitted by `serde_json::Value`.
+/// Preserves the complete signed and unsigned 64-bit integer range.
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
-fn test_strict_json_preserves_arbitrary_precision_number() {
+fn test_strict_json_preserves_64_bit_integer_boundaries() {
     use qubit_value::Value;
-    use serde_json::Value as JsonValue;
-    use serde_json::from_str;
 
-    let source =
-        from_str::<JsonValue>("123456789012345678901234567890.123456789")
-            .expect("number should parse");
-    let value =
-        Value::from_serializable(&source).expect("number should serialize");
-
-    assert_eq!(
-        value.to_json_value().expect("project JSON").to_string(),
-        source.to_string(),
-    );
+    for source in [json!(i64::MIN), json!(u64::MAX)] {
+        let value = Value::from_serializable(&source)
+            .expect("supported integer should serialize");
+        assert_eq!(value.to_json_value().expect("project JSON"), source);
+    }
 }
 
-/// Preserves arbitrary-precision numbers nested in JSON arrays and objects.
+/// Treats serde_json's former number marker as an ordinary object key.
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
-fn test_strict_json_preserves_nested_arbitrary_precision_number() {
+fn test_strict_json_preserves_former_number_marker_object() {
     use qubit_value::Value;
-    use serde_json::Value as JsonValue;
-    use serde_json::from_str;
-
-    let source = from_str::<JsonValue>(
-        r#"{"outer":[0.000000000000000000000000000000000001,{"inner":999999999999999999999999999999}]}"#,
-    )
-    .expect("nested value should parse");
+    const MARKER: &str = concat!("$", "serde_json", "::private::Number");
+    let source = json!({MARKER: "123"});
     let value = Value::from_serializable(&source)
         .expect("nested value should serialize");
 

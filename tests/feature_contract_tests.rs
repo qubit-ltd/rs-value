@@ -34,6 +34,8 @@ use qubit_redact::MaskPolicy;
 #[cfg(feature = "redact")]
 use qubit_redact::Redact;
 #[cfg(feature = "redact")]
+use qubit_redact::RedactionCompletion;
+#[cfg(feature = "redact")]
 use qubit_redact::RedactionPolicy;
 #[cfg(feature = "redact")]
 use qubit_redact::Redactor;
@@ -339,7 +341,12 @@ fn redact_feature_stops_before_unadmitted_collection_elements() {
         .build()
         .expect("the test domain limits should build a policy");
 
-    let output = redacted_text(&values, &policy);
+    let result = Redactor::new(policy).redact(&values);
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    let output = result.text().as_str();
 
     assert!(output.contains("visible"), "{output}");
     assert!(!output.contains("must-not-be-formatted"), "{output}");

@@ -290,13 +290,10 @@ impl Serializer for StrictJsonSerializer {
     #[inline(always)]
     fn serialize_struct(
         self,
-        name: &'static str,
+        _name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct> {
-        if name == super::json_number_serializer::NUMBER_TOKEN {
-            return Ok(StructSerializer::Number(None));
-        }
-        Ok(StructSerializer::Object(ObjectSerializer {
+        Ok(StructSerializer(ObjectSerializer {
             values: Map::with_capacity(preallocated_capacity(Some(len))),
             next_key: None,
         }))

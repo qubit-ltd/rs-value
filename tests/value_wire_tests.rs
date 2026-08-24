@@ -106,18 +106,18 @@ fn test_value_wire_v1_rejects_duplicate_nested_json_keys() {
     }
 }
 
-/// Rejects JSON objects that collide with serde_json's number marker.
+/// Preserves JSON objects using serde_json's former number marker as a key.
 #[test]
-fn test_value_wire_v1_rejects_reserved_json_number_key() {
+fn test_value_wire_v1_preserves_former_json_number_marker_key() {
+    const MARKER: &str = concat!("$", "serde_json", "::private::Number");
     let value = Value::Json(json!({
-        concat!("$", "serde_json", "::private::Number"): "123",
+        MARKER: "123",
         "other": true,
     }));
-
-    assert!(matches!(
-        ValueWireV1::try_from(value),
-        Err(ValueWireEncodeError::ReservedJsonObjectKey { .. })
-    ));
+    let wire = ValueWireV1::try_from(value)
+        .expect("the marker is an ordinary JSON key");
+    let text = to_string(&wire).expect("wire value should serialize");
+    assert!(text.contains(MARKER));
 }
 
 /// Serializes a string-map collection with dictionary-ordered keys.

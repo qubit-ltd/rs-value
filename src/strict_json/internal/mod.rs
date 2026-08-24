@@ -8,7 +8,6 @@
 
 //! Internal serializers composing the strict JSON value serializer.
 
-mod json_number_serializer;
 mod map_key_serializer;
 mod object_serializer;
 mod sequence_serializer;

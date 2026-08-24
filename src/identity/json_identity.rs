@@ -17,6 +17,7 @@ use qubit_budget::ResourceQuantity;
 use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonValueBudget;
 use qubit_budget::json::JsonValueTransaction;
+use qubit_json::value::json_number_lexeme_length;
 
 type IdentityHasher =
     BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
@@ -275,7 +276,7 @@ where
                     serde_json::Value::Number(value) => {
                         JsonMeasurement::Number {
                             depth,
-                            bytes: value.as_str().len(),
+                            bytes: json_number_lexeme_length(value),
                         }
                     }
                     serde_json::Value::Array(values) => {

@@ -18,6 +18,8 @@ use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
 use qubit_redact::Redact;
 #[cfg(feature = "redact")]
+use qubit_redact::RedactionCompletion;
+#[cfg(feature = "redact")]
 use qubit_redact::RedactionPolicy;
 #[cfg(feature = "redact")]
 use qubit_redact::RedactionWriter;
@@ -92,11 +94,12 @@ fn test_multi_values_stop_before_unadmitted_collection_elements() {
     ]);
     let policy = policy_with_domain_limits(64, 1);
 
-    let output = Redactor::new(policy)
-        .redact(&values)
-        .into_complete_text()
-        .expect("test output must be complete")
-        .into_string();
+    let result = Redactor::new(policy).redact(&values);
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    let output = result.text().as_str();
 
     assert!(output.contains("visible"), "{output}");
     assert!(!output.contains("must-not-be-formatted"), "{output}");
@@ -129,11 +132,12 @@ fn test_value_container_stops_before_unadmitted_variant_payload() {
     ));
     let policy = policy_with_domain_limits(1, 8);
 
-    let output = Redactor::new(policy)
-        .redact(&value)
-        .into_complete_text()
-        .expect("test output must be complete")
-        .into_string();
+    let result = Redactor::new(policy).redact(&value);
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    let output = result.text().as_str();
 
     assert!(!output.contains("must-not-be-formatted"), "{output}");
     assert!(output.contains("<truncated>"), "{output}");
