@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 use qubit_redact::MaskPolicy;
 use qubit_redact::Redact;
+use qubit_redact::RedactionCompletion;
 use qubit_redact::RedactionPolicy;
 use qubit_redact::Redactor;
 use qubit_redact::Sensitivity;
@@ -18,6 +19,7 @@ use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
 use qubit_value::Value;
+use serde_json::json;
 
 /// Renders a domain value through one explicit policy snapshot.
 fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
@@ -67,6 +69,82 @@ fn test_value_redacted_view_masks_sensitive_string_map_entries() {
 
     assert!(!output.contains("raw-secret"));
     assert!(output.contains("visible"));
+}
+
+#[test]
+fn test_multi_values_json_recursively_masks_sensitive_entries() {
+    let values = MultiValues::Json(vec![json!({
+        "profile": {
+            "password": "raw-json-secret",
+            "attempts": 3,
+        },
+        "label": "visible",
+    })]);
+    let policy = RedactionPolicy::builder()
+        .fields(|fields| {
+            fields.raise("password", Sensitivity::Secret);
+        })
+        .expect("the test field rule should be valid")
+        .build()
+        .expect("policy should build");
+
+    let output = redacted_text(&values, &policy);
+
+    assert!(!output.contains("raw-json-secret"), "{output}");
+    assert!(output.contains("visible"), "{output}");
+}
+
+#[test]
+fn test_multi_values_json_masks_sensitive_non_string_entries() {
+    let values = MultiValues::Json(vec![
+        json!({"password": 12345}),
+        json!({"password": true, "label": "visible"}),
+    ]);
+    let policy = RedactionPolicy::builder()
+        .fields(|fields| {
+            fields.raise("password", Sensitivity::Secret);
+        })
+        .expect("the test field rule should be valid")
+        .build()
+        .expect("policy should build");
+
+    let output = redacted_text(&values, &policy);
+
+    assert!(!output.contains("12345"), "{output}");
+    assert!(!output.contains("true"), "{output}");
+    assert!(output.contains("visible"), "{output}");
+}
+
+#[test]
+fn test_multi_values_empty_json_collection_is_preserved() {
+    let values = MultiValues::Json(Vec::new());
+
+    let output = redacted_text(&values, &RedactionPolicy::standard());
+
+    assert_eq!(output, "[]");
+}
+
+#[test]
+fn test_multi_values_json_stops_before_unadmitted_items() {
+    let values = MultiValues::Json(vec![json!("first"), json!("second")]);
+    let policy = RedactionPolicy::builder()
+        .limits(|limits| {
+            limits.max_nodes(64).max_collection_items(1).max_depth(8);
+        })
+        .expect("the test limits should be valid")
+        .build()
+        .expect("policy should build");
+
+    let result = Redactor::new(policy).redact(&values);
+    let output = result.text().as_str();
+
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    assert!(output.contains("first"), "{output}");
+    assert!(!output.contains("second"), "{output}");
+    assert!(output.contains("<truncated>"), "{output}");
 }
 
 #[test]
