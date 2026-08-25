@@ -31,7 +31,7 @@ impl Redact for Value {
             #[cfg(feature = "json")]
             ValueRepr::Json(value) => {
                 writer.record("Value", |fields| {
-                    fields.json("Json", &value.to_string());
+                    fields.json_value("Json", value);
                 });
             }
             _ => {
@@ -49,6 +49,14 @@ impl Redact for MultiValues {
                 writer.sequence(|items| {
                     for value in values {
                         items.unredacted_item(|| value);
+                    }
+                });
+            }
+            #[cfg(feature = "json")]
+            MultiValuesRef::Json(values) => {
+                writer.sequence(|items| {
+                    for value in values {
+                        items.json_value_item(value);
                     }
                 });
             }
