@@ -178,7 +178,7 @@ impl MultiValues {
     /// # Parameters
     ///
     /// * `state` - Hasher that receives the same identity representation as
-    ///   [`Hash::hash`](std::hash::Hash::hash).
+    ///   [`Hash::hash`].
     /// * `budget` - Mutable JSON traversal budget, used only for JSON elements.
     ///
     /// # Errors

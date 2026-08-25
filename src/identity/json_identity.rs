@@ -18,99 +18,13 @@ use qubit_budget::json::JsonValueBudget;
 use qubit_budget::json::JsonValueTransaction;
 use qubit_json::value::traverse::JsonTreeReader;
 
+use super::hash_destination::HashDestination;
+use super::hash_frame::HashFrame;
+use super::object_hash::ObjectHash;
+
+/// Stable standard hasher used for each order-independent object entry.
 type IdentityHasher =
     BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
-
-/// One pending operation in the iterative JSON hashing traversal.
-enum HashFrame<'a> {
-    /// Visits one JSON node at its root-inclusive depth.
-    Visit(&'a serde_json::Value, usize),
-
-    /// Hashes an array length before its elements are visited.
-    HashArrayLength(usize),
-
-    /// Continues visiting an array from its next element.
-    VisitArray {
-        /// Array elements being visited.
-        values: &'a [serde_json::Value],
-
-        /// Root-inclusive depth of each array element.
-        depth: usize,
-
-        /// Index of the next element to visit.
-        next: usize,
-    },
-
-    /// Continues visiting an object from its next entry.
-    VisitObject {
-        /// Object entries being visited.
-        entries: serde_json::map::Iter<'a>,
-
-        /// Root-inclusive depth of each object value.
-        depth: usize,
-    },
-
-    /// Starts an object entry with its independent identity hasher.
-    StartObjectEntry(&'a str),
-
-    /// Finishes an object entry and adds its hash to the current object.
-    FinishObjectEntry,
-
-    /// Finishes an object and writes its order-independent aggregates.
-    FinishObject,
-}
-
-/// A destination receiving hashes during one iterative traversal.
-enum HashDestination<'a, H> {
-    /// The caller-provided root destination.
-    Root(&'a mut H),
-
-    /// The independent hasher for one JSON object entry.
-    ObjectEntry(std::collections::hash_map::DefaultHasher),
-}
-
-impl<H> HashDestination<'_, H>
-where
-    H: Hasher,
-{
-    /// Hashes one value into this destination without erasing the hasher type.
-    #[inline(always)]
-    fn hash<T>(&mut self, value: &T)
-    where
-        T: Hash + ?Sized,
-    {
-        match self {
-            Self::Root(state) => value.hash(*state),
-            Self::ObjectEntry(state) => value.hash(state),
-        }
-    }
-
-    /// Finishes an object-entry destination and returns its hash.
-    ///
-    /// # Panics
-    ///
-    /// Panics if called for the root destination, which indicates an invalid
-    /// internal frame sequence.
-    #[inline(always)]
-    fn finish_object_entry(self) -> u64 {
-        match self {
-            Self::ObjectEntry(state) => state.finish(),
-            Self::Root(_) => {
-                unreachable!("the root hasher cannot finish an object entry")
-            }
-        }
-    }
-}
-
-/// Order-independent hash aggregates for one object currently being visited.
-#[derive(Default)]
-struct ObjectHash {
-    /// Wrapping sum of the object's entry hashes.
-    sum: u64,
-
-    /// Rotated xor of the object's entry hashes.
-    xor: u64,
-}
 
 /// Compares two JSON trees using structural JSON semantics without recursion.
 ///
@@ -210,10 +124,10 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 ///
 /// # Errors
 ///
-/// Returns [`BudgetError`] when a node, container, key, string, or number text
-/// exceeds the corresponding budget constraint. On error, neither `state` nor
-/// the committed portion of `budget` is modified. If hashing panics after
-/// preflight, the staged budget is also discarded.
+/// Returns [`MeasuredBudgetError`] when a node, container, key, string, or
+/// number text exceeds the corresponding budget constraint. On error, neither
+/// `state` nor the committed portion of `budget` is modified. If hashing panics
+/// after preflight, the staged budget is also discarded.
 #[allow(dead_code)]
 pub(crate) fn hash_json_with_budget<H, R, Q>(
     value: &serde_json::Value,
@@ -337,10 +251,12 @@ where
                 destinations.push(HashDestination::ObjectEntry(entry));
             }
             HashFrame::FinishObjectEntry => {
-                let hash = destinations
+                let Some(hash) = destinations
                     .pop()
-                    .expect("an object entry must have a hash destination")
-                    .finish_object_entry();
+                    .and_then(HashDestination::finish_object_entry)
+                else {
+                    continue;
+                };
                 let object = objects
                     .last_mut()
                     .expect("an object entry must have an object aggregate");
