@@ -47,7 +47,7 @@ use crate::ValueContainer;
 ///
 /// # Resource limits
 ///
-/// The generic [`Deserialize`](serde::Deserialize) implementation is intended
+/// The generic [`Deserialize`] implementation is intended
 /// for already-bounded embedded documents and does not enforce message-size or
 /// structural limits. Use `ValueWireV1::decode_json_slice` or
 /// `ValueWireV1::decode_json_slice_with_limits` for untrusted complete JSON
