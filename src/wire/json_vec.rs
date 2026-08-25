@@ -9,7 +9,7 @@
 // qubit-style: allow source-test-pair
 //! Canonical Serde adapter for collections of JSON values.
 
-use qubit_json::value::StrictJsonValue;
+use qubit_json::value::DuplicateKeyRejectingJsonValue;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serializer;
@@ -40,10 +40,12 @@ pub(crate) fn deserialize<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    Vec::<StrictJsonValue>::deserialize(deserializer).map(|values| {
-        values
-            .into_iter()
-            .map(StrictJsonValue::into_inner)
-            .collect()
-    })
+    Vec::<DuplicateKeyRejectingJsonValue>::deserialize(deserializer).map(
+        |values| {
+            values
+                .into_iter()
+                .map(DuplicateKeyRejectingJsonValue::into_inner)
+                .collect()
+        },
+    )
 }

@@ -8,7 +8,7 @@
 
 //! Canonical Serde adapter for JSON values.
 
-use qubit_json::value::StrictJsonValue;
+use qubit_json::value::DuplicateKeyRejectingJsonValue;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -35,7 +35,8 @@ pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Value, D::Error>
 where
     D: Deserializer<'de>,
 {
-    StrictJsonValue::deserialize(deserializer).map(StrictJsonValue::into_inner)
+    DuplicateKeyRejectingJsonValue::deserialize(deserializer)
+        .map(DuplicateKeyRejectingJsonValue::into_inner)
 }
 
 /// Returns a recursively canonical JSON value for natural projections.
