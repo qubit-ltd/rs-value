@@ -74,20 +74,22 @@ impl ValueWireDecodeError {
 impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
     #[inline]
     fn from(error: JsonDecodeError<JsonResource>) -> Self {
-        match error {
-            JsonDecodeError::Budget(error) => match error {
+        if let Some(error) = error.budget_error().cloned() {
+            return match error {
                 MeasuredBudgetError::Budget(error) => Self::Budget(error),
                 MeasuredBudgetError::Quantity { resource, source } => {
                     Self::Quantity { resource, source }
                 }
-            },
-            JsonDecodeError::Syntax(error) => Self::Syntax(error),
-            JsonDecodeError::Deserialize {
-                category,
-                line,
-                column,
-            } => Self::deserialize(category, line, column),
+            };
         }
+        if let Some(error) = error.syntax_error() {
+            return Self::Syntax(*error);
+        }
+        Self::deserialize(
+            Category::Data,
+            error.line().unwrap_or(0),
+            error.column().unwrap_or(0),
+        )
     }
 }
 
