@@ -52,6 +52,15 @@ use crate::ValueContainer;
 /// structural limits. Use `ValueWireV1::decode_json_slice` or
 /// `ValueWireV1::decode_json_slice_with_limits` for untrusted complete JSON
 /// input.
+///
+/// # Examples
+///
+/// ```
+/// use std::convert::TryFrom;
+/// use qubit_value::{Value, ValueWireV1};
+///
+/// let _wire = ValueWireV1::try_from(Value::from(42_i32)).unwrap();
+/// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValueWireV1 {

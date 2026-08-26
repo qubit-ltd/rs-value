@@ -28,6 +28,15 @@ use crate::Value;
 use crate::ValueContainer;
 
 /// Borrowed standalone V1 envelope for serialization without cloning.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::{Value, ValueWireRefV1};
+///
+/// let value = Value::from(42_i32);
+/// let _wire = ValueWireRefV1::from_value(&value).unwrap();
+/// ```
 #[must_use]
 pub struct ValueWireRefV1<'a> {
     value: ValueWirePayloadRefV1<'a>,

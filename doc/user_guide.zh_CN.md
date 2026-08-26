@@ -118,9 +118,10 @@ serde_json = "1.0"
 | `big-decimal` | `BigDecimal` |
 | `big-number` | `big-integer` 与 `big-decimal` 的兼容别名 |
 | `url` | `Url` |
-| `json` | `Json` 和 Wire JSON 解码/资源限制；自然 JSON 还需要 `converter` |
+| `json` | `Json` 和有界版本化 JSON Wire 编解码 |
+| `natural-json` | 通过 `Value::to_json_value` 投影自然 JSON；同时启用 `converter` 和 `json` |
 | `redact` | `Value` 脱敏视图；应用还需要从 `qubit-redact` 导入 `Redact` |
-| `all` | `converter`、`chrono`、`big-number`、`url`、`json` 和 `redact` |
+| `all` | `converter`、`chrono`、`big-number`、`url`、`json`、`natural-json` 和 `redact` |
 
 当具体值在不同构建之间交换时，生产方和消费方必须对所需 feature 达成一致。没有启用
 `chrono` 的构建仍可以理解 `Unset(DataType::Date)` 这样的声明，但无法物化具体 `Date`
@@ -417,7 +418,7 @@ assert!(restored.is_collection());
 
 ## 自然 JSON
 
-同时启用 `converter` 和 `json` 后，自然 JSON 将运行时值投影为普通的 `serde_json::Value`。下面的
+启用 `natural-json` 后，自然 JSON 将运行时值投影为普通的 `serde_json::Value`。下面的
 示例展示几种常见值实际生成的 JSON 字符串：
 
 ```rust

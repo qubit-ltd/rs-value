@@ -11,6 +11,15 @@
 use qubit_datatype::DataType;
 
 /// Borrowed semantic view of a [`crate::Value`].
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::{Value, ValueRef};
+///
+/// let value = Value::from(42_i32);
+/// assert!(matches!(value.view(), ValueRef::Int32(42)));
+/// ```
 #[must_use]
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy)]

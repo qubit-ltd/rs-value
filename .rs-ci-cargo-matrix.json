@@ -104,6 +104,12 @@
       "features": ["converter", "json"]
     },
     {
+      "name": "natural-json",
+      "commands": ["check", "test", "doc", "clippy"],
+      "defaultFeatures": false,
+      "features": ["natural-json"]
+    },
+    {
       "name": "all",
       "commands": ["check", "test", "doc", "clippy"],
       "defaultFeatures": false,

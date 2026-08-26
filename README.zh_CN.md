@@ -104,9 +104,10 @@ qubit-datatype = { version = "0.11", default-features = false }
 | `big-decimal` | 由 `bigdecimal::BigDecimal` 支持的 `BigDecimal` |
 | `big-number` | 同时启用两个大数 feature 的兼容别名 |
 | `url` | 由 `url::Url` 支持的 `Url` |
-| `json` | 由 `serde_json::Value` 支持的 `Json` 和有界 JSON Wire 解码；自然 JSON 还需要 `converter` |
+| `json` | 由 `serde_json::Value` 支持的 `Json`，以及有界版本化 JSON Wire 编解码 |
+| `natural-json` | 通过 `Value::to_json_value` 投影自然 JSON；同时启用 `converter` 和 `json` |
 | `redact` | 通过 `qubit-redact` 提供按策略脱敏的视图 |
-| `all` | `converter`、`chrono`、`big-number`、`url`、`json` 和 `redact` |
+| `all` | `converter`、`chrono`、`big-number`、`url`、`json`、`natural-json` 和 `redact` |
 
 ## 支持的 `DataType`
 
