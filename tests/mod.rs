@@ -35,17 +35,6 @@ mod named_value {
 }
 mod numeric_comparison_error_tests;
 mod strict_json_tests;
-mod strict_json {
-    mod internal {
-        mod map_key_serializer_tests;
-        mod object_serializer_tests;
-        mod sequence_serializer_tests;
-        mod strict_json_error_tests;
-        mod strict_json_serializer_tests;
-        mod struct_variant_serializer_tests;
-        mod tuple_variant_serializer_tests;
-    }
-}
 mod strict_value_read_tests;
 mod value;
 mod value_container_tests;

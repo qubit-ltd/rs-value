@@ -36,6 +36,10 @@ use qubit_datatype::DataType;
 #[cfg(all(feature = "converter", feature = "json"))]
 use qubit_datatype::InvalidValueReason;
 #[cfg(all(feature = "converter", feature = "json"))]
+use qubit_json::value::JsonValueEncodeError;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_json::value::JsonValueEncoder;
+#[cfg(all(feature = "converter", feature = "json"))]
 use serde::Deserialize;
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde::Serialize;
@@ -156,12 +160,12 @@ impl Value {
     pub fn from_serializable<T: ?Sized + Serialize>(
         value: &T,
     ) -> ValueResult<Self> {
-        let json = crate::strict_json::to_value(value).map_err(|error| {
+        let json = JsonValueEncoder::new().encode(value).map_err(|error| {
             let reason = match error {
-                crate::strict_json::StrictJsonError::NonFinite => {
+                JsonValueEncodeError::NonFiniteFloat => {
                     InvalidValueReason::NonFinite
                 }
-                crate::strict_json::StrictJsonError::Serialization => {
+                JsonValueEncodeError::Serialization => {
                     InvalidValueReason::Serialization {
                         format: DataFormat::Json,
                     }
