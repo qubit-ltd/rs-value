@@ -37,6 +37,15 @@ use crate::wire::is_valid_big_decimal_scale;
 /// Use one of the fallible constructors or the corresponding `TryFrom` impl
 /// to create a payload. The private representation prevents callers from
 /// bypassing V1 validation by constructing an unchecked shape directly.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::{Value, ValueWirePayloadRefV1};
+///
+/// let value = Value::from(42_i32);
+/// let _payload = ValueWirePayloadRefV1::from_value(&value).unwrap();
+/// ```
 #[must_use]
 pub struct ValueWirePayloadRefV1<'a> {
     shape: WireShapeRef<'a>,

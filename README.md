@@ -115,9 +115,10 @@ The default feature set is empty. Enable only the families you use:
 | `big-decimal` | `BigDecimal` backed by `bigdecimal::BigDecimal` |
 | `big-number` | Compatibility alias for both big-number features |
 | `url` | `Url` backed by `url::Url` |
-| `json` | `Json` backed by `serde_json::Value` and bounded JSON Wire decoding; Natural JSON also requires `converter` |
+| `json` | `Json` backed by `serde_json::Value` and bounded versioned JSON Wire encoding/decoding |
+| `natural-json` | Natural JSON projection through `Value::to_json_value`; enables `converter` and `json` |
 | `redact` | Policy-aware redacted views through `qubit-redact` |
-| `all` | `converter`, `chrono`, `big-number`, `url`, `json`, and `redact` |
+| `all` | `converter`, `chrono`, `big-number`, `url`, `json`, `natural-json`, and `redact` |
 
 ## Supported `DataType` values
 

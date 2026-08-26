@@ -77,9 +77,20 @@ json = [
     "qubit-datatype/json",
     "qubit-redact?/json",
 ]
+# Natural JSON is the ordinary `serde_json::Value` projection.  Keep it
+# separate from the versioned JSON wire representation exposed by `json`.
+natural-json = ["converter", "json"]
 converter = ["qubit-datatype/converter"]
 redact = ["dep:qubit-redact"]
-all = ["converter", "chrono", "big-number", "url", "json", "redact"]
+all = [
+    "converter",
+    "chrono",
+    "big-number",
+    "url",
+    "json",
+    "natural-json",
+    "redact",
+]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -108,7 +119,7 @@ harness = false
 [[bench]]
 name = "downstream_read_bench"
 harness = false
-required-features = ["converter", "json"]
+required-features = ["natural-json"]
 
 [[bench]]
 name = "value_identity_bench"

@@ -11,6 +11,15 @@
 use qubit_datatype::DataType;
 
 /// Borrowed semantic view of a [`crate::MultiValues`] value.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::{MultiValues, MultiValuesRef};
+///
+/// let values = MultiValues::from(vec![1_i32, 2]);
+/// assert!(matches!(values.view(), MultiValuesRef::Int32(items) if items == [1, 2]));
+/// ```
 #[must_use]
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy)]

@@ -36,6 +36,17 @@ use crate::value::ValueRepr;
 /// `Scalar(Value::Int32(42))` and
 /// `Collection(MultiValues::Int32(vec![42]))` remain distinguishable through
 /// conversion and serialization boundaries.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::ValueContainer;
+///
+/// let scalar = ValueContainer::from(42_i32);
+/// let collection = ValueContainer::from(vec![42_i32]);
+/// assert!(scalar.is_scalar());
+/// assert!(collection.is_collection());
+/// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValueContainer {

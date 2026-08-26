@@ -114,6 +114,15 @@ macro_rules! define_multi_values_enum {
 for_each_value_type!(define_multi_values_enum);
 
 /// Multiple typed runtime values with private storage representation.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::MultiValues;
+///
+/// let values = MultiValues::from(vec![1_i32, 2, 3]);
+/// assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3]);
+/// ```
 #[must_use]
 #[derive(Clone)]
 pub struct MultiValues {

@@ -48,6 +48,15 @@ use crate::ValueWireDecodeError;
 /// structural limits. Use `ValueWirePayloadV1::decode_json_slice` or
 /// `ValueWirePayloadV1::decode_json_slice_with_limits` for untrusted complete
 /// JSON input.
+///
+/// # Examples
+///
+/// ```
+/// use std::convert::TryFrom;
+/// use qubit_value::{Value, ValueWirePayloadV1};
+///
+/// let _payload = ValueWirePayloadV1::try_from(Value::from(42_i32)).unwrap();
+/// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValueWirePayloadV1 {

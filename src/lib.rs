@@ -44,7 +44,7 @@
 //!   supported `serde_json` version and configuration. String-map keys and
 //!   nested JSON object keys are emitted in lexicographic order. Other Serde
 //!   formats are supported as representations, but are outside this byte-level
-//!   stability contract. With both `converter` and `json`, `to_json_value`
+//!   stability contract. With the `natural-json` feature, `to_json_value`
 //!   provides a separate natural JSON projection with the same ordering.
 //! - Version one rejects the pre-0.10 externally tagged representation.
 //! - Non-finite floats may exist in memory, but V1 Serde and natural JSON
@@ -112,7 +112,10 @@ mod identity;
 mod into_value_default;
 #[macro_use]
 mod value_type_table;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(any(
+    feature = "natural-json",
+    all(feature = "converter", feature = "json")
+))]
 mod json;
 mod multi_values;
 mod named_multi_values;

@@ -128,6 +128,15 @@ for_each_value_type!(define_value_enum);
 /// Construction and access are expressed through methods and conversions. The
 /// concrete enum representation is private so storage optimizations do not
 /// become part of the public API.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::Value;
+///
+/// let value = Value::from(42_i32);
+/// assert_eq!(value.get_int32().unwrap(), 42);
+/// ```
 #[must_use]
 #[derive(Clone)]
 pub struct Value {

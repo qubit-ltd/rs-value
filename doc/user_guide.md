@@ -127,9 +127,10 @@ application:
 | `big-decimal` | `BigDecimal` |
 | `big-number` | Compatibility alias for `big-integer` and `big-decimal` |
 | `url` | `Url` |
-| `json` | `Json` and Wire JSON decoding/resource limits; Natural JSON also requires `converter` |
+| `json` | `Json` and bounded versioned JSON Wire encoding/decoding |
+| `natural-json` | Natural JSON projection through `Value::to_json_value`; enables `converter` and `json` |
 | `redact` | `Value` redacted views; the application also imports `Redact` from `qubit-redact` |
-| `all` | `converter`, `chrono`, `big-number`, `url`, `json`, and `redact` |
+| `all` | `converter`, `chrono`, `big-number`, `url`, `json`, `natural-json`, and `redact` |
 
 When exchanging concrete values between builds, the producer and consumer must
 agree on the features needed by those values. A build without `chrono` can
@@ -451,7 +452,7 @@ embedded values and rejects trailing content after the complete document.
 
 ## Natural JSON
 
-With `converter` and `json`, Natural JSON projects a runtime value into ordinary
+With `natural-json`, Natural JSON projects a runtime value into ordinary
 `serde_json::Value`. The following example shows the exact JSON string emitted
 for several common values:
 
