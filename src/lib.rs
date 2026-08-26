@@ -121,8 +121,6 @@ mod multi_values;
 mod named_multi_values;
 mod named_value;
 mod numeric_comparison_error;
-#[cfg(all(feature = "converter", feature = "json"))]
-mod strict_json;
 mod strict_value_read;
 mod value;
 mod value_container;
