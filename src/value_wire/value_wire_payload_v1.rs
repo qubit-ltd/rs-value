@@ -114,7 +114,7 @@ impl ValueWirePayloadV1 {
         input: &[u8],
         limits: JsonDecodeLimits,
     ) -> Result<Self, ValueWireDecodeError> {
-        let session = JsonDecodeSession::owned(limits);
+        let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
             .decode_utf8(input)
             .map_err(ValueWireDecodeError::from)
@@ -138,7 +138,7 @@ impl ValueWirePayloadV1 {
         &self,
         limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
-        let session = JsonEncodeSession::owned(limits);
+        let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
             .map_err(ValueWireEncodeError::from)
@@ -179,7 +179,7 @@ impl ValueWirePayloadV1 {
     where
         W: Write,
     {
-        let session = JsonEncodeSession::owned(limits);
+        let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .write_buffered(writer, self)
             .map_err(ValueWireEncodeError::from)

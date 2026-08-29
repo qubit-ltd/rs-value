@@ -78,7 +78,7 @@ impl<'a> ValueWireRefV1<'a> {
         &self,
         limits: JsonEncodeLimits,
     ) -> Result<Vec<u8>, ValueWireEncodeError> {
-        let session = JsonEncodeSession::owned(limits);
+        let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
             .map_err(ValueWireEncodeError::from)
@@ -111,7 +111,7 @@ impl<'a> ValueWireRefV1<'a> {
     where
         W: Write,
     {
-        let session = JsonEncodeSession::owned(limits);
+        let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .write_buffered(writer, self)
             .map_err(ValueWireEncodeError::from)
