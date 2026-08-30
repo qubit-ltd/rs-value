@@ -37,9 +37,9 @@ macro_rules! define_scalar_wire_owned {
                 WireDataTypeV1,
             ),
             $(
+                #[doc = concat!("Owned `", $tag, "` scalar payload.")]
                 $(#[$cfg])*
                 $(#[$scalar_attr])*
-                #[doc = concat!("Owned `", $tag, "` scalar payload.")]
                 #[serde(rename = $tag)]
                 $variant(
                     #[doc = concat!("Stored `", $tag, "` scalar value.")]
