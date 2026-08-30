@@ -177,124 +177,32 @@ macro_rules! multi_values_to_json_match {
     };
 }
 
-impl Value {
-    /// Projects this typed value to its natural JSON representation.
-    ///
-    /// This differs from the tagged [`crate::ValueWireV1`] representation: for
-    /// example,
-    /// `Value::Int32(42)` projects to the JSON number `42`.
-    ///
-    /// # Returns
-    ///
-    /// The natural JSON representation of this value.
-    ///
-    /// # Errors
-    ///
-    /// Returns a structured conversion error for values JSON cannot represent,
-    /// including non-finite floating-point values and inexact durations.
-    #[inline(always)]
-    pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
-    }
-
-    /// Projects this typed value using explicit conversion policy and limits.
-    ///
-    /// # Parameters
-    ///
-    /// * `policy` - Controls duration units and precision-loss behavior.
-    /// * `limits` - Bounds conversion resource consumption.
-    ///
-    /// # Returns
-    ///
-    /// The natural JSON representation of this value.
-    ///
-    /// # Errors
-    ///
-    /// Returns a structured conversion error when JSON projection or duration
-    /// formatting violates the requested policy or limits.
-    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
-        for_each_value_type!(value_to_json_match, self, policy, limits)
-    }
+/// Projects a scalar value using explicit conversion policy and limits.
+pub(crate) fn value_to_json_value_with(
+    value: &Value,
+    policy: &ConversionPolicy,
+    limits: &ConversionLimits,
+) -> ValueResult<JsonValue> {
+    for_each_value_type!(value_to_json_match, value, policy, limits)
 }
 
-impl MultiValues {
-    /// Projects this collection to its natural JSON representation.
-    ///
-    /// Unset is `null`; every concrete collection is an array, including empty
-    /// and one-item collections.
-    ///
-    /// # Returns
-    ///
-    /// The natural JSON representation of this collection.
-    ///
-    /// # Errors
-    ///
-    /// Returns a list conversion error containing the zero-based source index
-    /// when an item cannot be represented as JSON.
-    #[inline(always)]
-    pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
-    }
-
-    /// Projects this collection using explicit conversion policy and limits.
-    ///
-    /// # Parameters
-    ///
-    /// * `policy` - Controls duration units and precision-loss behavior.
-    /// * `limits` - Bounds conversion resource consumption.
-    ///
-    /// # Returns
-    ///
-    /// The natural JSON representation of this collection.
-    ///
-    /// # Errors
-    ///
-    /// Returns an indexed list conversion error when an item cannot be
-    /// represented under the requested policy and limits.
-    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
-        for_each_value_type!(multi_values_to_json_match, self, policy, limits)
-    }
+/// Projects a collection using explicit conversion policy and limits.
+pub(crate) fn multi_values_to_json_value_with(
+    values: &MultiValues,
+    policy: &ConversionPolicy,
+    limits: &ConversionLimits,
+) -> ValueResult<JsonValue> {
+    for_each_value_type!(multi_values_to_json_match, values, policy, limits)
 }
 
-impl ValueContainer {
-    /// Projects this container while preserving concrete collection shape.
-    ///
-    /// Scalar storage uses the natural scalar projection; concrete collection
-    /// storage always uses a JSON array.
-    ///
-    /// # Returns
-    ///
-    /// The natural JSON representation, except scalar and collection unset
-    /// values both project to `null`.
-    ///
-    /// # Errors
-    ///
-    /// Returns the same structured projection error as the contained value.
-    #[inline(always)]
-    pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
-    }
-
-    /// Projects this container using explicit conversion policy and limits.
-    ///
-    /// # Parameters
-    ///
-    /// * `policy` - Controls duration units and precision-loss behavior.
-    /// * `limits` - Bounds conversion resource consumption.
-    ///
-    /// # Returns
-    ///
-    /// The natural JSON representation, except scalar and collection unset
-    /// values both project to `null`.
-    ///
-    /// # Errors
-    ///
-    /// Returns the same structured projection error as the contained value.
-    #[inline(always)]
-    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
-        match self {
-            Self::Scalar(value) => value.to_json_value_with(policy, limits),
-            Self::Collection(values) => values.to_json_value_with(policy, limits),
-        }
+/// Projects a scalar-or-collection container while preserving its shape.
+pub(crate) fn value_container_to_json_value_with(
+    container: &ValueContainer,
+    policy: &ConversionPolicy,
+    limits: &ConversionLimits,
+) -> ValueResult<JsonValue> {
+    match container {
+        ValueContainer::Scalar(value) => value_to_json_value_with(value, policy, limits),
+        ValueContainer::Collection(values) => multi_values_to_json_value_with(values, policy, limits),
     }
 }

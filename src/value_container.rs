@@ -236,20 +236,6 @@ impl From<MultiValues> for ValueContainer {
 }
 
 impl ValueContainer {
-    /// Returns the stored or declared data type.
-    ///
-    /// # Returns
-    ///
-    /// The scalar or collection element type, including the declared type of
-    /// unset storage.
-    #[inline(always)]
-    pub fn data_type(&self) -> DataType {
-        match self {
-            Self::Scalar(value) => value.data_type(),
-            Self::Collection(values) => values.data_type(),
-        }
-    }
-
     /// Creates an unset scalar container for a declared data type.
     ///
     /// # Parameters
@@ -278,6 +264,21 @@ impl ValueContainer {
         Self::Collection(MultiValues::new_unset(data_type))
     }
 
+    /// Returns the stored or declared data type.
+    ///
+    /// # Returns
+    ///
+    /// The scalar or collection element type, including the declared type of
+    /// unset storage.
+    #[must_use = "the runtime data type should be used"]
+    #[inline(always)]
+    pub fn data_type(&self) -> DataType {
+        match self {
+            Self::Scalar(value) => value.data_type(),
+            Self::Collection(values) => values.data_type(),
+        }
+    }
+
     /// Returns whether this container has scalar shape.
     ///
     /// # Returns
@@ -294,6 +295,7 @@ impl ValueContainer {
     /// # Returns
     ///
     /// `Some` for scalar storage, or `None` for collection storage.
+    #[must_use]
     #[inline(always)]
     pub const fn as_scalar(&self) -> Option<&Value> {
         match self {
@@ -335,6 +337,7 @@ impl ValueContainer {
     /// # Returns
     ///
     /// `Some` for collection storage, or `None` for scalar storage.
+    #[must_use]
     #[inline(always)]
     pub const fn as_collection(&self) -> Option<&MultiValues> {
         match self {
@@ -415,6 +418,7 @@ impl ValueContainer {
     ///
     /// Returns [`ValueError::Missing`] for unset or empty matching storage and
     /// [`ValueError::TypeMismatch`] when the stored data type differs.
+    #[must_use = "the strict first-value result should be handled"]
     #[inline(always)]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
@@ -440,6 +444,7 @@ impl ValueContainer {
     ///
     /// Returns [`ValueError::Missing`] for unset matching storage and
     /// [`ValueError::TypeMismatch`] when the stored data type differs.
+    #[must_use = "the strict collection read result should be handled"]
     #[inline(always)]
     pub fn get_list<T>(&self) -> ValueResult<Vec<T>>
     where
@@ -728,5 +733,50 @@ impl ValueContainer {
                 for_each_value_type!(value_container_push_match, collection, value);
             }
         }
+    }
+}
+
+#[cfg(all(feature = "converter", feature = "json"))]
+impl ValueContainer {
+    /// Projects this container while preserving concrete collection shape.
+    ///
+    /// Scalar storage uses the natural scalar projection; concrete collection
+    /// storage always uses a JSON array.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation, except scalar and collection unset
+    /// values both project to `null`.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same structured projection error as the contained value.
+    #[inline(always)]
+    pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
+    }
+
+    /// Projects this container using explicit conversion policy and limits.
+    ///
+    /// # Parameters
+    ///
+    /// * `policy` - Controls duration units and precision-loss behavior.
+    /// * `limits` - Bounds conversion resource consumption.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation, except scalar and collection unset
+    /// values both project to `null`.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same structured projection error as the contained value.
+    #[inline(always)]
+    pub fn to_json_value_with(
+        &self,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
+    ) -> ValueResult<serde_json::Value> {
+        crate::json::value_container_to_json_value_with(self, policy, limits)
     }
 }

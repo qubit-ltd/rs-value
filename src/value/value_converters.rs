@@ -16,8 +16,8 @@ use qubit_datatype::ConversionSession;
 use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataConverter;
 
-use super::value::Value;
-use super::value::ValueRepr;
+use super::Value;
+use super::ValueRepr;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
 

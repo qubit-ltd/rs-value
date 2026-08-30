@@ -10,8 +10,8 @@
 
 use qubit_datatype::DataType;
 
-use super::multi_values::MultiValues;
-use super::multi_values::MultiValuesRepr;
+use super::MultiValues;
+use super::MultiValuesRepr;
 use crate::IntoValueDefault;
 use crate::Value;
 use crate::value::ValueRepr;
@@ -204,6 +204,7 @@ impl MultiValues {
     /// let nums = multi.get::<i32>().unwrap();
     /// assert_eq!(nums, vec![1, 2, 3]);
     /// ```
+    #[must_use = "the strict collection read result should be handled"]
     #[inline(always)]
     pub fn get<T>(&self) -> ValueResult<Vec<T>>
     where
@@ -233,7 +234,8 @@ impl MultiValues {
     ///
     /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
     /// `T`.
-    #[inline]
+    #[must_use = "the strict collection read result should be handled"]
+    #[inline(always)]
     pub fn get_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
     where
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
@@ -266,7 +268,8 @@ impl MultiValues {
     ///
     /// Returns [`ValueError::TypeMismatch`] for an incompatible concrete
     /// collection without invoking the callback.
-    #[inline]
+    #[must_use = "the strict collection read result should be handled"]
+    #[inline(always)]
     pub fn get_or_else<T, F>(&self, default: F) -> ValueResult<Vec<T>>
     where
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
@@ -320,6 +323,7 @@ impl MultiValues {
     /// let first: String = multi.get_first().unwrap();
     /// assert_eq!(first, "hello");
     /// ```
+    #[must_use = "the strict first-value result should be handled"]
     #[inline(always)]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
@@ -350,7 +354,8 @@ impl MultiValues {
     ///
     /// Returns [`ValueError::Missing`] for a concrete empty collection or
     /// [`ValueError::TypeMismatch`] when the stored type differs from `T`.
-    #[inline]
+    #[must_use = "the strict first-value result should be handled"]
+    #[inline(always)]
     pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
@@ -380,7 +385,8 @@ impl MultiValues {
     ///
     /// Preserves empty-collection and type-mismatch errors without invoking
     /// the callback.
-    #[inline]
+    #[must_use = "the strict first-value result should be handled"]
+    #[inline(always)]
     pub fn get_first_or_else<T, F>(&self, default: F) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
@@ -539,6 +545,7 @@ impl MultiValues {
     /// let values = MultiValues::Int32(vec![1, 2, 3]);
     /// assert_eq!(values.data_type(), DataType::Int32);
     /// ```
+    #[must_use = "the collection element type should be used"]
     #[inline(always)]
     pub fn data_type(&self) -> DataType {
         for_each_value_type!(multi_values_data_type_match, self)
@@ -669,7 +676,7 @@ impl MultiValues {
     /// assert!(values.is_unset());
     /// assert_eq!(values.data_type(), DataType::String);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn set_type(&mut self, data_type: DataType) {
         if self.data_type() != data_type {
             *self = MultiValues::new_unset(data_type);
@@ -684,6 +691,8 @@ impl MultiValues {
     /// # Returns
     ///
     /// A cloned first item, or a typed unset value when no item exists.
+    #[must_use = "the projected first value should be used"]
+    #[inline(always)]
     pub fn first_value(&self) -> Value {
         for_each_value_type!(multi_values_first_value_match, self)
     }

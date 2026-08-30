@@ -48,8 +48,8 @@ use serde::de::DeserializeOwned;
 #[cfg(feature = "url")]
 use url::Url;
 
-use super::value::Value;
-use super::value::ValueRepr;
+use super::Value;
+use super::ValueRepr;
 use crate::ValueMissing;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
@@ -65,6 +65,7 @@ macro_rules! impl_get_value {
         #[doc = "Returns [`ValueError::Missing`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
+        #[must_use = "the strict value read result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<$type> {
             match &self.repr {
@@ -96,6 +97,7 @@ macro_rules! impl_get_value {
         #[doc = "Returns [`ValueError::Missing`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
+        #[must_use = "the strict value read result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match &self.repr {
@@ -490,6 +492,7 @@ impl Value {
     /// `DataType::BigInteger`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
     #[cfg(feature = "big-integer")]
+    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         match &self.repr {
@@ -520,6 +523,7 @@ impl Value {
     /// `DataType::BigDecimal`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
     #[cfg(feature = "big-decimal")]
+    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         match &self.repr {
@@ -550,6 +554,7 @@ impl Value {
     /// `DataType::Url`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
     #[cfg(feature = "url")]
+    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match &self.repr {
@@ -579,6 +584,7 @@ impl Value {
     /// Returns [`ValueError::Missing`] when the value is unset with
     /// `DataType::StringMap`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
+    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
         match &self.repr {
@@ -609,6 +615,7 @@ impl Value {
     /// `DataType::Json`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
     #[cfg(feature = "json")]
+    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
         match &self.repr {

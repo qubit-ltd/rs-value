@@ -126,6 +126,8 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// # Returns
     ///
     /// A copyable borrowed view of the validated scalar-or-collection shape.
+    #[must_use]
+    #[inline(always)]
     pub(in crate::value_wire) fn shape(&self) -> WireShapeRef<'a> {
         self.shape
     }
@@ -141,7 +143,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// Returns [`ValueWireEncodeError`] when encoding exceeds the default
     /// resource profile or Serde rejects the payload.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(super::default_json_encode_limits())
     }
@@ -188,7 +190,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// Returns [`ValueWireEncodeError`] for resource, serialization, or writer
     /// failures.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,

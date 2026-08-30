@@ -29,8 +29,8 @@ use qubit_datatype::DataType;
 #[cfg(feature = "url")]
 use url::Url;
 
-use super::multi_values::MultiValues;
-use super::multi_values::MultiValuesRepr;
+use super::MultiValues;
+use super::MultiValuesRepr;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
 
