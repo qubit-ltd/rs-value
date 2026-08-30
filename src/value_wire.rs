@@ -92,6 +92,10 @@ pub use self::value_wire_ref_v1::ValueWireRefV1;
 pub use self::value_wire_v1::ValueWireV1;
 
 /// Returns the default value-resource profile used by V1 JSON documents.
+///
+/// # Returns
+///
+/// Structural and textual limits shared by V1 JSON encoders and decoders.
 #[cfg(feature = "json")]
 #[inline]
 pub(crate) fn default_json_value_limits() -> JsonValueLimits {
@@ -108,6 +112,10 @@ pub(crate) fn default_json_value_limits() -> JsonValueLimits {
 }
 
 /// Returns the default resource profile used to decode V1 JSON documents.
+///
+/// # Returns
+///
+/// Input-byte and decoded-value limits for one standalone V1 document.
 #[cfg(feature = "json")]
 #[inline]
 pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
@@ -118,6 +126,10 @@ pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
 }
 
 /// Returns the default resource profile used to encode V1 JSON documents.
+///
+/// # Returns
+///
+/// Output-byte and value limits for one standalone V1 document.
 #[cfg(feature = "json")]
 #[inline]
 pub(crate) fn default_json_encode_limits() -> JsonEncodeLimits {
