@@ -42,9 +42,9 @@ macro_rules! define_scalar_wire_ref {
                 WireDataTypeV1,
             ),
             $(
+                #[doc = concat!("Borrowed `", $tag, "` scalar payload.")]
                 $(#[$cfg])*
                 $(#[$scalar_attr])*
-                #[doc = concat!("Borrowed `", $tag, "` scalar payload.")]
                 #[serde(rename = $tag)]
                 $variant(
                     #[doc = concat!("Stored `", $tag, "` scalar value.")]

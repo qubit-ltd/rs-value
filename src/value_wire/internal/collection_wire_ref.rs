@@ -42,9 +42,9 @@ macro_rules! define_collection_wire_ref {
                 WireDataTypeV1,
             ),
             $(
+                #[doc = concat!("Borrowed `", $tag, "` collection payload.")]
                 $(#[$cfg])*
                 $(#[$collection_attr])*
-                #[doc = concat!("Borrowed `", $tag, "` collection payload.")]
                 #[serde(rename = $tag)]
                 $variant(
                     #[doc = concat!("Stored `", $tag, "` collection values.")]

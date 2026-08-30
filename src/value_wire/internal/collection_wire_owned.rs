@@ -37,9 +37,9 @@ macro_rules! define_collection_wire_owned {
                 WireDataTypeV1,
             ),
             $(
+                #[doc = concat!("Owned `", $tag, "` collection payload.")]
                 $(#[$cfg])*
                 $(#[$collection_attr])*
-                #[doc = concat!("Owned `", $tag, "` collection payload.")]
                 #[serde(rename = $tag)]
                 $variant(
                     #[doc = concat!("Stored `", $tag, "` collection values.")]
