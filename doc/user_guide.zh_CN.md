@@ -98,12 +98,15 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 
 ## 安装与 feature 选择
 
-核心依赖如下：
+要运行本手册中的全部示例，请添加以下依赖。贯穿场景本身只需要启用 `converter` 的
+`qubit-value` 和 `qubit-datatype`；其余 crate 用于 Wire 与嵌入文档章节。
 
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
 qubit-datatype = { version = "0.11", default-features = false }
+qubit-budget = { version = "0.4", features = ["json"] }
+qubit-json = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```
@@ -296,28 +299,17 @@ V1 是封闭格式。现有 tag、shape 和 payload 表示不能原地扩展；�
 语义资源限制下解码，最后恢复原来的 container。
 
 ```rust
-use qubit_budget::json::{JsonDecodeLimits, JsonEncodeLimits, JsonResource, JsonValueLimits};
-use qubit_budget::ResourceLimit;
-use qubit_budget::StructureLimits;
+use qubit_budget::json::{JsonDecodeLimits, JsonEncodeLimits};
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireV1;
 
 let original = ValueContainer::Scalar(Value::new(8080i32));
 let wire = ValueWireV1::try_from(original.clone())?;
-let structure = StructureLimits::<StructureResource, usize>::builder()
-    .depth_limit(ResourceLimit::new(JsonResource::Depth, 32))
-    .nodes_limit(ResourceLimit::new(JsonResource::Nodes, 128))
-    .build();
-let values = JsonValueLimits::<JsonResource, usize>::builder()
-    .structure_limits(structure)
-    .build();
-let encode_limits = JsonEncodeLimits::<JsonResource, usize>::builder()
-    .output_bytes_limit(ResourceLimit::new(
-        JsonResource::OutputBytes,
-        64 * 1024,
-    ))
-    .value_limits(values)
+let encode_limits = JsonEncodeLimits::builder()
+    .max_output_bytes(64 * 1024)
+    .max_depth(32)
+    .max_nodes(128)
     .build();
 let encoded = wire.to_json_vec_with_limits(encode_limits)?;
 
@@ -326,12 +318,10 @@ assert_eq!(
     br#"{"version":1,"value":{"scalar":{"int32":8080}}}"#
 );
 
-let decode_limits = JsonDecodeLimits::<JsonResource, usize>::builder()
-    .input_bytes_limit(ResourceLimit::new(
-        JsonResource::InputBytes,
-        64 * 1024,
-    ))
-    .value_limits(values)
+let decode_limits = JsonDecodeLimits::builder()
+    .max_input_bytes(64 * 1024)
+    .max_depth(32)
+    .max_nodes(128)
     .build();
 let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, decode_limits)?;
 let restored: ValueContainer = decoded.into();
@@ -374,9 +364,8 @@ marker 保留规则。
 应使用 `qubit-budget` 的 Serde adapter 处理完整外层文档，让同一个 session 计费所有 JSON 节点。
 
 ```rust
-use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession, JsonResource};
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
 use qubit_json::decode::JsonDecoder;
-use qubit_budget::ResourceLimit;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireV1;
 use serde::Deserialize;
@@ -387,17 +376,19 @@ struct Request {
 }
 
 let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
-let limits = JsonDecodeLimits::<JsonResource, usize>::builder()
-    .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 64 * 1024))
+let limits = JsonDecodeLimits::builder()
+    .max_input_bytes(64 * 1024)
     .build();
-let mut session = JsonDecodeSession::new(limits);
-let request: Request = JsonDecoder::default().decode_utf8(input, &mut session)?;
+let session = JsonDecodeSession::from_limits(limits);
+let mut decoder = JsonDecoder::new(session);
+let request: Request = decoder.decode_utf8(input)?;
 let restored: ValueContainer = request.value.into();
 assert!(restored.is_collection());
 ```
 
-外层 object 和嵌入的 V1 envelope 都属于同一个通用 JSON 文档预算。复用一个 `JsonDecodeSession` 可以
-累计同一 request 中多个嵌入值的用量，并拒绝完整文档后的 trailing content。
+外层 object 和嵌入的 V1 envelope 都属于同一个通用 JSON 文档预算，因此一次解码会统计文档
+中的所有嵌入值。继续用同一个 `JsonDecoder` 解码后续完整文档时，session 会累计记账；每次
+调用也都会拒绝该文档之后的 trailing content。
 
 ### Wire 的类型和输入边界
 

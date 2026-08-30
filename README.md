@@ -101,11 +101,12 @@ Add the core crate and its type vocabulary to `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = "0.10"
+qubit-value = { version = "0.10", features = ["converter"] }
 qubit-datatype = { version = "0.11", default-features = false }
 ```
 
-The default feature set is empty. Enable only the families you use:
+The quick-start example uses `Value::to`, so it enables `converter`. The
+default feature set is empty; enable only the families you use:
 
 | Feature | Additional `DataType` or capability |
 | --- | --- |
@@ -119,36 +120,6 @@ The default feature set is empty. Enable only the families you use:
 | `natural-json` | Natural JSON projection through `Value::to_json_value`; enables `converter` and `json` |
 | `redact` | Policy-aware redacted views through `qubit-redact` |
 | `all` | `converter`, `chrono`, `big-number`, `url`, `json`, `natural-json`, and `redact` |
-
-## Supported `DataType` values
-
-`qubit_datatype::DataType` is the closed runtime type vocabulary used by
-`Value`, `MultiValues`, and `Unset`. The same type identifies a scalar and its
-homogeneous collection form.
-
-| `DataType` | Rust value | Feature | Typical use |
-| --- | --- | --- | --- |
-| `Bool` | `bool` | — | flags and switches |
-| `Char` | `char` | — | one Unicode character |
-| `Int8` / `Int16` / `Int32` / `Int64` / `Int128` | `i8` … `i128` | — | signed integers |
-| `UInt8` / `UInt16` / `UInt32` / `UInt64` / `UInt128` | `u8` … `u128` | — | unsigned integers |
-| `Float32` / `Float64` | `f32` / `f64` | — | finite or in-memory floating-point values |
-| `String` | `String` | — | text and text-backed input |
-| `Date` | `chrono::NaiveDate` | `chrono` | calendar date |
-| `Time` | `chrono::NaiveTime` | `chrono` | time of day |
-| `DateTime` | `chrono::NaiveDateTime` | `chrono` | date and local time |
-| `Instant` | `chrono::DateTime<chrono::Utc>` | `chrono` | UTC time point |
-| `BigInteger` | `num_bigint::BigInt` | `big-integer` | arbitrary-precision integer |
-| `BigDecimal` | `bigdecimal::BigDecimal` | `big-decimal` | arbitrary-precision decimal |
-| `Duration` | `std::time::Duration` | — | elapsed time |
-| `Url` | `url::Url` | `url` | parsed URL |
-| `StringMap` | `HashMap<String, String>` | — | string-key/string-value properties |
-| `Json` | `serde_json::Value` | `json` | arbitrary JSON structure |
-
-The 25 variants above are the complete current `DataType` enum. A feature-gated
-variant can still appear in an `Unset(DataType)` declaration, but a concrete
-value of that type requires the corresponding feature in the build that stores
-or reads it.
 
 ## What it provides
 
@@ -170,25 +141,16 @@ or reads it.
   `DataType` and shape.
 - Natural JSON helpers produce ordinary `null`, scalar, object, and array
   values when runtime type tags are not wanted.
+- The runtime vocabulary currently contains 25 `DataType` variants. Concrete
+  feature-gated values require the corresponding feature, although their unset
+  type declarations remain available.
 
-## JSON number boundary
-
-Generic `Json(serde_json::Value)` and Natural JSON follow `qubit-json`'s number
-contract: negative integers fit `i64`, non-negative integers fit `u64`, and
-fractional values use finite `f64`. Objects using serde_json's former private
-number-marker key are ordinary objects; the key is not reserved.
-
-This does not restrict the runtime value model. `Int128`, `UInt128`, and
-`BigInteger` remain exact and use canonical decimal strings in Wire V1;
-`BigDecimal` uses its explicit coefficient/scale payload. JSON clients that
-receive 64-bit integers above `2^53 - 1` must preserve them with a suitable
-parser/`BigInt` mapping. JavaScript's `n` suffix is not valid JSON.
-
-The crate does not provide a complete configuration store, schema registry,
+This crate does not provide a complete configuration store, schema registry,
 file format, or distributed cache. It provides the typed value layer those
 systems can build on. Its `Eq`/`Hash` implementations are suitable for
 in-memory Rust collections, not persistent fingerprints or distributed-cache
-keys.
+keys. The user guide documents the complete type table, JSON number contract,
+errors, resource limits, and feature compatibility.
 
 ## Built on `Value`
 
@@ -218,52 +180,11 @@ Natural JSON intentionally omits runtime type tags. The user guide contains the
 full Wire workflow, borrowed payload examples, feature compatibility rules,
 and resource-limit handling.
 
-Directional failures retain operation accounting: a rejected charge does not
-consume that request, but accepted input, output, node, or payload consumption
-from earlier in the same session is not rolled back. Construct a fresh session
-for each independent wire operation.
-
-For example, Natural JSON produces these exact JSON strings:
-
-```rust
-use std::collections::HashMap;
-
-use qubit_datatype::DataType;
-use qubit_value::{MultiValues, Value};
-
-assert_eq!(Value::new(42i32).to_json_value()?.to_string(), "42");
-assert_eq!(
-    Value::new("localhost".to_owned())
-        .to_json_value()?
-        .to_string(),
-    r#""localhost""#,
-);
-assert_eq!(
-    Value::new_unset(DataType::String)
-        .to_json_value()?
-        .to_string(),
-    "null",
-);
-assert_eq!(
-    MultiValues::new([8080i32, 8081])
-        .to_json_value()?
-        .to_string(),
-    "[8080,8081]",
-);
-assert_eq!(
-    Value::new(HashMap::from([
-        ("z".to_owned(), "26".to_owned()),
-        ("a".to_owned(), "1".to_owned()),
-    ]))
-    .to_json_value()?
-    .to_string(),
-    r#"{"a":"1","z":"26"}"#,
-);
-```
-
-The scalar number becomes `42`, the string keeps its JSON quotes, an unset
-value becomes `null`, a concrete collection becomes an array, and string-map
-keys are emitted in dictionary order.
+Natural JSON cannot reconstruct `DataType`, unset state, or scalar-versus-
+collection shape. Wire V1 rejects non-finite floats and unsupported or malformed
+payloads instead of guessing. Use a fresh bounded session for each independent
+Wire operation; reuse a session only when several embedded values belong to the
+same outer request budget.
 
 ## Learn more
 
