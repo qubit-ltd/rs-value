@@ -106,12 +106,16 @@ the serialization choices before showing that complete round trip.
 
 ## Installation and feature selection
 
-The core dependency is:
+Use the following dependencies to run every example in this guide. The scenario
+itself needs only `qubit-value` with `converter` plus `qubit-datatype`; the
+additional crates support the Wire and embedded-document sections.
 
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
 qubit-datatype = { version = "0.11", default-features = false }
+qubit-budget = { version = "0.4", features = ["json"] }
+qubit-json = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```
@@ -318,28 +322,17 @@ owned Wire DTO, serializes it, applies input and semantic limits during decode,
 and restores the original container.
 
 ```rust
-use qubit_budget::json::{JsonDecodeLimits, JsonEncodeLimits, JsonResource, JsonValueLimits};
-use qubit_budget::ResourceLimit;
-use qubit_budget::StructureLimits;
+use qubit_budget::json::{JsonDecodeLimits, JsonEncodeLimits};
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireV1;
 
 let original = ValueContainer::Scalar(Value::new(8080i32));
 let wire = ValueWireV1::try_from(original.clone())?;
-let structure = StructureLimits::<StructureResource, usize>::builder()
-    .depth_limit(ResourceLimit::new(JsonResource::Depth, 32))
-    .nodes_limit(ResourceLimit::new(JsonResource::Nodes, 128))
-    .build();
-let values = JsonValueLimits::<JsonResource, usize>::builder()
-    .structure_limits(structure)
-    .build();
-let encode_limits = JsonEncodeLimits::<JsonResource, usize>::builder()
-    .output_bytes_limit(ResourceLimit::new(
-        JsonResource::OutputBytes,
-        64 * 1024,
-    ))
-    .value_limits(values)
+let encode_limits = JsonEncodeLimits::builder()
+    .max_output_bytes(64 * 1024)
+    .max_depth(32)
+    .max_nodes(128)
     .build();
 let encoded = wire.to_json_vec_with_limits(encode_limits)?;
 
@@ -348,12 +341,10 @@ assert_eq!(
     br#"{"version":1,"value":{"scalar":{"int32":8080}}}"#
 );
 
-let decode_limits = JsonDecodeLimits::<JsonResource, usize>::builder()
-    .input_bytes_limit(ResourceLimit::new(
-        JsonResource::InputBytes,
-        64 * 1024,
-    ))
-    .value_limits(values)
+let decode_limits = JsonDecodeLimits::builder()
+    .max_input_bytes(64 * 1024)
+    .max_depth(32)
+    .max_nodes(128)
     .build();
 let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, decode_limits)?;
 let restored: ValueContainer = decoded.into();
@@ -403,9 +394,8 @@ Serde adapter for the complete outer document so every JSON node is charged in
 one session.
 
 ```rust
-use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession, JsonResource};
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
 use qubit_json::decode::JsonDecoder;
-use qubit_budget::ResourceLimit;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireV1;
 use serde::Deserialize;
@@ -416,18 +406,20 @@ struct Request {
 }
 
 let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
-let limits = JsonDecodeLimits::<JsonResource, usize>::builder()
-    .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 64 * 1024))
+let limits = JsonDecodeLimits::builder()
+    .max_input_bytes(64 * 1024)
     .build();
-let mut session = JsonDecodeSession::new(limits);
-let request: Request = JsonDecoder::default().decode_utf8(input, &mut session)?;
+let session = JsonDecodeSession::from_limits(limits);
+let mut decoder = JsonDecoder::new(session);
+let request: Request = decoder.decode_utf8(input)?;
 let restored: ValueContainer = request.value.into();
 assert!(restored.is_collection());
 ```
 
 The outer object and embedded V1 envelope are both part of the same generic JSON
-document budget. Reusing one `JsonDecodeSession` accumulates usage across multiple
-embedded values and rejects trailing content after the complete document.
+document budget, so one decode accounts for every embedded value. Reusing the
+same `JsonDecoder` for later complete documents keeps the session accounting
+cumulative, and each call rejects trailing content after its document.
 
 ### Wire-specific type and input boundaries
 

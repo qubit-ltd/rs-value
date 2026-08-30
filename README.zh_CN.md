@@ -90,11 +90,12 @@ assert_eq!((first, second), (8080, 8081));
 
 ```toml
 [dependencies]
-qubit-value = "0.10"
+qubit-value = { version = "0.10", features = ["converter"] }
 qubit-datatype = { version = "0.11", default-features = false }
 ```
 
-默认 feature 集为空。只启用实际使用的类型族：
+快速开始使用了 `Value::to`，因此这里启用 `converter`。默认 feature 集为空，请只启用实际
+使用的类型族：
 
 | Feature | 额外的 `DataType` 或能力 |
 | --- | --- |
@@ -108,34 +109,6 @@ qubit-datatype = { version = "0.11", default-features = false }
 | `natural-json` | 通过 `Value::to_json_value` 投影自然 JSON；同时启用 `converter` 和 `json` |
 | `redact` | 通过 `qubit-redact` 提供按策略脱敏的视图 |
 | `all` | `converter`、`chrono`、`big-number`、`url`、`json`、`natural-json` 和 `redact` |
-
-## 支持的 `DataType`
-
-`qubit_datatype::DataType` 是 `Value`、`MultiValues` 和 `Unset` 使用的封闭运行时类型词汇。
-同一个类型同时标识标量形式和同类型集合形式。
-
-| `DataType` | Rust 值类型 | Feature | 典型用途 |
-| --- | --- | --- | --- |
-| `Bool` | `bool` | — | 开关和标志 |
-| `Char` | `char` | — | 一个 Unicode 字符 |
-| `Int8` / `Int16` / `Int32` / `Int64` / `Int128` | `i8` … `i128` | — | 有符号整数 |
-| `UInt8` / `UInt16` / `UInt32` / `UInt64` / `UInt128` | `u8` … `u128` | — | 无符号整数 |
-| `Float32` / `Float64` | `f32` / `f64` | — | 有限或仅存在于内存中的浮点值 |
-| `String` | `String` | — | 文本和文本输入 |
-| `Date` | `chrono::NaiveDate` | `chrono` | 日历日期 |
-| `Time` | `chrono::NaiveTime` | `chrono` | 一天中的时间 |
-| `DateTime` | `chrono::NaiveDateTime` | `chrono` | 日期和本地时间 |
-| `Instant` | `chrono::DateTime<chrono::Utc>` | `chrono` | UTC 时间点 |
-| `BigInteger` | `num_bigint::BigInt` | `big-integer` | 任意精度整数 |
-| `BigDecimal` | `bigdecimal::BigDecimal` | `big-decimal` | 任意精度小数 |
-| `Duration` | `std::time::Duration` | — | 时间间隔 |
-| `Url` | `url::Url` | `url` | 已解析的 URL |
-| `StringMap` | `HashMap<String, String>` | — | 字符串 key/value 属性 |
-| `Json` | `serde_json::Value` | `json` | 任意 JSON 结构 |
-
-上表的 25 个变体就是当前完整的 `DataType` 枚举。即使没有启用相应 feature，
-`Unset(DataType)` 仍可以声明该类型；但要存储或读取该类型的具体值，构建时必须启用对应
-feature。
 
 ## 提供的能力
 
@@ -151,20 +124,12 @@ feature。
   `JsonEncodeSession` 在线限制结构与输出字节。当接收方必须恢复精确的 `DataType`
   和形态时，应使用 Wire V1。
 - 自然 JSON 工具方法生成普通的 `null`、标量、对象和数组；当边界只需要 JSON 语义时使用它。
+- 当前运行时类型词汇包含 25 个 `DataType` 变体。具体的 feature-gated 值需要启用对应
+  feature，但未设置状态仍可保留其类型声明。
 
-## JSON 数字边界
-
-通用 `Json(serde_json::Value)` 与自然 JSON 遵循 `qubit-json` 数字契约：负整数装入 `i64`，
-非负整数装入 `u64`，小数使用有限 `f64`。使用 serde_json 旧私有 number marker 作为 key 的
-对象仍是普通对象，该 key 不再保留。
-
-这不会限制运行时 value 模型。`Int128`、`UInt128`、`BigInteger` 仍保持精确，并在 Wire V1
-中使用 canonical 十进制字符串；`BigDecimal` 使用显式 coefficient/scale payload。JSON 客户端
-收到大于 `2^53 - 1` 的 64 位整数时，必须用合适的 parser/`BigInt` 映射保持精度；JavaScript
-的 `n` 后缀不是合法 JSON。
-
-这个 crate 不提供完整的配置存储、schema registry、文件格式或分布式缓存；它提供这些系统
-可以复用的类型化值层。`Eq`/`Hash` 适合进程内 Rust 集合，不是持久化指纹或分布式缓存 key。
+这个 crate 不提供完整的配置存储、schema registry、文件格式或分布式缓存；它只提供这些系统
+可以复用的类型化值层。`Eq`/`Hash` 适合进程内 Rust 集合，不能作为持久化指纹或分布式缓存
+key。完整类型表、JSON 数字契约、错误、资源限制和 feature 兼容性请参阅用户手册。
 
 ## 基于 `Value` 构建的容器
 
@@ -188,49 +153,9 @@ feature。
 带版本的格式；自然 JSON 刻意不包含运行时类型标签。完整的 Wire 工作流、借用 payload、feature
 兼容性和资源限制处理，请参阅用户手册。
 
-定向操作失败时会保留本次会话已经接受的记账：被拒绝的请求本身不消费额度，但此前
-已经接受的输入、输出、节点或 payload 消耗不会回滚。每个独立 wire 操作应创建新会话。
-
-例如，自然 JSON 会生成以下确切的 JSON 字符串：
-
-```rust
-use std::collections::HashMap;
-
-use qubit_datatype::DataType;
-use qubit_value::{MultiValues, Value};
-
-assert_eq!(Value::new(42i32).to_json_value()?.to_string(), "42");
-assert_eq!(
-    Value::new("localhost".to_owned())
-        .to_json_value()?
-        .to_string(),
-    r#""localhost""#,
-);
-assert_eq!(
-    Value::new_unset(DataType::String)
-        .to_json_value()?
-        .to_string(),
-    "null",
-);
-assert_eq!(
-    MultiValues::new([8080i32, 8081])
-        .to_json_value()?
-        .to_string(),
-    "[8080,8081]",
-);
-assert_eq!(
-    Value::new(HashMap::from([
-        ("z".to_owned(), "26".to_owned()),
-        ("a".to_owned(), "1".to_owned()),
-    ]))
-    .to_json_value()?
-    .to_string(),
-    r#"{"a":"1","z":"26"}"#,
-);
-```
-
-标量数字会变成 `42`，字符串会保留 JSON 引号，未设置值会变成 `null`，具体集合会变成数组，
-字符串 map 的 key 会按字典序输出。
+自然 JSON 无法恢复 `DataType`、unset 状态或标量/集合形态。Wire V1 会拒绝非有限浮点、
+不支持的类型和非法 payload，不会猜测输入含义。每个独立 Wire 操作应创建新的有界 session；
+只有多个嵌入值属于同一个外层请求预算时，才应复用 session。
 
 ## 延伸阅读
 
