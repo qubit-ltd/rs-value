@@ -110,8 +110,8 @@ macro_rules! define_value_enum {
                 DataType,
             ),
             $(
-                $(#[$cfg])*
                 #[doc = $value_doc]
+                $(#[$cfg])*
                 $variant(
                     #[doc = concat!("Stored ", $value_doc, " payload.")]
                     value_storage_type!($variant, $type),
@@ -170,6 +170,14 @@ macro_rules! impl_value_constructors {
     ) => {
         impl Value {
             /// Creates an unset value with an explicit declared type.
+            ///
+            /// # Parameters
+            ///
+            /// * `data_type` - Runtime type retained while the value is unset.
+            ///
+            /// # Returns
+            ///
+            /// An unset scalar retaining `data_type`.
             #[allow(non_snake_case)]
             #[inline(always)]
             pub const fn Unset(data_type: DataType) -> Self {
@@ -177,15 +185,31 @@ macro_rules! impl_value_constructors {
             }
 
             /// Creates an unset value with an explicit declared type.
+            ///
+            /// # Parameters
+            ///
+            /// * `data_type` - Runtime type retained while the value is unset.
+            ///
+            /// # Returns
+            ///
+            /// An unset scalar retaining `data_type`.
             #[inline(always)]
             pub const fn new_unset(data_type: DataType) -> Self {
                 Self { repr: ValueRepr::Unset(data_type) }
             }
 
             $(
+                #[doc = concat!("Creates a ", $value_doc, ".")]
+                ///
+                /// # Parameters
+                ///
+                /// * `value` - Concrete payload stored by the returned scalar.
+                ///
+                /// # Returns
+                ///
+                /// A typed scalar containing `value`.
                 $(#[$cfg])*
                 #[allow(non_snake_case)]
-                #[doc = concat!("Creates a ", $value_doc, ".")]
                 #[inline(always)]
                 pub fn $variant(value: $type) -> Self {
                     Self { repr: ValueRepr::$variant(value_storage_new!($variant, value)) }
@@ -200,12 +224,22 @@ for_each_value_type!(impl_value_constructors);
 impl Value {
     /// Hashes this value while applying `budget` to a JSON payload.
     ///
+    /// # Type Parameters
+    ///
+    /// * `H` - Hasher receiving the semantic value identity.
+    /// * `R` - Resource identifier used by the JSON budget.
+    /// * `Q` - Quantity type used by the JSON budget.
+    ///
     /// # Parameters
     ///
     /// * `state` - Hasher that receives the same identity representation as
     ///   [`Hash::hash`].
     /// * `budget` - Mutable JSON traversal budget, used only when this value
     ///   contains a JSON payload.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the complete semantic identity is hashed.
     ///
     /// # Errors
     ///
@@ -264,6 +298,10 @@ impl Value {
     }
 
     /// Borrows the stable semantic view of this value.
+    ///
+    /// # Returns
+    ///
+    /// A non-owning view that hides private storage representation details.
     #[inline(always)]
     pub fn view(&self) -> ValueRef<'_> {
         match &self.repr {
@@ -539,14 +577,18 @@ impl Value {
     /// [`qubit_datatype::ConversionPolicy`] and
     /// [`qubit_datatype::ConversionLimits`].
     ///
-    /// # Errors
+    /// # Type Parameters
     ///
-    /// Returns a mapped conversion error when the value is unset, the
-    /// conversion is unsupported, or the source is invalid for `T`.
+    /// * `T` - Target type supported by the shared conversion layer.
     ///
     /// # Returns
     ///
     /// The converted value.
+    ///
+    /// # Errors
+    ///
+    /// Returns a mapped conversion error when the value is unset, the
+    /// conversion is unsupported, or the source is invalid for `T`.
     ///
     /// # Examples
     ///
@@ -674,6 +716,23 @@ impl Value {
 
     /// Converts this value to `T` while charging an existing conversion
     /// session.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target type supported by the shared conversion layer.
+    ///
+    /// # Parameters
+    ///
+    /// * `session` - Caller-owned session providing policy, limits, and budget.
+    ///
+    /// # Returns
+    ///
+    /// The converted value.
+    ///
+    /// # Errors
+    ///
+    /// Returns a mapped conversion error when the value is missing,
+    /// unsupported, invalid, or exceeds the session budget.
     #[inline(always)]
     #[cfg(feature = "converter")]
     pub fn to_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
