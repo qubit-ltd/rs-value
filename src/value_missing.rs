@@ -63,6 +63,11 @@ impl ValueMissing {
     ///
     /// Returns `None` for [`Self::EmptyCollectionConversion`] because no source
     /// item exists for that conversion.
+    ///
+    /// # Returns
+    ///
+    /// `Some(type)` when storage or a source item has a declared type, and
+    /// `None` when an empty collection conversion has no source item.
     #[inline(always)]
     pub const fn source_type(self) -> Option<DataType> {
         match self {
@@ -75,6 +80,11 @@ impl ValueMissing {
     }
 
     /// Returns the requested target type for conversion failures.
+    ///
+    /// # Returns
+    ///
+    /// `Some(type)` for conversion-related variants and `None` for storage-only
+    /// missing states.
     #[must_use]
     #[inline(always)]
     pub const fn target_type(self) -> Option<DataType> {
@@ -87,6 +97,10 @@ impl ValueMissing {
     }
 
     /// Returns the source index for a missing collection item.
+    ///
+    /// # Returns
+    ///
+    /// `Some(index)` for [`Self::CollectionItem`] and `None` otherwise.
     #[must_use]
     #[inline(always)]
     pub const fn source_index(self) -> Option<usize> {
@@ -101,6 +115,10 @@ impl ValueMissing {
     }
 
     /// Reports whether storage itself is unset.
+    ///
+    /// # Returns
+    ///
+    /// `true` for unset scalar or collection storage.
     #[must_use]
     #[inline(always)]
     pub const fn is_unset(self) -> bool {
@@ -108,6 +126,10 @@ impl ValueMissing {
     }
 
     /// Reports whether a concrete collection is empty.
+    ///
+    /// # Returns
+    ///
+    /// `true` for direct or conversion-related empty collection states.
     #[must_use]
     #[inline(always)]
     pub const fn is_empty_collection(self) -> bool {
@@ -118,6 +140,10 @@ impl ValueMissing {
     }
 
     /// Reports whether the missing value came from a conversion.
+    ///
+    /// # Returns
+    ///
+    /// `true` for scalar, collection-item, or empty-collection conversions.
     #[must_use]
     #[inline(always)]
     pub const fn is_conversion(self) -> bool {
@@ -128,6 +154,10 @@ impl ValueMissing {
     }
 
     /// Reports whether conversion APIs may use a caller-provided fallback.
+    ///
+    /// # Returns
+    ///
+    /// `true` for unset storage and scalar conversion-missing states.
     #[cfg(feature = "converter")]
     #[must_use]
     #[inline(always)]

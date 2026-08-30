@@ -33,6 +33,14 @@ macro_rules! value_data_converter_match {
 
 /// Wraps a `Value` into the common conversion helper for the `qubit_datatype`
 /// conversion API.
+///
+/// # Parameters
+///
+/// * `value` - Runtime value whose payload is borrowed by the converter.
+///
+/// # Returns
+///
+/// A shared converter view preserving the runtime data type.
 fn data_converter_from_value(value: &Value) -> DataConverter<'_> {
     for_each_value_type!(value_data_converter_match, value)
 }
@@ -56,6 +64,10 @@ impl<'a> From<&'a Value> for DataConverter<'a> {
 
 /// Converts a single `Value` into `T` using shared conversion helpers,
 /// conversion policy, and resource limits.
+///
+/// # Type Parameters
+///
+/// * `T` - Target type supported by the shared conversion layer.
 ///
 /// # Parameters
 ///
@@ -85,6 +97,23 @@ where
 }
 
 /// Converts a single `Value` into `T` using an existing conversion session.
+///
+/// # Type Parameters
+///
+/// * `T` - Target type supported by the shared conversion layer.
+///
+/// # Parameters
+///
+/// * `value` - Source runtime value.
+/// * `session` - Caller-owned session providing policy, limits, and budget.
+///
+/// # Returns
+///
+/// The converted target value.
+///
+/// # Errors
+///
+/// Returns a mapped missing, conversion, or budget error.
 pub(super) fn convert_with_data_converter_in<T>(value: &Value, session: &mut ConversionSession<'_>) -> ValueResult<T>
 where
     T: DataConversionTarget,

@@ -91,6 +91,28 @@ macro_rules! hash_payloads {
 }
 
 /// Hashes one multi-value payload while applying a budget to JSON elements.
+///
+/// # Type Parameters
+///
+/// * `H` - Hasher receiving the semantic collection identity.
+/// * `R` - Resource identifier used by the JSON budget.
+/// * `Q` - Quantity type used by the JSON budget.
+///
+/// # Parameters
+///
+/// * `repr` - Private collection representation whose payload is hashed.
+/// * `state` - Destination hasher.
+/// * `_budget` - Budget reserved for JSON element accounting by the caller.
+///
+/// # Returns
+///
+/// `Ok(())` after the complete collection payload identity is hashed.
+///
+/// # Errors
+///
+/// This helper currently returns no error for non-JSON payloads; JSON elements
+/// are preflighted by
+/// [`MultiValues::hash_with_json_budget`](crate::MultiValues::hash_with_json_budget).
 #[cfg(feature = "json")]
 pub(crate) fn hash_multi_values_payload_with_json_budget<H, R, Q>(
     repr: &MultiValuesRepr,

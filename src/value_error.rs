@@ -85,6 +85,10 @@ pub enum ValueError {
 
 impl ValueError {
     /// Reports whether this error describes a missing value.
+    ///
+    /// # Returns
+    ///
+    /// `true` only for [`Self::Missing`].
     #[must_use]
     #[inline(always)]
     pub const fn is_missing(&self) -> bool {
@@ -92,6 +96,10 @@ impl ValueError {
     }
 
     /// Returns the structured missing-value reason, when present.
+    ///
+    /// # Returns
+    ///
+    /// `Some(reason)` for [`Self::Missing`] and `None` for every other variant.
     #[must_use]
     #[inline(always)]
     pub const fn missing(&self) -> Option<&ValueMissing> {
