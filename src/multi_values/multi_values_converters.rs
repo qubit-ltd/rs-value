@@ -18,8 +18,8 @@ use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataConverter;
 use qubit_datatype::DataConverters;
 
-use super::multi_values::MultiValues;
-use super::multi_values::MultiValuesRepr;
+use super::MultiValues;
+use super::MultiValuesRepr;
 use crate::IntoValueDefault;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;

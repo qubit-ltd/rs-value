@@ -13,11 +13,7 @@
 #[macro_use]
 mod multi_values;
 mod multi_values_constructor;
-#[cfg(feature = "converter")]
-mod multi_values_converters;
-mod multi_values_core;
 mod multi_values_getter;
-mod multi_values_getters;
 mod multi_values_identity;
 mod multi_values_ref;
 

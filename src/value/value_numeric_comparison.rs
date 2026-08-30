@@ -144,6 +144,7 @@ impl Value {
     ///
     /// A borrowed numeric representation for every concrete numeric variant,
     /// or `None` for unset and non-numeric variants.
+    #[must_use]
     fn as_number_ref(&self) -> Option<NumberRef<'_>> {
         for_each_value_type!(value_number_ref_match, self)
     }

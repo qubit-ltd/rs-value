@@ -24,11 +24,17 @@ use qubit_budget::MeasuredBudgetError;
 use qubit_budget::ResourceQuantity;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonValueBudget;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::ConversionLimits;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataType;
 
 #[cfg(feature = "json")]
 use super::multi_values_identity::hash_multi_values_payload_with_json_budget;
 use super::multi_values_ref::MultiValuesRef;
+#[cfg(all(feature = "converter", feature = "json"))]
+use crate::ValueResult;
 #[cfg(feature = "json")]
 use crate::identity::hash_json;
 #[cfg(feature = "json")]
@@ -292,6 +298,7 @@ impl MultiValues {
     /// # Returns
     ///
     /// A non-owning homogeneous view that hides private storage details.
+    #[must_use = "the borrowed collection view should be used"]
     #[inline(always)]
     pub fn view(&self) -> MultiValuesRef<'_> {
         match &self.repr {
@@ -357,6 +364,7 @@ macro_rules! impl_get_multi_values {
         #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs. A concrete empty vector returns"]
         #[doc = "an empty slice."]
+        #[must_use = "the strict collection read result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match &self.repr {
@@ -384,6 +392,7 @@ macro_rules! impl_get_multi_values {
         #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs. A concrete empty vector returns"]
         #[doc = "an empty slice."]
+        #[must_use = "the strict collection read result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match &self.repr {
@@ -421,6 +430,7 @@ macro_rules! impl_get_first_value {
         #[doc = "Returns [`ValueError::Missing`] when the requested type matches"]
         #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs."]
+        #[must_use = "the strict first-value result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<$type> {
             match &self.repr {
@@ -452,6 +462,7 @@ macro_rules! impl_get_first_value {
         #[doc = "Returns [`ValueError::Missing`] when the requested type matches"]
         #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs."]
+        #[must_use = "the strict first-value result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match &self.repr {
@@ -477,3 +488,59 @@ macro_rules! impl_get_first_value {
         }
     };
 }
+
+#[cfg(all(feature = "converter", feature = "json"))]
+impl MultiValues {
+    /// Projects this collection to its natural JSON representation.
+    ///
+    /// Unset is `null`; every concrete collection is an array, including empty
+    /// and one-item collections.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation of this collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns a list conversion error containing the zero-based source index
+    /// when an item cannot be represented as JSON.
+    #[inline(always)]
+    pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
+    }
+
+    /// Projects this collection using explicit conversion policy and limits.
+    ///
+    /// # Parameters
+    ///
+    /// * `policy` - Controls duration units and precision-loss behavior.
+    /// * `limits` - Bounds conversion resource consumption.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation of this collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an indexed list conversion error when an item cannot be
+    /// represented under the requested policy and limits.
+    #[inline(always)]
+    pub fn to_json_value_with(
+        &self,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
+    ) -> ValueResult<serde_json::Value> {
+        crate::json::multi_values_to_json_value_with(self, policy, limits)
+    }
+}
+
+// Implements generic construction, strict reads, mutation, and state queries.
+#[path = "multi_values_core.rs"]
+mod multi_values_core;
+// Implements policy-driven conversions through `qubit-datatype`.
+#[cfg(feature = "converter")]
+#[path = "multi_values_converters.rs"]
+mod multi_values_converters;
+// Implements type-specific strict getters.
+#[path = "multi_values_getters.rs"]
+mod multi_values_getters;

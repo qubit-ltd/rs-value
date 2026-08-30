@@ -62,6 +62,7 @@ impl<'a> ValueWireRefV1<'a> {
     ///
     /// Returns [`ValueWireEncodeError`] when the scalar violates V1 numeric
     /// representation constraints.
+    #[inline(always)]
     pub fn from_value(value: &'a Value) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_value(value).map(Self::new)
     }
@@ -79,6 +80,7 @@ impl<'a> ValueWireRefV1<'a> {
     ///
     /// Returns [`ValueWireEncodeError`] when an element violates V1 numeric
     /// representation constraints.
+    #[inline(always)]
     pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_values(values).map(Self::new)
     }
@@ -96,6 +98,7 @@ impl<'a> ValueWireRefV1<'a> {
     ///
     /// Returns [`ValueWireEncodeError`] when any contained value violates V1
     /// numeric representation constraints.
+    #[inline(always)]
     pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_container(value).map(Self::new)
     }
@@ -108,6 +111,7 @@ impl<'a> ValueWireRefV1<'a> {
     /// # Returns
     ///
     /// A standalone borrowed V1 envelope.
+    #[inline(always)]
     pub const fn new(value: ValueWirePayloadRefV1<'a>) -> Self {
         Self { value }
     }
@@ -122,7 +126,7 @@ impl<'a> ValueWireRefV1<'a> {
     ///
     /// Returns [`ValueWireEncodeError`] for resource or serialization failures.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(super::default_json_encode_limits())
     }
@@ -169,7 +173,7 @@ impl<'a> ValueWireRefV1<'a> {
     /// Returns [`ValueWireEncodeError`] for resource, serialization, or writer
     /// failures.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,

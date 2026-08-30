@@ -72,30 +72,6 @@ impl ValueWireV1 {
     /// Numeric version emitted and accepted by this DTO.
     pub const VERSION: u8 = VALUE_WIRE_V1_VERSION;
 
-    /// Returns the default JSON resource profile for complete V1 documents.
-    ///
-    /// # Returns
-    ///
-    /// Decode limits suitable for one standalone V1 envelope.
-    #[cfg(feature = "json")]
-    #[must_use = "the V1 JSON profile should be applied to a budget"]
-    #[inline]
-    pub fn default_json_decode_limits() -> JsonDecodeLimits {
-        super::default_json_decode_limits()
-    }
-
-    /// Returns the default JSON resource profile for encoding V1 documents.
-    ///
-    /// # Returns
-    ///
-    /// Encode limits suitable for one standalone V1 envelope.
-    #[cfg(feature = "json")]
-    #[must_use = "the V1 JSON profile should be applied to an encode session"]
-    #[inline]
-    pub fn default_json_encode_limits() -> JsonEncodeLimits {
-        super::default_json_encode_limits()
-    }
-
     /// Creates a V1 DTO from an explicit scalar-or-collection container.
     ///
     /// # Parameters
@@ -108,6 +84,30 @@ impl ValueWireV1 {
     #[inline(always)]
     pub const fn new(value: ValueWirePayloadV1) -> Self {
         Self { value }
+    }
+
+    /// Returns the default JSON resource profile for complete V1 documents.
+    ///
+    /// # Returns
+    ///
+    /// Decode limits suitable for one standalone V1 envelope.
+    #[cfg(feature = "json")]
+    #[must_use = "the V1 JSON profile should be applied to a budget"]
+    #[inline(always)]
+    pub fn default_json_decode_limits() -> JsonDecodeLimits {
+        super::default_json_decode_limits()
+    }
+
+    /// Returns the default JSON resource profile for encoding V1 documents.
+    ///
+    /// # Returns
+    ///
+    /// Encode limits suitable for one standalone V1 envelope.
+    #[cfg(feature = "json")]
+    #[must_use = "the V1 JSON profile should be applied to an encode session"]
+    #[inline(always)]
+    pub fn default_json_encode_limits() -> JsonEncodeLimits {
+        super::default_json_encode_limits()
     }
 
     /// Decodes a V1 JSON wire value using the default structural limits.
@@ -134,7 +134,7 @@ impl ValueWireV1 {
     /// document, or [`ValueWireDecodeError::InvalidJson`] when valid JSON
     /// cannot be decoded as a V1 wire value.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, Self::default_json_decode_limits())
     }
@@ -180,7 +180,7 @@ impl ValueWireV1 {
     /// Returns [`ValueWireEncodeError::Budget`] when the document exceeds the
     /// default JSON resource profile.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(Self::default_json_encode_limits())
     }
@@ -226,7 +226,7 @@ impl ValueWireV1 {
     /// Returns [`ValueWireEncodeError::Budget`] for resource-limit failures or
     /// [`ValueWireEncodeError::Io`] when `writer` rejects output.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
@@ -269,6 +269,7 @@ impl ValueWireV1 {
     /// # Returns
     ///
     /// A shared reference to the preserved runtime container.
+    #[must_use = "the borrowed value container should be used"]
     #[inline(always)]
     pub const fn container(&self) -> &ValueContainer {
         self.value.container()

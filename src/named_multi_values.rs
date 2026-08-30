@@ -135,7 +135,7 @@ impl NamedMultiValues {
     /// );
     /// assert_eq!(named.name(), "servers");
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn new(name: impl Into<String>, value: MultiValues) -> Self {
         Self {
             name: name.into(),
@@ -157,7 +157,7 @@ impl NamedMultiValues {
     ///
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, ValueWireV1::default_json_decode_limits())
     }
@@ -197,7 +197,7 @@ impl NamedMultiValues {
     ///
     /// Returns [`ValueWireEncodeError`] for resource or serialization failures.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(ValueWireV1::default_json_encode_limits())
     }
@@ -244,7 +244,7 @@ impl NamedMultiValues {
     /// Returns [`ValueWireEncodeError`] for resource, serialization, or writer
     /// failures.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
@@ -382,7 +382,8 @@ impl NamedMultiValues {
     /// # Returns
     ///
     /// A named clone of the first item, or a named typed unset value.
-    #[inline]
+    #[must_use = "the projected named value should be used"]
+    #[inline(always)]
     pub fn first_named_value(&self) -> NamedValue {
         NamedValue::new(self.name.as_str(), self.value.first_value())
     }

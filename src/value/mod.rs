@@ -13,13 +13,9 @@
 mod redaction;
 #[allow(clippy::module_inception)]
 mod value;
-mod value_accessors;
 mod value_constructor;
-#[cfg(feature = "converter")]
-mod value_converters;
 mod value_getter;
 mod value_identity;
-mod value_numeric_comparison;
 mod value_ref;
 
 pub use self::value::Value;

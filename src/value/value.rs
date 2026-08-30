@@ -302,6 +302,7 @@ impl Value {
     /// # Returns
     ///
     /// A non-owning view that hides private storage representation details.
+    #[must_use = "the borrowed value view should be used"]
     #[inline(always)]
     pub fn view(&self) -> ValueRef<'_> {
         match &self.repr {
@@ -493,6 +494,7 @@ impl Value {
     /// let b: bool = flag.get().unwrap();
     /// assert_eq!(b, true);
     /// ```
+    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get<T>(&self) -> ValueResult<T>
     where
@@ -522,7 +524,8 @@ impl Value {
     ///
     /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
     /// `T`.
-    #[inline]
+    #[must_use = "the strict value read result should be handled"]
+    #[inline(always)]
     pub fn get_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
@@ -552,7 +555,8 @@ impl Value {
     ///
     /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
     /// `T`; the callback is not invoked in that case.
-    #[inline]
+    #[must_use = "the strict value read result should be handled"]
+    #[inline(always)]
     pub fn get_or_else<T, F>(&self, default: F) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
@@ -711,7 +715,7 @@ impl Value {
     where
         T: DataConversionTarget,
     {
-        super::value_converters::convert_with_data_converter_with(self, policy, limits)
+        self::value_converters::convert_with_data_converter_with(self, policy, limits)
     }
 
     /// Converts this value to `T` while charging an existing conversion
@@ -739,7 +743,7 @@ impl Value {
     where
         T: DataConversionTarget,
     {
-        super::value_converters::convert_with_data_converter_in(self, session)
+        self::value_converters::convert_with_data_converter_in(self, session)
     }
 
     /// Converts this value to `T` using conversion policy and limits, or
@@ -920,6 +924,7 @@ impl Value {
     ///
     /// Value::new(42_i32).data_type();
     /// ```
+    #[must_use = "the runtime data type should be used"]
     #[inline(always)]
     pub fn data_type(&self) -> DataType {
         for_each_value_type!(value_data_type_match, self)
@@ -989,10 +994,66 @@ impl Value {
     /// assert!(value.is_unset());
     /// assert_eq!(value.data_type(), DataType::String);
     /// ```
-    #[inline]
+    #[inline(always)]
     pub fn set_type(&mut self, data_type: DataType) {
         if self.data_type() != data_type {
             *self = Value::new_unset(data_type);
         }
     }
 }
+
+#[cfg(all(feature = "converter", feature = "json"))]
+impl Value {
+    /// Projects this typed value to its natural JSON representation.
+    ///
+    /// This differs from the tagged [`crate::ValueWireV1`] representation: for
+    /// example, `Value::Int32(42)` projects to the JSON number `42`.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation of this value.
+    ///
+    /// # Errors
+    ///
+    /// Returns a structured conversion error for values JSON cannot represent,
+    /// including non-finite floating-point values and inexact durations.
+    #[inline(always)]
+    pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
+    }
+
+    /// Projects this typed value using explicit conversion policy and limits.
+    ///
+    /// # Parameters
+    ///
+    /// * `policy` - Controls duration units and precision-loss behavior.
+    /// * `limits` - Bounds conversion resource consumption.
+    ///
+    /// # Returns
+    ///
+    /// The natural JSON representation of this value.
+    ///
+    /// # Errors
+    ///
+    /// Returns a structured conversion error when JSON projection or duration
+    /// formatting violates the requested policy or limits.
+    #[inline(always)]
+    pub fn to_json_value_with(
+        &self,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
+    ) -> ValueResult<serde_json::Value> {
+        crate::json::value_to_json_value_with(self, policy, limits)
+    }
+}
+
+// Implements type-specific constructors, strict accessors, and JSON helpers.
+#[path = "value_accessors.rs"]
+mod value_accessors;
+// Implements policy-driven conversions through `qubit-datatype`.
+#[cfg(feature = "converter")]
+#[path = "value_converters.rs"]
+mod value_converters;
+// Implements policy-driven numeric comparison.
+#[path = "value_numeric_comparison.rs"]
+mod value_numeric_comparison;

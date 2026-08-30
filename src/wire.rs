@@ -58,6 +58,7 @@ pub(crate) const MAX_BIG_DECIMAL_ABSOLUTE_SCALE: i64 = 150_000;
 /// # Returns
 ///
 /// `true` when the absolute scale is within the inclusive V1 limit.
+#[must_use]
 #[cfg(feature = "big-decimal")]
 #[inline(always)]
 pub(crate) const fn is_valid_big_decimal_scale(scale: i64) -> bool {
@@ -640,7 +641,8 @@ pub(crate) mod big_decimal {
     ///
     /// # Errors
     ///
-    /// Returns `S::Error` when the scale is out of range or serialization fails.
+    /// Returns `S::Error` when the scale is out of range or serialization
+    /// fails.
     pub(crate) fn serialize<S>(value: &BigDecimal, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

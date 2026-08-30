@@ -65,6 +65,41 @@ pub struct ValueWirePayloadV1 {
 }
 
 impl ValueWirePayloadV1 {
+    /// Wraps a payload decoded through V1's finite-number Serde adapters.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Already validated decoded runtime container.
+    ///
+    /// # Returns
+    ///
+    /// An owned unversioned V1 payload.
+    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
+        Self { value }
+    }
+
+    /// Builds a payload after enforcing V1's finite-float invariant.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Runtime container to validate and own.
+    ///
+    /// # Returns
+    ///
+    /// A validated owned V1 payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] when any contained numeric payload is
+    /// not representable by V1.
+    fn try_new(value: ValueContainer) -> Result<Self, ValueWireEncodeError> {
+        match &value {
+            ValueContainer::Scalar(value) => validate_value(value)?,
+            ValueContainer::Collection(values) => validate_values(values)?,
+        }
+        Ok(Self { value })
+    }
+
     /// Returns the default JSON resource profile for complete V1 payloads.
     ///
     /// # Returns
@@ -72,7 +107,7 @@ impl ValueWirePayloadV1 {
     /// Decode limits suitable for one standalone unversioned V1 payload.
     #[cfg(feature = "json")]
     #[must_use = "the V1 JSON profile should be applied to a budget"]
-    #[inline]
+    #[inline(always)]
     pub fn default_json_decode_limits() -> JsonDecodeLimits {
         super::default_json_decode_limits()
     }
@@ -84,7 +119,7 @@ impl ValueWirePayloadV1 {
     /// Encode limits suitable for one standalone unversioned V1 payload.
     #[cfg(feature = "json")]
     #[must_use = "the V1 JSON profile should be applied to an encode session"]
-    #[inline]
+    #[inline(always)]
     pub fn default_json_encode_limits() -> JsonEncodeLimits {
         super::default_json_encode_limits()
     }
@@ -108,7 +143,7 @@ impl ValueWirePayloadV1 {
     /// Returns a limit error when the input or decoded structure is too large,
     /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, Self::default_json_decode_limits())
     }
@@ -148,7 +183,7 @@ impl ValueWirePayloadV1 {
     /// Returns [`ValueWireEncodeError::Budget`] when the payload exceeds the
     /// default JSON resource profile.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(Self::default_json_encode_limits())
     }
@@ -194,7 +229,7 @@ impl ValueWirePayloadV1 {
     /// Returns [`ValueWireEncodeError::Budget`] for resource-limit failures or
     /// [`ValueWireEncodeError::Io`] when `writer` rejects output.
     #[cfg(feature = "json")]
-    #[inline]
+    #[inline(always)]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
@@ -237,6 +272,7 @@ impl ValueWirePayloadV1 {
     /// # Returns
     ///
     /// A shared reference to the preserved scalar-or-collection container.
+    #[must_use = "the borrowed value container should be used"]
     #[inline(always)]
     pub const fn container(&self) -> &ValueContainer {
         &self.value
@@ -250,41 +286,6 @@ impl ValueWirePayloadV1 {
     #[inline(always)]
     pub fn into_container(self) -> ValueContainer {
         self.value
-    }
-
-    /// Builds a payload after enforcing V1's finite-float invariant.
-    ///
-    /// # Parameters
-    ///
-    /// * `value` - Runtime container to validate and own.
-    ///
-    /// # Returns
-    ///
-    /// A validated owned V1 payload.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`ValueWireEncodeError`] when any contained numeric payload is
-    /// not representable by V1.
-    fn try_new(value: ValueContainer) -> Result<Self, ValueWireEncodeError> {
-        match &value {
-            ValueContainer::Scalar(value) => validate_value(value)?,
-            ValueContainer::Collection(values) => validate_values(values)?,
-        }
-        Ok(Self { value })
-    }
-
-    /// Wraps a payload decoded through V1's finite-number Serde adapters.
-    ///
-    /// # Parameters
-    ///
-    /// * `value` - Already validated decoded runtime container.
-    ///
-    /// # Returns
-    ///
-    /// An owned unversioned V1 payload.
-    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
-        Self { value }
     }
 }
 

@@ -88,7 +88,8 @@ macro_rules! hash_payload {
 /// # Errors
 ///
 /// This helper currently returns no error for non-JSON payloads; JSON payloads
-/// are preflighted by [`Value::hash_with_json_budget`](crate::Value::hash_with_json_budget).
+/// are preflighted by
+/// [`Value::hash_with_json_budget`](crate::Value::hash_with_json_budget).
 #[cfg(feature = "json")]
 pub(crate) fn hash_value_payload_with_json_budget<H, R, Q>(
     repr: &ValueRepr,
