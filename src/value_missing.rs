@@ -12,6 +12,19 @@ use std::fmt;
 use qubit_datatype::DataType;
 
 /// Describes the typed state that produced a missing-value error.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_datatype::DataType;
+/// use qubit_value::{Value, ValueError, ValueMissing};
+///
+/// let error = Value::new_unset(DataType::Int32).get::<i32>().unwrap_err();
+/// assert!(matches!(
+///     error,
+///     ValueError::Missing(ValueMissing::UnsetScalar { data_type: DataType::Int32 })
+/// ));
+/// ```
 #[must_use]
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -68,6 +81,7 @@ impl ValueMissing {
     ///
     /// `Some(type)` when storage or a source item has a declared type, and
     /// `None` when an empty collection conversion has no source item.
+    #[must_use]
     #[inline(always)]
     pub const fn source_type(self) -> Option<DataType> {
         match self {

@@ -20,6 +20,23 @@ use serde_json::Value;
 use super::internal::CanonicalJson;
 
 /// Serializes one JSON value with recursively ordered object keys.
+///
+/// # Type Parameters
+///
+/// * `S` - Destination serializer type.
+///
+/// # Parameters
+///
+/// * `value` - JSON tree to serialize canonically.
+/// * `serializer` - Destination serializer.
+///
+/// # Returns
+///
+/// The destination serializer's result.
+///
+/// # Errors
+///
+/// Returns `S::Error` when serialization fails.
 pub(crate) fn serialize<S>(value: &Value, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -28,6 +45,22 @@ where
 }
 
 /// Deserializes one JSON value from any Serde representation.
+///
+/// # Type Parameters
+///
+/// * `D` - Source deserializer type.
+///
+/// # Parameters
+///
+/// * `deserializer` - Source deserializer.
+///
+/// # Returns
+///
+/// The decoded JSON tree after duplicate-key validation.
+///
+/// # Errors
+///
+/// Returns `D::Error` when decoding fails or an object repeats a key.
 pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Value, D::Error>
 where
     D: Deserializer<'de>,
@@ -36,6 +69,14 @@ where
 }
 
 /// Returns a recursively canonical JSON value for natural projections.
+///
+/// # Parameters
+///
+/// * `value` - JSON tree whose object maps are recursively reordered.
+///
+/// # Returns
+///
+/// An owned JSON tree with lexicographically ordered object keys.
 #[cfg(feature = "converter")]
 pub(crate) fn canonicalize_json_value(value: &Value) -> Value {
     match value {

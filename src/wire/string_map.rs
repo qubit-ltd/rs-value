@@ -19,6 +19,23 @@ use serde::ser::SerializeMap;
 use super::internal::StrictStringMap;
 
 /// Serializes one string map with lexicographically ordered keys.
+///
+/// # Type Parameters
+///
+/// * `S` - Destination serializer type.
+///
+/// # Parameters
+///
+/// * `value` - String map to serialize canonically.
+/// * `serializer` - Destination serializer.
+///
+/// # Returns
+///
+/// The destination serializer's map result.
+///
+/// # Errors
+///
+/// Returns `S::Error` when map serialization fails.
 pub(crate) fn serialize<S>(value: &HashMap<String, String>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -34,6 +51,22 @@ where
 }
 
 /// Deserializes one string map from any Serde map representation.
+///
+/// # Type Parameters
+///
+/// * `D` - Source deserializer type.
+///
+/// # Parameters
+///
+/// * `deserializer` - Source deserializer.
+///
+/// # Returns
+///
+/// The decoded string map after duplicate-key validation.
+///
+/// # Errors
+///
+/// Returns `D::Error` when decoding fails or the map repeats a key.
 pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
 where
     D: Deserializer<'de>,

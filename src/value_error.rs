@@ -46,6 +46,7 @@ use crate::ValueMissing;
 /// assert_eq!(error.to_string(), "Missing value: unset scalar with declared type string");
 /// ```
 #[non_exhaustive]
+#[must_use]
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum ValueError {
     /// No concrete item is available from typed runtime storage or conversion.
@@ -155,4 +156,16 @@ impl From<DataListConversionError> for ValueError {
 /// # Type Parameters
 ///
 /// * `T` - Successful value returned by the operation.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::{Value, ValueResult};
+///
+/// fn read_int(value: &Value) -> ValueResult<i32> {
+///     value.get_int32()
+/// }
+///
+/// assert_eq!(read_int(&Value::from(42_i32)).unwrap(), 42);
+/// ```
 pub type ValueResult<T> = Result<T, ValueError>;

@@ -35,6 +35,15 @@ where
 /// # Type Parameters
 ///
 /// * `T` - Owned default type required by the read operation.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::IntoValueDefault;
+///
+/// let owned: String = "fallback".into_value_default();
+/// assert_eq!(owned, "fallback");
+/// ```
 pub trait IntoValueDefault<T> {
     /// Converts this argument into the default value.
     ///
