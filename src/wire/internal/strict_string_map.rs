@@ -31,6 +31,10 @@ pub(in crate::wire) struct StrictStringMap<V>(
 
 impl<V> StrictStringMap<V> {
     /// Returns the validated map.
+    ///
+    /// # Returns
+    ///
+    /// The owned map after duplicate-key validation succeeds.
     pub(in crate::wire) fn into_inner(self) -> HashMap<String, V> {
         self.0
     }

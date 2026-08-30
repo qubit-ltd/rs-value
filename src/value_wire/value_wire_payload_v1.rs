@@ -139,6 +139,10 @@ impl ValueWirePayloadV1 {
 
     /// Encodes this V1 payload into a compact JSON vector with default limits.
     ///
+    /// # Returns
+    ///
+    /// Compact UTF-8 JSON bytes for this unversioned payload.
+    ///
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError::Budget`] when the payload exceeds the

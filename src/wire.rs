@@ -50,6 +50,14 @@ pub(crate) const MAX_BIG_DECIMAL_ABSOLUTE_SCALE: i64 = 150_000;
 
 /// Returns whether a decimal exponent is representable by the bounded V1
 /// format.
+///
+/// # Parameters
+///
+/// * `scale` - Signed decimal scale to compare with the V1 bound.
+///
+/// # Returns
+///
+/// `true` when the absolute scale is within the inclusive V1 limit.
 #[cfg(feature = "big-decimal")]
 #[inline(always)]
 pub(crate) const fn is_valid_big_decimal_scale(scale: i64) -> bool {
@@ -57,6 +65,26 @@ pub(crate) const fn is_valid_big_decimal_scale(scale: i64) -> bool {
 }
 
 /// Serializes and validates canonical scalar string payloads.
+///
+/// # Type Parameters
+///
+/// * `S` - Destination serializer type.
+/// * `T` - Source value type.
+/// * `F` - Canonical formatter type.
+///
+/// # Parameters
+///
+/// * `value` - Source value to format.
+/// * `serializer` - Destination serializer.
+/// * `format` - Formatter producing the canonical V1 string.
+///
+/// # Returns
+///
+/// The destination serializer's result.
+///
+/// # Errors
+///
+/// Returns `S::Error` when the serializer rejects the canonical string.
 #[cfg(any(feature = "chrono", feature = "url"))]
 fn serialize_canonical<S, T, F>(value: &T, serializer: S, format: F) -> Result<S::Ok, S::Error>
 where
@@ -67,6 +95,27 @@ where
 }
 
 /// Deserializes a scalar string only when it is already in canonical form.
+///
+/// # Type Parameters
+///
+/// * `D` - Source deserializer type.
+/// * `T` - Decoded value type.
+/// * `P` - Parser type.
+/// * `F` - Canonical formatter type.
+///
+/// # Parameters
+///
+/// * `deserializer` - Source deserializer.
+/// * `parse` - Parser converting source text into `T`.
+/// * `format` - Formatter reproducing canonical text from `T`.
+///
+/// # Returns
+///
+/// The decoded value when its input text is canonical.
+///
+/// # Errors
+///
+/// Returns `D::Error` for deserialization, parsing, or non-canonical text.
 #[cfg(any(feature = "chrono", feature = "url"))]
 fn deserialize_canonical<'de, D, T, P, F>(deserializer: D, parse: P, format: F) -> Result<T, D::Error>
 where
@@ -85,6 +134,26 @@ where
 }
 
 /// Serializes a collection through a canonical scalar formatter.
+///
+/// # Type Parameters
+///
+/// * `S` - Destination serializer type.
+/// * `T` - Source element type.
+/// * `F` - Canonical formatter type.
+///
+/// # Parameters
+///
+/// * `values` - Source elements to serialize in order.
+/// * `serializer` - Destination serializer.
+/// * `format` - Formatter producing each canonical V1 string.
+///
+/// # Returns
+///
+/// The destination serializer's sequence result.
+///
+/// # Errors
+///
+/// Returns `S::Error` when sequence serialization fails.
 #[cfg(any(feature = "chrono", feature = "url"))]
 fn serialize_canonical_vec<S, T, F>(values: &[T], serializer: S, format: F) -> Result<S::Ok, S::Error>
 where
@@ -95,6 +164,27 @@ where
 }
 
 /// Deserializes canonical string collection payloads.
+///
+/// # Type Parameters
+///
+/// * `D` - Source deserializer type.
+/// * `T` - Decoded element type.
+/// * `P` - Parser type.
+/// * `F` - Canonical formatter type.
+///
+/// # Parameters
+///
+/// * `deserializer` - Source deserializer.
+/// * `parse` - Parser converting each source string into `T`.
+/// * `format` - Formatter reproducing canonical text from `T`.
+///
+/// # Returns
+///
+/// Decoded elements in their source order.
+///
+/// # Errors
+///
+/// Returns `D::Error` for deserialization, parsing, or non-canonical text.
 #[cfg(any(feature = "chrono", feature = "url"))]
 fn deserialize_canonical_vec<'de, D, T, P, F>(deserializer: D, parse: P, format: F) -> Result<Vec<T>, D::Error>
 where
@@ -126,6 +216,23 @@ macro_rules! define_chrono_wire {
             use serde::Serializer;
 
             /// Serializes the chrono value through the crate-owned V1 format.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `S` - Destination serializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `value` - Chrono value to serialize.
+            /// * `serializer` - Destination serializer.
+            ///
+            /// # Returns
+            ///
+            /// The destination serializer's result.
+            ///
+            /// # Errors
+            ///
+            /// Returns `S::Error` when serialization fails.
             pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -134,6 +241,22 @@ macro_rules! define_chrono_wire {
             }
 
             /// Deserializes the chrono value only from its canonical V1 format.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `D` - Source deserializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `deserializer` - Source deserializer.
+            ///
+            /// # Returns
+            ///
+            /// The decoded chrono value.
+            ///
+            /// # Errors
+            ///
+            /// Returns `D::Error` for malformed or non-canonical input.
             pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
@@ -148,6 +271,23 @@ macro_rules! define_chrono_wire {
             use serde::Serializer;
 
             /// Serializes chrono values through the crate-owned V1 format.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `S` - Destination serializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `values` - Chrono values to serialize in order.
+            /// * `serializer` - Destination serializer.
+            ///
+            /// # Returns
+            ///
+            /// The destination serializer's sequence result.
+            ///
+            /// # Errors
+            ///
+            /// Returns `S::Error` when sequence serialization fails.
             pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -156,6 +296,22 @@ macro_rules! define_chrono_wire {
             }
 
             /// Deserializes chrono values only from their canonical V1 format.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `D` - Source deserializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `deserializer` - Source deserializer.
+            ///
+            /// # Returns
+            ///
+            /// Decoded chrono values in source order.
+            ///
+            /// # Errors
+            ///
+            /// Returns `D::Error` for malformed or non-canonical input.
             pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<$type>, D::Error>
             where
                 D: Deserializer<'de>,
@@ -214,6 +370,23 @@ macro_rules! define_url_wire {
             use serde::Serializer;
 
             /// Serializes a URL through its canonical normalized string.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `S` - Destination serializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `value` - Parsed URL to serialize.
+            /// * `serializer` - Destination serializer.
+            ///
+            /// # Returns
+            ///
+            /// The destination serializer's result.
+            ///
+            /// # Errors
+            ///
+            /// Returns `S::Error` when serialization fails.
             pub(crate) fn serialize<S>(value: &::url::Url, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -222,6 +395,22 @@ macro_rules! define_url_wire {
             }
 
             /// Deserializes only a canonical normalized URL string.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `D` - Source deserializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `deserializer` - Source deserializer.
+            ///
+            /// # Returns
+            ///
+            /// The parsed canonical URL.
+            ///
+            /// # Errors
+            ///
+            /// Returns `D::Error` for invalid or non-canonical URL text.
             pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<::url::Url, D::Error>
             where
                 D: Deserializer<'de>,
@@ -240,6 +429,23 @@ macro_rules! define_url_wire {
             use serde::Serializer;
 
             /// Serializes URLs through their canonical normalized strings.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `S` - Destination serializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `values` - Parsed URLs to serialize in order.
+            /// * `serializer` - Destination serializer.
+            ///
+            /// # Returns
+            ///
+            /// The destination serializer's sequence result.
+            ///
+            /// # Errors
+            ///
+            /// Returns `S::Error` when sequence serialization fails.
             pub(crate) fn serialize<S>(values: &[::url::Url], serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -248,6 +454,22 @@ macro_rules! define_url_wire {
             }
 
             /// Deserializes only canonical normalized URL strings.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `D` - Source deserializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `deserializer` - Source deserializer.
+            ///
+            /// # Returns
+            ///
+            /// Parsed canonical URLs in source order.
+            ///
+            /// # Errors
+            ///
+            /// Returns `D::Error` for invalid or non-canonical URL text.
             pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<::url::Url>, D::Error>
             where
                 D: Deserializer<'de>,

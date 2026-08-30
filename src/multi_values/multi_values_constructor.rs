@@ -11,6 +11,18 @@
 use super::multi_values::MultiValues;
 
 /// Collects borrowed string values into owned strings.
+///
+/// # Type Parameters
+///
+/// * `I` - Iterator source yielding borrowed UTF-8 strings.
+///
+/// # Parameters
+///
+/// * `values` - Borrowed strings to copy into the returned collection.
+///
+/// # Returns
+///
+/// Owned strings in the source iteration order.
 #[inline]
 fn collect_strings<'a, I>(values: I) -> Vec<String>
 where
