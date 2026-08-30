@@ -35,72 +35,72 @@ pub enum ValueRef<'a> {
     ),
     /// A boolean value.
     Bool(
-        /// Borrowed boolean payload.
+        /// Copied boolean payload.
         bool,
     ),
     /// A character value.
     Char(
-        /// Borrowed character payload.
+        /// Copied character payload.
         char,
     ),
     /// A signed integer value.
     Int8(
-        /// Borrowed signed integer payload.
+        /// Copied signed integer payload.
         i8,
     ),
     /// A signed integer value.
     Int16(
-        /// Borrowed signed integer payload.
+        /// Copied signed integer payload.
         i16,
     ),
     /// A signed integer value.
     Int32(
-        /// Borrowed signed integer payload.
+        /// Copied signed integer payload.
         i32,
     ),
     /// A signed integer value.
     Int64(
-        /// Borrowed signed integer payload.
+        /// Copied signed integer payload.
         i64,
     ),
     /// A signed integer value.
     Int128(
-        /// Borrowed signed integer payload.
+        /// Copied signed integer payload.
         i128,
     ),
     /// An unsigned integer value.
     UInt8(
-        /// Borrowed unsigned integer payload.
+        /// Copied unsigned integer payload.
         u8,
     ),
     /// An unsigned integer value.
     UInt16(
-        /// Borrowed unsigned integer payload.
+        /// Copied unsigned integer payload.
         u16,
     ),
     /// An unsigned integer value.
     UInt32(
-        /// Borrowed unsigned integer payload.
+        /// Copied unsigned integer payload.
         u32,
     ),
     /// An unsigned integer value.
     UInt64(
-        /// Borrowed unsigned integer payload.
+        /// Copied unsigned integer payload.
         u64,
     ),
     /// An unsigned integer value.
     UInt128(
-        /// Borrowed unsigned integer payload.
+        /// Copied unsigned integer payload.
         u128,
     ),
     /// A 32-bit floating-point value.
     Float32(
-        /// Borrowed floating-point payload.
+        /// Copied floating-point payload.
         f32,
     ),
     /// A 64-bit floating-point value.
     Float64(
-        /// Borrowed floating-point payload.
+        /// Copied floating-point payload.
         f64,
     ),
     /// An arbitrary-precision integer.

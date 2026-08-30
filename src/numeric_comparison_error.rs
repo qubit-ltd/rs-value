@@ -12,6 +12,18 @@ use qubit_datatype::DataType;
 use thiserror::Error;
 
 /// Describes why two [`crate::Value`] instances cannot be numerically ordered.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_datatype::NumericComparisonPolicy;
+/// use qubit_value::{NumericComparisonError, Value};
+///
+/// let error = Value::from("text")
+///     .numeric_cmp(&Value::from(1_i32), NumericComparisonPolicy::Exact)
+///     .unwrap_err();
+/// assert!(matches!(error, NumericComparisonError::LeftNotNumeric { .. }));
+/// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[non_exhaustive]

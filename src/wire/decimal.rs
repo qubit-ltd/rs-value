@@ -57,6 +57,24 @@ where
 }
 
 /// Serializes one decimal value as its stable textual form.
+///
+/// # Type Parameters
+///
+/// * `T` - Displayable decimal-backed value type.
+/// * `S` - Destination serializer type.
+///
+/// # Parameters
+///
+/// * `value` - Decimal-backed value to serialize.
+/// * `serializer` - Destination serializer.
+///
+/// # Returns
+///
+/// The destination serializer's result.
+///
+/// # Errors
+///
+/// Returns `S::Error` when serialization fails.
 pub(super) fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
 where
     T: fmt::Display,
@@ -66,6 +84,23 @@ where
 }
 
 /// Deserializes one decimal value from its textual form.
+///
+/// # Type Parameters
+///
+/// * `T` - Decimal-backed value type parsed from canonical text.
+/// * `D` - Source deserializer type.
+///
+/// # Parameters
+///
+/// * `deserializer` - Source deserializer.
+///
+/// # Returns
+///
+/// The decoded decimal-backed value.
+///
+/// # Errors
+///
+/// Returns `D::Error` for malformed or non-canonical input.
 pub(super) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
 where
     T: FromStr + fmt::Display,
@@ -76,6 +111,24 @@ where
 }
 
 /// Serializes decimal values as a sequence of stable textual forms.
+///
+/// # Type Parameters
+///
+/// * `T` - Displayable decimal-backed element type.
+/// * `S` - Destination serializer type.
+///
+/// # Parameters
+///
+/// * `values` - Decimal-backed values to serialize in order.
+/// * `serializer` - Destination serializer.
+///
+/// # Returns
+///
+/// The destination serializer's sequence result.
+///
+/// # Errors
+///
+/// Returns `S::Error` when sequence serialization fails.
 pub(super) fn serialize_vec<T, S>(values: &[T], serializer: S) -> Result<S::Ok, S::Error>
 where
     T: fmt::Display,
@@ -85,6 +138,23 @@ where
 }
 
 /// Deserializes decimal values from a sequence of textual forms.
+///
+/// # Type Parameters
+///
+/// * `T` - Decimal-backed element type parsed from canonical text.
+/// * `D` - Source deserializer type.
+///
+/// # Parameters
+///
+/// * `deserializer` - Source deserializer.
+///
+/// # Returns
+///
+/// Decoded decimal-backed values in source order.
+///
+/// # Errors
+///
+/// Returns `D::Error` for malformed or non-canonical input.
 pub(super) fn deserialize_vec<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
 where
     T: FromStr + fmt::Display,

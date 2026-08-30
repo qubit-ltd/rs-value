@@ -20,7 +20,20 @@ use serde_json::error::Category;
 use thiserror::Error;
 
 /// Error produced by a bounded [`crate::ValueWireV1`] JSON decoder.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::{ValueWireDecodeError, ValueWireV1};
+///
+/// let error = ValueWireV1::decode_json_slice(b"{").unwrap_err();
+/// assert!(matches!(
+///     error,
+///     ValueWireDecodeError::Syntax(_) | ValueWireDecodeError::InvalidJson(_)
+/// ));
+/// ```
 #[non_exhaustive]
+#[must_use]
 #[derive(Debug, Error)]
 pub enum ValueWireDecodeError {
     /// The JSON document exceeded one configured resource budget.

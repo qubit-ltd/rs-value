@@ -26,8 +26,18 @@ use serde_json::Error as JsonError;
 use thiserror::Error;
 
 /// A runtime value cannot be represented by the JSON V1 wire contract.
-#[derive(Debug, Error)]
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::{Value, ValueWireEncodeError, ValueWireV1};
+///
+/// let error = ValueWireV1::try_from(Value::Float64(f64::NAN)).unwrap_err();
+/// assert!(matches!(error, ValueWireEncodeError::NonFiniteFloat { .. }));
+/// ```
 #[non_exhaustive]
+#[must_use]
+#[derive(Debug, Error)]
 pub enum ValueWireEncodeError {
     /// A JSON V1 float must be finite.
     #[error("V1 JSON wire cannot represent a non-finite {data_type} value")]
