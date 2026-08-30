@@ -20,10 +20,7 @@ use super::internal::CanonicalStringMap;
 use super::internal::StrictStringMap;
 
 /// Serializes string maps in a collection with dictionary-ordered keys.
-pub(crate) fn serialize<S>(
-    values: &[HashMap<String, String>],
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+pub(crate) fn serialize<S>(values: &[HashMap<String, String>], serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -35,16 +32,10 @@ where
 }
 
 /// Deserializes a collection of string maps.
-pub(crate) fn deserialize<'de, D>(
-    deserializer: D,
-) -> Result<Vec<HashMap<String, String>>, D::Error>
+pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<HashMap<String, String>>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Vec::<StrictStringMap<String>>::deserialize(deserializer).map(|values| {
-        values
-            .into_iter()
-            .map(StrictStringMap::into_inner)
-            .collect()
-    })
+    Vec::<StrictStringMap<String>>::deserialize(deserializer)
+        .map(|values| values.into_iter().map(StrictStringMap::into_inner).collect())
 }

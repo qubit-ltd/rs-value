@@ -16,6 +16,10 @@ use serde::ser::Serializer;
 use super::super::string_map;
 
 /// Borrows a string map while forcing dictionary-order entry emission.
+///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of the borrowed string map.
 pub(in crate::wire) struct CanonicalStringMap<'a>(
     /// The string map to serialize.
     pub(in crate::wire) &'a HashMap<String, String>,

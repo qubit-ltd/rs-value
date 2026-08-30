@@ -12,6 +12,10 @@ use qubit_datatype::DataType;
 
 /// Borrowed semantic view of a [`crate::MultiValues`] value.
 ///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of element slices borrowed from the source collection.
+///
 /// # Examples
 ///
 /// ```
@@ -25,63 +29,141 @@ use qubit_datatype::DataType;
 #[derive(Debug, Clone, Copy)]
 pub enum MultiValuesRef<'a> {
     /// An unset collection retaining its declared element type.
-    Unset(DataType),
+    Unset(
+        /// Declared element type retained while no collection is stored.
+        DataType,
+    ),
     /// A borrowed homogeneous collection.
-    Bool(&'a [bool]),
+    Bool(
+        /// Borrowed boolean elements.
+        &'a [bool],
+    ),
     /// A borrowed homogeneous collection.
-    Char(&'a [char]),
+    Char(
+        /// Borrowed character elements.
+        &'a [char],
+    ),
     /// A borrowed homogeneous collection.
-    Int8(&'a [i8]),
+    Int8(
+        /// Borrowed signed integer elements.
+        &'a [i8],
+    ),
     /// A borrowed homogeneous collection.
-    Int16(&'a [i16]),
+    Int16(
+        /// Borrowed signed integer elements.
+        &'a [i16],
+    ),
     /// A borrowed homogeneous collection.
-    Int32(&'a [i32]),
+    Int32(
+        /// Borrowed signed integer elements.
+        &'a [i32],
+    ),
     /// A borrowed homogeneous collection.
-    Int64(&'a [i64]),
+    Int64(
+        /// Borrowed signed integer elements.
+        &'a [i64],
+    ),
     /// A borrowed homogeneous collection.
-    Int128(&'a [i128]),
+    Int128(
+        /// Borrowed signed integer elements.
+        &'a [i128],
+    ),
     /// A borrowed homogeneous collection.
-    UInt8(&'a [u8]),
+    UInt8(
+        /// Borrowed unsigned integer elements.
+        &'a [u8],
+    ),
     /// A borrowed homogeneous collection.
-    UInt16(&'a [u16]),
+    UInt16(
+        /// Borrowed unsigned integer elements.
+        &'a [u16],
+    ),
     /// A borrowed homogeneous collection.
-    UInt32(&'a [u32]),
+    UInt32(
+        /// Borrowed unsigned integer elements.
+        &'a [u32],
+    ),
     /// A borrowed homogeneous collection.
-    UInt64(&'a [u64]),
+    UInt64(
+        /// Borrowed unsigned integer elements.
+        &'a [u64],
+    ),
     /// A borrowed homogeneous collection.
-    UInt128(&'a [u128]),
+    UInt128(
+        /// Borrowed unsigned integer elements.
+        &'a [u128],
+    ),
     /// A borrowed homogeneous collection.
-    Float32(&'a [f32]),
+    Float32(
+        /// Borrowed floating-point elements.
+        &'a [f32],
+    ),
     /// A borrowed homogeneous collection.
-    Float64(&'a [f64]),
+    Float64(
+        /// Borrowed floating-point elements.
+        &'a [f64],
+    ),
     /// A borrowed homogeneous collection.
     #[cfg(feature = "big-integer")]
-    BigInteger(&'a [num_bigint::BigInt]),
+    BigInteger(
+        /// Borrowed arbitrary-precision integer elements.
+        &'a [num_bigint::BigInt],
+    ),
     /// A borrowed homogeneous collection.
     #[cfg(feature = "big-decimal")]
-    BigDecimal(&'a [bigdecimal::BigDecimal]),
+    BigDecimal(
+        /// Borrowed arbitrary-precision decimal elements.
+        &'a [bigdecimal::BigDecimal],
+    ),
     /// A borrowed homogeneous collection.
-    String(&'a [String]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "chrono")]
-    Date(&'a [chrono::NaiveDate]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "chrono")]
-    Time(&'a [chrono::NaiveTime]),
-    /// A borrowed homogeneous collection.
-    #[cfg(feature = "chrono")]
-    DateTime(&'a [chrono::NaiveDateTime]),
+    String(
+        /// Borrowed UTF-8 string elements.
+        &'a [String],
+    ),
     /// A borrowed homogeneous collection.
     #[cfg(feature = "chrono")]
-    Instant(&'a [chrono::DateTime<chrono::Utc>]),
+    Date(
+        /// Borrowed calendar-date elements.
+        &'a [chrono::NaiveDate],
+    ),
     /// A borrowed homogeneous collection.
-    Duration(&'a [std::time::Duration]),
+    #[cfg(feature = "chrono")]
+    Time(
+        /// Borrowed time-of-day elements.
+        &'a [chrono::NaiveTime],
+    ),
+    /// A borrowed homogeneous collection.
+    #[cfg(feature = "chrono")]
+    DateTime(
+        /// Borrowed local date-and-time elements.
+        &'a [chrono::NaiveDateTime],
+    ),
+    /// A borrowed homogeneous collection.
+    #[cfg(feature = "chrono")]
+    Instant(
+        /// Borrowed UTC instant elements.
+        &'a [chrono::DateTime<chrono::Utc>],
+    ),
+    /// A borrowed homogeneous collection.
+    Duration(
+        /// Borrowed non-negative duration elements.
+        &'a [std::time::Duration],
+    ),
     /// A borrowed homogeneous collection.
     #[cfg(feature = "url")]
-    Url(&'a [url::Url]),
+    Url(
+        /// Borrowed parsed URL elements.
+        &'a [url::Url],
+    ),
     /// A borrowed homogeneous collection.
-    StringMap(&'a [std::collections::HashMap<String, String>]),
+    StringMap(
+        /// Borrowed string-keyed map elements.
+        &'a [std::collections::HashMap<String, String>],
+    ),
     /// A borrowed homogeneous collection.
     #[cfg(feature = "json")]
-    Json(&'a [serde_json::Value]),
+    Json(
+        /// Borrowed JSON tree elements.
+        &'a [serde_json::Value],
+    ),
 }

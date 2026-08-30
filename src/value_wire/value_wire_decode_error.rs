@@ -25,13 +25,15 @@ use thiserror::Error;
 pub enum ValueWireDecodeError {
     /// The JSON document exceeded one configured resource budget.
     #[error("V1 JSON wire resource budget exceeded: {0}")]
-    Budget(#[source] BudgetError<JsonResource, usize>),
+    Budget(
+        /// Budget violation reported by the bounded JSON decoder.
+        #[source]
+        BudgetError<JsonResource, usize>,
+    ),
 
     /// A native JSON measurement could not be represented by the budget
     /// quantity type.
-    #[error(
-        "V1 JSON wire resource quantity conversion failed for {resource:?}: {source}"
-    )]
+    #[error("V1 JSON wire resource quantity conversion failed for {resource:?}: {source}")]
     Quantity {
         /// Resource whose measurement failed.
         resource: JsonResource,
@@ -42,12 +44,14 @@ pub enum ValueWireDecodeError {
 
     /// The bounded input contains JSON syntax errors with source location.
     #[error("invalid V1 JSON wire syntax: {0}")]
-    Syntax(#[source] JsonSyntaxError),
+    Syntax(
+        /// Syntax error with its source location preserved.
+        #[source]
+        JsonSyntaxError,
+    ),
 
     /// The envelope declares a wire version that this decoder does not support.
-    #[error(
-        "unsupported qubit-value wire version {actual}; expected {expected}"
-    )]
+    #[error("unsupported qubit-value wire version {actual}; expected {expected}")]
     UnsupportedVersion {
         /// Wire version accepted by this decoder.
         expected: u8,
@@ -58,11 +62,25 @@ pub enum ValueWireDecodeError {
 
     /// The bounded input is not a valid V1 JSON wire value.
     #[error("failed to decode V1 JSON wire input: {0}")]
-    InvalidJson(#[source] JsonError),
+    InvalidJson(
+        /// Serde JSON error stripped of input contents but retaining location.
+        #[source]
+        JsonError,
+    ),
 }
 
 impl ValueWireDecodeError {
     /// Constructs a privacy-safe Serde error from structured decode metadata.
+    ///
+    /// # Parameters
+    ///
+    /// * `category` - Serde JSON failure category.
+    /// * `line` - One-based input line, or zero when unavailable.
+    /// * `column` - One-based input column, or zero when unavailable.
+    ///
+    /// # Returns
+    ///
+    /// An invalid-JSON error that retains diagnostics without input contents.
     fn deserialize(category: Category, line: usize, column: usize) -> Self {
         let error = <JsonError as serde::de::Error>::custom(format_args!(
             "JSON deserialization failed ({category:?}) at line {line}, column {column}"
@@ -77,19 +95,13 @@ impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
         if let Some(error) = error.budget_error().cloned() {
             return match error {
                 MeasuredBudgetError::Budget(error) => Self::Budget(error),
-                MeasuredBudgetError::Quantity { resource, source } => {
-                    Self::Quantity { resource, source }
-                }
+                MeasuredBudgetError::Quantity { resource, source } => Self::Quantity { resource, source },
             };
         }
         if let Some(error) = error.syntax_error() {
             return Self::Syntax(*error);
         }
-        Self::deserialize(
-            Category::Data,
-            error.line().unwrap_or(0),
-            error.column().unwrap_or(0),
-        )
+        Self::deserialize(Category::Data, error.line().unwrap_or(0), error.column().unwrap_or(0))
     }
 }
 

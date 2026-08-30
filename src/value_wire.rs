@@ -34,6 +34,7 @@ use serde::de::Error as _;
 
 use crate::ValueContainer;
 
+/// Version tag emitted and accepted by the V1 wire envelope.
 const VALUE_WIRE_V1_VERSION: u8 = 1;
 
 /// Invokes a callback with the complete, independent V1 wire type table.
@@ -111,10 +112,7 @@ pub(crate) fn default_json_value_limits() -> JsonValueLimits {
 #[inline]
 pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
     JsonDecodeLimits::builder()
-        .input_bytes_limit(ResourceLimit::new(
-            JsonResource::InputBytes,
-            1_048_576,
-        ))
+        .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 1_048_576))
         .value_limits(default_json_value_limits())
         .build()
 }
@@ -124,10 +122,7 @@ pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
 #[inline]
 pub(crate) fn default_json_encode_limits() -> JsonEncodeLimits {
     JsonEncodeLimits::builder()
-        .output_bytes_limit(ResourceLimit::new(
-            JsonResource::OutputBytes,
-            1_048_576,
-        ))
+        .output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 1_048_576))
         .value_limits(default_json_value_limits())
         .build()
 }
@@ -187,10 +182,7 @@ pub(crate) fn decode_wire_json_slice_with_session(
 ///
 /// Returns the error reported by `serializer`.
 #[inline(always)]
-fn serialize_wire<S>(
-    value: WireShapeRef<'_>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_wire<S>(value: WireShapeRef<'_>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {

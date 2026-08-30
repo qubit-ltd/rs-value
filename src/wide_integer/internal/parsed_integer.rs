@@ -18,6 +18,10 @@ use serde::Deserializer;
 use super::IntegerVisitor;
 
 /// Deserializable wrapper used by collection adapters.
+///
+/// # Type Parameters
+///
+/// * `T` - Integer type stored after canonical deserialization.
 pub(in crate::wide_integer) struct ParsedInteger<T>(
     /// Parsed integer value.
     pub(in crate::wide_integer) T,
@@ -33,8 +37,6 @@ where
     where
         D: Deserializer<'de>,
     {
-        deserializer
-            .deserialize_str(IntegerVisitor(PhantomData))
-            .map(Self)
+        deserializer.deserialize_str(IntegerVisitor(PhantomData)).map(Self)
     }
 }

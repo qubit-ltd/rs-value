@@ -39,36 +39,26 @@ fn value_for_data_type(data_type: DataType) -> Value {
         DataType::Float32 => Value::Float32(0.0),
         DataType::Float64 => Value::Float64(0.0),
         DataType::String => Value::String(String::new()),
-        DataType::Date => Value::Date(
-            chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
-                .expect("contract test date should be valid"),
-        ),
-        DataType::Time => Value::Time(
-            chrono::NaiveTime::from_hms_opt(0, 0, 0)
-                .expect("contract test time should be valid"),
-        ),
+        DataType::Date => {
+            Value::Date(chrono::NaiveDate::from_ymd_opt(1970, 1, 1).expect("contract test date should be valid"))
+        }
+        DataType::Time => {
+            Value::Time(chrono::NaiveTime::from_hms_opt(0, 0, 0).expect("contract test time should be valid"))
+        }
         DataType::DateTime => Value::DateTime(
             chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
                 .expect("contract test date should be valid")
                 .and_hms_opt(0, 0, 0)
                 .expect("contract test datetime should be valid"),
         ),
-        DataType::Instant => Value::Instant(
-            chrono::DateTime::from_timestamp(0, 0)
-                .expect("contract test instant should be valid"),
-        ),
+        DataType::Instant => {
+            Value::Instant(chrono::DateTime::from_timestamp(0, 0).expect("contract test instant should be valid"))
+        }
         DataType::BigInteger => Value::BigInteger(num_bigint::BigInt::from(0)),
-        DataType::BigDecimal => {
-            Value::BigDecimal(bigdecimal::BigDecimal::from(0))
-        }
+        DataType::BigDecimal => Value::BigDecimal(bigdecimal::BigDecimal::from(0)),
         DataType::Duration => Value::Duration(std::time::Duration::ZERO),
-        DataType::Url => Value::new(
-            url::Url::parse("https://example.com")
-                .expect("contract test URL should be valid"),
-        ),
-        DataType::StringMap => {
-            Value::StringMap(std::collections::HashMap::new())
-        }
+        DataType::Url => Value::new(url::Url::parse("https://example.com").expect("contract test URL should be valid")),
+        DataType::StringMap => Value::StringMap(std::collections::HashMap::new()),
         DataType::Json => Value::Json(serde_json::Value::Null),
     }
 }

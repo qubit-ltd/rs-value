@@ -44,10 +44,7 @@ fn test_multi_values_first_read_reports_precise_missing_state() {
 #[test]
 fn test_multi_values_first_big_integer_getter() {
     let values = MultiValues::BigInteger(vec![num_bigint::BigInt::from(7)]);
-    assert_eq!(
-        values.get_first_biginteger().unwrap(),
-        num_bigint::BigInt::from(7)
-    );
+    assert_eq!(values.get_first_biginteger().unwrap(), num_bigint::BigInt::from(7));
 }
 
 #[cfg(feature = "big-decimal")]
@@ -68,10 +65,7 @@ fn test_multi_values_first_url_getter() {
 
 #[test]
 fn test_multi_values_first_string_map_getter() {
-    let map = std::collections::HashMap::from([(
-        "key".to_string(),
-        "value".to_string(),
-    )]);
+    let map = std::collections::HashMap::from([("key".to_string(), "value".to_string())]);
     let values = MultiValues::StringMap(vec![map.clone()]);
     assert_eq!(values.get_first_string_map().unwrap(), map);
 }

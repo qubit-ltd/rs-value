@@ -29,6 +29,7 @@ use crate::identity::hash_string_map;
 #[cfg(feature = "json")]
 use crate::identity::json_eq;
 
+/// Compares one pair of same-variant storage payloads by semantic identity.
 macro_rules! payload_eq {
     (Float32, $left:expr, $right:expr) => {
         canonical_f32_bits(*$left) == canonical_f32_bits(*$right)
@@ -44,6 +45,7 @@ macro_rules! payload_eq {
     };
 }
 
+/// Hashes one storage payload using the semantic identity contract.
 macro_rules! hash_payload {
     (Float32, $value:expr, $state:expr) => {
         canonical_f32_bits(*$value).hash($state)
@@ -111,14 +113,13 @@ where
         ValueRepr::Url(value) => hash_payload!(Url, value, state),
         ValueRepr::StringMap(value) => hash_payload!(StringMap, value, state),
         ValueRepr::Json(_) => {
-            unreachable!(
-                "JSON payload hashing is handled by Value::hash_with_json_budget"
-            )
+            unreachable!("JSON payload hashing is handled by Value::hash_with_json_budget")
         }
     }
     Ok(())
 }
 
+/// Implements equality and hashing for the private value representation.
 macro_rules! impl_value_identity {
     (
         ;

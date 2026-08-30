@@ -31,6 +31,7 @@ pub(crate) mod string_map_vec;
 #[cfg(feature = "json")]
 pub(crate) mod json;
 
+/// Serializes JSON collections by recursively ordering every object key.
 #[cfg(feature = "json")]
 pub(crate) mod json_vec;
 
@@ -57,11 +58,7 @@ pub(crate) const fn is_valid_big_decimal_scale(scale: i64) -> bool {
 
 /// Serializes and validates canonical scalar string payloads.
 #[cfg(any(feature = "chrono", feature = "url"))]
-fn serialize_canonical<S, T, F>(
-    value: &T,
-    serializer: S,
-    format: F,
-) -> Result<S::Ok, S::Error>
+fn serialize_canonical<S, T, F>(value: &T, serializer: S, format: F) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
     F: FnOnce(&T) -> String,
@@ -71,11 +68,7 @@ where
 
 /// Deserializes a scalar string only when it is already in canonical form.
 #[cfg(any(feature = "chrono", feature = "url"))]
-fn deserialize_canonical<'de, D, T, P, F>(
-    deserializer: D,
-    parse: P,
-    format: F,
-) -> Result<T, D::Error>
+fn deserialize_canonical<'de, D, T, P, F>(deserializer: D, parse: P, format: F) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     P: FnOnce(&str) -> Result<T, String>,
@@ -93,11 +86,7 @@ where
 
 /// Serializes a collection through a canonical scalar formatter.
 #[cfg(any(feature = "chrono", feature = "url"))]
-fn serialize_canonical_vec<S, T, F>(
-    values: &[T],
-    serializer: S,
-    format: F,
-) -> Result<S::Ok, S::Error>
+fn serialize_canonical_vec<S, T, F>(values: &[T], serializer: S, format: F) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
     F: Fn(&T) -> String,
@@ -107,11 +96,7 @@ where
 
 /// Deserializes canonical string collection payloads.
 #[cfg(any(feature = "chrono", feature = "url"))]
-fn deserialize_canonical_vec<'de, D, T, P, F>(
-    deserializer: D,
-    parse: P,
-    format: F,
-) -> Result<Vec<T>, D::Error>
+fn deserialize_canonical_vec<'de, D, T, P, F>(deserializer: D, parse: P, format: F) -> Result<Vec<T>, D::Error>
 where
     D: Deserializer<'de>,
     P: Fn(&str) -> Result<T, String>,
@@ -124,27 +109,24 @@ where
         .map(|input| {
             let value = parse(&input).map_err(D::Error::custom)?;
             if format(&value) != input {
-                return Err(D::Error::custom(
-                    "non-canonical V1 string payload",
-                ));
+                return Err(D::Error::custom("non-canonical V1 string payload"));
             }
             Ok(value)
         })
         .collect()
 }
 
+/// Defines canonical scalar and vector wire adapters for one chrono type.
 #[cfg(feature = "chrono")]
 macro_rules! define_chrono_wire {
     ($scalar:ident, $vector:ident, $type:ty, $parse:expr, $format:expr) => {
+        /// Canonical scalar wire adapter generated for one chrono type.
         pub(crate) mod $scalar {
             use serde::Deserializer;
             use serde::Serializer;
 
             /// Serializes the chrono value through the crate-owned V1 format.
-            pub(crate) fn serialize<S>(
-                value: &$type,
-                serializer: S,
-            ) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -152,9 +134,7 @@ macro_rules! define_chrono_wire {
             }
 
             /// Deserializes the chrono value only from its canonical V1 format.
-            pub(crate) fn deserialize<'de, D>(
-                deserializer: D,
-            ) -> Result<$type, D::Error>
+            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -162,15 +142,13 @@ macro_rules! define_chrono_wire {
             }
         }
 
+        /// Canonical collection wire adapter generated for one chrono type.
         pub(crate) mod $vector {
             use serde::Deserializer;
             use serde::Serializer;
 
             /// Serializes chrono values through the crate-owned V1 format.
-            pub(crate) fn serialize<S>(
-                values: &[$type],
-                serializer: S,
-            ) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -178,9 +156,7 @@ macro_rules! define_chrono_wire {
             }
 
             /// Deserializes chrono values only from their canonical V1 format.
-            pub(crate) fn deserialize<'de, D>(
-                deserializer: D,
-            ) -> Result<Vec<$type>, D::Error>
+            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<$type>, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -195,8 +171,7 @@ define_chrono_wire!(
     date,
     date_vec,
     chrono::NaiveDate,
-    |input| chrono::NaiveDate::parse_from_str(input, "%F")
-        .map_err(|error| error.to_string()),
+    |input| chrono::NaiveDate::parse_from_str(input, "%F").map_err(|error| error.to_string()),
     |value: &chrono::NaiveDate| value.format("%F").to_string()
 );
 
@@ -205,8 +180,7 @@ define_chrono_wire!(
     time,
     time_vec,
     chrono::NaiveTime,
-    |input| chrono::NaiveTime::parse_from_str(input, "%H:%M:%S%.f")
-        .map_err(|error| error.to_string()),
+    |input| chrono::NaiveTime::parse_from_str(input, "%H:%M:%S%.f").map_err(|error| error.to_string()),
     |value: &chrono::NaiveTime| value.format("%H:%M:%S%.f").to_string()
 );
 
@@ -215,14 +189,8 @@ define_chrono_wire!(
     datetime,
     datetime_vec,
     chrono::NaiveDateTime,
-    |input| chrono::NaiveDateTime::parse_from_str(
-        input,
-        "%Y-%m-%dT%H:%M:%S%.f"
-    )
-    .map_err(|error| error.to_string()),
-    |value: &chrono::NaiveDateTime| value
-        .format("%Y-%m-%dT%H:%M:%S%.f")
-        .to_string()
+    |input| chrono::NaiveDateTime::parse_from_str(input, "%Y-%m-%dT%H:%M:%S%.f").map_err(|error| error.to_string()),
+    |value: &chrono::NaiveDateTime| value.format("%Y-%m-%dT%H:%M:%S%.f").to_string()
 );
 
 #[cfg(feature = "chrono")]
@@ -233,82 +201,60 @@ define_chrono_wire!(
     |input| chrono::DateTime::parse_from_rfc3339(input)
         .map(|value| value.with_timezone(&chrono::Utc))
         .map_err(|error| error.to_string()),
-    |value: &chrono::DateTime<chrono::Utc>| value
-        .to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
+    |value: &chrono::DateTime<chrono::Utc>| value.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
 );
 
+/// Defines canonical scalar and vector wire adapters for URL values.
 #[cfg(feature = "url")]
 macro_rules! define_url_wire {
     () => {
+        /// Canonical scalar URL wire adapter.
         pub(crate) mod url {
             use serde::Deserializer;
             use serde::Serializer;
 
             /// Serializes a URL through its canonical normalized string.
-            pub(crate) fn serialize<S>(
-                value: &::url::Url,
-                serializer: S,
-            ) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(value: &::url::Url, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
-                super::serialize_canonical(
-                    value,
-                    serializer,
-                    |value: &::url::Url| value.as_str().to_owned(),
-                )
+                super::serialize_canonical(value, serializer, |value: &::url::Url| value.as_str().to_owned())
             }
 
             /// Deserializes only a canonical normalized URL string.
-            pub(crate) fn deserialize<'de, D>(
-                deserializer: D,
-            ) -> Result<::url::Url, D::Error>
+            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<::url::Url, D::Error>
             where
                 D: Deserializer<'de>,
             {
                 super::deserialize_canonical(
                     deserializer,
-                    |input| {
-                        ::url::Url::parse(input)
-                            .map_err(|error| error.to_string())
-                    },
+                    |input| ::url::Url::parse(input).map_err(|error| error.to_string()),
                     |value: &::url::Url| value.as_str().to_owned(),
                 )
             }
         }
 
+        /// Canonical URL collection wire adapter.
         pub(crate) mod url_vec {
             use serde::Deserializer;
             use serde::Serializer;
 
             /// Serializes URLs through their canonical normalized strings.
-            pub(crate) fn serialize<S>(
-                values: &[::url::Url],
-                serializer: S,
-            ) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(values: &[::url::Url], serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
-                super::serialize_canonical_vec(
-                    values,
-                    serializer,
-                    |value: &::url::Url| value.as_str().to_owned(),
-                )
+                super::serialize_canonical_vec(values, serializer, |value: &::url::Url| value.as_str().to_owned())
             }
 
             /// Deserializes only canonical normalized URL strings.
-            pub(crate) fn deserialize<'de, D>(
-                deserializer: D,
-            ) -> Result<Vec<::url::Url>, D::Error>
+            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<::url::Url>, D::Error>
             where
                 D: Deserializer<'de>,
             {
                 super::deserialize_canonical_vec(
                     deserializer,
-                    |input| {
-                        ::url::Url::parse(input)
-                            .map_err(|error| error.to_string())
-                    },
+                    |input| ::url::Url::parse(input).map_err(|error| error.to_string()),
                     |value: &::url::Url| value.as_str().to_owned(),
                 )
             }
@@ -319,9 +265,11 @@ macro_rules! define_url_wire {
 #[cfg(feature = "url")]
 define_url_wire!();
 
+/// Defines canonical scalar and vector wire adapters for a decimal-backed type.
 #[cfg(feature = "big-integer")]
 macro_rules! define_decimal_serde {
     ($scalar_module:ident, $vector_module:ident, $type:ty) => {
+        /// Canonical scalar wire adapter generated for one decimal-backed type.
         pub(crate) mod $scalar_module {
             use serde::Deserializer;
             use serde::Serializer;
@@ -329,10 +277,7 @@ macro_rules! define_decimal_serde {
             use super::decimal;
 
             /// Serializes a decimal value as a canonical decimal string.
-            pub(crate) fn serialize<S>(
-                value: &$type,
-                serializer: S,
-            ) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -340,9 +285,7 @@ macro_rules! define_decimal_serde {
             }
 
             /// Deserializes a decimal value from a canonical decimal string.
-            pub(crate) fn deserialize<'de, D>(
-                deserializer: D,
-            ) -> Result<$type, D::Error>
+            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -350,6 +293,7 @@ macro_rules! define_decimal_serde {
             }
         }
 
+        /// Canonical collection wire adapter generated for one decimal-backed type.
         pub(crate) mod $vector_module {
             use serde::Deserializer;
             use serde::Serializer;
@@ -357,10 +301,7 @@ macro_rules! define_decimal_serde {
             use super::decimal;
 
             /// Serializes decimal values as canonical decimal strings.
-            pub(crate) fn serialize<S>(
-                values: &[$type],
-                serializer: S,
-            ) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
@@ -368,9 +309,7 @@ macro_rules! define_decimal_serde {
             }
 
             /// Deserializes decimal values from canonical decimal strings.
-            pub(crate) fn deserialize<'de, D>(
-                deserializer: D,
-            ) -> Result<Vec<$type>, D::Error>
+            pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<$type>, D::Error>
             where
                 D: Deserializer<'de>,
             {
@@ -397,10 +336,7 @@ pub(crate) mod big_decimal {
     use super::BigDecimalPayload;
 
     /// Serializes a decimal as an exact `{ coefficient, scale }` payload.
-    pub(crate) fn serialize<S>(
-        value: &BigDecimal,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(value: &BigDecimal, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -410,9 +346,7 @@ pub(crate) mod big_decimal {
     }
 
     /// Deserializes and validates an exact decimal payload.
-    pub(crate) fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<BigDecimal, D::Error>
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -436,26 +370,20 @@ pub(crate) mod big_decimal_vec {
     use super::BigDecimalPayload;
 
     /// Serializes decimals as exact `{ coefficient, scale }` payloads.
-    pub(crate) fn serialize<S>(
-        values: &[BigDecimal],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(values: &[BigDecimal], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let mut sequence = serializer.serialize_seq(Some(values.len()))?;
         for value in values {
-            let payload =
-                BigDecimalPayload::try_from(value).map_err(S::Error::custom)?;
+            let payload = BigDecimalPayload::try_from(value).map_err(S::Error::custom)?;
             sequence.serialize_element(&payload)?;
         }
         sequence.end()
     }
 
     /// Deserializes and validates exact decimal payloads.
-    pub(crate) fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<Vec<BigDecimal>, D::Error>
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<BigDecimal>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -479,10 +407,7 @@ pub(crate) mod duration {
     use super::DurationPayload;
 
     /// Serializes a duration as `{ secs, nanos }`.
-    pub(crate) fn serialize<S>(
-        value: &Duration,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(value: &Duration, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -490,9 +415,7 @@ pub(crate) mod duration {
     }
 
     /// Deserializes and validates a `{ secs, nanos }` duration payload.
-    pub(crate) fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<Duration, D::Error>
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -514,10 +437,7 @@ pub(crate) mod duration_vec {
     use super::DurationPayload;
 
     /// Serializes durations as a sequence of `{ secs, nanos }` payloads.
-    pub(crate) fn serialize<S>(
-        values: &[Duration],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(values: &[Duration], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -525,9 +445,7 @@ pub(crate) mod duration_vec {
     }
 
     /// Deserializes and validates a sequence of duration payloads.
-    pub(crate) fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<Vec<Duration>, D::Error>
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Duration>, D::Error>
     where
         D: Deserializer<'de>,
     {

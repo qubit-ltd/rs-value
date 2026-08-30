@@ -31,10 +31,7 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
                 .raise("secret_object", Sensitivity::Low)
                 .raise("secret_array", Sensitivity::Low)
                 .raise("secret_null", Sensitivity::Low)
-                .mask(
-                    Sensitivity::Low,
-                    MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
-                );
+                .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0));
         })
         .expect("the test policy should be valid")
         .build()

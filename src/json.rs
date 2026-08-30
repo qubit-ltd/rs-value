@@ -43,38 +43,41 @@ use crate::value::ValueRepr;
 /// # Errors
 ///
 /// Returns [`DataConversionError`] when `value` is NaN or infinite.
-fn finite_float64(
-    value: f64,
-    from: DataType,
-) -> Result<JsonValue, DataConversionError> {
-    Number::from_f64(value).map(JsonValue::Number).ok_or(
-        DataConversionError::invalid(
+fn finite_float64(value: f64, from: DataType) -> Result<JsonValue, DataConversionError> {
+    Number::from_f64(value)
+        .map(JsonValue::Number)
+        .ok_or(DataConversionError::invalid(
             from,
             DataType::Json,
             InvalidValueReason::NonFinite,
-        ),
-    )
+        ))
 }
 
-fn finite_float32(
-    value: f32,
-    from: DataType,
-) -> Result<JsonValue, DataConversionError> {
+/// Converts a finite 32-bit float to a JSON number without widening its text.
+///
+/// # Parameters
+///
+/// * `value` - Finite floating-point value to convert.
+/// * `from` - Runtime type of `value` for conversion diagnostics.
+///
+/// # Returns
+///
+/// The corresponding JSON number with the source `f32` textual precision.
+///
+/// # Errors
+///
+/// Returns [`DataConversionError`] when `value` is NaN or infinite.
+fn finite_float32(value: f32, from: DataType) -> Result<JsonValue, DataConversionError> {
     // Use f32 display output as input here to keep float32 textual precision
     // stable. Converting through `f64` first can emit a longer/altered decimal
     // representation, which changes natural JSON bytes for the same `f32`
     // value.
     Number::from_str(&value.to_string())
         .map(JsonValue::Number)
-        .map_err(|_| {
-            DataConversionError::invalid(
-                from,
-                DataType::Json,
-                InvalidValueReason::NonFinite,
-            )
-        })
+        .map_err(|_| DataConversionError::invalid(from, DataType::Json, InvalidValueReason::NonFinite))
 }
 
+/// Projects one scalar storage payload into its natural JSON representation.
 macro_rules! scalar_to_json {
     (json_bool, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
         Ok(JsonValue::Bool(*$value))
@@ -110,6 +113,7 @@ macro_rules! scalar_to_json {
     };
 }
 
+/// Expands the shared value table into a natural JSON projection match.
 macro_rules! value_to_json_match {
     ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {{
         let result: Result<JsonValue, DataConversionError> = match &$value.repr {
@@ -142,10 +146,7 @@ macro_rules! value_to_json_match {
 ///
 /// Returns [`ValueError`] with a [`DataListConversionError`] identifying the
 /// first source index whose projection fails.
-fn collection_to_json<T, F>(
-    values: &[T],
-    mut project: F,
-) -> ValueResult<JsonValue>
+fn collection_to_json<T, F>(values: &[T], mut project: F) -> ValueResult<JsonValue>
 where
     F: FnMut(&T) -> Result<JsonValue, DataConversionError>,
 {
@@ -154,9 +155,7 @@ where
         match project(value) {
             Ok(value) => projected.push(value),
             Err(source) => {
-                return Err(
-                    DataListConversionError::new(source_index, source).into()
-                );
+                return Err(DataListConversionError::new(source_index, source).into());
             }
         }
     }
@@ -164,6 +163,7 @@ where
     Ok(JsonValue::Array(projected))
 }
 
+/// Expands the shared value table into a collection JSON projection match.
 macro_rules! multi_values_to_json_match {
     ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &$value.repr {
@@ -194,10 +194,7 @@ impl Value {
     /// including non-finite floating-point values and inexact durations.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Projects this typed value using explicit conversion policy and limits.
@@ -215,11 +212,7 @@ impl Value {
     ///
     /// Returns a structured conversion error when JSON projection or duration
     /// formatting violates the requested policy or limits.
-    pub fn to_json_value_with(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<JsonValue> {
+    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
         for_each_value_type!(value_to_json_match, self, policy, limits)
     }
 }
@@ -240,10 +233,7 @@ impl MultiValues {
     /// when an item cannot be represented as JSON.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Projects this collection using explicit conversion policy and limits.
@@ -261,11 +251,7 @@ impl MultiValues {
     ///
     /// Returns an indexed list conversion error when an item cannot be
     /// represented under the requested policy and limits.
-    pub fn to_json_value_with(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<JsonValue> {
+    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
         for_each_value_type!(multi_values_to_json_match, self, policy, limits)
     }
 }
@@ -286,10 +272,7 @@ impl ValueContainer {
     /// Returns the same structured projection error as the contained value.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Projects this container using explicit conversion policy and limits.
@@ -308,16 +291,10 @@ impl ValueContainer {
     ///
     /// Returns the same structured projection error as the contained value.
     #[inline(always)]
-    pub fn to_json_value_with(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<JsonValue> {
+    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
         match self {
             Self::Scalar(value) => value.to_json_value_with(policy, limits),
-            Self::Collection(values) => {
-                values.to_json_value_with(policy, limits)
-            }
+            Self::Collection(values) => values.to_json_value_with(policy, limits),
         }
     }
 }

@@ -25,9 +25,7 @@ fn value_missing_accessors_preserve_conversion_context() {
 
 #[test]
 fn empty_collection_conversion_exposes_target_context() {
-    let missing = ValueMissing::EmptyCollectionConversion {
-        to: DataType::Int32,
-    };
+    let missing = ValueMissing::EmptyCollectionConversion { to: DataType::Int32 };
 
     assert_eq!(missing.source_type(), None);
     assert_eq!(missing.target_type(), Some(DataType::Int32));
@@ -47,9 +45,7 @@ fn value_missing_accessors_cover_all_variants_and_display() {
         ValueMissing::EmptyCollection {
             data_type: DataType::Int32,
         },
-        ValueMissing::EmptyCollectionConversion {
-            to: DataType::UInt64,
-        },
+        ValueMissing::EmptyCollectionConversion { to: DataType::UInt64 },
         ValueMissing::Conversion {
             from: DataType::String,
             to: DataType::Int32,

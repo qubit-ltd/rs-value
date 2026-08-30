@@ -98,10 +98,7 @@ fn test_multi_values_float_identity_is_reflexive_and_hash_consistent() {
         &MultiValues::Float32(vec![0.0, f32::from_bits(0x7fff_ffff)]),
     );
     assert_equal_hash(
-        &MultiValues::Float64(vec![
-            -0.0,
-            f64::from_bits(0x7ff8_0000_0000_0001),
-        ]),
+        &MultiValues::Float64(vec![-0.0, f64::from_bits(0x7ff8_0000_0000_0001)]),
         &MultiValues::Float64(vec![0.0, f64::from_bits(0x7fff_ffff_ffff_ffff)]),
     );
 
@@ -118,43 +115,24 @@ fn test_multi_values_float_identity_is_reflexive_and_hash_consistent() {
 /// Verifies unset metadata, variant tags, and outer order remain significant.
 #[test]
 fn test_multi_values_unset_variant_and_order_remain_part_of_identity() {
-    assert_ne!(
-        MultiValues::Unset(DataType::Int32),
-        MultiValues::Int32(Vec::new()),
-    );
-    assert_ne!(
-        MultiValues::Unset(DataType::Int32),
-        MultiValues::Unset(DataType::Int64),
-    );
-    assert_ne!(
-        MultiValues::Int32(vec![1, 2]),
-        MultiValues::Int32(vec![2, 1]),
-    );
+    assert_ne!(MultiValues::Unset(DataType::Int32), MultiValues::Int32(Vec::new()),);
+    assert_ne!(MultiValues::Unset(DataType::Int32), MultiValues::Unset(DataType::Int64),);
+    assert_ne!(MultiValues::Int32(vec![1, 2]), MultiValues::Int32(vec![2, 1]),);
     assert_ne!(MultiValues::Int32(vec![1]), MultiValues::Int64(vec![1]),);
 }
 
 /// Verifies structurally unordered payloads receive order-independent hashes.
 #[test]
 fn test_multi_values_unordered_payloads_hash_structurally() {
-    let left_map = HashMap::from([
-        ("b".to_owned(), "2".to_owned()),
-        ("a".to_owned(), "1".to_owned()),
-    ]);
-    let right_map = HashMap::from([
-        ("a".to_owned(), "1".to_owned()),
-        ("b".to_owned(), "2".to_owned()),
-    ]);
+    let left_map = HashMap::from([("b".to_owned(), "2".to_owned()), ("a".to_owned(), "1".to_owned())]);
+    let right_map = HashMap::from([("a".to_owned(), "1".to_owned()), ("b".to_owned(), "2".to_owned())]);
     assert_equal_hash(
         &MultiValues::StringMap(vec![left_map]),
         &MultiValues::StringMap(vec![right_map]),
     );
     assert_equal_hash(
-        &MultiValues::Json(vec![
-            serde_json::json!({"b": {"y": 2, "x": 1}, "a": 0}),
-        ]),
-        &MultiValues::Json(vec![
-            serde_json::json!({"a": 0, "b": {"x": 1, "y": 2}}),
-        ]),
+        &MultiValues::Json(vec![serde_json::json!({"b": {"y": 2, "x": 1}, "a": 0})]),
+        &MultiValues::Json(vec![serde_json::json!({"a": 0, "b": {"x": 1, "y": 2}})]),
     );
 }
 
@@ -165,20 +143,15 @@ fn test_multi_values_big_decimal_identity_is_canonical() {
         &MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(10), 1)]),
         &MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(1), 0)]),
     );
-    let extreme = MultiValues::BigDecimal(vec![BigDecimal::new(
-        BigInt::from(1),
-        i64::MIN,
-    )]);
+    let extreme = MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(1), i64::MIN)]);
     let _ = hash(&extreme);
 }
 
 /// Exercises equality and hashing for every multi-value variant.
 #[test]
 fn test_multi_values_identity_covers_every_variant() {
-    let date = NaiveDate::from_ymd_opt(2026, 7, 17)
-        .expect("the test fixture date must be valid");
-    let time = NaiveTime::from_hms_nano_opt(12, 34, 56, 789)
-        .expect("the test fixture time must be valid");
+    let date = NaiveDate::from_ymd_opt(2026, 7, 17).expect("the test fixture date must be valid");
+    let time = NaiveTime::from_hms_nano_opt(12, 34, 56, 789).expect("the test fixture time must be valid");
     let datetime = date.and_time(time);
     let values = vec![
         MultiValues::Unset(DataType::Bool),
@@ -202,18 +175,12 @@ fn test_multi_values_identity_covers_every_variant() {
         MultiValues::Date(vec![date]),
         MultiValues::Time(vec![time]),
         MultiValues::DateTime(vec![datetime]),
-        MultiValues::Instant(vec![DateTime::<Utc>::from_naive_utc_and_offset(
-            datetime, Utc,
-        )]),
+        MultiValues::Instant(vec![DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc)]),
         MultiValues::Duration(vec![Duration::new(8, 9)]),
         MultiValues::Url(vec![
-            Url::parse("https://example.com/path")
-                .expect("the test fixture URL must be valid"),
+            Url::parse("https://example.com/path").expect("the test fixture URL must be valid"),
         ]),
-        MultiValues::StringMap(vec![HashMap::from([(
-            "key".to_owned(),
-            "value".to_owned(),
-        )])]),
+        MultiValues::StringMap(vec![HashMap::from([("key".to_owned(), "value".to_owned())])]),
         MultiValues::Json(vec![serde_json::json!({"items": [null, true, 42]})]),
     ];
 
@@ -229,10 +196,7 @@ fn test_multi_values_identity_covers_every_variant() {
 #[cfg(feature = "json")]
 #[test]
 fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
-    let values = MultiValues::Json(vec![
-        serde_json::json!(null),
-        serde_json::json!(null),
-    ]);
+    let values = MultiValues::Json(vec![serde_json::json!(null), serde_json::json!(null)]);
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
         .max_nodes(1_usize)
         .budget();
@@ -240,9 +204,7 @@ fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
 
     let error = values
         .hash_with_json_budget(&mut state, &mut budget)
-        .expect_err(
-            "the second JSON value must exhaust the shared node budget",
-        );
+        .expect_err("the second JSON value must exhaust the shared node budget");
 
     assert!(matches!(
         error,
@@ -262,10 +224,7 @@ fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
 #[cfg(feature = "json")]
 #[test]
 fn test_multi_values_hash_with_json_budget_preserves_identity() {
-    let values = MultiValues::Json(vec![
-        serde_json::json!({"items": [null]}),
-        serde_json::json!(true),
-    ]);
+    let values = MultiValues::Json(vec![serde_json::json!({"items": [null]}), serde_json::json!(true)]);
     let expected = hash(&values);
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder().budget();
     let mut state = DefaultHasher::new();
@@ -280,12 +239,9 @@ fn test_multi_values_hash_with_json_budget_preserves_identity() {
 /// the same budget to be reused.
 #[cfg(feature = "json")]
 #[test]
-fn test_multi_values_hash_with_json_budget_panic_rolls_back_and_reuses_budget()
-{
+fn test_multi_values_hash_with_json_budget_panic_rolls_back_and_reuses_budget() {
     let values = MultiValues::Json(vec![serde_json::json!(null)]);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
-        .max_nodes(1)
-        .budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         values.hash_with_json_budget(&mut PanickingHasher, &mut budget)
@@ -304,20 +260,17 @@ fn test_multi_values_hash_with_json_budget_panic_rolls_back_and_reuses_budget()
 /// Verifies budgeted hashing preserves special non-JSON identity hashes.
 #[cfg(feature = "json")]
 #[test]
-fn test_multi_values_hash_with_json_budget_matches_standard_hash_for_special_non_json_values()
- {
+fn test_multi_values_hash_with_json_budget_matches_standard_hash_for_special_non_json_values() {
     let float = MultiValues::Float32(vec![-0.0]);
     let string_map = MultiValues::StringMap(vec![HashMap::from([
         ("second".to_owned(), "2".to_owned()),
         ("first".to_owned(), "1".to_owned()),
     ])]);
-    let decimal =
-        MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(10), 1)]);
+    let decimal = MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(10), 1)]);
 
     for values in [&float, &string_map, &decimal] {
         let expected = hash(values);
-        let mut budget =
-            JsonValueLimits::<JsonResource, usize>::builder().budget();
+        let mut budget = JsonValueLimits::<JsonResource, usize>::builder().budget();
         let mut state = DefaultHasher::new();
 
         values

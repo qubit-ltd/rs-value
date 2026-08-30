@@ -18,6 +18,10 @@ use serde::de::Visitor;
 use crate::wire::decimal::parse_canonical_decimal;
 
 /// Parses one canonical decimal string into the requested value type.
+///
+/// # Type Parameters
+///
+/// * `T` - Decimal-backed type parsed from canonical text.
 pub(in crate::wire::decimal) struct DecimalVisitor<T>(
     /// Requested decimal type.
     pub(in crate::wire::decimal) PhantomData<T>,

@@ -58,13 +58,8 @@ fn test_strict_json_materializes_raw_value() {
     use serde_json::json;
     use serde_json::value::RawValue;
 
-    let raw = RawValue::from_string(String::from(r#"{"ok":true}"#))
-        .expect("fixture should be valid raw JSON");
-    let value =
-        Value::from_serializable(&raw).expect("strict RawValue should project");
+    let raw = RawValue::from_string(String::from(r#"{"ok":true}"#)).expect("fixture should be valid raw JSON");
+    let value = Value::from_serializable(&raw).expect("strict RawValue should project");
 
-    assert_eq!(
-        value.to_json_value().expect("project JSON"),
-        json!({"ok": true})
-    );
+    assert_eq!(value.to_json_value().expect("project JSON"), json!({"ok": true}));
 }

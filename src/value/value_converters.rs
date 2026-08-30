@@ -21,6 +21,7 @@ use super::value::ValueRepr;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
 
+/// Expands the shared value table into a `DataConverter` construction match.
 macro_rules! value_data_converter_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &$value.repr {
@@ -84,10 +85,7 @@ where
 }
 
 /// Converts a single `Value` into `T` using an existing conversion session.
-pub(super) fn convert_with_data_converter_in<T>(
-    value: &Value,
-    session: &mut ConversionSession<'_>,
-) -> ValueResult<T>
+pub(super) fn convert_with_data_converter_in<T>(value: &Value, session: &mut ConversionSession<'_>) -> ValueResult<T>
 where
     T: DataConversionTarget,
 {

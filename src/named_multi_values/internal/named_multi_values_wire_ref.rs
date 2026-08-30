@@ -13,6 +13,10 @@ use serde::Serialize;
 use crate::ValueWireRefV1;
 
 /// Borrowed wire representation of a named collection.
+///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of the borrowed name and collection payload.
 #[derive(Serialize)]
 pub(in crate::named_multi_values) struct NamedMultiValuesWireRef<'a> {
     /// Name associated with the collection.

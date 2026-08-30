@@ -140,6 +140,7 @@ for_each_value_type!(define_value_enum);
 #[must_use]
 #[derive(Clone)]
 pub struct Value {
+    /// Private typed storage backing the stable public accessor API.
     pub(crate) repr: ValueRepr,
 }
 
@@ -149,6 +150,7 @@ impl fmt::Debug for Value {
     }
 }
 
+/// Implements named scalar constructors from the shared value table.
 macro_rules! impl_value_constructors {
     (
         ;
@@ -303,6 +305,7 @@ impl Value {
     }
 }
 
+/// Maps private scalar storage variants to their runtime data types.
 macro_rules! value_data_type_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &$value.repr {
@@ -487,9 +490,7 @@ impl Value {
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
             result => result,
         }
     }
@@ -520,9 +521,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
             result => result,
         }
     }
@@ -564,10 +563,7 @@ impl Value {
     where
         T: DataConversionTarget,
     {
-        self.to_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts this value to `T`, or returns `default` when storage is unset
@@ -600,9 +596,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -639,11 +633,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }
@@ -675,27 +665,18 @@ impl Value {
     /// or invalid for `T` under the provided policy and limits.
     #[inline(always)]
     #[cfg(feature = "converter")]
-    pub fn to_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<T>
+    pub fn to_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
-        super::value_converters::convert_with_data_converter_with(
-            self, policy, limits,
-        )
+        super::value_converters::convert_with_data_converter_with(self, policy, limits)
     }
 
     /// Converts this value to `T` while charging an existing conversion
     /// session.
     #[inline(always)]
     #[cfg(feature = "converter")]
-    pub fn to_in<T>(
-        &self,
-        session: &mut ConversionSession<'_>,
-    ) -> ValueResult<T>
+    pub fn to_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -740,9 +721,7 @@ impl Value {
         T: DataConversionTarget,
     {
         match self.to_with(policy, limits) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
                 Ok(default.into_value_default())
             }
             result => result,
@@ -786,11 +765,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(policy, limits) {
-            Err(ValueError::Missing(missing))
-                if missing.is_defaultable_for_conversion() =>
-            {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }

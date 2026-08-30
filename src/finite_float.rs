@@ -14,8 +14,7 @@ use self::internal::FiniteFloat;
 
 /// Stable Serde error message used to identify non-finite values through
 /// nested serializers.
-pub(crate) const NON_FINITE_FLOAT_MESSAGE: &str =
-    "non-finite floating-point value";
+pub(crate) const NON_FINITE_FLOAT_MESSAGE: &str = "non-finite floating-point value";
 
 use serde::Deserialize;
 use serde::Deserializer;
@@ -113,10 +112,7 @@ where
 ///
 /// Returns `S::Error` when any element is non-finite or the destination
 /// serializer rejects the sequence.
-fn serialize_finite_vec<T, S>(
-    values: &[T],
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_finite_vec<T, S>(values: &[T], serializer: S) -> Result<S::Ok, S::Error>
 where
     T: FiniteFloat + Serialize,
     S: Serializer,
@@ -146,9 +142,7 @@ where
 ///
 /// Returns `D::Error` when deserialization fails or any decoded element is
 /// non-finite.
-fn deserialize_finite_vec<'de, T, D>(
-    deserializer: D,
-) -> Result<Vec<T>, D::Error>
+fn deserialize_finite_vec<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
 where
     T: Deserialize<'de> + FiniteFloat,
     D: Deserializer<'de>,
@@ -167,6 +161,10 @@ pub(crate) mod float32 {
 
     /// Serializes one finite `f32` value.
     ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Destination serializer type.
+    ///
     /// # Parameters
     ///
     /// * `value` - Floating-point value to serialize.
@@ -180,10 +178,7 @@ pub(crate) mod float32 {
     ///
     /// Returns `S::Error` when `value` is non-finite or serialization fails.
     #[inline(always)]
-    pub(crate) fn serialize<S>(
-        value: &f32,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(value: &f32, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -191,6 +186,10 @@ pub(crate) mod float32 {
     }
 
     /// Deserializes one finite `f32` value.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Source deserializer type.
     ///
     /// # Parameters
     ///
@@ -220,6 +219,10 @@ pub(crate) mod float64 {
 
     /// Serializes one finite `f64` value.
     ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Destination serializer type.
+    ///
     /// # Parameters
     ///
     /// * `value` - Floating-point value to serialize.
@@ -233,10 +236,7 @@ pub(crate) mod float64 {
     ///
     /// Returns `S::Error` when `value` is non-finite or serialization fails.
     #[inline(always)]
-    pub(crate) fn serialize<S>(
-        value: &f64,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(value: &f64, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -244,6 +244,10 @@ pub(crate) mod float64 {
     }
 
     /// Deserializes one finite `f64` value.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Source deserializer type.
     ///
     /// # Parameters
     ///
@@ -273,6 +277,10 @@ pub(crate) mod float32_vec {
 
     /// Serializes a slice of finite `f32` values.
     ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Destination serializer type.
+    ///
     /// # Parameters
     ///
     /// * `values` - Floating-point values to serialize.
@@ -287,10 +295,7 @@ pub(crate) mod float32_vec {
     /// Returns `S::Error` when any element is non-finite or serialization
     /// fails.
     #[inline(always)]
-    pub(crate) fn serialize<S>(
-        values: &[f32],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(values: &[f32], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -298,6 +303,10 @@ pub(crate) mod float32_vec {
     }
 
     /// Deserializes a vector of finite `f32` values.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Source deserializer type.
     ///
     /// # Parameters
     ///
@@ -312,9 +321,7 @@ pub(crate) mod float32_vec {
     /// Returns `D::Error` when deserialization fails or any element is
     /// non-finite.
     #[inline(always)]
-    pub(crate) fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<Vec<f32>, D::Error>
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<f32>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -328,6 +335,10 @@ pub(crate) mod float64_vec {
     use serde::Serializer;
 
     /// Serializes a slice of finite `f64` values.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Destination serializer type.
     ///
     /// # Parameters
     ///
@@ -343,10 +354,7 @@ pub(crate) mod float64_vec {
     /// Returns `S::Error` when any element is non-finite or serialization
     /// fails.
     #[inline(always)]
-    pub(crate) fn serialize<S>(
-        values: &[f64],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(values: &[f64], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -354,6 +362,10 @@ pub(crate) mod float64_vec {
     }
 
     /// Deserializes a vector of finite `f64` values.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Source deserializer type.
     ///
     /// # Parameters
     ///
@@ -368,9 +380,7 @@ pub(crate) mod float64_vec {
     /// Returns `D::Error` when deserialization fails or any element is
     /// non-finite.
     #[inline(always)]
-    pub(crate) fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<Vec<f64>, D::Error>
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<f64>, D::Error>
     where
         D: Deserializer<'de>,
     {

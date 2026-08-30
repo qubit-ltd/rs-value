@@ -104,9 +104,7 @@ fn test_add_moves_owned_strings_when_promoting_scalar() {
     let appended = vec!["appended".to_string()];
     let appended_ptr = appended[0].as_ptr();
 
-    container
-        .add(appended)
-        .expect("owned strings have the same data type");
+    container.add(appended).expect("owned strings have the same data type");
 
     let ValueContainer::Collection(values) = container else {
         panic!("expected a string collection");
@@ -123,9 +121,7 @@ fn test_add_moves_owned_strings_into_collection() {
     let appended = vec!["appended".to_string()];
     let appended_ptr = appended[0].as_ptr();
 
-    container
-        .add(appended)
-        .expect("owned strings have the same data type");
+    container.add(appended).expect("owned strings have the same data type");
 
     let ValueContainer::Collection(values) = container else {
         panic!("expected a string collection");
@@ -169,12 +165,9 @@ fn test_value_container_generic_api_uses_public_bounds() {
     let collection = ValueContainer::from(vec![43_i32, 44]);
 
     let scalar_value: i32 = scalar.get_first().expect("strict scalar access");
-    let collection_first: i32 =
-        collection.get_first().expect("strict first access");
-    let scalar_values: Vec<i32> =
-        scalar.get_list().expect("strict scalar list access");
-    let collection_values: Vec<i32> =
-        collection.get_list().expect("strict collection access");
+    let collection_first: i32 = collection.get_first().expect("strict first access");
+    let scalar_values: Vec<i32> = scalar.get_list().expect("strict scalar list access");
+    let collection_values: Vec<i32> = collection.get_list().expect("strict collection access");
 
     assert_eq!(scalar_value, 42);
     assert_eq!(collection_first, 43);
@@ -190,17 +183,11 @@ fn test_value_container_mutation_preserves_shape() {
     scalar.set("replacement");
     collection.add(44_i32).expect("append compatible scalar");
     assert_eq!(scalar, ValueContainer::from("replacement"));
-    assert_eq!(
-        collection,
-        ValueContainer::Collection(MultiValues::Int32(vec![43, 44]))
-    );
+    assert_eq!(collection, ValueContainer::Collection(MultiValues::Int32(vec![43, 44])));
 
     scalar.unset();
     collection.unset();
-    assert_eq!(
-        scalar,
-        ValueContainer::Scalar(Value::Unset(DataType::String))
-    );
+    assert_eq!(scalar, ValueContainer::Scalar(Value::Unset(DataType::String)));
     assert_eq!(
         collection,
         ValueContainer::Collection(MultiValues::Unset(DataType::Int32))
@@ -236,8 +223,7 @@ fn named_wrappers_retain_generic_core_access() {
     named.value_mut().set(9090_i32);
     assert_eq!(named.value().get_int32().unwrap(), 9090);
 
-    let mut named_values =
-        NamedMultiValues::new("ports", MultiValues::Int32(vec![8080]));
+    let mut named_values = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080]));
     named_values.values_mut().add(9090_i32).unwrap();
     assert_eq!(named_values.values().get_int32s().unwrap(), &[8080, 9090]);
 }

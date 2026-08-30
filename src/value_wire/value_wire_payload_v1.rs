@@ -66,6 +66,10 @@ pub struct ValueWirePayloadV1 {
 
 impl ValueWirePayloadV1 {
     /// Returns the default JSON resource profile for complete V1 payloads.
+    ///
+    /// # Returns
+    ///
+    /// Decode limits suitable for one standalone unversioned V1 payload.
     #[cfg(feature = "json")]
     #[must_use = "the V1 JSON profile should be applied to a budget"]
     #[inline]
@@ -74,6 +78,10 @@ impl ValueWirePayloadV1 {
     }
 
     /// Returns the default JSON resource profile for complete V1 payloads.
+    ///
+    /// # Returns
+    ///
+    /// Encode limits suitable for one standalone unversioned V1 payload.
     #[cfg(feature = "json")]
     #[must_use = "the V1 JSON profile should be applied to an encode session"]
     #[inline]
@@ -87,22 +95,34 @@ impl ValueWirePayloadV1 {
     /// untrusted document. Embedded protocols should share one budget across
     /// all payloads in their complete document.
     ///
+    /// # Parameters
+    ///
+    /// * `input` - Complete UTF-8 JSON payload to decode.
+    ///
+    /// # Returns
+    ///
+    /// The decoded unversioned V1 payload.
+    ///
     /// # Errors
     ///
     /// Returns a limit error when the input or decoded structure is too large,
     /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(
-            input,
-            Self::default_json_decode_limits(),
-        )
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, Self::default_json_decode_limits())
     }
 
     /// Decodes a complete V1 JSON payload using explicit resource limits.
+    ///
+    /// # Parameters
+    ///
+    /// * `input` - Complete UTF-8 JSON payload to decode.
+    /// * `limits` - Resource limits enforced during decoding.
+    ///
+    /// # Returns
+    ///
+    /// The decoded unversioned V1 payload.
     ///
     /// # Errors
     ///
@@ -110,10 +130,7 @@ impl ValueWirePayloadV1 {
     /// `limits`, or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice_with_limits(
-        input: &[u8],
-        limits: JsonDecodeLimits,
-    ) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
             .decode_utf8(input)
@@ -133,11 +150,21 @@ impl ValueWirePayloadV1 {
     }
 
     /// Encodes this V1 payload into a bounded compact JSON vector.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Resource limits enforced during encoding.
+    ///
+    /// # Returns
+    ///
+    /// Compact UTF-8 JSON bytes for this unversioned payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits` or the
+    /// payload cannot be serialized.
     #[cfg(feature = "json")]
-    pub fn to_json_vec_with_limits(
-        &self,
-        limits: JsonEncodeLimits,
-    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+    pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -146,9 +173,17 @@ impl ValueWirePayloadV1 {
 
     /// Encodes this V1 payload to a writer with default limits.
     ///
+    /// # Type Parameters
+    ///
+    /// * `W` - Destination writer type.
+    ///
     /// # Parameters
     ///
     /// * `writer` - Destination receiving the complete JSON payload.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the complete payload is written.
     ///
     /// # Errors
     ///
@@ -156,26 +191,34 @@ impl ValueWirePayloadV1 {
     /// [`ValueWireEncodeError::Io`] when `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer<W>(
-        &self,
-        writer: W,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        self.to_json_writer_with_limits(
-            writer,
-            Self::default_json_encode_limits(),
-        )
+        self.to_json_writer_with_limits(writer, Self::default_json_encode_limits())
     }
 
     /// Encodes this V1 payload to a writer after enforcing JSON budgets.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `W` - Destination writer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `writer` - Destination receiving the complete JSON payload.
+    /// * `limits` - Resource limits enforced during encoding.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the complete payload is written.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits`, the
+    /// payload cannot be serialized, or `writer` rejects output.
     #[cfg(feature = "json")]
-    pub fn to_json_writer_with_limits<W>(
-        &self,
-        writer: W,
-        limits: JsonEncodeLimits,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(&self, writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
@@ -186,18 +229,39 @@ impl ValueWirePayloadV1 {
     }
 
     /// Borrows the preserved runtime value.
+    ///
+    /// # Returns
+    ///
+    /// A shared reference to the preserved scalar-or-collection container.
     #[inline(always)]
     pub const fn container(&self) -> &ValueContainer {
         &self.value
     }
 
     /// Consumes this payload and returns its runtime value.
+    ///
+    /// # Returns
+    ///
+    /// The preserved scalar-or-collection container.
     #[inline(always)]
     pub fn into_container(self) -> ValueContainer {
         self.value
     }
 
     /// Builds a payload after enforcing V1's finite-float invariant.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Runtime container to validate and own.
+    ///
+    /// # Returns
+    ///
+    /// A validated owned V1 payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] when any contained numeric payload is
+    /// not representable by V1.
     fn try_new(value: ValueContainer) -> Result<Self, ValueWireEncodeError> {
         match &value {
             ValueContainer::Scalar(value) => validate_value(value)?,
@@ -207,9 +271,15 @@ impl ValueWirePayloadV1 {
     }
 
     /// Wraps a payload decoded through V1's finite-number Serde adapters.
-    pub(in crate::value_wire) const fn from_decoded(
-        value: ValueContainer,
-    ) -> Self {
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Already validated decoded runtime container.
+    ///
+    /// # Returns
+    ///
+    /// An owned unversioned V1 payload.
+    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
         Self { value }
     }
 }
@@ -270,8 +340,6 @@ impl<'de> Deserialize<'de> for ValueWirePayloadV1 {
     where
         D: Deserializer<'de>,
     {
-        Ok(Self::from_decoded(
-            WireShapeOwned::deserialize(deserializer)?.into(),
-        ))
+        Ok(Self::from_decoded(WireShapeOwned::deserialize(deserializer)?.into()))
     }
 }

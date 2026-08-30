@@ -15,6 +15,10 @@ use serde::ser::Serializer;
 use serde_json::Value;
 
 /// Borrows a JSON value while recursively sorting object keys.
+///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of the borrowed JSON tree.
 pub(in crate::wire) struct CanonicalJson<'a>(
     /// The JSON value to serialize.
     pub(in crate::wire) &'a Value,
@@ -32,8 +36,7 @@ impl Serialize for CanonicalJson<'_> {
             Value::Number(value) => value.serialize(serializer),
             Value::String(value) => serializer.serialize_str(value),
             Value::Array(values) => {
-                let mut sequence =
-                    serializer.serialize_seq(Some(values.len()))?;
+                let mut sequence = serializer.serialize_seq(Some(values.len()))?;
                 for value in values {
                     sequence.serialize_element(&Self(value))?;
                 }

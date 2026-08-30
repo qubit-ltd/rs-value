@@ -89,11 +89,9 @@ fn test_value_is_numeric_is_state_aware() {
 #[test]
 fn test_value_wire_rejects_non_finite_floats() {
     let finite = Value::Float64(1.25);
-    let wire = ValueWireV1::try_from(finite.clone())
-        .expect("finite value should fit the V1 wire contract");
+    let wire = ValueWireV1::try_from(finite.clone()).expect("finite value should fit the V1 wire contract");
     let json = serde_json::to_string(&wire).expect("serialize V1 wire");
-    let decoded: ValueWireV1 =
-        serde_json::from_str(&json).expect("deserialize V1 wire");
+    let decoded: ValueWireV1 = serde_json::from_str(&json).expect("deserialize V1 wire");
     assert_eq!(decoded.into_container(), finite.into());
 
     for value in [
@@ -151,10 +149,7 @@ fn test_value_new_various_types() {
     assert!((Value::new(2.5f64).get_float64().unwrap() - 2.5).abs() < 0.001);
 
     // Strings (String vs &str)
-    assert_eq!(
-        Value::new("hello".to_string()).get_string().unwrap(),
-        "hello"
-    );
+    assert_eq!(Value::new("hello".to_string()).get_string().unwrap(), "hello");
     assert_eq!(Value::new("world").get_string().unwrap(), "world");
 }
 #[test]
@@ -200,8 +195,7 @@ fn test_value_datetime_types() {
     assert_eq!(value.data_type(), DataType::DateTime);
 
     // Test Instant
-    let instant = DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
-        .expect("fixed test instant must be valid");
+    let instant = DateTime::<Utc>::from_timestamp(1_700_000_000, 0).expect("fixed test instant must be valid");
     let mut value = Value::Unset(DataType::Instant);
     value.set(instant);
     assert_eq!(value.get_instant().unwrap(), instant);
@@ -224,10 +218,7 @@ fn test_set_on_non_empty_for_coverage() {
     assert_eq!(v.data_type(), DataType::String);
     assert!(!v.is_unset());
     assert_eq!(v.get_string().unwrap(), "hello");
-    assert!(matches!(
-        v.get_int32(),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(matches!(v.get_int32(), Err(ValueError::TypeMismatch { .. })));
 
     // Overwrite with the same type
     v.set("world".to_string());
@@ -253,37 +244,16 @@ fn test_data_type_coverage_all_variants() {
     assert_eq!(Value::Unset(DataType::UInt16).data_type(), DataType::UInt16);
     assert_eq!(Value::Unset(DataType::UInt32).data_type(), DataType::UInt32);
     assert_eq!(Value::Unset(DataType::UInt64).data_type(), DataType::UInt64);
-    assert_eq!(
-        Value::Unset(DataType::UInt128).data_type(),
-        DataType::UInt128
-    );
-    assert_eq!(
-        Value::Unset(DataType::Float32).data_type(),
-        DataType::Float32
-    );
-    assert_eq!(
-        Value::Unset(DataType::Float64).data_type(),
-        DataType::Float64
-    );
+    assert_eq!(Value::Unset(DataType::UInt128).data_type(), DataType::UInt128);
+    assert_eq!(Value::Unset(DataType::Float32).data_type(), DataType::Float32);
+    assert_eq!(Value::Unset(DataType::Float64).data_type(), DataType::Float64);
     assert_eq!(Value::Unset(DataType::String).data_type(), DataType::String);
     assert_eq!(Value::Unset(DataType::Date).data_type(), DataType::Date);
     assert_eq!(Value::Unset(DataType::Time).data_type(), DataType::Time);
-    assert_eq!(
-        Value::Unset(DataType::DateTime).data_type(),
-        DataType::DateTime
-    );
-    assert_eq!(
-        Value::Unset(DataType::Instant).data_type(),
-        DataType::Instant
-    );
-    assert_eq!(
-        Value::Unset(DataType::BigInteger).data_type(),
-        DataType::BigInteger
-    );
-    assert_eq!(
-        Value::Unset(DataType::BigDecimal).data_type(),
-        DataType::BigDecimal
-    );
+    assert_eq!(Value::Unset(DataType::DateTime).data_type(), DataType::DateTime);
+    assert_eq!(Value::Unset(DataType::Instant).data_type(), DataType::Instant);
+    assert_eq!(Value::Unset(DataType::BigInteger).data_type(), DataType::BigInteger);
+    assert_eq!(Value::Unset(DataType::BigDecimal).data_type(), DataType::BigDecimal);
 
     // All concrete value types
     assert_eq!(Value::Bool(true).data_type(), DataType::Bool);
@@ -300,10 +270,7 @@ fn test_data_type_coverage_all_variants() {
     assert_eq!(Value::UInt128(1).data_type(), DataType::UInt128);
     assert_eq!(Value::Float32(1.0).data_type(), DataType::Float32);
     assert_eq!(Value::Float64(1.0).data_type(), DataType::Float64);
-    assert_eq!(
-        Value::String("test".to_string()).data_type(),
-        DataType::String
-    );
+    assert_eq!(Value::String("test".to_string()).data_type(), DataType::String);
     assert_eq!(
         Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).data_type(),
         DataType::Date
@@ -323,17 +290,11 @@ fn test_data_type_coverage_all_variants() {
         DataType::DateTime
     );
     assert_eq!(
-        Value::Instant(
-            DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
-                .expect("fixed test instant must be valid"),
-        )
-        .data_type(),
+        Value::Instant(DateTime::<Utc>::from_timestamp(1_700_000_000, 0).expect("fixed test instant must be valid"),)
+            .data_type(),
         DataType::Instant
     );
-    assert_eq!(
-        Value::BigInteger(BigInt::from(123)).data_type(),
-        DataType::BigInteger
-    );
+    assert_eq!(Value::BigInteger(BigInt::from(123)).data_type(), DataType::BigInteger);
     assert_eq!(
         Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).data_type(),
         DataType::BigDecimal
@@ -361,12 +322,8 @@ fn test_is_unset_distinguishes_empty_inner_values() {
     assert!(!Value::Float32(1.0).is_unset());
     assert!(!Value::Float64(1.0).is_unset());
     assert!(!Value::String(String::new()).is_unset());
-    assert!(
-        !Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_unset()
-    );
-    assert!(
-        !Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_unset()
-    );
+    assert!(!Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).is_unset());
+    assert!(!Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).is_unset());
     assert!(
         !Value::DateTime(
             NaiveDate::from_ymd_opt(2024, 1, 1)
@@ -377,16 +334,11 @@ fn test_is_unset_distinguishes_empty_inner_values() {
         .is_unset()
     );
     assert!(
-        !Value::Instant(
-            DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
-                .expect("fixed test instant must be valid"),
-        )
-        .is_unset()
+        !Value::Instant(DateTime::<Utc>::from_timestamp(1_700_000_000, 0).expect("fixed test instant must be valid"),)
+            .is_unset()
     );
     assert!(!Value::BigInteger(BigInt::from(123)).is_unset());
-    assert!(
-        !Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_unset()
-    );
+    assert!(!Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).is_unset());
 
     for &data_type in DataType::ALL {
         assert!(Value::Unset(data_type).is_unset());
