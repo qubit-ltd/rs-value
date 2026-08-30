@@ -66,6 +66,23 @@ macro_rules! define_wide_integer_serde {
             use super::IntegerVisitor;
 
             /// Serializes a wide integer as a canonical decimal string.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `S` - Destination serializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `value` - Wide integer to serialize.
+            /// * `serializer` - Destination serializer.
+            ///
+            /// # Returns
+            ///
+            /// The destination serializer's result.
+            ///
+            /// # Errors
+            ///
+            /// Returns `S::Error` when serialization fails.
             pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -74,6 +91,22 @@ macro_rules! define_wide_integer_serde {
             }
 
             /// Deserializes a wide integer from a canonical decimal string.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `D` - Source deserializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `deserializer` - Source deserializer.
+            ///
+            /// # Returns
+            ///
+            /// The decoded wide integer.
+            ///
+            /// # Errors
+            ///
+            /// Returns `D::Error` for malformed or non-canonical input.
             pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
@@ -92,6 +125,23 @@ macro_rules! define_wide_integer_serde {
             use super::ParsedInteger;
 
             /// Serializes wide integers as canonical decimal strings.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `S` - Destination serializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `values` - Wide integers to serialize in order.
+            /// * `serializer` - Destination serializer.
+            ///
+            /// # Returns
+            ///
+            /// The destination serializer's sequence result.
+            ///
+            /// # Errors
+            ///
+            /// Returns `S::Error` when sequence serialization fails.
             pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -100,6 +150,22 @@ macro_rules! define_wide_integer_serde {
             }
 
             /// Deserializes wide integers from canonical decimal strings.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `D` - Source deserializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `deserializer` - Source deserializer.
+            ///
+            /// # Returns
+            ///
+            /// Decoded wide integers in source order.
+            ///
+            /// # Errors
+            ///
+            /// Returns `D::Error` for malformed or non-canonical input.
             pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<$type>, D::Error>
             where
                 D: Deserializer<'de>,

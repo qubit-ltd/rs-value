@@ -499,6 +499,23 @@ macro_rules! define_decimal_serde {
             use super::decimal;
 
             /// Serializes a decimal value as a canonical decimal string.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `S` - Destination serializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `value` - Decimal-backed value to serialize.
+            /// * `serializer` - Destination serializer.
+            ///
+            /// # Returns
+            ///
+            /// The destination serializer's result.
+            ///
+            /// # Errors
+            ///
+            /// Returns `S::Error` when serialization fails.
             pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -507,6 +524,22 @@ macro_rules! define_decimal_serde {
             }
 
             /// Deserializes a decimal value from a canonical decimal string.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `D` - Source deserializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `deserializer` - Source deserializer.
+            ///
+            /// # Returns
+            ///
+            /// The decoded decimal-backed value.
+            ///
+            /// # Errors
+            ///
+            /// Returns `D::Error` for malformed or non-canonical input.
             pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
@@ -523,6 +556,23 @@ macro_rules! define_decimal_serde {
             use super::decimal;
 
             /// Serializes decimal values as canonical decimal strings.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `S` - Destination serializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `values` - Decimal-backed values to serialize in order.
+            /// * `serializer` - Destination serializer.
+            ///
+            /// # Returns
+            ///
+            /// The destination serializer's sequence result.
+            ///
+            /// # Errors
+            ///
+            /// Returns `S::Error` when sequence serialization fails.
             pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -531,6 +581,22 @@ macro_rules! define_decimal_serde {
             }
 
             /// Deserializes decimal values from canonical decimal strings.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `D` - Source deserializer type.
+            ///
+            /// # Parameters
+            ///
+            /// * `deserializer` - Source deserializer.
+            ///
+            /// # Returns
+            ///
+            /// Decoded decimal-backed values in source order.
+            ///
+            /// # Errors
+            ///
+            /// Returns `D::Error` for malformed or non-canonical input.
             pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<$type>, D::Error>
             where
                 D: Deserializer<'de>,
@@ -558,6 +624,23 @@ pub(crate) mod big_decimal {
     use super::BigDecimalPayload;
 
     /// Serializes a decimal as an exact `{ coefficient, scale }` payload.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Destination serializer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Decimal value to serialize exactly.
+    /// * `serializer` - Destination serializer.
+    ///
+    /// # Returns
+    ///
+    /// The destination serializer's result.
+    ///
+    /// # Errors
+    ///
+    /// Returns `S::Error` when the scale is out of range or serialization fails.
     pub(crate) fn serialize<S>(value: &BigDecimal, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -568,6 +651,22 @@ pub(crate) mod big_decimal {
     }
 
     /// Deserializes and validates an exact decimal payload.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Source deserializer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Source deserializer.
+    ///
+    /// # Returns
+    ///
+    /// The exact decoded decimal value.
+    ///
+    /// # Errors
+    ///
+    /// Returns `D::Error` for malformed payloads or invalid decimal scales.
     pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
     where
         D: Deserializer<'de>,
@@ -592,6 +691,23 @@ pub(crate) mod big_decimal_vec {
     use super::BigDecimalPayload;
 
     /// Serializes decimals as exact `{ coefficient, scale }` payloads.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Destination serializer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Decimal values to serialize in order.
+    /// * `serializer` - Destination serializer.
+    ///
+    /// # Returns
+    ///
+    /// The destination serializer's sequence result.
+    ///
+    /// # Errors
+    ///
+    /// Returns `S::Error` for an out-of-range scale or serialization failure.
     pub(crate) fn serialize<S>(values: &[BigDecimal], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -605,6 +721,22 @@ pub(crate) mod big_decimal_vec {
     }
 
     /// Deserializes and validates exact decimal payloads.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Source deserializer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Source deserializer.
+    ///
+    /// # Returns
+    ///
+    /// Exact decoded decimal values in source order.
+    ///
+    /// # Errors
+    ///
+    /// Returns `D::Error` for malformed payloads or invalid decimal scales.
     pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<BigDecimal>, D::Error>
     where
         D: Deserializer<'de>,
@@ -629,6 +761,23 @@ pub(crate) mod duration {
     use super::DurationPayload;
 
     /// Serializes a duration as `{ secs, nanos }`.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Destination serializer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Duration to decompose into seconds and nanoseconds.
+    /// * `serializer` - Destination serializer.
+    ///
+    /// # Returns
+    ///
+    /// The destination serializer's result.
+    ///
+    /// # Errors
+    ///
+    /// Returns `S::Error` when serialization fails.
     pub(crate) fn serialize<S>(value: &Duration, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -637,6 +786,22 @@ pub(crate) mod duration {
     }
 
     /// Deserializes and validates a `{ secs, nanos }` duration payload.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Source deserializer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Source deserializer.
+    ///
+    /// # Returns
+    ///
+    /// The decoded duration.
+    ///
+    /// # Errors
+    ///
+    /// Returns `D::Error` when decoding fails or nanoseconds are out of range.
     pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
     where
         D: Deserializer<'de>,
@@ -659,6 +824,23 @@ pub(crate) mod duration_vec {
     use super::DurationPayload;
 
     /// Serializes durations as a sequence of `{ secs, nanos }` payloads.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Destination serializer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Durations to serialize in order.
+    /// * `serializer` - Destination serializer.
+    ///
+    /// # Returns
+    ///
+    /// The destination serializer's sequence result.
+    ///
+    /// # Errors
+    ///
+    /// Returns `S::Error` when sequence serialization fails.
     pub(crate) fn serialize<S>(values: &[Duration], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -667,6 +849,23 @@ pub(crate) mod duration_vec {
     }
 
     /// Deserializes and validates a sequence of duration payloads.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Source deserializer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Source deserializer.
+    ///
+    /// # Returns
+    ///
+    /// Decoded durations in source order.
+    ///
+    /// # Errors
+    ///
+    /// Returns `D::Error` when decoding fails or any nanoseconds field is out
+    /// of range.
     pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Duration>, D::Error>
     where
         D: Deserializer<'de>,
