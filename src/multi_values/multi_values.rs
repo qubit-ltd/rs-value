@@ -283,8 +283,7 @@ impl MultiValues {
                 for value in values {
                     hash_json(value, state);
                 }
-                transaction.commit();
-                Ok(())
+                transaction.commit()
             }
             _ => {
                 std::mem::discriminant(&self.repr).hash(state);

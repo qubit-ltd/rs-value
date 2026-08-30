@@ -287,8 +287,7 @@ impl Value {
                 preflight_json(value, &mut transaction)?;
                 std::mem::discriminant(&self.repr).hash(state);
                 hash_json(value, state);
-                transaction.commit();
-                Ok(())
+                transaction.commit()
             }
             _ => {
                 std::mem::discriminant(&self.repr).hash(state);

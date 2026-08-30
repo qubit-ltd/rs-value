@@ -136,8 +136,7 @@ where
     let mut transaction = budget.transaction();
     preflight_json(value, &mut transaction)?;
     hash_json(value, state);
-    transaction.commit();
-    Ok(())
+    transaction.commit()
 }
 
 /// Checks every JSON event in `value` against a staged value transaction.
