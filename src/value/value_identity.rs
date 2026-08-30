@@ -68,6 +68,27 @@ macro_rules! hash_payload {
 }
 
 /// Hashes one value payload while applying a budget to JSON payloads.
+///
+/// # Type Parameters
+///
+/// * `H` - Hasher receiving the semantic payload identity.
+/// * `R` - Resource identifier used by the JSON budget.
+/// * `Q` - Quantity type used by the JSON budget.
+///
+/// # Parameters
+///
+/// * `repr` - Private scalar representation whose payload is hashed.
+/// * `state` - Destination hasher.
+/// * `_budget` - Budget reserved for JSON payload accounting by the caller.
+///
+/// # Returns
+///
+/// `Ok(())` after the payload identity is hashed.
+///
+/// # Errors
+///
+/// This helper currently returns no error for non-JSON payloads; JSON payloads
+/// are preflighted by [`Value::hash_with_json_budget`](crate::Value::hash_with_json_budget).
 #[cfg(feature = "json")]
 pub(crate) fn hash_value_payload_with_json_budget<H, R, Q>(
     repr: &ValueRepr,

@@ -391,6 +391,10 @@ impl ValueContainer {
     }
 
     /// Tests whether this container represents no concrete values.
+    ///
+    /// # Returns
+    ///
+    /// `true` for unset storage or a concrete empty collection.
     #[inline(always)]
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -580,6 +584,22 @@ impl ValueContainer {
 
     /// Converts the scalar or first collection item using an existing
     /// conversion session.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target conversion type.
+    ///
+    /// # Parameters
+    ///
+    /// * `session` - Caller-owned session providing policy, limits, and budget.
+    ///
+    /// # Returns
+    ///
+    /// The converted scalar or first collection item.
+    ///
+    /// # Errors
+    ///
+    /// Returns the mapped missing, conversion, or budget error.
     #[cfg(feature = "converter")]
     #[inline(always)]
     pub fn to_first_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
@@ -652,6 +672,22 @@ impl ValueContainer {
     }
 
     /// Converts this container to a list using an existing conversion session.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target list element type.
+    ///
+    /// # Parameters
+    ///
+    /// * `session` - Caller-owned session providing policy, limits, and budget.
+    ///
+    /// # Returns
+    ///
+    /// A converted scalar list or all converted collection items.
+    ///
+    /// # Errors
+    ///
+    /// Returns the mapped missing, conversion, indexed-list, or budget error.
     #[cfg(feature = "converter")]
     pub fn to_list_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<Vec<T>>
     where
