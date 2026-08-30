@@ -10,6 +10,7 @@
 
 use super::value::Value;
 
+/// Implements owned scalar conversions from the shared value table.
 macro_rules! impl_value_from_table {
     (
         ;

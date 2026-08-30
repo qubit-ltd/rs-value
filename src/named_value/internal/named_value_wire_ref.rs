@@ -13,6 +13,10 @@ use serde::Serialize;
 use crate::ValueWireRefV1;
 
 /// Borrowed wire representation of a named scalar value.
+///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of the borrowed name and scalar payload.
 #[derive(Serialize)]
 pub(in crate::named_value) struct NamedValueWireRef<'a> {
     /// Name associated with the scalar value.

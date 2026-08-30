@@ -55,8 +55,7 @@ fn test_public_value_wrappers_implement_redact() {
 #[test]
 fn test_public_value_wrappers_use_mutable_redaction_sessions() {
     fn assert_signature<T: Redact>() {
-        let _: for<'session> fn(&T, &'session mut RedactionWriter<'session>) =
-            T::write_redacted;
+        let _: for<'session> fn(&T, &'session mut RedactionWriter<'session>) = T::write_redacted;
     }
 
     assert_signature::<Value>();
@@ -68,10 +67,7 @@ fn test_public_value_wrappers_use_mutable_redaction_sessions() {
 
 /// Builds a policy with an explicit domain-structure budget.
 #[cfg(feature = "redact")]
-fn policy_with_domain_limits(
-    max_nodes: usize,
-    max_collection_items: usize,
-) -> RedactionPolicy {
+fn policy_with_domain_limits(max_nodes: usize, max_collection_items: usize) -> RedactionPolicy {
     RedactionPolicy::builder()
         .limits(|limits| {
             limits
@@ -88,17 +84,11 @@ fn policy_with_domain_limits(
 #[cfg(feature = "redact")]
 #[test]
 fn test_multi_values_stop_before_unadmitted_collection_elements() {
-    let values = MultiValues::String(vec![
-        "visible".to_owned(),
-        "must-not-be-formatted".to_owned(),
-    ]);
+    let values = MultiValues::String(vec!["visible".to_owned(), "must-not-be-formatted".to_owned()]);
     let policy = policy_with_domain_limits(64, 1);
 
     let result = Redactor::new(policy).redact(&values);
-    assert_eq!(
-        result.summary().completion(),
-        RedactionCompletion::Truncated
-    );
+    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     let output = result.text().as_str();
 
     assert!(output.contains("visible"), "{output}");
@@ -127,16 +117,11 @@ fn test_multi_values_exact_collection_limit_is_complete() {
 #[cfg(feature = "redact")]
 #[test]
 fn test_value_container_stops_before_unadmitted_variant_payload() {
-    let value = ValueContainer::Scalar(Value::String(
-        "must-not-be-formatted".to_owned(),
-    ));
+    let value = ValueContainer::Scalar(Value::String("must-not-be-formatted".to_owned()));
     let policy = policy_with_domain_limits(1, 8);
 
     let result = Redactor::new(policy).redact(&value);
-    assert_eq!(
-        result.summary().completion(),
-        RedactionCompletion::Truncated
-    );
+    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     let output = result.text().as_str();
 
     assert!(!output.contains("must-not-be-formatted"), "{output}");
@@ -185,9 +170,7 @@ fn test_runtime_value_wrappers_implement_hash_key_contract() {
 
     let keys = HashSet::from([
         ValueContainer::Collection(MultiValues::Float64(vec![f64::NAN])),
-        ValueContainer::Collection(MultiValues::Float64(vec![f64::from_bits(
-            0x7fff_ffff_ffff_ffff,
-        )])),
+        ValueContainer::Collection(MultiValues::Float64(vec![f64::from_bits(0x7fff_ffff_ffff_ffff)])),
         ValueContainer::Scalar(Value::Float64(f64::NAN)),
     ]);
     assert_eq!(keys.len(), 2);
@@ -205,17 +188,13 @@ fn test_value_container_preserves_scalar_and_collection_shapes() {
     assert_eq!(scalar.len(), 1);
     assert_eq!(collection.len(), 1);
     assert_eq!(scalar.to_json_value().expect("scalar JSON"), json!(42));
-    assert_eq!(
-        collection.to_json_value().expect("collection JSON"),
-        json!([42])
-    );
+    assert_eq!(collection.to_json_value().expect("collection JSON"), json!([42]));
 }
 
 #[test]
 fn test_value_container_len_and_is_unset_preserve_shape_semantics() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
-    let unset_collection =
-        ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let unset_collection = ValueContainer::Collection(MultiValues::Unset(DataType::String));
     let scalar = ValueContainer::from(42_i32);
     let empty_collection = ValueContainer::from(Vec::<String>::new());
     let collection = ValueContainer::from(vec!["alpha", "beta"]);
@@ -261,8 +240,7 @@ fn test_value_container_new_unset_constructors_are_shape_specific() {
 #[test]
 fn test_value_container_is_unset_distinguishes_concrete_scalars() {
     let unset_scalar = ValueContainer::Scalar(Value::Unset(DataType::String));
-    let unset_collection =
-        ValueContainer::Collection(MultiValues::Unset(DataType::String));
+    let unset_collection = ValueContainer::Collection(MultiValues::Unset(DataType::String));
     let empty_collection = ValueContainer::from(Vec::<String>::new());
     let empty_string = ValueContainer::from("");
 
@@ -280,10 +258,7 @@ fn test_value_container_shape_accessors_preserve_values_and_mismatches() {
     assert_eq!(scalar.as_scalar(), Some(&Value::Int32(42)));
     assert_eq!(scalar.as_collection(), None);
     assert_eq!(collection.as_scalar(), None);
-    assert_eq!(
-        collection.as_collection(),
-        Some(&MultiValues::Int32(vec![1, 2, 3]))
-    );
+    assert_eq!(collection.as_collection(), Some(&MultiValues::Int32(vec![1, 2, 3])));
 
     assert_eq!(scalar.clone().into_scalar(), Ok(Value::Int32(42)));
     assert_eq!(scalar.clone().into_collection(), Err(scalar));
@@ -326,10 +301,7 @@ fn test_value_container_add_promotes_scalar_and_checks_type() {
     let mut container = ValueContainer::from(1_i32);
     container.add(2_i32).expect("append compatible value");
 
-    assert_eq!(
-        container,
-        ValueContainer::Collection(MultiValues::Int32(vec![1, 2]))
-    );
+    assert_eq!(container, ValueContainer::Collection(MultiValues::Int32(vec![1, 2])));
     assert!(matches!(
         container.add("wrong type"),
         Err(ValueError::TypeMismatch {
@@ -344,20 +316,14 @@ fn test_value_container_add_initializes_typed_unset_scalar() {
     let mut container = ValueContainer::Scalar(Value::Unset(DataType::Int32));
     container.add(1_i32).expect("initialize typed unset");
 
-    assert_eq!(
-        container,
-        ValueContainer::Collection(MultiValues::Int32(vec![1]))
-    );
+    assert_eq!(container, ValueContainer::Collection(MultiValues::Int32(vec![1])));
 }
 
 #[test]
 fn test_value_container_unset_preserves_shape() {
     let mut scalar = ValueContainer::from(42_i32);
     scalar.unset();
-    assert_eq!(
-        scalar,
-        ValueContainer::Scalar(Value::Unset(DataType::Int32))
-    );
+    assert_eq!(scalar, ValueContainer::Scalar(Value::Unset(DataType::Int32)));
 
     let mut collection = ValueContainer::from(vec![42_i32]);
     collection.unset();
@@ -373,16 +339,11 @@ fn test_value_container_tagged_wire_preserves_shape() {
     let collection = ValueContainer::from(vec![42_i32]);
 
     assert_eq!(
-        to_value(ValueWireV1::try_from(scalar).expect("scalar should fit V1"),)
-            .expect("serialize scalar"),
+        to_value(ValueWireV1::try_from(scalar).expect("scalar should fit V1"),).expect("serialize scalar"),
         json!({"version": 1, "value": {"scalar": {"int32": 42}}})
     );
     assert_eq!(
-        to_value(
-            ValueWireV1::try_from(collection)
-                .expect("collection should fit V1"),
-        )
-        .expect("serialize collection"),
+        to_value(ValueWireV1::try_from(collection).expect("collection should fit V1"),).expect("serialize collection"),
         json!({"version": 1, "value": {"collection": {"int32": [42]}}})
     );
 }
@@ -390,8 +351,7 @@ fn test_value_container_tagged_wire_preserves_shape() {
 /// Verifies V1 payloads preserve shape without adding an embedded version.
 #[test]
 fn test_value_wire_payload_v1_preserves_shape_without_version() {
-    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(42_i32))
-        .expect("scalar should fit V1 payload");
+    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(42_i32)).expect("scalar should fit V1 payload");
 
     assert_eq!(
         to_value(payload).expect("serialize V1 payload"),
@@ -424,38 +384,23 @@ fn test_value_container_constructors_cover_borrowed_and_owned_collections() {
     let string_array = ["c", "d"];
     assert_eq!(
         ValueContainer::from(strings.clone()),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "a".into(),
-            "b".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
     );
     assert_eq!(
         ValueContainer::from(strings.as_slice()),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "a".into(),
-            "b".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
     );
     assert_eq!(
         ValueContainer::from(&strings),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "a".into(),
-            "b".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["a".into(), "b".into()]))
     );
     assert_eq!(
         ValueContainer::from(string_array),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "c".into(),
-            "d".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["c".into(), "d".into()]))
     );
     assert_eq!(
         ValueContainer::from(&string_array),
-        ValueContainer::Collection(MultiValues::String(vec![
-            "c".into(),
-            "d".into()
-        ]))
+        ValueContainer::Collection(MultiValues::String(vec!["c".into(), "d".into()]))
     );
 
     assert_eq!(
@@ -485,9 +430,7 @@ fn test_value_container_strict_access_mutation_and_state_cover_both_shapes() {
     scalar.set("replacement");
     assert_eq!(scalar, ValueContainer::from("replacement"));
 
-    collection
-        .add(vec![4_i32, 5])
-        .expect("append explicit collection");
+    collection.add(vec![4_i32, 5]).expect("append explicit collection");
     collection.add(6_i32).expect("append scalar to collection");
     assert_eq!(
         collection,

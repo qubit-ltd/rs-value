@@ -106,6 +106,10 @@ impl NamedMultiValues {
     /// Associates a given name with `MultiValues`, generating a container that
     /// can be referenced by name.
     ///
+    /// # Type Parameters
+    ///
+    /// * `impl Into<String>` - Name source converted into owned storage.
+    ///
     /// # Use Cases
     ///
     /// - Building configuration fields (e.g., `servers`, `ports`, etc.)
@@ -154,13 +158,8 @@ impl NamedMultiValues {
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice(
-        input: &[u8],
-    ) -> Result<Self, ValueWireDecodeError> {
-        Self::decode_json_slice_with_limits(
-            input,
-            ValueWireV1::default_json_decode_limits(),
-        )
+    pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
+        Self::decode_json_slice_with_limits(input, ValueWireV1::default_json_decode_limits())
     }
 
     /// Decodes a complete named collection JSON document with explicit limits.
@@ -180,10 +179,7 @@ impl NamedMultiValues {
     ///
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
-    pub fn decode_json_slice_with_limits(
-        input: &[u8],
-        limits: JsonDecodeLimits,
-    ) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
             .decode_utf8(input)
@@ -192,6 +188,14 @@ impl NamedMultiValues {
 
     /// Encodes this named collection into a bounded compact JSON vector with
     /// the default V1 JSON resource profile.
+    ///
+    /// # Returns
+    ///
+    /// Compact UTF-8 JSON bytes for the complete named collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] for resource or serialization failures.
     #[cfg(feature = "json")]
     #[inline]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
@@ -199,11 +203,21 @@ impl NamedMultiValues {
     }
 
     /// Encodes this named collection into a bounded compact JSON vector.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Resource limits enforced during JSON encoding.
+    ///
+    /// # Returns
+    ///
+    /// Compact UTF-8 JSON bytes for the complete named collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits` or the
+    /// named collection cannot be serialized.
     #[cfg(feature = "json")]
-    pub fn to_json_vec_with_limits(
-        &self,
-        limits: JsonEncodeLimits,
-    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+    pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -212,28 +226,53 @@ impl NamedMultiValues {
 
     /// Encodes this named collection to a writer with the default V1 JSON
     /// profile.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `W` - Destination writer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `writer` - Destination receiving the complete named collection.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the complete document is written.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] for resource, serialization, or writer
+    /// failures.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer<W>(
-        &self,
-        writer: W,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
-        self.to_json_writer_with_limits(
-            writer,
-            ValueWireV1::default_json_encode_limits(),
-        )
+        self.to_json_writer_with_limits(writer, ValueWireV1::default_json_encode_limits())
     }
 
     /// Encodes this named collection to a writer after enforcing JSON budgets.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `W` - Destination writer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `writer` - Destination receiving the complete named collection.
+    /// * `limits` - Resource limits enforced during JSON encoding.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the complete document is written.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits`, the
+    /// named collection cannot be serialized, or `writer` rejects output.
     #[cfg(feature = "json")]
-    pub fn to_json_writer_with_limits<W>(
-        &self,
-        writer: W,
-        limits: JsonEncodeLimits,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(&self, writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
@@ -264,6 +303,10 @@ impl NamedMultiValues {
     }
 
     /// Set a new name
+    ///
+    /// # Type Parameters
+    ///
+    /// * `impl Into<String>` - Name source converted into owned storage.
     ///
     /// # Parameters
     ///
@@ -380,8 +423,7 @@ impl Serialize for NamedMultiValues {
     where
         S: Serializer,
     {
-        let value = ValueWireRefV1::try_from(self.values())
-            .map_err(SerializeError::custom)?;
+        let value = ValueWireRefV1::try_from(self.values()).map_err(SerializeError::custom)?;
         NamedMultiValuesWireRef {
             name: self.name(),
             value,
@@ -397,13 +439,11 @@ impl<'de> Deserialize<'de> for NamedMultiValues {
     where
         D: Deserializer<'de>,
     {
-        let NamedMultiValuesWireOwned { name, value } =
-            NamedMultiValuesWireOwned::deserialize(deserializer)?;
-        let value = value.into_container().into_collection().map_err(|_| {
-            DeserializeError::custom(
-                "named multi-values wire payload must contain a collection",
-            )
-        })?;
+        let NamedMultiValuesWireOwned { name, value } = NamedMultiValuesWireOwned::deserialize(deserializer)?;
+        let value = value
+            .into_container()
+            .into_collection()
+            .map_err(|_| DeserializeError::custom("named multi-values wire payload must contain a collection"))?;
         Ok(Self::new(name, value))
     }
 }

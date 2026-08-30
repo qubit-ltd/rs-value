@@ -29,6 +29,10 @@ macro_rules! define_scalar_wire_ref {
         ),+ $(,)?
     ) => {
         /// Borrowed payload for one typed scalar.
+        ///
+        /// # Type Parameters
+        ///
+        /// * `'a` - Lifetime of the borrowed scalar payload.
         #[derive(Clone, Copy, Serialize)]
         pub(in crate::value_wire) enum ScalarWireRef<'a> {
             /// Unset scalar and its declared data type.

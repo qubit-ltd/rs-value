@@ -61,8 +61,7 @@ impl Hasher for PanickingHasher {
 }
 
 #[cfg(feature = "json")]
-const DEEP_JSON_IDENTITY_CHILD_ENV: &str =
-    "QUBIT_VALUE_DEEP_JSON_IDENTITY_CHILD";
+const DEEP_JSON_IDENTITY_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_IDENTITY_CHILD";
 #[cfg(feature = "json")]
 const DEEP_JSON_HASH_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_JSON_HASH_CHILD";
 #[cfg(feature = "json")]
@@ -189,9 +188,7 @@ fn test_hash_json_with_budget_charges_nodes() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
-    let value = serde_json::Value::Array(
-        (0..10_000).map(|_| serde_json::Value::Null).collect(),
-    );
+    let value = serde_json::Value::Array((0..10_000).map(|_| serde_json::Value::Null).collect());
     let error = hash_json_with_limits(
         &value,
         JsonValueLimits::<JsonResource, usize>::builder()
@@ -330,9 +327,7 @@ fn test_hash_json_with_budget_checks_number_bytes() {
 #[test]
 fn test_hash_json_with_budget_error_is_atomic() {
     let value = serde_json::json!([null]);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
-        .max_nodes(1)
-        .budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
     let mut state = RecordingHasher::default();
 
     assert!(
@@ -350,13 +345,10 @@ fn test_hash_json_with_budget_error_is_atomic() {
 #[test]
 fn test_hash_json_with_budget_panic_rolls_back_and_reuses_budget() {
     let value = serde_json::json!(null);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
-        .max_nodes(1)
-        .budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        Value::Json(value.clone())
-            .hash_with_json_budget(&mut PanickingHasher, &mut budget)
+        Value::Json(value.clone()).hash_with_json_budget(&mut PanickingHasher, &mut budget)
     }));
     assert!(result.is_err());
     assert_eq!(budget.used_nodes(), Some(0));
@@ -421,10 +413,7 @@ fn test_deep_json_identity_equality_in_isolated_process() {
     let equal = ManuallyDrop::new(Value::Json(build_deep_json_value(1)));
     let unequal = ManuallyDrop::new(Value::Json(build_deep_json_value(2)));
 
-    assert!(
-        *left == *equal,
-        "matching deeply nested JSON values must be equal"
-    );
+    assert!(*left == *equal, "matching deeply nested JSON values must be equal");
     assert!(
         *left != *unequal,
         "leaf differences in deeply nested JSON values must not be equal"
@@ -459,9 +448,7 @@ fn hash_json_with_limits(
         .hash_with_json_budget(&mut state, &mut budget)
         .expect_err("the configured JSON limit must reject the value")
     {
-        MeasuredBudgetError::Budget(error) => {
-            MeasuredBudgetError::Budget(error)
-        }
+        MeasuredBudgetError::Budget(error) => MeasuredBudgetError::Budget(error),
         MeasuredBudgetError::Quantity { .. } => {
             panic!("u64 JSON budget must represent native test measurements")
         }
@@ -489,13 +476,7 @@ fn build_deep_json_value(leaf: i64) -> serde_json::Value {
 unsafe fn read_json_fixture(value: &ManuallyDrop<Value>) -> serde_json::Value {
     // SAFETY: the caller keeps `value` manually dropped and moves the payload
     // exactly once into `dismantle_json_value`.
-    unsafe {
-        std::ptr::read(
-            value
-                .get_json_ref()
-                .expect("test fixture must retain its JSON payload"),
-        )
-    }
+    unsafe { std::ptr::read(value.get_json_ref().expect("test fixture must retain its JSON payload")) }
 }
 
 /// Iteratively consumes a JSON fixture so its destructor cannot recurse.
@@ -505,9 +486,7 @@ fn dismantle_json_value(value: serde_json::Value) {
     while let Some(value) = pending.pop() {
         match value {
             serde_json::Value::Array(values) => pending.extend(values),
-            serde_json::Value::Object(values) => {
-                pending.extend(values.into_values())
-            }
+            serde_json::Value::Object(values) => pending.extend(values.into_values()),
             serde_json::Value::Null
             | serde_json::Value::Bool(_)
             | serde_json::Value::Number(_)

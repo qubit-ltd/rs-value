@@ -36,9 +36,7 @@ pub enum ValueWireEncodeError {
         data_type: DataType,
     },
     /// A V1 decimal exponent must stay within the bounded wire range.
-    #[error(
-        "V1 JSON wire cannot represent decimal scale {scale}; maximum absolute scale is {maximum_absolute_scale}"
-    )]
+    #[error("V1 JSON wire cannot represent decimal scale {scale}; maximum absolute scale is {maximum_absolute_scale}")]
     BigDecimalScaleTooLarge {
         /// Rejected decimal exponent.
         scale: i64,
@@ -48,13 +46,15 @@ pub enum ValueWireEncodeError {
     /// The JSON output exceeded one configured resource budget.
     #[cfg(feature = "json")]
     #[error("V1 JSON wire resource budget exceeded: {0}")]
-    Budget(#[source] BudgetError<JsonResource, usize>),
+    Budget(
+        /// Budget violation reported by the bounded JSON encoder.
+        #[source]
+        BudgetError<JsonResource, usize>,
+    ),
     /// A native JSON measurement could not be represented by the budget
     /// quantity type.
     #[cfg(feature = "json")]
-    #[error(
-        "V1 JSON wire resource quantity conversion failed for {resource:?}: {source}"
-    )]
+    #[error("V1 JSON wire resource quantity conversion failed for {resource:?}: {source}")]
     Quantity {
         /// Resource whose measurement failed.
         resource: JsonResource,
@@ -65,15 +65,27 @@ pub enum ValueWireEncodeError {
     /// The encoded value contains invalid JSON syntax.
     #[cfg(feature = "json")]
     #[error("invalid V1 JSON wire syntax: {0}")]
-    Syntax(#[source] JsonSyntaxError),
+    Syntax(
+        /// Syntax error found in an embedded raw JSON payload.
+        #[source]
+        JsonSyntaxError,
+    ),
     /// Serde JSON rejected the value during bounded encoding.
     #[cfg(feature = "json")]
     #[error("failed to encode V1 JSON wire value: {0}")]
-    Json(#[source] JsonError),
+    Json(
+        /// Serde JSON serialization failure.
+        #[source]
+        JsonError,
+    ),
     /// The destination writer rejected bounded JSON output.
     #[cfg(feature = "json")]
     #[error("failed to write V1 JSON wire value: {0}")]
-    Io(#[source] std::io::Error),
+    Io(
+        /// Destination-writer failure.
+        #[source]
+        std::io::Error,
+    ),
 }
 
 #[cfg(feature = "json")]
@@ -83,9 +95,7 @@ impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
         match error {
             JsonEncodeError::Budget(error) => match error {
                 MeasuredBudgetError::Budget(error) => Self::Budget(error),
-                MeasuredBudgetError::Quantity { resource, source } => {
-                    Self::Quantity { resource, source }
-                }
+                MeasuredBudgetError::Quantity { resource, source } => Self::Quantity { resource, source },
             },
             JsonEncodeError::InvalidRawJson(error) => Self::Syntax(error),
             JsonEncodeError::Serialize(error) => Self::Json(error),

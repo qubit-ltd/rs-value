@@ -30,9 +30,7 @@ fn hash_value(value: &Value) -> u64 {
 /// Builds the string-map fixture used by identity benchmarks.
 fn string_map_fixture() -> Value {
     let entries = (0..100)
-        .map(|index| {
-            (format!("key-{index:03}"), format!("value-{}", index * 17))
-        })
+        .map(|index| (format!("key-{index:03}"), format!("value-{}", index * 17)))
         .collect();
     Value::StringMap(entries)
 }
@@ -88,10 +86,9 @@ fn benchmark_json_hash(c: &mut Criterion) {
 /// Benchmarks hashing a large-coefficient BigDecimal.
 fn benchmark_big_decimal_hash(c: &mut Criterion) {
     let value = large_big_decimal_fixture();
-    c.bench_function(
-        "identity/hash_big_decimal_large_coefficient_scale",
-        |bencher| bencher.iter(|| black_box(hash_value(black_box(&value)))),
-    );
+    c.bench_function("identity/hash_big_decimal_large_coefficient_scale", |bencher| {
+        bencher.iter(|| black_box(hash_value(black_box(&value))))
+    });
 }
 
 /// Benchmarks lookup of heterogeneous values in a hash map.
@@ -108,14 +105,8 @@ fn benchmark_hash_map_lookup(c: &mut Criterion) {
 
     c.bench_function("identity/hash_map_value_lookup", |bencher| {
         bencher.iter(|| {
-            let total = table
-                .get(black_box(&scalar))
-                .copied()
-                .unwrap_or_default()
-                + table
-                    .get(black_box(&string_map))
-                    .copied()
-                    .unwrap_or_default()
+            let total = table.get(black_box(&scalar)).copied().unwrap_or_default()
+                + table.get(black_box(&string_map)).copied().unwrap_or_default()
                 + table.get(black_box(&json)).copied().unwrap_or_default()
                 + table.get(black_box(&decimal)).copied().unwrap_or_default();
             black_box(total)

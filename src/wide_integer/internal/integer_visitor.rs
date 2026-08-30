@@ -18,6 +18,10 @@ use serde::de::Visitor;
 use crate::wide_integer::parse_canonical_integer;
 
 /// Parses one decimal string into an integer without retaining input text.
+///
+/// # Type Parameters
+///
+/// * `T` - Integer type parsed from canonical decimal text.
 pub(in crate::wide_integer) struct IntegerVisitor<T>(
     /// Requested integer type.
     pub(in crate::wide_integer) PhantomData<T>,

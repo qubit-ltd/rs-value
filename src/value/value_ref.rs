@@ -12,6 +12,10 @@ use qubit_datatype::DataType;
 
 /// Borrowed semantic view of a [`crate::Value`].
 ///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of payloads borrowed from the source value.
+///
 /// # Examples
 ///
 /// ```
@@ -25,63 +29,141 @@ use qubit_datatype::DataType;
 #[derive(Debug, Clone, Copy)]
 pub enum ValueRef<'a> {
     /// An unset value retaining its declared type.
-    Unset(DataType),
+    Unset(
+        /// Declared type retained while no concrete value is stored.
+        DataType,
+    ),
     /// A boolean value.
-    Bool(bool),
+    Bool(
+        /// Borrowed boolean payload.
+        bool,
+    ),
     /// A character value.
-    Char(char),
+    Char(
+        /// Borrowed character payload.
+        char,
+    ),
     /// A signed integer value.
-    Int8(i8),
+    Int8(
+        /// Borrowed signed integer payload.
+        i8,
+    ),
     /// A signed integer value.
-    Int16(i16),
+    Int16(
+        /// Borrowed signed integer payload.
+        i16,
+    ),
     /// A signed integer value.
-    Int32(i32),
+    Int32(
+        /// Borrowed signed integer payload.
+        i32,
+    ),
     /// A signed integer value.
-    Int64(i64),
+    Int64(
+        /// Borrowed signed integer payload.
+        i64,
+    ),
     /// A signed integer value.
-    Int128(i128),
+    Int128(
+        /// Borrowed signed integer payload.
+        i128,
+    ),
     /// An unsigned integer value.
-    UInt8(u8),
+    UInt8(
+        /// Borrowed unsigned integer payload.
+        u8,
+    ),
     /// An unsigned integer value.
-    UInt16(u16),
+    UInt16(
+        /// Borrowed unsigned integer payload.
+        u16,
+    ),
     /// An unsigned integer value.
-    UInt32(u32),
+    UInt32(
+        /// Borrowed unsigned integer payload.
+        u32,
+    ),
     /// An unsigned integer value.
-    UInt64(u64),
+    UInt64(
+        /// Borrowed unsigned integer payload.
+        u64,
+    ),
     /// An unsigned integer value.
-    UInt128(u128),
+    UInt128(
+        /// Borrowed unsigned integer payload.
+        u128,
+    ),
     /// A 32-bit floating-point value.
-    Float32(f32),
+    Float32(
+        /// Borrowed floating-point payload.
+        f32,
+    ),
     /// A 64-bit floating-point value.
-    Float64(f64),
+    Float64(
+        /// Borrowed floating-point payload.
+        f64,
+    ),
     /// An arbitrary-precision integer.
     #[cfg(feature = "big-integer")]
-    BigInteger(&'a num_bigint::BigInt),
+    BigInteger(
+        /// Borrowed arbitrary-precision integer payload.
+        &'a num_bigint::BigInt,
+    ),
     /// An arbitrary-precision decimal.
     #[cfg(feature = "big-decimal")]
-    BigDecimal(&'a bigdecimal::BigDecimal),
+    BigDecimal(
+        /// Borrowed arbitrary-precision decimal payload.
+        &'a bigdecimal::BigDecimal,
+    ),
     /// A string value.
-    String(&'a str),
+    String(
+        /// Borrowed UTF-8 string payload.
+        &'a str,
+    ),
     /// A calendar date.
     #[cfg(feature = "chrono")]
-    Date(&'a chrono::NaiveDate),
+    Date(
+        /// Borrowed calendar-date payload.
+        &'a chrono::NaiveDate,
+    ),
     /// A time-of-day value.
     #[cfg(feature = "chrono")]
-    Time(&'a chrono::NaiveTime),
+    Time(
+        /// Borrowed time-of-day payload.
+        &'a chrono::NaiveTime,
+    ),
     /// A date-and-time value.
     #[cfg(feature = "chrono")]
-    DateTime(&'a chrono::NaiveDateTime),
+    DateTime(
+        /// Borrowed local date-and-time payload.
+        &'a chrono::NaiveDateTime,
+    ),
     /// A UTC instant.
     #[cfg(feature = "chrono")]
-    Instant(&'a chrono::DateTime<chrono::Utc>),
+    Instant(
+        /// Borrowed UTC instant payload.
+        &'a chrono::DateTime<chrono::Utc>,
+    ),
     /// A duration value.
-    Duration(&'a std::time::Duration),
+    Duration(
+        /// Borrowed non-negative duration payload.
+        &'a std::time::Duration,
+    ),
     /// A URL value.
     #[cfg(feature = "url")]
-    Url(&'a url::Url),
+    Url(
+        /// Borrowed parsed URL payload.
+        &'a url::Url,
+    ),
     /// A map with string keys and values.
-    StringMap(&'a std::collections::HashMap<String, String>),
+    StringMap(
+        /// Borrowed string-keyed map payload.
+        &'a std::collections::HashMap<String, String>,
+    ),
     /// A JSON value.
     #[cfg(feature = "json")]
-    Json(&'a serde_json::Value),
+    Json(
+        /// Borrowed JSON tree payload.
+        &'a serde_json::Value,
+    ),
 }

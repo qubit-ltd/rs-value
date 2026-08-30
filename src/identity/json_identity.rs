@@ -23,8 +23,7 @@ use super::hash_frame::HashFrame;
 use super::object_hash::ObjectHash;
 
 /// Stable standard hasher used for each order-independent object entry.
-type IdentityHasher =
-    BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
+type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
 
 /// Compares two JSON trees using structural JSON semantics without recursion.
 ///
@@ -39,10 +38,7 @@ type IdentityHasher =
 /// significant and array element order is significant.
 #[must_use]
 #[inline(always)]
-pub(crate) fn json_eq(
-    left: &serde_json::Value,
-    right: &serde_json::Value,
-) -> bool {
+pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bool {
     let mut pending = Vec::with_capacity(1);
     pending.push((left, right));
     while let Some((left, right)) = pending.pop() {
@@ -53,26 +49,17 @@ pub(crate) fn json_eq(
                     return false;
                 }
             }
-            (
-                serde_json::Value::Number(left),
-                serde_json::Value::Number(right),
-            ) => {
+            (serde_json::Value::Number(left), serde_json::Value::Number(right)) => {
                 if left != right {
                     return false;
                 }
             }
-            (
-                serde_json::Value::String(left),
-                serde_json::Value::String(right),
-            ) => {
+            (serde_json::Value::String(left), serde_json::Value::String(right)) => {
                 if left != right {
                     return false;
                 }
             }
-            (
-                serde_json::Value::Array(left),
-                serde_json::Value::Array(right),
-            ) => {
+            (serde_json::Value::Array(left), serde_json::Value::Array(right)) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -80,10 +67,7 @@ pub(crate) fn json_eq(
                     pending.push((left, right));
                 }
             }
-            (
-                serde_json::Value::Object(left),
-                serde_json::Value::Object(right),
-            ) => {
+            (serde_json::Value::Object(left), serde_json::Value::Object(right)) => {
                 if left.len() != right.len() {
                     return false;
                 }
@@ -102,6 +86,10 @@ pub(crate) fn json_eq(
 
 /// Hashes a JSON tree using structural, object-order-independent semantics.
 ///
+/// # Type Parameters
+///
+/// * `H` - Hasher receiving the structural JSON identity.
+///
 /// # Parameters
 ///
 /// * `value` - JSON tree to hash.
@@ -111,6 +99,12 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 }
 
 /// Hashes a JSON tree while enforcing one mutable JSON budget.
+///
+/// # Type Parameters
+///
+/// * `H` - Hasher receiving the structural JSON identity.
+/// * `R` - Resource identifier used by the JSON budget.
+/// * `Q` - Quantity type used by the JSON budget.
 ///
 /// # Parameters
 ///
@@ -150,6 +144,25 @@ where
 ///
 /// No caller-owned hasher or committed budget state is touched. Dropping the
 /// transaction after an error therefore leaves both external states unchanged.
+///
+/// # Type Parameters
+///
+/// * `R` - Resource identifier used by the JSON budget.
+/// * `Q` - Quantity type used by the JSON budget.
+///
+/// # Parameters
+///
+/// * `value` - JSON tree whose complete resource usage is measured.
+/// * `transaction` - Staged budget transaction charged during traversal.
+///
+/// # Returns
+///
+/// `Ok(())` after every JSON event fits within the staged budget.
+///
+/// # Errors
+///
+/// Returns [`MeasuredBudgetError`] for the first resource measurement or
+/// configured limit that cannot be satisfied.
 pub(crate) fn preflight_json<R, Q>(
     value: &serde_json::Value,
     transaction: &mut JsonValueTransaction<'_, R, Q>,
@@ -166,6 +179,15 @@ where
 /// Container continuations visit one child at a time, so pending traversal
 /// storage depends on nesting depth rather than the width of any one array or
 /// object.
+///
+/// # Type Parameters
+///
+/// * `H` - Hasher receiving the structural JSON identity.
+///
+/// # Parameters
+///
+/// * `value` - JSON tree to traverse without recursion.
+/// * `state` - Destination hasher.
 fn hash_json_iterative<H>(value: &serde_json::Value, state: &mut H)
 where
     H: Hasher,
@@ -223,11 +245,7 @@ where
                     .expect("an array must have a hash destination")
                     .hash(&length);
             }
-            HashFrame::VisitArray {
-                values,
-                depth,
-                next,
-            } => {
+            HashFrame::VisitArray { values, depth, next } => {
                 if let Some(value) = values.get(next) {
                     frames.push(HashFrame::VisitArray {
                         values,
@@ -251,10 +269,7 @@ where
                 destinations.push(HashDestination::ObjectEntry(entry));
             }
             HashFrame::FinishObjectEntry => {
-                let Some(hash) = destinations
-                    .pop()
-                    .and_then(HashDestination::finish_object_entry)
-                else {
+                let Some(hash) = destinations.pop().and_then(HashDestination::finish_object_entry) else {
                     continue;
                 };
                 let object = objects
@@ -264,12 +279,8 @@ where
                 object.xor ^= hash.rotate_left(17);
             }
             HashFrame::FinishObject => {
-                let ObjectHash { sum, xor } = objects
-                    .pop()
-                    .expect("a finished object must have an aggregate");
-                let destination = destinations
-                    .last_mut()
-                    .expect("an object must have a hash destination");
+                let ObjectHash { sum, xor } = objects.pop().expect("a finished object must have an aggregate");
+                let destination = destinations.last_mut().expect("an object must have a hash destination");
                 destination.hash(&sum);
                 destination.hash(&xor);
             }

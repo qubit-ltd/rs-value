@@ -12,6 +12,10 @@ use std::hash::Hash;
 use std::hash::Hasher;
 
 /// A destination receiving hashes during one iterative traversal.
+///
+/// # Type Parameters
+///
+/// * `H` - Caller-selected hasher used for the root JSON value.
 pub(super) enum HashDestination<'a, H> {
     /// The caller-provided root destination.
     Root(
@@ -30,6 +34,14 @@ where
     H: Hasher,
 {
     /// Hashes one value into this destination without erasing the hasher type.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Hashable value type accepted by the active destination.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Value whose identity bytes are appended to this destination.
     #[inline(always)]
     pub(super) fn hash<T>(&mut self, value: &T)
     where
@@ -42,6 +54,11 @@ where
     }
 
     /// Returns the object-entry hash, or `None` for the root destination.
+    ///
+    /// # Returns
+    ///
+    /// `Some(hash)` for an object-entry destination and `None` for the caller's
+    /// root destination.
     #[inline(always)]
     pub(super) fn finish_object_entry(self) -> Option<u64> {
         match self {

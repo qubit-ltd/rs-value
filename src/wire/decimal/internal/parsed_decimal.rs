@@ -18,6 +18,10 @@ use serde::Deserializer;
 use super::DecimalVisitor;
 
 /// Deserializable wrapper used by canonical decimal collection adapters.
+///
+/// # Type Parameters
+///
+/// * `T` - Decimal-backed type stored after canonical deserialization.
 pub(in crate::wire::decimal) struct ParsedDecimal<T>(
     /// Parsed decimal value.
     pub(in crate::wire::decimal) T,
@@ -33,8 +37,6 @@ where
     where
         D: Deserializer<'de>,
     {
-        deserializer
-            .deserialize_str(DecimalVisitor(PhantomData))
-            .map(Self)
+        deserializer.deserialize_str(DecimalVisitor(PhantomData)).map(Self)
     }
 }

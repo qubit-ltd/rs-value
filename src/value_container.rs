@@ -62,6 +62,7 @@ pub enum ValueContainer {
     ),
 }
 
+/// Implements scalar and collection conversions from the shared value table.
 macro_rules! impl_value_container_from_table {
     (
         ;
@@ -504,8 +505,7 @@ impl ValueContainer {
             }
             Self::Collection(other) => match self {
                 Self::Scalar(value) => {
-                    let value =
-                        std::mem::replace(value, Value::new_unset(expected));
+                    let value = std::mem::replace(value, Value::new_unset(expected));
                     let mut collection = MultiValues::from(value);
                     collection.add(other)?;
                     *self = Self::Collection(collection);
@@ -544,10 +544,7 @@ impl ValueContainer {
     where
         T: DataConversionTarget,
     {
-        self.to_first_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_first_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts a scalar or the first collection item using explicit policy and
@@ -571,11 +568,7 @@ impl ValueContainer {
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
-    pub fn to_first_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<T>
+    pub fn to_first_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -589,10 +582,7 @@ impl ValueContainer {
     /// conversion session.
     #[cfg(feature = "converter")]
     #[inline(always)]
-    pub fn to_first_in<T>(
-        &self,
-        session: &mut ConversionSession<'_>,
-    ) -> ValueResult<T>
+    pub fn to_first_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -624,10 +614,7 @@ impl ValueContainer {
     where
         T: DataConversionTarget,
     {
-        self.to_list_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_list_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts to a list using explicit conversion policy and limits.
@@ -649,21 +636,15 @@ impl ValueContainer {
     ///
     /// Returns the mapped single-value or indexed list conversion error.
     #[cfg(feature = "converter")]
-    pub fn to_list_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
         match self {
             Self::Scalar(value) => match value.view() {
-                ValueRef::String(value) => {
-                    ScalarStringDataConverters::from(value)
-                        .to_vec_with(policy, limits)
-                        .map_err(ValueError::from)
-                }
+                ValueRef::String(value) => ScalarStringDataConverters::from(value)
+                    .to_vec_with(policy, limits)
+                    .map_err(ValueError::from),
                 _ => value.to_with(policy, limits).map(|value| vec![value]),
             },
             Self::Collection(values) => values.to_list_with(policy, limits),
@@ -672,20 +653,15 @@ impl ValueContainer {
 
     /// Converts this container to a list using an existing conversion session.
     #[cfg(feature = "converter")]
-    pub fn to_list_in<T>(
-        &self,
-        session: &mut ConversionSession<'_>,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
         match self {
             Self::Scalar(value) => match value.view() {
-                ValueRef::String(value) => {
-                    ScalarStringDataConverters::from(value)
-                        .to_vec_in(session)
-                        .map_err(ValueError::from)
-                }
+                ValueRef::String(value) => ScalarStringDataConverters::from(value)
+                    .to_vec_in(session)
+                    .map_err(ValueError::from),
                 _ => value.to_in(session).map(|value| vec![value]),
             },
             Self::Collection(values) => values.to_list_in(session),
@@ -708,21 +684,12 @@ impl ValueContainer {
     fn add_scalar(&mut self, value: Value, data_type: DataType) {
         match self {
             Self::Scalar(current) => {
-                let current =
-                    std::mem::replace(current, Value::new_unset(data_type));
-                let collection = for_each_value_type!(
-                    value_container_pair_match,
-                    current,
-                    value
-                );
+                let current = std::mem::replace(current, Value::new_unset(data_type));
+                let collection = for_each_value_type!(value_container_pair_match, current, value);
                 *self = Self::Collection(collection);
             }
             Self::Collection(collection) => {
-                for_each_value_type!(
-                    value_container_push_match,
-                    collection,
-                    value
-                );
+                for_each_value_type!(value_container_push_match, collection, value);
             }
         }
     }

@@ -13,6 +13,10 @@ use serde::Serialize;
 use super::WireShapeRef;
 
 /// Borrowed V1 envelope emitted during serialization.
+///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of the borrowed scalar-or-collection payload.
 #[derive(Serialize)]
 pub(in crate::value_wire) struct WireEnvelopeRef<'a> {
     /// Numeric V1 protocol version.

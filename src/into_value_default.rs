@@ -9,6 +9,18 @@
 //! Default value adapters for value access APIs.
 
 /// Collects borrowed string values into owned strings.
+///
+/// # Type Parameters
+///
+/// * `I` - Iterator source yielding borrowed UTF-8 strings.
+///
+/// # Parameters
+///
+/// * `values` - Borrowed strings to copy into the returned collection.
+///
+/// # Returns
+///
+/// Owned strings in the source iteration order.
 #[inline]
 fn collect_strings<'a, I>(values: I) -> Vec<String>
 where
@@ -19,6 +31,10 @@ where
 
 /// Converts ergonomic default arguments into the value type expected by a read
 /// API.
+///
+/// # Type Parameters
+///
+/// * `T` - Owned default type required by the read operation.
 pub trait IntoValueDefault<T> {
     /// Converts this argument into the default value.
     ///

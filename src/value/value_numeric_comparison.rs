@@ -108,26 +108,22 @@ impl Value {
         policy: NumericComparisonPolicy,
     ) -> Result<Ordering, NumericComparisonError> {
         if let ValueRepr::Unset(declared) = &self.repr {
-            return Err(NumericComparisonError::LeftMissing {
-                declared: *declared,
-            });
+            return Err(NumericComparisonError::LeftMissing { declared: *declared });
         }
         if let ValueRepr::Unset(declared) = &other.repr {
-            return Err(NumericComparisonError::RightMissing {
-                declared: *declared,
-            });
+            return Err(NumericComparisonError::RightMissing { declared: *declared });
         }
 
-        let left = self.as_number_ref().ok_or_else(|| {
-            NumericComparisonError::LeftNotNumeric {
+        let left = self
+            .as_number_ref()
+            .ok_or_else(|| NumericComparisonError::LeftNotNumeric {
                 actual: self.data_type(),
-            }
-        })?;
-        let right = other.as_number_ref().ok_or_else(|| {
-            NumericComparisonError::RightNotNumeric {
+            })?;
+        let right = other
+            .as_number_ref()
+            .ok_or_else(|| NumericComparisonError::RightNotNumeric {
                 actual: other.data_type(),
-            }
-        })?;
+            })?;
 
         match (left.is_nan(), right.is_nan()) {
             (true, true) => return Err(NumericComparisonError::BothNaN),
@@ -138,9 +134,7 @@ impl Value {
 
         match left.compare(right, policy) {
             Some(ordering) => Ok(ordering),
-            None => unreachable!(
-                "validated non-NaN numeric values must be orderable"
-            ),
+            None => unreachable!("validated non-NaN numeric values must be orderable"),
         }
     }
 

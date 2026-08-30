@@ -19,6 +19,7 @@ where
     values.into_iter().map(str::to_owned).collect()
 }
 
+/// Implements owned collection conversions from the shared value table.
 macro_rules! impl_multi_values_from_table {
     (
         ;

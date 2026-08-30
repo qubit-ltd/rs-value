@@ -14,6 +14,7 @@ use crate::ValueMissing;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
 
+/// Implements strict borrowed scalar reads from the shared value table.
 macro_rules! impl_value_try_from_table {
     (
         ;

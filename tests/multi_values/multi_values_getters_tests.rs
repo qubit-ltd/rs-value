@@ -12,8 +12,7 @@ use qubit_value::ValueError;
 
 #[test]
 fn test_multi_values_getters_return_slices_without_copying() {
-    let values =
-        MultiValues::String(vec!["red".to_string(), "blue".to_string()]);
+    let values = MultiValues::String(vec!["red".to_string(), "blue".to_string()]);
     let strings = values.get_strings().unwrap();
     assert_eq!(strings, &["red", "blue"]);
     assert_eq!(strings.len(), values.len());
@@ -62,19 +61,10 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
     assert_eq!(values.get_first_string().unwrap(), "a");
     let values = MultiValues::Duration(vec![std::time::Duration::from_secs(1)]);
     assert_eq!(values.get_durations().unwrap().len(), 1);
-    assert_eq!(
-        values.get_first_duration().unwrap(),
-        std::time::Duration::from_secs(1)
-    );
-    let map = std::collections::HashMap::from([(
-        "key".to_string(),
-        "value".to_string(),
-    )]);
+    assert_eq!(values.get_first_duration().unwrap(), std::time::Duration::from_secs(1));
+    let map = std::collections::HashMap::from([("key".to_string(), "value".to_string())]);
     let values = MultiValues::StringMap(vec![map.clone()]);
-    assert_eq!(
-        values.get_string_maps().unwrap(),
-        std::slice::from_ref(&map)
-    );
+    assert_eq!(values.get_string_maps().unwrap(), std::slice::from_ref(&map));
     assert_eq!(values.get_first_string_map().unwrap(), map);
 
     #[cfg(feature = "chrono")]
@@ -82,11 +72,7 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
         let date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
         let time = chrono::NaiveTime::from_hms_opt(1, 2, 3).unwrap();
         let datetime = date.and_time(time);
-        let instant =
-            chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(
-                datetime,
-                chrono::Utc,
-            );
+        let instant = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(datetime, chrono::Utc);
         let values = MultiValues::Date(vec![date]);
         assert_eq!(values.get_dates().unwrap(), &[date]);
         assert_eq!(values.get_first_date().unwrap(), date);
@@ -105,20 +91,14 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
     {
         let value = num_bigint::BigInt::from(7);
         let values = MultiValues::BigInteger(vec![value.clone()]);
-        assert_eq!(
-            values.get_bigintegers().unwrap(),
-            std::slice::from_ref(&value)
-        );
+        assert_eq!(values.get_bigintegers().unwrap(), std::slice::from_ref(&value));
         assert_eq!(values.get_first_biginteger().unwrap(), value);
     }
     #[cfg(feature = "big-decimal")]
     {
         let value = "7.5".parse::<bigdecimal::BigDecimal>().unwrap();
         let values = MultiValues::BigDecimal(vec![value.clone()]);
-        assert_eq!(
-            values.get_bigdecimals().unwrap(),
-            std::slice::from_ref(&value)
-        );
+        assert_eq!(values.get_bigdecimals().unwrap(), std::slice::from_ref(&value));
         assert_eq!(values.get_first_bigdecimal().unwrap(), value);
     }
     #[cfg(feature = "url")]

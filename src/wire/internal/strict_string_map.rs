@@ -20,7 +20,14 @@ use serde::de::MapAccess;
 use serde::de::Visitor;
 
 /// Owned string map decoded with duplicate-key validation.
-pub(in crate::wire) struct StrictStringMap<V>(HashMap<String, V>);
+///
+/// # Type Parameters
+///
+/// * `V` - Deserialized map value type.
+pub(in crate::wire) struct StrictStringMap<V>(
+    /// Entries accumulated while rejecting duplicate keys.
+    HashMap<String, V>,
+);
 
 impl<V> StrictStringMap<V> {
     /// Returns the validated map.
@@ -59,9 +66,7 @@ where
                 let mut values = HashMap::new();
                 while let Some((key, value)) = map.next_entry::<String, V>()? {
                     if values.insert(key.clone(), value).is_some() {
-                        return Err(de::Error::custom(format!(
-                            "duplicate map key '{key}'"
-                        )));
+                        return Err(de::Error::custom(format!("duplicate map key '{key}'")));
                     }
                 }
                 Ok(StrictStringMap(values))

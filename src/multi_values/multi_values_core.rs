@@ -18,6 +18,7 @@ use crate::value::ValueRepr;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
 
+/// Maps private collection storage variants to their runtime data types.
 macro_rules! multi_values_data_type_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &$value.repr {
@@ -27,6 +28,7 @@ macro_rules! multi_values_data_type_match {
     };
 }
 
+/// Returns the concrete element count for each collection storage variant.
 macro_rules! multi_values_count_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &$value.repr {
@@ -36,6 +38,7 @@ macro_rules! multi_values_count_match {
     };
 }
 
+/// Clears the concrete elements of each collection storage variant.
 macro_rules! multi_values_clear_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &mut $value.repr {
@@ -45,6 +48,7 @@ macro_rules! multi_values_clear_match {
     };
 }
 
+/// Appends same-typed elements to an existing collection storage variant.
 macro_rules! multi_values_append_match {
     ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match (&mut $left.repr, &mut $right.repr) {
@@ -62,6 +66,7 @@ macro_rules! multi_values_append_match {
     };
 }
 
+/// Clones the first collection element into a scalar value.
 macro_rules! multi_values_first_value_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match &$value.repr {
@@ -78,6 +83,7 @@ macro_rules! multi_values_first_value_match {
     };
 }
 
+/// Moves the first collection element into a scalar value.
 macro_rules! multi_values_into_first_value_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value.repr {
@@ -94,6 +100,7 @@ macro_rules! multi_values_into_first_value_match {
     };
 }
 
+/// Merges same-typed collection storage while preserving element order.
 macro_rules! multi_values_merge_match {
     ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match (&mut $left.repr, &$right.repr) {
@@ -109,6 +116,7 @@ macro_rules! multi_values_merge_match {
     };
 }
 
+/// Converts one private scalar storage variant into collection storage.
 macro_rules! value_into_multi_values_match {
     ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
         match $value.repr {
@@ -226,17 +234,12 @@ impl MultiValues {
     /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
     /// `T`.
     #[inline]
-    pub fn get_or<T>(
-        &self,
-        default: impl IntoValueDefault<Vec<T>>,
-    ) -> ValueResult<Vec<T>>
+    pub fn get_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
     where
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
             result => result,
         }
     }
@@ -270,9 +273,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
             result => result,
         }
     }
@@ -350,17 +351,12 @@ impl MultiValues {
     /// Returns [`ValueError::Missing`] for a concrete empty collection or
     /// [`ValueError::TypeMismatch`] when the stored type differs from `T`.
     #[inline]
-    pub fn get_first_or<T>(
-        &self,
-        default: impl IntoValueDefault<T>,
-    ) -> ValueResult<T>
+    pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get_first() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
             result => result,
         }
     }
@@ -391,9 +387,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.get_first() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
             result => result,
         }
     }

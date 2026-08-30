@@ -24,10 +24,7 @@ const MAX_JSON_BYTES: usize = 94;
 fn fuzz_decode_limits(max_input_bytes: usize) -> JsonDecodeLimits {
     let base = ValueWireV1::default_json_decode_limits();
     JsonDecodeLimits::builder()
-        .input_bytes_limit(ResourceLimit::new(
-            JsonResource::InputBytes,
-            max_input_bytes,
-        ))
+        .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, max_input_bytes))
         .value_limits(base.into_value_limits())
         .build()
 }
@@ -36,10 +33,7 @@ fn fuzz_decode_limits(max_input_bytes: usize) -> JsonDecodeLimits {
 fn fuzz_encode_limits() -> JsonEncodeLimits {
     let base = ValueWireV1::default_json_encode_limits();
     JsonEncodeLimits::builder()
-        .output_bytes_limit(ResourceLimit::new(
-            JsonResource::OutputBytes,
-            4_096,
-        ))
+        .output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 4_096))
         .value_limits(base.into_value_limits())
         .build()
 }
@@ -54,15 +48,11 @@ fuzz_target!(|data: &[u8]| {
 
     match result {
         Ok(value) => {
-            let encoded =
-                value.to_json_vec_with_limits(fuzz_encode_limits()).expect(
-                    "a decoded ValueWireV1 must serialize within fuzz limits",
-                );
-            let decoded = ValueWireV1::decode_json_slice_with_limits(
-                &encoded,
-                fuzz_decode_limits(encoded.len()),
-            )
-            .expect("a serialized ValueWireV1 must decode");
+            let encoded = value
+                .to_json_vec_with_limits(fuzz_encode_limits())
+                .expect("a decoded ValueWireV1 must serialize within fuzz limits");
+            let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, fuzz_decode_limits(encoded.len()))
+                .expect("a serialized ValueWireV1 must decode");
             assert_eq!(decoded, value);
         }
         Err(

@@ -14,6 +14,11 @@ use serde::Serialize;
 use serde::Serializer;
 
 /// Serializes a decimal value through its stable textual form.
+///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of the borrowed decimal value.
+/// * `T` - Displayable decimal-backed value type.
 pub(in crate::wire::decimal) struct DisplayDecimal<'a, T>(
     /// Borrowed decimal value to serialize.
     pub(in crate::wire::decimal) &'a T,

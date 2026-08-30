@@ -112,10 +112,7 @@ mod identity;
 mod into_value_default;
 #[macro_use]
 mod value_type_table;
-#[cfg(any(
-    feature = "natural-json",
-    all(feature = "converter", feature = "json")
-))]
+#[cfg(any(feature = "natural-json", all(feature = "converter", feature = "json")))]
 mod json;
 mod multi_values;
 mod named_multi_values;

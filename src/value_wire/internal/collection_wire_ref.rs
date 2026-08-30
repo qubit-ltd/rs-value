@@ -29,6 +29,10 @@ macro_rules! define_collection_wire_ref {
         ),+ $(,)?
     ) => {
         /// Borrowed payload for one homogeneous typed collection.
+        ///
+        /// # Type Parameters
+        ///
+        /// * `'a` - Lifetime of the borrowed collection elements.
         #[derive(Clone, Copy, Serialize)]
         pub(in crate::value_wire) enum CollectionWireRef<'a> {
             /// Unset collection and its declared element data type.

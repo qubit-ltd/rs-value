@@ -14,17 +14,18 @@ use crate::Value;
 use crate::ValueError;
 use crate::ValueResult;
 
+/// Private sealing support for [`StrictValueRead`].
 mod sealed {
     use super::MultiValues;
     use super::Value;
     use super::ValueError;
 
+    /// Prevents downstream crates from implementing [`super::StrictValueRead`].
     pub trait Sealed {}
 
     impl<T> Sealed for T
     where
-        for<'a> T: TryFrom<&'a Value, Error = ValueError>
-            + TryFrom<&'a MultiValues, Error = ValueError>,
+        for<'a> T: TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
         for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
     {
     }
@@ -51,8 +52,7 @@ pub trait StrictValueRead: Sized + sealed::Sealed {
 
 impl<T> StrictValueRead for T
 where
-    for<'a> T: TryFrom<&'a Value, Error = ValueError>
-        + TryFrom<&'a MultiValues, Error = ValueError>,
+    for<'a> T: TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
     for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
 {
     #[inline(always)]

@@ -14,6 +14,11 @@ use serde::Serialize;
 use serde::Serializer;
 
 /// Serializes a displayable integer as a decimal string without allocating.
+///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of the borrowed integer.
+/// * `T` - Displayable integer type serialized as canonical text.
 pub(in crate::wide_integer) struct DisplayInteger<'a, T>(
     /// Borrowed integer to serialize.
     pub(in crate::wide_integer) &'a T,

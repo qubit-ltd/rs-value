@@ -51,10 +51,7 @@ use url::Url;
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_natural_json_projects_scalar() {
-    assert_eq!(
-        Value::Int32(42).to_json_value().expect("project scalar"),
-        json!(42),
-    );
+    assert_eq!(Value::Int32(42).to_json_value().expect("project scalar"), json!(42),);
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -62,10 +59,7 @@ fn test_natural_json_projects_scalar() {
 fn test_natural_json_projects_every_scalar_variant() {
     macro_rules! assert_scalar {
         ($value:expr, $expected:expr) => {
-            assert_eq!(
-                $value.to_json_value().expect("project scalar"),
-                $expected
-            );
+            assert_eq!($value.to_json_value().expect("project scalar"), $expected);
         };
     }
 
@@ -101,18 +95,12 @@ fn test_natural_json_projects_every_scalar_variant() {
     let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
     assert_scalar!(Value::Instant(instant), json!("2025-01-01 01:02:03 UTC"));
     assert_scalar!(Value::BigInteger(BigInt::from(7)), json!("7"));
-    assert_scalar!(
-        Value::BigDecimal("7.5".parse::<BigDecimal>().unwrap()),
-        json!("7.5")
-    );
+    assert_scalar!(Value::BigDecimal("7.5".parse::<BigDecimal>().unwrap()), json!("7.5"));
     assert_scalar!(
         Value::Url(Url::parse("https://example.com").unwrap()),
         json!("https://example.com/")
     );
-    assert_scalar!(
-        Value::Json(json!({"z": 1, "a": 2})),
-        json!({"a": 2, "z": 1})
-    );
+    assert_scalar!(Value::Json(json!({"z": 1, "a": 2})), json!({"a": 2, "z": 1}));
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -141,8 +129,7 @@ fn test_natural_json_reports_collection_and_float_projection_errors() {
 
     let value_project: fn(&Value) -> _ = Value::to_json_value;
     assert_eq!(value_project(&Value::Int32(3)).unwrap(), json!(3));
-    let container_project: fn(&ValueContainer) -> _ =
-        ValueContainer::to_json_value;
+    let container_project: fn(&ValueContainer) -> _ = ValueContainer::to_json_value;
     assert_eq!(
         container_project(&ValueContainer::Scalar(Value::Int32(4))).unwrap(),
         json!(4)
@@ -160,9 +147,7 @@ fn test_natural_json_projects_float32_without_widening() {
         0x2696_F5F4_u32, // 0.000000000000001047500658
     ] {
         let value = f32::from_bits(bits);
-        let projected = Value::Float32(value)
-            .to_json_value()
-            .expect("project float32");
+        let projected = Value::Float32(value).to_json_value().expect("project float32");
         let projected_text = to_string(&projected).expect("serialize json");
 
         let legacy_text = to_string(&JsonValue::Number(
@@ -190,9 +175,7 @@ fn test_natural_json_projects_string_map_keys_in_dictionary_order() {
         ("a".to_owned(), "1".to_owned()),
         ("m".to_owned(), "13".to_owned()),
     ]);
-    let projected = Value::StringMap(map)
-        .to_json_value()
-        .expect("project string map");
+    let projected = Value::StringMap(map).to_json_value().expect("project string map");
 
     assert_eq!(
         to_string(&projected).expect("serialize projected map"),
@@ -203,9 +186,7 @@ fn test_natural_json_projects_string_map_keys_in_dictionary_order() {
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_natural_json_canonicalizes_nested_json_object_keys() {
-    let value = Value::Json(
-        from_str(r#"{"z":{"b":1,"a":2},"a":0}"#).expect("parse JSON value"),
-    );
+    let value = Value::Json(from_str(r#"{"z":{"b":1,"a":2},"a":0}"#).expect("parse JSON value"));
     let projected = value.to_json_value().expect("project JSON value");
 
     assert_eq!(
@@ -219,17 +200,11 @@ fn test_natural_json_canonicalizes_nested_json_object_keys() {
 fn test_natural_json_projects_every_collection_variant() {
     macro_rules! assert_collection {
         ($values:expr, $expected:expr) => {
-            assert_eq!(
-                $values.to_json_value().expect("project collection"),
-                $expected
-            );
+            assert_eq!($values.to_json_value().expect("project collection"), $expected);
         };
     }
 
-    assert_collection!(
-        MultiValues::Bool(vec![true, false]),
-        json!([true, false])
-    );
+    assert_collection!(MultiValues::Bool(vec![true, false]), json!([true, false]));
     assert_collection!(MultiValues::Char(vec!['a', 'b']), json!(["a", "b"]));
     assert_collection!(MultiValues::Int8(vec![-1, 2]), json!([-1, 2]));
     assert_collection!(MultiValues::Int16(vec![-1, 2]), json!([-1, 2]));
@@ -259,36 +234,21 @@ fn test_natural_json_projects_every_collection_variant() {
         .unwrap()
         .and_hms_opt(1, 2, 3)
         .unwrap();
-    assert_collection!(
-        MultiValues::DateTime(vec![datetime]),
-        json!(["2025-01-01 01:02:03"])
-    );
+    assert_collection!(MultiValues::DateTime(vec![datetime]), json!(["2025-01-01 01:02:03"]));
     let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
-    assert_collection!(
-        MultiValues::Instant(vec![instant]),
-        json!(["2025-01-01 01:02:03 UTC"])
-    );
-    assert_collection!(
-        MultiValues::BigInteger(vec![BigInt::from(7)]),
-        json!(["7"])
-    );
+    assert_collection!(MultiValues::Instant(vec![instant]), json!(["2025-01-01 01:02:03 UTC"]));
+    assert_collection!(MultiValues::BigInteger(vec![BigInt::from(7)]), json!(["7"]));
     assert_collection!(
         MultiValues::BigDecimal(vec!["7.5".parse::<BigDecimal>().unwrap()]),
         json!(["7.5"])
     );
-    assert_collection!(
-        MultiValues::Duration(vec![Duration::from_secs(1)]),
-        json!(["1000ms"])
-    );
+    assert_collection!(MultiValues::Duration(vec![Duration::from_secs(1)]), json!(["1000ms"]));
     assert_collection!(
         MultiValues::Url(vec![Url::parse("https://example.com").unwrap()]),
         json!(["https://example.com/"])
     );
     assert_collection!(
-        MultiValues::StringMap(vec![HashMap::from([(
-            "key".to_string(),
-            "value".to_string()
-        ),])]),
+        MultiValues::StringMap(vec![HashMap::from([("key".to_string(), "value".to_string()),])]),
         json!([{"key": "value"}])
     );
     assert_collection!(

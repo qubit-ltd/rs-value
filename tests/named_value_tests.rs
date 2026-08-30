@@ -49,8 +49,7 @@ fn test_named_value_serializes_with_v1_wire_contract() {
 #[test]
 fn test_named_value_bounded_decode_reuses_value_budget() {
     let named = NamedValue::new("port", Value::Int32(42));
-    let input =
-        serde_json::to_vec(&named).expect("named value should serialize");
+    let input = serde_json::to_vec(&named).expect("named value should serialize");
 
     let name_error = NamedValue::decode_json_slice_with_limits(
         &input,
@@ -91,13 +90,10 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
 #[test]
 fn test_named_value_default_encoding_round_trips() {
     let named = NamedValue::new("port", Value::Int32(42));
-    let encoded = named
-        .to_json_vec()
-        .expect("default limits should encode named value");
+    let encoded = named.to_json_vec().expect("default limits should encode named value");
 
     assert_eq!(
-        NamedValue::decode_json_slice(&encoded)
-            .expect("default limits should decode named value"),
+        NamedValue::decode_json_slice(&encoded).expect("default limits should decode named value"),
         named
     );
 }
@@ -249,10 +245,7 @@ fn test_named_value_get_string() {
 
 #[test]
 fn test_named_value_get_date() {
-    let nv = NamedValue::new(
-        "d",
-        Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()),
-    );
+    let nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()));
     assert_eq!(
         nv.value().get_date().unwrap(),
         NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()
@@ -291,8 +284,8 @@ fn test_named_value_get_datetime() {
 
 #[test]
 fn test_named_value_get_instant() {
-    let inst: UtcDateTime<Utc> = UtcDateTime::from_timestamp(1_700_000_000, 0)
-        .expect("fixed test instant must be valid");
+    let inst: UtcDateTime<Utc> =
+        UtcDateTime::from_timestamp(1_700_000_000, 0).expect("fixed test instant must be valid");
     let nv = NamedValue::new("inst", Value::Instant(inst));
     assert_eq!(nv.value().get_instant().unwrap(), inst);
 }
@@ -422,10 +415,7 @@ fn test_named_value_set_get_string() {
 
 #[test]
 fn test_named_value_set_get_date() {
-    let mut nv = NamedValue::new(
-        "d",
-        Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()),
-    );
+    let mut nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()));
     let date = NaiveDate::from_ymd_opt(2020, 5, 17).unwrap();
     nv.value_mut().set(date);
     let got: NaiveDate = nv.value().get().unwrap();
@@ -434,10 +424,7 @@ fn test_named_value_set_get_date() {
 
 #[test]
 fn test_named_value_set_get_time() {
-    let mut nv = NamedValue::new(
-        "t",
-        Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
-    );
+    let mut nv = NamedValue::new("t", Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()));
     let time = NaiveTime::from_hms_milli_opt(13, 14, 15, 123).unwrap();
     nv.value_mut().set(time);
     let got: NaiveTime = nv.value().get().unwrap();
@@ -464,8 +451,8 @@ fn test_named_value_set_get_datetime() {
 
 #[test]
 fn test_named_value_set_get_instant() {
-    let inst: UtcDateTime<Utc> = UtcDateTime::from_timestamp(1_700_000_000, 0)
-        .expect("fixed test instant must be valid");
+    let inst: UtcDateTime<Utc> =
+        UtcDateTime::from_timestamp(1_700_000_000, 0).expect("fixed test instant must be valid");
     let mut nv = NamedValue::new("inst", Value::Instant(inst));
     nv.value_mut().set(inst);
     let got: UtcDateTime<Utc> = nv.value().get().unwrap();

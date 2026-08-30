@@ -11,6 +11,10 @@ use serde_json::Value;
 use serde_json::map::Iter;
 
 /// One pending operation in the iterative JSON hashing traversal.
+///
+/// # Type Parameters
+///
+/// * `'a` - Lifetime of JSON values and object iterators retained by frames.
 pub(super) enum HashFrame<'a> {
     /// Visits one JSON node at its root-inclusive depth.
     Visit(

@@ -54,6 +54,7 @@ use crate::ValueMissing;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
 
+/// Implements one strict typed getter from the shared value table.
 macro_rules! impl_get_value {
     // Copy type: directly dereference and return
     ($(#[$attr:meta])* copy: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
@@ -157,25 +158,15 @@ impl Value {
     /// or [`InvalidValueReason::Serialization`] when Serde cannot represent
     /// the input as JSON.
     #[cfg(all(feature = "converter", feature = "json"))]
-    pub fn from_serializable<T: ?Sized + Serialize>(
-        value: &T,
-    ) -> ValueResult<Self> {
+    pub fn from_serializable<T: ?Sized + Serialize>(value: &T) -> ValueResult<Self> {
         let json = JsonValueEncoder::new().encode(value).map_err(|error| {
             let reason = match error {
-                JsonValueEncodeError::NonFiniteFloat => {
-                    InvalidValueReason::NonFinite
-                }
-                JsonValueEncodeError::Serialization => {
-                    InvalidValueReason::Serialization {
-                        format: DataFormat::Json,
-                    }
-                }
+                JsonValueEncodeError::NonFiniteFloat => InvalidValueReason::NonFinite,
+                JsonValueEncodeError::Serialization => InvalidValueReason::Serialization {
+                    format: DataFormat::Json,
+                },
             };
-            ValueError::from(DataConversionError::invalid(
-                DataType::Json,
-                DataType::Json,
-                reason,
-            ))
+            ValueError::from(DataConversionError::invalid(DataType::Json, DataType::Json, reason))
         })?;
         Ok(Value::Json(json))
     }
@@ -504,9 +495,7 @@ impl Value {
         match &self.repr {
             ValueRepr::BigInteger(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigInteger => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigInteger,
@@ -536,9 +525,7 @@ impl Value {
         match &self.repr {
             ValueRepr::BigDecimal(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigDecimal => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigDecimal,
@@ -568,9 +555,7 @@ impl Value {
         match &self.repr {
             ValueRepr::Url(v) => Ok(v.as_ref()),
             ValueRepr::Unset(dt) if *dt == DataType::Url => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Url,
@@ -599,9 +584,7 @@ impl Value {
         match &self.repr {
             ValueRepr::StringMap(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::StringMap => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::StringMap,
@@ -631,9 +614,7 @@ impl Value {
         match &self.repr {
             ValueRepr::Json(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
@@ -677,9 +658,7 @@ impl Value {
                 ))
             }),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,

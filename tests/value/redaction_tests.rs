@@ -31,10 +31,7 @@ fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
 }
 
 /// Builds a policy that classifies one field and limits domain nodes.
-fn sensitive_policy_with_nodes(
-    field: &str,
-    max_nodes: usize,
-) -> RedactionPolicy {
+fn sensitive_policy_with_nodes(field: &str, max_nodes: usize) -> RedactionPolicy {
     RedactionPolicy::builder()
         .fields(|fields| {
             fields.raise(field, Sensitivity::Secret);
@@ -138,10 +135,7 @@ fn test_multi_values_json_stops_before_unadmitted_items() {
     let result = Redactor::new(policy).redact(&values);
     let output = result.text().as_str();
 
-    assert_eq!(
-        result.summary().completion(),
-        RedactionCompletion::Truncated
-    );
+    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     assert!(output.contains("first"), "{output}");
     assert!(!output.contains("second"), "{output}");
     assert!(output.contains("<truncated>"), "{output}");
@@ -168,10 +162,9 @@ fn test_named_value_masks_non_strings_with_configured_opaque_value() {
     let value = NamedValue::new("token", Value::Int32(12345));
     let policy = RedactionPolicy::builder()
         .fields(|fields| {
-            fields.raise("token", Sensitivity::Low).mask(
-                Sensitivity::Low,
-                MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
-            );
+            fields
+                .raise("token", Sensitivity::Low)
+                .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0));
         })
         .expect("the test policy should be valid")
         .build()
@@ -181,14 +174,12 @@ fn test_named_value_masks_non_strings_with_configured_opaque_value() {
 
 #[test]
 fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
-    let value =
-        NamedValue::new("token", Value::String("secret-token".to_owned()));
+    let value = NamedValue::new("token", Value::String("secret-token".to_owned()));
     let policy = RedactionPolicy::builder()
         .fields(|fields| {
-            fields.raise("token", Sensitivity::Low).mask(
-                Sensitivity::Low,
-                MaskPolicy::preserve_edges(1, 1, "MASK", 0),
-            );
+            fields
+                .raise("token", Sensitivity::Low)
+                .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "MASK", 0));
         })
         .expect("the test policy should be valid")
         .build()
@@ -204,17 +195,13 @@ fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
 fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
     let value = NamedMultiValues::new(
         "tokens",
-        MultiValues::String(vec![
-            "first-secret".to_owned(),
-            "second-secret".to_owned(),
-        ]),
+        MultiValues::String(vec!["first-secret".to_owned(), "second-secret".to_owned()]),
     );
     let policy = RedactionPolicy::builder()
         .fields(|fields| {
-            fields.raise("tokens", Sensitivity::Low).mask(
-                Sensitivity::Low,
-                MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
-            );
+            fields
+                .raise("tokens", Sensitivity::Low)
+                .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0));
         })
         .expect("the test policy should be valid")
         .build()
@@ -229,8 +216,7 @@ fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
 
 #[test]
 fn test_named_value_exact_wrapper_node_budget_is_complete() {
-    let value =
-        NamedValue::new("token", Value::String("secret-token".to_owned()));
+    let value = NamedValue::new("token", Value::String("secret-token".to_owned()));
     let policy = sensitive_policy_with_nodes("token", 5);
 
     let output = redacted_text(&value, &policy);
@@ -241,8 +227,7 @@ fn test_named_value_exact_wrapper_node_budget_is_complete() {
 
 #[test]
 fn test_named_value_one_less_wrapper_node_truncates() {
-    let value =
-        NamedValue::new("token", Value::String("secret-token".to_owned()));
+    let value = NamedValue::new("token", Value::String("secret-token".to_owned()));
     let policy = sensitive_policy_with_nodes("token", 4);
 
     let output = redacted_text(&value, &policy);
@@ -253,10 +238,7 @@ fn test_named_value_one_less_wrapper_node_truncates() {
 
 #[test]
 fn test_named_multi_values_exact_wrapper_node_budget_is_complete() {
-    let value = NamedMultiValues::new(
-        "tokens",
-        MultiValues::String(vec!["first-secret".to_owned()]),
-    );
+    let value = NamedMultiValues::new("tokens", MultiValues::String(vec!["first-secret".to_owned()]));
     let policy = sensitive_policy_with_nodes("tokens", 5);
 
     let output = redacted_text(&value, &policy);
