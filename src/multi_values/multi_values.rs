@@ -100,8 +100,8 @@ macro_rules! define_multi_values_enum {
                 DataType,
             ),
             $(
-                $(#[$cfg])*
                 #[doc = $multi_doc]
+                $(#[$cfg])*
                 $variant(
                     #[doc = concat!("Stored ", $multi_doc, " payload.")]
                     Vec<$type>,
@@ -156,6 +156,14 @@ macro_rules! impl_multi_values_constructors {
     ) => {
         impl MultiValues {
             /// Creates an unset collection with an explicit element type.
+            ///
+            /// # Parameters
+            ///
+            /// * `data_type` - Element type retained while the collection is unset.
+            ///
+            /// # Returns
+            ///
+            /// An unset collection retaining `data_type`.
             #[allow(non_snake_case)]
             #[inline(always)]
             pub const fn Unset(data_type: DataType) -> Self {
@@ -163,15 +171,31 @@ macro_rules! impl_multi_values_constructors {
             }
 
             /// Creates an unset collection with an explicit element type.
+            ///
+            /// # Parameters
+            ///
+            /// * `data_type` - Element type retained while the collection is unset.
+            ///
+            /// # Returns
+            ///
+            /// An unset collection retaining `data_type`.
             #[inline(always)]
             pub const fn new_unset(data_type: DataType) -> Self {
                 Self { repr: MultiValuesRepr::Unset(data_type) }
             }
 
             $(
+                #[doc = concat!("Creates a collection of ", $multi_doc, ".")]
+                ///
+                /// # Parameters
+                ///
+                /// * `values` - Homogeneous elements stored by the collection.
+                ///
+                /// # Returns
+                ///
+                /// A typed collection containing `values` in their original order.
                 $(#[$cfg])*
                 #[allow(non_snake_case)]
-                #[doc = concat!("Creates a collection of ", $multi_doc, ".")]
                 #[inline(always)]
                 pub fn $variant(values: Vec<$type>) -> Self {
                     Self { repr: MultiValuesRepr::$variant(values) }
@@ -186,11 +210,21 @@ for_each_value_type!(impl_multi_values_constructors);
 impl MultiValues {
     /// Hashes this collection while applying `budget` to JSON elements.
     ///
+    /// # Type Parameters
+    ///
+    /// * `H` - Hasher receiving the semantic collection identity.
+    /// * `R` - Resource identifier used by the JSON budget.
+    /// * `Q` - Quantity type used by the JSON budget.
+    ///
     /// # Parameters
     ///
     /// * `state` - Hasher that receives the same identity representation as
     ///   [`Hash::hash`].
     /// * `budget` - Mutable JSON traversal budget, used only for JSON elements.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the complete semantic identity is hashed.
     ///
     /// # Errors
     ///
@@ -254,6 +288,10 @@ impl MultiValues {
     }
 
     /// Borrows the stable semantic view of this collection.
+    ///
+    /// # Returns
+    ///
+    /// A non-owning homogeneous view that hides private storage details.
     #[inline(always)]
     pub fn view(&self) -> MultiValuesRef<'_> {
         match &self.repr {

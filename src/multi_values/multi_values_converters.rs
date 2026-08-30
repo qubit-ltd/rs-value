@@ -301,6 +301,23 @@ impl MultiValues {
     }
 
     /// Converts the first stored value using an existing conversion session.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element type supported by the shared conversion layer.
+    ///
+    /// # Parameters
+    ///
+    /// * `session` - Caller-owned session providing policy, limits, and budget.
+    ///
+    /// # Returns
+    ///
+    /// The converted first element.
+    ///
+    /// # Errors
+    ///
+    /// Returns a structured missing, conversion, or budget error when the
+    /// first element cannot be produced as `T`.
     pub fn to_first_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
     where
         T: DataConversionTarget,
@@ -513,6 +530,22 @@ impl MultiValues {
     }
 
     /// Converts every stored value using an existing conversion session.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Target element type supported by the shared conversion layer.
+    ///
+    /// # Parameters
+    ///
+    /// * `session` - Caller-owned session providing policy, limits, and budget.
+    ///
+    /// # Returns
+    ///
+    /// Converted elements in their original order.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first structured missing, conversion, or budget error.
     pub fn to_list_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
