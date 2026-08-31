@@ -125,9 +125,7 @@ impl From<DataConversionError> for ValueError {
             });
         }
         if error.kind() == DataConversionErrorKind::EmptyCollection {
-            return Self::Missing(ValueMissing::EmptyCollectionConversion {
-                to: error.to_type(),
-            });
+            return Self::Missing(ValueMissing::EmptyCollectionConversion { to: error.to_type() });
         }
         Self::Conversion(error)
     }
@@ -147,9 +145,7 @@ impl From<DataListConversionError> for ValueError {
             });
         }
         if source.kind() == DataConversionErrorKind::EmptyCollection {
-            return Self::Missing(ValueMissing::EmptyCollectionConversion {
-                to: source.to_type(),
-            });
+            return Self::Missing(ValueMissing::EmptyCollectionConversion { to: source.to_type() });
         }
         Self::ListConversion(DataListConversionError::new(source_index, source))
     }

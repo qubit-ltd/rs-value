@@ -147,10 +147,7 @@ impl<'a> ValueWireRefV1<'a> {
     /// Serde rejects the envelope.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_vec_with_limits(
-        &self,
-        limits: JsonEncodeLimits,
-    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+    pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -205,11 +202,7 @@ impl<'a> ValueWireRefV1<'a> {
     /// rejects the envelope, or `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer_with_limits<W>(
-        &self,
-        writer: W,
-        limits: JsonEncodeLimits,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(&self, writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {

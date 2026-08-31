@@ -88,8 +88,7 @@ pub trait StrictValueRead: Sized + Sealed {
 
 impl<T> StrictValueRead for T
 where
-    for<'a> T:
-        TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
+    for<'a> T: TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
     for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
 {
     #[inline(always)]

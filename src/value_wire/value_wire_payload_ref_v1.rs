@@ -118,9 +118,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
             ValueContainer::Scalar(value) => validate_value(value)?,
             ValueContainer::Collection(values) => validate_values(values)?,
         }
-        Ok(Self {
-            shape: value.into(),
-        })
+        Ok(Self { shape: value.into() })
     }
 
     /// Returns the borrowed internal shape used by V1 serialization.
@@ -166,10 +164,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// Serde rejects the payload.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_vec_with_limits(
-        &self,
-        limits: JsonEncodeLimits,
-    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+    pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -224,11 +219,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// rejects the payload, or `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer_with_limits<W>(
-        &self,
-        writer: W,
-        limits: JsonEncodeLimits,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(&self, writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
@@ -282,9 +273,7 @@ pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWi
 ///
 /// Returns [`ValueWireEncodeError`] for a non-finite float element or an
 /// out-of-range arbitrary-precision decimal scale.
-pub(in crate::value_wire) fn validate_values(
-    values: &MultiValues,
-) -> Result<(), ValueWireEncodeError> {
+pub(in crate::value_wire) fn validate_values(values: &MultiValues) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "big-decimal")]
     if let MultiValuesRepr::BigDecimal(values) = &values.repr {
         for value in values {

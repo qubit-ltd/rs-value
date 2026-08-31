@@ -37,8 +37,6 @@ where
     where
         D: Deserializer<'de>,
     {
-        deserializer
-            .deserialize_str(DecimalVisitor(PhantomData))
-            .map(Self)
+        deserializer.deserialize_str(DecimalVisitor(PhantomData)).map(Self)
     }
 }

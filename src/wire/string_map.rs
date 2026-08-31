@@ -36,10 +36,7 @@ use super::internal::StrictStringMap;
 /// # Errors
 ///
 /// Returns `S::Error` when map serialization fails.
-pub(crate) fn serialize<S>(
-    value: &HashMap<String, String>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+pub(crate) fn serialize<S>(value: &HashMap<String, String>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
