@@ -57,7 +57,7 @@ use qubit_datatype::InvalidValueReason;
 use qubit_datatype::NumberRef;
 use qubit_datatype::NumericComparisonPolicy;
 #[cfg(all(feature = "converter", feature = "json"))]
-use qubit_json::value::JsonValueEncodeError;
+use qubit_json::value::JsonValueEncodeErrorKind;
 #[cfg(all(feature = "converter", feature = "json"))]
 use qubit_json::value::JsonValueEncoder;
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -1108,15 +1108,16 @@ impl Value {
     /// # Errors
     ///
     /// Returns [`ValueError::Conversion`] with
-    /// [`InvalidValueReason::NonFinite`] when any nested float is non-finite,
-    /// or [`InvalidValueReason::Serialization`] when Serde cannot represent
-    /// the input as JSON.
+    /// A non-finite reason is returned when any nested float is non-finite, an
+    /// out-of-range reason when an integer exceeds the strict JSON range, or a
+    /// serialization reason for every other unsupported Serde representation.
     #[cfg(all(feature = "converter", feature = "json"))]
     pub fn from_serializable<T: ?Sized + Serialize>(value: &T) -> ValueResult<Self> {
         let json = JsonValueEncoder::new().encode(value).map_err(|error| {
-            let reason = match error {
-                JsonValueEncodeError::NonFiniteFloat => InvalidValueReason::NonFinite,
-                JsonValueEncodeError::Serialization => InvalidValueReason::Serialization {
+            let reason = match error.kind() {
+                JsonValueEncodeErrorKind::NonFiniteFloat => InvalidValueReason::NonFinite,
+                JsonValueEncodeErrorKind::IntegerOutOfRange { .. } => InvalidValueReason::OutOfRange,
+                _ => InvalidValueReason::Serialization {
                     format: DataFormat::Json,
                 },
             };
