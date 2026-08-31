@@ -9,6 +9,10 @@
 //! Strict JSON serialization behavior.
 
 #[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::InvalidValueReason;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_value::ValueError;
+#[cfg(all(feature = "converter", feature = "json"))]
 use serde::Serialize;
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde::Serializer;
@@ -38,7 +42,24 @@ impl Serialize for DuplicateKeyProbe {
 fn test_strict_json_rejects_non_finite_float() {
     use qubit_value::Value;
 
-    assert!(Value::from_serializable(&f64::NAN).is_err());
+    let error = Value::from_serializable(&f64::NAN).expect_err("non-finite value must fail");
+    let ValueError::Conversion(error) = error else {
+        panic!("strict JSON projection must return a conversion error");
+    };
+    assert_eq!(error.reason(), Some(&InvalidValueReason::NonFinite));
+}
+
+/// Maps strict wide-integer failures to the shared out-of-range reason.
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_strict_json_maps_wide_integer_to_out_of_range() {
+    use qubit_value::Value;
+
+    let error = Value::from_serializable(&u128::MAX).expect_err("wide integer must fail");
+    let ValueError::Conversion(error) = error else {
+        panic!("strict JSON projection must return a conversion error");
+    };
+    assert_eq!(error.reason(), Some(&InvalidValueReason::OutOfRange));
 }
 
 /// Rejects object keys that collide during strict JSON projection.
