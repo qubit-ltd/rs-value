@@ -21,7 +21,7 @@ use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonEncodeSession;
 #[cfg(feature = "json")]
 use qubit_json::encode::JsonEncoder;
-use serde::Deserialize;
+use serde::de::DeserializeSeed;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
@@ -45,13 +45,8 @@ use crate::ValueContainer;
 /// and future runtime data types require a new wire version instead of
 /// extending V1.
 ///
-/// # Resource limits
-///
-/// The generic [`Deserialize`] implementation is intended
-/// for already-bounded embedded documents and does not enforce message-size or
-/// structural limits. Use `ValueWireV1::decode_json_slice` or
-/// `ValueWireV1::decode_json_slice_with_limits` for untrusted complete JSON
-/// input.
+/// Deserialization is intentionally available through [`ValueWireV1Seed`],
+/// which lets a bounded decoder control the complete input and structure.
 ///
 /// # Examples
 ///
@@ -66,6 +61,23 @@ use crate::ValueContainer;
 pub struct ValueWireV1 {
     /// Explicit runtime shape and typed payload represented by this DTO.
     value: ValueWirePayloadV1,
+}
+
+/// Explicit Serde seed for decoding one V1 envelope.
+///
+/// Use this seed with a decoder that enforces the resource limits appropriate
+/// for the surrounding document. For complete JSON input, prefer
+/// [`ValueWireV1::decode_json_slice`] or
+/// [`ValueWireV1::decode_json_slice_with_limits`].
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ValueWireV1Seed;
+
+impl ValueWireV1Seed {
+    /// Creates a seed for one V1 envelope.
+    #[inline(always)]
+    pub const fn new() -> Self {
+        Self
+    }
 }
 
 impl ValueWireV1 {
@@ -332,15 +344,17 @@ impl Serialize for ValueWireV1 {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueWireV1 {
-    /// Deserializes a validated V1 runtime container into the DTO.
+impl<'de> DeserializeSeed<'de> for ValueWireV1Seed {
+    type Value = ValueWireV1;
+
+    /// Deserializes one validated V1 runtime container into the DTO.
     #[inline(always)]
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
         deserialize_wire(deserializer)
             .map(ValueWirePayloadV1::from_decoded)
-            .map(Self::new)
+            .map(ValueWireV1::new)
     }
 }

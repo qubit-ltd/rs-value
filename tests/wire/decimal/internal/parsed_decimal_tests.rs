@@ -12,10 +12,9 @@
 #[test]
 fn test_big_integer_wire_decodes_canonical_string() {
     use qubit_value::Value;
-    use qubit_value::ValueWireV1;
 
     assert_eq!(
-        serde_json::from_value::<ValueWireV1>(
+        crate::decode_value_wire_value(
             serde_json::json!({"version": 1, "value": {"scalar": {"biginteger": "42"}}})
         )
         .unwrap()
