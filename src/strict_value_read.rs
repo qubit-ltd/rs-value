@@ -7,29 +7,14 @@
 // =============================================================================
 
 //! Sealed public bound for strict reads from runtime value storage.
-// qubit-style: allow multiple-public-types
-
 use crate::MultiValues;
 use crate::Value;
 use crate::ValueError;
 use crate::ValueResult;
 
-/// Private sealing support for [`StrictValueRead`].
-mod sealed {
-    use super::MultiValues;
-    use super::Value;
-    use super::ValueError;
+mod internal;
 
-    /// Prevents downstream crates from implementing [`super::StrictValueRead`].
-    pub trait Sealed {}
-
-    impl<T> Sealed for T
-    where
-        for<'a> T: TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
-        for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
-    {
-    }
-}
+use self::internal::sealed::Sealed;
 
 /// Marks target types supported by exact, non-converting reads.
 ///
@@ -48,7 +33,7 @@ mod sealed {
 ///
 /// assert_eq!(read_exact::<i32>(&Value::from(42_i32)).unwrap(), 42);
 /// ```
-pub trait StrictValueRead: Sized + sealed::Sealed {
+pub trait StrictValueRead: Sized + Sealed {
     /// Strictly reads a scalar runtime value.
     ///
     /// # Parameters
