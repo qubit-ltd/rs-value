@@ -23,7 +23,7 @@ use crate::value_error::ValueResult;
 
 /// Expands the shared value table into a `DataConverter` construction match.
 macro_rules! value_data_converter_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             ValueRepr::Unset(data_type) => DataConverter::Unset(*data_type),
             $($(#[$cfg])* ValueRepr::$variant(value) => DataConverter::from(value_storage_ref!($variant, value)),)+
@@ -114,7 +114,10 @@ where
 /// # Errors
 ///
 /// Returns a mapped missing, conversion, or budget error.
-pub(super) fn convert_with_data_converter_in<T>(value: &Value, session: &mut ConversionSession<'_>) -> ValueResult<T>
+pub(super) fn convert_with_data_converter_in<T>(
+    value: &Value,
+    session: &mut ConversionSession<'_>,
+) -> ValueResult<T>
 where
     T: DataConversionTarget,
 {

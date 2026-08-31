@@ -46,7 +46,11 @@ macro_rules! payloads_eq {
                 .all(|(left, right)| canonical_f64_bits(*left) == canonical_f64_bits(*right))
     };
     (Json, $left:expr, $right:expr) => {
-        $left.len() == $right.len() && $left.iter().zip($right).all(|(left, right)| json_eq(left, right))
+        $left.len() == $right.len()
+            && $left
+                .iter()
+                .zip($right)
+                .all(|(left, right)| json_eq(left, right))
     };
     ($variant:ident, $left:expr, $right:expr) => {
         $left == $right
@@ -196,7 +200,7 @@ where
 macro_rules! impl_multi_values_identity {
     (
         ;
-        $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?
+        $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?
     ) => {
         impl PartialEq for MultiValues {
             fn eq(&self, other: &Self) -> bool {

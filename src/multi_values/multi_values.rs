@@ -110,6 +110,7 @@ macro_rules! impl_multi_values_constructors {
                 $number_projection:ident,
                 $value_doc:literal,
                 $multi_doc:literal
+                $(, $_wire:tt)*
             )
         ),+ $(,)?
     ) => {
@@ -458,7 +459,10 @@ impl MultiValues {
     /// when an item cannot be represented as JSON.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
-        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
+        self.to_json_value_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Projects this collection using explicit conversion policy and limits.
@@ -488,7 +492,7 @@ impl MultiValues {
 
 /// Maps private collection storage variants to their runtime data types.
 macro_rules! multi_values_data_type_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(dt) => *dt,
             $($(#[$cfg])* MultiValuesRepr::$variant(_) => $data_type,)+
@@ -498,7 +502,7 @@ macro_rules! multi_values_data_type_match {
 
 /// Returns the concrete element count for each collection storage variant.
 macro_rules! multi_values_count_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(_) => 0,
             $($(#[$cfg])* MultiValuesRepr::$variant(values) => values.len(),)+
@@ -508,7 +512,7 @@ macro_rules! multi_values_count_match {
 
 /// Clears the concrete elements of each collection storage variant.
 macro_rules! multi_values_clear_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &mut $value.repr {
             MultiValuesRepr::Unset(_) => {}
             $($(#[$cfg])* MultiValuesRepr::$variant(values) => values.clear(),)+
@@ -518,7 +522,7 @@ macro_rules! multi_values_clear_match {
 
 /// Appends same-typed elements to an existing collection storage variant.
 macro_rules! multi_values_append_match {
-    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match (&mut $left.repr, &mut $right.repr) {
             $(
                 $(#[$cfg])*
@@ -536,7 +540,7 @@ macro_rules! multi_values_append_match {
 
 /// Clones the first collection element into a scalar value.
 macro_rules! multi_values_first_value_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(data_type) => Value::new_unset(*data_type),
             $(
@@ -553,7 +557,7 @@ macro_rules! multi_values_first_value_match {
 
 /// Moves the first collection element into a scalar value.
 macro_rules! multi_values_into_first_value_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match $value.repr {
             MultiValuesRepr::Unset(data_type) => Value::new_unset(data_type),
             $(
@@ -570,7 +574,7 @@ macro_rules! multi_values_into_first_value_match {
 
 /// Merges same-typed collection storage while preserving element order.
 macro_rules! multi_values_merge_match {
-    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match (&mut $left.repr, &$right.repr) {
             $(
                 $(#[$cfg])*
@@ -586,7 +590,7 @@ macro_rules! multi_values_merge_match {
 
 /// Converts one private scalar storage variant into collection storage.
 macro_rules! value_into_multi_values_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match $value.repr {
             ValueRepr::Unset(data_type) => MultiValues::new_unset(data_type),
             $($(#[$cfg])* ValueRepr::$variant(value) => {
@@ -709,7 +713,9 @@ impl MultiValues {
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
+            Err(ValueError::Missing(missing)) if missing.is_unset() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -829,7 +835,9 @@ impl MultiValues {
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get_first() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
+            Err(ValueError::Missing(missing)) if missing.is_unset() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -1215,7 +1223,7 @@ impl From<Value> for MultiValues {
 /// Converts the first collection element with a standalone policy and limits.
 #[cfg(feature = "converter")]
 macro_rules! multi_values_convert_first_match {
-    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
@@ -1233,7 +1241,7 @@ macro_rules! multi_values_convert_first_match {
 /// Converts every collection element with a standalone policy and limits.
 #[cfg(feature = "converter")]
 macro_rules! multi_values_convert_list_match {
-    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
@@ -1251,7 +1259,7 @@ macro_rules! multi_values_convert_list_match {
 /// Converts the first collection element through a caller-owned session.
 #[cfg(feature = "converter")]
 macro_rules! multi_values_convert_first_in_match {
-    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
@@ -1271,7 +1279,7 @@ macro_rules! multi_values_convert_first_in_match {
 /// Converts every collection element through a caller-owned session.
 #[cfg(feature = "converter")]
 macro_rules! multi_values_convert_list_in_match {
-    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
@@ -1326,7 +1334,9 @@ where
     I: Iterator,
     I::Item: Into<DataConverter<'a>>,
 {
-    values.to_first_with(policy, limits).map_err(ValueError::from)
+    values
+        .to_first_with(policy, limits)
+        .map_err(ValueError::from)
 }
 
 /// Converts every item from a batch converter using conversion policy and
@@ -1391,7 +1401,10 @@ impl MultiValues {
     where
         T: DataConversionTarget,
     {
-        self.to_first_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
+        self.to_first_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Converts the first stored value to `T`, or returns `default` when the
@@ -1459,7 +1472,9 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+                Ok(default())
+            }
             result => result,
         }
     }
@@ -1488,7 +1503,11 @@ impl MultiValues {
     /// Returns a structured missing-value conversion error when the container
     /// is unset, an empty-collection error for a concrete empty vector, or a
     /// conversion error when the first value cannot be converted to `T`.
-    pub fn to_first_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
+    pub fn to_first_with<T>(
+        &self,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
+    ) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -1598,7 +1617,9 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+                Ok(default())
+            }
             result => result,
         }
     }
@@ -1626,7 +1647,10 @@ impl MultiValues {
     where
         T: DataConversionTarget,
     {
-        self.to_list_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
+        self.to_list_with(
+            ConversionPolicy::default_ref(),
+            ConversionLimits::default_ref(),
+        )
     }
 
     /// Converts all stored values to `T`, or returns `default` when storage is
@@ -1690,7 +1714,9 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+                Ok(default())
+            }
             result => result,
         }
     }
@@ -1717,7 +1743,11 @@ impl MultiValues {
     ///
     /// Returns the first conversion error encountered while converting an
     /// element.
-    pub fn to_list_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(
+        &self,
+        policy: &ConversionPolicy,
+        limits: &ConversionLimits,
+    ) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
@@ -1825,7 +1855,9 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
+                Ok(default())
+            }
             result => result,
         }
     }
