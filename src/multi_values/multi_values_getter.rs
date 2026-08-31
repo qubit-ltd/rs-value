@@ -8,8 +8,8 @@
 
 //! `TryFrom<&MultiValues>` implementations for strict typed reads.
 
+use super::MultiValuesRepr;
 use super::multi_values::MultiValues;
-use super::multi_values::MultiValuesRepr;
 use crate::ValueMissing;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
