@@ -8,6 +8,7 @@
 //! # Value Processing Module Tests
 //!
 //! Provides integration tests for the value processing framework.
+mod contracts;
 mod doc_examples_tests;
 mod finite_float_tests;
 mod finite_float {
