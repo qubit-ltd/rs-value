@@ -108,13 +108,19 @@ impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
         if let Some(error) = error.budget_error().cloned() {
             return match error {
                 MeasuredBudgetError::Budget(error) => Self::Budget(error),
-                MeasuredBudgetError::Quantity { resource, source } => Self::Quantity { resource, source },
+                MeasuredBudgetError::Quantity { resource, source } => {
+                    Self::Quantity { resource, source }
+                }
             };
         }
         if let Some(error) = error.syntax_error() {
             return Self::Syntax(*error);
         }
-        Self::deserialize(Category::Data, error.line().unwrap_or(0), error.column().unwrap_or(0))
+        Self::deserialize(
+            Category::Data,
+            error.line().unwrap_or(0),
+            error.column().unwrap_or(0),
+        )
     }
 }
 

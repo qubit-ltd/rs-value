@@ -37,39 +37,6 @@ use crate::ValueContainer;
 /// Version tag emitted and accepted by the V1 wire envelope.
 const VALUE_WIRE_V1_VERSION: u8 = 1;
 
-/// Invokes a callback with the complete, independent V1 wire type table.
-macro_rules! for_each_wire_type {
-    ($macro:ident) => {
-        $macro! {
-            ([], [], [], Bool, bool, "bool"),
-            ([], [], [], Char, char, "char"),
-            ([], [], [], Int8, i8, "int8"),
-            ([], [], [], Int16, i16, "int16"),
-            ([], [], [], Int32, i32, "int32"),
-            ([], [], [], Int64, i64, "int64"),
-            ([], [serde(with = "crate::wire::int128")], [serde(with = "crate::wire::int128_vec")], Int128, i128, "int128"),
-            ([], [], [], UInt8, u8, "uint8"),
-            ([], [], [], UInt16, u16, "uint16"),
-            ([], [], [], UInt32, u32, "uint32"),
-            ([], [], [], UInt64, u64, "uint64"),
-            ([], [serde(with = "crate::wire::uint128")], [serde(with = "crate::wire::uint128_vec")], UInt128, u128, "uint128"),
-            ([], [serde(with = "crate::wire::float32")], [serde(with = "crate::wire::float32_vec")], Float32, f32, "float32"),
-            ([], [serde(with = "crate::wire::float64")], [serde(with = "crate::wire::float64_vec")], Float64, f64, "float64"),
-            ([cfg(feature = "big-integer")], [serde(with = "crate::wire::big_integer")], [serde(with = "crate::wire::big_integer_vec")], BigInteger, num_bigint::BigInt, "biginteger"),
-            ([cfg(feature = "big-decimal")], [serde(with = "crate::wire::big_decimal")], [serde(with = "crate::wire::big_decimal_vec")], BigDecimal, bigdecimal::BigDecimal, "bigdecimal"),
-            ([], [], [], String, String, "string"),
-            ([cfg(feature = "chrono")], [serde(with = "crate::wire::date")], [serde(with = "crate::wire::date_vec")], Date, chrono::NaiveDate, "date"),
-            ([cfg(feature = "chrono")], [serde(with = "crate::wire::time")], [serde(with = "crate::wire::time_vec")], Time, chrono::NaiveTime, "time"),
-            ([cfg(feature = "chrono")], [serde(with = "crate::wire::datetime")], [serde(with = "crate::wire::datetime_vec")], DateTime, chrono::NaiveDateTime, "datetime"),
-            ([cfg(feature = "chrono")], [serde(with = "crate::wire::instant")], [serde(with = "crate::wire::instant_vec")], Instant, chrono::DateTime<chrono::Utc>, "instant"),
-            ([], [serde(with = "crate::wire::duration")], [serde(with = "crate::wire::duration_vec")], Duration, std::time::Duration, "duration"),
-            ([cfg(feature = "url")], [serde(with = "crate::wire::url")], [serde(with = "crate::wire::url_vec")], Url, url::Url, "url"),
-            ([], [serde(with = "crate::wire::string_map")], [serde(with = "crate::wire::string_map_vec")], StringMap, std::collections::HashMap<String, String>, "stringmap"),
-            ([cfg(feature = "json")], [serde(with = "crate::wire::json")], [serde(with = "crate::wire::json_vec")], Json, serde_json::Value, "json"),
-        }
-    };
-}
-
 mod internal;
 #[cfg(feature = "json")]
 mod value_wire_decode_error;

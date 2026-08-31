@@ -37,7 +37,10 @@ use super::internal::StrictStringMap;
 /// # Errors
 ///
 /// Returns `S::Error` when sequence serialization fails.
-pub(crate) fn serialize<S>(values: &[HashMap<String, String>], serializer: S) -> Result<S::Ok, S::Error>
+pub(crate) fn serialize<S>(
+    values: &[HashMap<String, String>],
+    serializer: S,
+) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -69,6 +72,10 @@ pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<HashMap<String,
 where
     D: Deserializer<'de>,
 {
-    Vec::<StrictStringMap<String>>::deserialize(deserializer)
-        .map(|values| values.into_iter().map(StrictStringMap::into_inner).collect())
+    Vec::<StrictStringMap<String>>::deserialize(deserializer).map(|values| {
+        values
+            .into_iter()
+            .map(StrictStringMap::into_inner)
+            .collect()
+    })
 }

@@ -26,6 +26,7 @@ macro_rules! define_value_enum {
                 $number_projection:ident,
                 $value_doc:literal,
                 $multi_doc:literal
+                $(, $_wire:tt)*
             )
         ),+ $(,)?
     ) => {
