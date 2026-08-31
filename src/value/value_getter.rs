@@ -8,8 +8,8 @@
 
 //! `TryFrom<&Value>` implementations for strict typed reads.
 
+use super::ValueRepr;
 use super::value::Value;
-use super::value::ValueRepr;
 use crate::ValueMissing;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
