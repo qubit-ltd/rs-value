@@ -10,7 +10,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-qubit-budget = { version = "0.4", path = "../../rs-budget", features = ["json"] }
+qubit-budget = { version = "0.4", features = ["json"] }
 qubit-json = { path = "../../rs-json" }
 qubit-value = { path = "..", features = ["all"] }
 serde_json = { version = "1.0", features = ["float_roundtrip"] }
