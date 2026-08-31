@@ -22,7 +22,7 @@ use qubit_json::decode::JsonSyntaxError;
 #[cfg(feature = "json")]
 use qubit_json::encode::JsonEncodeError;
 #[cfg(feature = "json")]
-use serde_json::Error as JsonError;
+use qubit_json::encode::JsonSerializationError;
 use thiserror::Error;
 
 /// A runtime value cannot be represented by the JSON V1 wire contract.
@@ -80,13 +80,13 @@ pub enum ValueWireEncodeError {
         #[source]
         JsonSyntaxError,
     ),
-    /// Serde JSON rejected the value during bounded encoding.
+    /// Strict JSON serialization rejected the value during bounded encoding.
     #[cfg(feature = "json")]
     #[error("failed to encode V1 JSON wire value: {0}")]
     Json(
-        /// Serde JSON serialization failure.
+        /// Stable, privacy-safe JSON serialization failure.
         #[source]
-        JsonError,
+        JsonSerializationError,
     ),
     /// The destination writer rejected bounded JSON output.
     #[cfg(feature = "json")]

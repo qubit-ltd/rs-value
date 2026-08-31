@@ -7,6 +7,9 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
+use qubit_json::encode::JsonEncodeError;
+use qubit_json::encode::JsonSerializationError;
+use qubit_json::encode::JsonSerializationErrorKind;
 use qubit_value::Value;
 use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWirePayloadV1;
@@ -21,5 +24,19 @@ fn test_value_wire_encode_error_rejects_non_finite_float() {
         Err(ValueWireEncodeError::NonFiniteFloat {
             data_type: DataType::Float64,
         })
+    ));
+}
+
+/// Verifies wire conversion preserves the shared structured serialization
+/// failure without introducing backend diagnostic text.
+#[test]
+fn test_value_wire_encode_error_preserves_serialization_kind() {
+    let source = JsonSerializationError::new(JsonSerializationErrorKind::CustomSerialization);
+    let error = ValueWireEncodeError::from(JsonEncodeError::Serialize(source));
+
+    assert!(matches!(
+        error,
+        ValueWireEncodeError::Json(source)
+            if source.kind() == JsonSerializationErrorKind::CustomSerialization
     ));
 }
