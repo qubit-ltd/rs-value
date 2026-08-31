@@ -11,10 +11,9 @@
 #[test]
 fn test_wide_integer_wire_parses_canonical_string() {
     use qubit_value::Value;
-    use qubit_value::ValueWireV1;
 
     assert_eq!(
-        serde_json::from_value::<ValueWireV1>(serde_json::json!({"version": 1, "value": {"scalar": {"uint128": "1"}}}))
+        crate::decode_value_wire_value(serde_json::json!({"version": 1, "value": {"scalar": {"uint128": "1"}}}))
             .unwrap()
             .into_container(),
         Value::UInt128(1).into(),

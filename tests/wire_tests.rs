@@ -17,7 +17,7 @@ use qubit_value::ValueWireV1;
 #[test]
 fn test_wire_round_trips_scalar_value() {
     let wire = ValueWireV1::try_from(Value::Int32(7)).expect("construct V1 wire");
-    let decoded: ValueWireV1 = serde_json::from_value(serde_json::to_value(wire).unwrap()).unwrap();
+    let decoded = crate::decode_value_wire_value(serde_json::to_value(wire).unwrap()).unwrap();
     assert_eq!(
         decoded,
         ValueWireV1::try_from(Value::Int32(7)).expect("construct V1 wire")

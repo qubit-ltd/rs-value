@@ -54,9 +54,9 @@ use self::internal::WireShapeRef;
 pub use self::value_wire_decode_error::ValueWireDecodeError;
 pub use self::value_wire_encode_error::ValueWireEncodeError;
 pub use self::value_wire_payload_ref_v1::ValueWirePayloadRefV1;
-pub use self::value_wire_payload_v1::ValueWirePayloadV1;
+pub use self::value_wire_payload_v1::{ValueWirePayloadV1, ValueWirePayloadV1Seed};
 pub use self::value_wire_ref_v1::ValueWireRefV1;
-pub use self::value_wire_v1::ValueWireV1;
+pub use self::value_wire_v1::{ValueWireV1, ValueWireV1Seed};
 
 /// Returns the default value-resource profile used by V1 JSON documents.
 ///
