@@ -17,8 +17,8 @@ use qubit_budget::ResourceQuantity;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonValueBudget;
 
+use super::MultiValuesRepr;
 use super::multi_values::MultiValues;
-use super::multi_values::MultiValuesRepr;
 use crate::identity::canonical_f32_bits;
 use crate::identity::canonical_f64_bits;
 #[cfg(feature = "big-decimal")]

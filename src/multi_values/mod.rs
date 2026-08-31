@@ -9,6 +9,7 @@
 //!
 //! Public entry for multiple-values container implementations.
 
+mod internal;
 #[allow(clippy::module_inception)]
 #[macro_use]
 mod multi_values;
@@ -17,6 +18,6 @@ mod multi_values_getter;
 mod multi_values_identity;
 mod multi_values_ref;
 
+pub(crate) use self::internal::MultiValuesRepr;
 pub use self::multi_values::MultiValues;
-pub(crate) use self::multi_values::MultiValuesRepr;
 pub use self::multi_values_ref::MultiValuesRef;
