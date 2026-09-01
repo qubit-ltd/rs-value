@@ -57,7 +57,7 @@ use qubit_datatype::InvalidValueReason;
 use qubit_datatype::NumberRef;
 use qubit_datatype::NumericComparisonPolicy;
 #[cfg(all(feature = "converter", feature = "json"))]
-use qubit_json::value::JsonValueEncodeErrorKind;
+use qubit_json::encode::JsonSerializationErrorKind;
 #[cfg(all(feature = "converter", feature = "json"))]
 use qubit_json::value::JsonValueEncoder;
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -1115,8 +1115,8 @@ impl Value {
     pub fn from_serializable<T: ?Sized + Serialize>(value: &T) -> ValueResult<Self> {
         let json = JsonValueEncoder::new().encode(value).map_err(|error| {
             let reason = match error.kind() {
-                JsonValueEncodeErrorKind::NonFiniteFloat => InvalidValueReason::NonFinite,
-                JsonValueEncodeErrorKind::IntegerOutOfRange { .. } => InvalidValueReason::OutOfRange,
+                JsonSerializationErrorKind::NonFiniteFloat => InvalidValueReason::NonFinite,
+                JsonSerializationErrorKind::IntegerOutOfRange { .. } => InvalidValueReason::OutOfRange,
                 _ => InvalidValueReason::Serialization {
                     format: DataFormat::Json,
                 },
