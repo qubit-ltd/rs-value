@@ -23,17 +23,15 @@ use qubit_budget::json::JsonEncodeSession;
 use qubit_json::decode::JsonDecoder;
 #[cfg(feature = "json")]
 use qubit_json::encode::JsonEncoder;
-use serde::Deserialize;
-use serde::de::DeserializeSeed;
-use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
 
 use super::ValueWireEncodeError;
-use super::WireShapeOwned;
 use super::WireShapeRef;
 use super::value_wire_payload_ref_v1::validate_value;
 use super::value_wire_payload_ref_v1::validate_values;
+#[cfg(feature = "json")]
+use super::value_wire_payload_v1_seed::ValueWirePayloadV1Seed;
 use crate::MultiValues;
 use crate::Value;
 use crate::ValueContainer;
@@ -43,7 +41,7 @@ use crate::ValueWireDecodeError;
 /// Typed V1 scalar-or-collection payload without an enclosing version field.
 ///
 /// Deserialization is intentionally available through
-/// [`ValueWirePayloadV1Seed`], which lets a bounded decoder control the
+/// [`crate::ValueWirePayloadV1Seed`], which lets a bounded decoder control the
 /// complete input and structure.
 ///
 /// # Examples
@@ -59,23 +57,6 @@ use crate::ValueWireDecodeError;
 pub struct ValueWirePayloadV1 {
     /// Preserved runtime shape and payload.
     value: ValueContainer,
-}
-
-/// Explicit Serde seed for decoding one unversioned V1 payload.
-///
-/// Use this seed with a decoder that enforces the resource limits appropriate
-/// for the surrounding document. For complete JSON input, prefer
-/// [`ValueWirePayloadV1::decode_json_slice`] or
-/// [`ValueWirePayloadV1::decode_json_slice_with_limits`].
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ValueWirePayloadV1Seed;
-
-impl ValueWirePayloadV1Seed {
-    /// Creates a seed for one unversioned V1 payload.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self
-    }
 }
 
 impl ValueWirePayloadV1 {
@@ -349,18 +330,5 @@ impl Serialize for ValueWirePayloadV1 {
         S: Serializer,
     {
         WireShapeRef::from(&self.value).serialize(serializer)
-    }
-}
-
-impl<'de> DeserializeSeed<'de> for ValueWirePayloadV1Seed {
-    type Value = ValueWirePayloadV1;
-
-    /// Deserializes one unversioned V1 shape.
-    #[inline(always)]
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Ok(ValueWirePayloadV1::from_decoded(WireShapeOwned::deserialize(deserializer)?.into()))
     }
 }

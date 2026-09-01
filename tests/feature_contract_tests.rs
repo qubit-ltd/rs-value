@@ -109,11 +109,14 @@ use url::Url;
     feature = "url",
     feature = "json",
 ))]
-fn assert_json_round_trip(value: impl Into<ValueContainer>) {
+fn assert_wire_serialization(value: impl Into<ValueContainer>) {
     let wire = ValueWirePayloadV1::try_from(value.into()).expect("construct wire payload");
-    let encoded = serde_json::to_string(&wire).expect("serialize wire payload");
-    let decoded = ValueWirePayloadV1::decode_json_slice(encoded.as_bytes()).expect("deserialize wire payload");
-    assert_eq!(decoded, wire);
+    let _encoded = serde_json::to_string(&wire).expect("serialize wire payload");
+    #[cfg(feature = "json")]
+    {
+        let decoded = ValueWirePayloadV1::decode_json_slice(_encoded.as_bytes()).expect("deserialize wire payload");
+        assert_eq!(decoded, wire);
+    }
 }
 
 #[cfg(feature = "converter")]
@@ -124,7 +127,7 @@ fn converter_feature_converts_core_values() {
 
     assert_eq!(scalar.to_first::<i64>().expect("convert scalar"), 42);
     assert_eq!(collection.to_list::<i64>().expect("convert collection"), vec![43, 44]);
-    assert_json_round_trip(collection);
+    assert_wire_serialization(collection);
 }
 
 /// A downstream conversion target used to validate rs-value's public bounds.
@@ -168,8 +171,8 @@ fn chrono_feature_preserves_values_and_wire_payloads() {
 
     assert_eq!(scalar.get::<NaiveDate>().expect("read date"), date);
     assert_eq!(collection.get_dates().expect("read dates"), &[date]);
-    assert_json_round_trip(scalar);
-    assert_json_round_trip(collection);
+    assert_wire_serialization(scalar);
+    assert_wire_serialization(collection);
 }
 
 #[cfg(feature = "big-integer")]
@@ -181,8 +184,8 @@ fn big_integer_feature_preserves_values_and_wire_payloads() {
 
     assert_eq!(integer_value.get::<BigInt>().expect("read big integer"), integer);
     assert_eq!(integers.get_bigintegers().expect("read big integers"), &[integer]);
-    assert_json_round_trip(integer_value);
-    assert_json_round_trip(integers);
+    assert_wire_serialization(integer_value);
+    assert_wire_serialization(integers);
 }
 
 #[cfg(feature = "big-decimal")]
@@ -194,8 +197,8 @@ fn big_decimal_feature_preserves_values_and_wire_payloads() {
 
     assert_eq!(decimal_value.get::<BigDecimal>().expect("read big decimal"), decimal);
     assert_eq!(decimals.get_bigdecimals().expect("read big decimals"), &[decimal]);
-    assert_json_round_trip(decimal_value);
-    assert_json_round_trip(decimals);
+    assert_wire_serialization(decimal_value);
+    assert_wire_serialization(decimals);
 }
 
 #[cfg(feature = "url")]
@@ -207,8 +210,8 @@ fn url_feature_preserves_values_and_wire_payloads() {
 
     assert_eq!(scalar.get::<Url>().expect("read URL"), url);
     assert_eq!(collection.get_urls().expect("read URLs"), &[url]);
-    assert_json_round_trip(scalar);
-    assert_json_round_trip(collection);
+    assert_wire_serialization(scalar);
+    assert_wire_serialization(collection);
 }
 
 #[cfg(feature = "json")]
@@ -220,8 +223,8 @@ fn json_feature_preserves_values_and_wire_payloads() {
 
     assert_eq!(scalar.get::<serde_json::Value>().expect("read JSON value"), json);
     assert_eq!(collection.get_jsons().expect("read JSON values"), &[json]);
-    assert_json_round_trip(scalar);
-    assert_json_round_trip(collection);
+    assert_wire_serialization(scalar);
+    assert_wire_serialization(collection);
 }
 
 #[cfg(feature = "redact")]

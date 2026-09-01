@@ -8,7 +8,7 @@
 
 //! Tests for the public semantic contracts protected during refactoring.
 
-mod container_shape;
-mod identity_contract;
-mod type_metadata;
-mod value_invariants;
+mod container_shape_tests;
+mod identity_contract_tests;
+mod type_metadata_tests;
+mod value_invariants_tests;
