@@ -16,13 +16,20 @@ use crate::Value;
 /// Defines the owned scalar payload and its exhaustive runtime conversion.
 macro_rules! define_scalar_wire_owned {
     (
+        $($arg:expr),*;
         $(
             (
                 [$($cfg:meta),*],
-                [$($scalar_attr:meta),*],
-                [$($collection_attr:meta),*],
                 $variant:ident,
                 $type:ty,
+                $_data_type:expr,
+                $_materialization:ident,
+                $_json_class:ident,
+                $_number_projection:ident,
+                $_value_doc:literal,
+                $_multi_doc:literal,
+                [$($scalar_attr:meta),*],
+                [$($collection_attr:meta),*],
                 $tag:literal
             )
         ),+ $(,)?
@@ -65,4 +72,4 @@ macro_rules! define_scalar_wire_owned {
     };
 }
 
-for_each_wire_type!(define_scalar_wire_owned);
+for_each_value_type!(define_scalar_wire_owned);

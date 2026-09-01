@@ -115,7 +115,7 @@ macro_rules! scalar_to_json {
 
 /// Expands the shared value table into a natural JSON projection match.
 macro_rules! value_to_json_match {
-    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {{
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {{
         let result: Result<JsonValue, DataConversionError> = match &$value.repr {
             ValueRepr::Unset(_) => Ok(JsonValue::Null),
             $($(#[$cfg])* ValueRepr::$variant(value) => {
@@ -165,7 +165,7 @@ where
 
 /// Expands the shared value table into a collection JSON projection match.
 macro_rules! multi_values_to_json_match {
-    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(_) => Ok(JsonValue::Null),
             $($(#[$cfg])* MultiValuesRepr::$variant(values) => {

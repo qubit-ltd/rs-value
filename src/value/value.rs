@@ -125,6 +125,7 @@ macro_rules! impl_value_constructors {
                 $number_projection:ident,
                 $value_doc:literal,
                 $multi_doc:literal
+                $(, $_wire:tt)*
             )
         ),+ $(,)?
     ) => {
@@ -305,7 +306,7 @@ impl Value {
 
 /// Maps private scalar storage variants to their runtime data types.
 macro_rules! value_data_type_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             ValueRepr::Unset(data_type) => *data_type,
             $($(#[$cfg])* ValueRepr::$variant(_) => $data_type,)+
@@ -1648,7 +1649,7 @@ macro_rules! project_number_ref {
 
 /// Generates the exhaustive numeric projection from the value type table.
 macro_rules! value_number_ref_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             ValueRepr::Unset(_) => None,
             $(

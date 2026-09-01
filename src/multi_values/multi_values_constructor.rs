@@ -46,6 +46,7 @@ macro_rules! impl_multi_values_from_table {
                 $number_projection:ident,
                 $value_doc:literal,
                 $multi_doc:literal
+                $(, $_wire:tt)*
             )
         ),+ $(,)?
     ) => {

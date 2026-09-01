@@ -146,5 +146,7 @@ pub use self::value_wire::ValueWireDecodeError;
 pub use self::value_wire::ValueWireEncodeError;
 pub use self::value_wire::ValueWirePayloadRefV1;
 pub use self::value_wire::ValueWirePayloadV1;
+pub use self::value_wire::ValueWirePayloadV1Seed;
 pub use self::value_wire::ValueWireRefV1;
 pub use self::value_wire::ValueWireV1;
+pub use self::value_wire::ValueWireV1Seed;

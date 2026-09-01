@@ -196,7 +196,7 @@ where
 macro_rules! impl_multi_values_identity {
     (
         ;
-        $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?
+        $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?
     ) => {
         impl PartialEq for MultiValues {
             fn eq(&self, other: &Self) -> bool {

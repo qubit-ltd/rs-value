@@ -23,16 +23,15 @@ use qubit_budget::json::JsonEncodeSession;
 use qubit_json::decode::JsonDecoder;
 #[cfg(feature = "json")]
 use qubit_json::encode::JsonEncoder;
-use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
 
 use super::ValueWireEncodeError;
-use super::WireShapeOwned;
 use super::WireShapeRef;
 use super::value_wire_payload_ref_v1::validate_value;
 use super::value_wire_payload_ref_v1::validate_values;
+#[cfg(feature = "json")]
+use super::value_wire_payload_v1_seed::ValueWirePayloadV1Seed;
 use crate::MultiValues;
 use crate::Value;
 use crate::ValueContainer;
@@ -41,13 +40,9 @@ use crate::ValueWireDecodeError;
 
 /// Typed V1 scalar-or-collection payload without an enclosing version field.
 ///
-/// # Resource limits
-///
-/// The generic [`Deserialize`] implementation is intended
-/// for already-bounded embedded documents and does not enforce message-size or
-/// structural limits. Use `ValueWirePayloadV1::decode_json_slice` or
-/// `ValueWirePayloadV1::decode_json_slice_with_limits` for untrusted complete
-/// JSON input.
+/// Deserialization is intentionally available through
+/// [`crate::ValueWirePayloadV1Seed`], which lets a bounded decoder control the
+/// complete input and structure.
 ///
 /// # Examples
 ///
@@ -168,7 +163,7 @@ impl ValueWirePayloadV1 {
     pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
-            .decode_utf8(input)
+            .decode_seed_utf8(ValueWirePayloadV1Seed::new(), input)
             .map_err(ValueWireDecodeError::from)
     }
 
@@ -335,16 +330,5 @@ impl Serialize for ValueWirePayloadV1 {
         S: Serializer,
     {
         WireShapeRef::from(&self.value).serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueWirePayloadV1 {
-    /// Deserializes an unversioned V1 shape.
-    #[inline(always)]
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Ok(Self::from_decoded(WireShapeOwned::deserialize(deserializer)?.into()))
     }
 }

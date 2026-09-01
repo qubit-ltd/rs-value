@@ -77,6 +77,7 @@ macro_rules! impl_value_container_from_table {
                 $number_projection:ident,
                 $value_doc:literal,
                 $multi_doc:literal
+                $(, $_wire:tt)*
             )
         ),+ $(,)?
     ) => {
@@ -136,7 +137,7 @@ for_each_value_type!(impl_value_container_from_table);
 
 /// Builds a typed collection from one or two same-typed scalar values.
 macro_rules! value_container_pair_match {
-    ($first:expr, $second:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($first:expr, $second:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match ($first.repr, $second.repr) {
             $(
                 $(#[$cfg])*
@@ -160,7 +161,7 @@ macro_rules! value_container_pair_match {
 
 /// Pushes a same-typed scalar directly into collection storage.
 macro_rules! value_container_push_match {
-    ($collection:expr, $value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($collection:expr, $value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match (&mut $collection.repr, $value.repr) {
             $(
                 $(#[$cfg])*
