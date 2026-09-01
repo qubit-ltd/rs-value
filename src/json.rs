@@ -74,9 +74,7 @@ fn finite_float32(value: f32, from: DataType) -> Result<JsonValue, DataConversio
     // value.
     Number::from_str(&value.to_string())
         .map(JsonValue::Number)
-        .map_err(|_| {
-            DataConversionError::invalid(from, DataType::Json, InvalidValueReason::NonFinite)
-        })
+        .map_err(|_| DataConversionError::invalid(from, DataType::Json, InvalidValueReason::NonFinite))
 }
 
 /// Projects one scalar storage payload into its natural JSON representation.
@@ -205,8 +203,6 @@ pub(crate) fn value_container_to_json_value_with(
 ) -> ValueResult<JsonValue> {
     match container {
         ValueContainer::Scalar(value) => value_to_json_value_with(value, policy, limits),
-        ValueContainer::Collection(values) => {
-            multi_values_to_json_value_with(values, policy, limits)
-        }
+        ValueContainer::Collection(values) => multi_values_to_json_value_with(values, policy, limits),
     }
 }

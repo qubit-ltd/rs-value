@@ -527,7 +527,10 @@ fn value_wire_v1_preserves_unset_empty_singleton_and_json_null() {
             to_value(ValueWireV1::try_from(container.clone()).expect("construct V1 wire"),).unwrap(),
             expected
         );
-        assert_eq!(crate::decode_value_wire_value(expected).unwrap().into_container(), container,);
+        assert_eq!(
+            crate::decode_value_wire_value(expected).unwrap().into_container(),
+            container,
+        );
     }
 }
 
@@ -643,8 +646,12 @@ fn value_wire_v1_big_number_payloads_require_canonical_structures() {
 
 #[test]
 fn value_wire_v1_duration_payload_is_strict() {
-    assert!(crate::decode_value_wire_value(scalar_wire("duration", json!({"secs": 1, "nanos": 1_000_000_000}),)).is_err(),);
-    assert!(crate::decode_value_wire_value(scalar_wire("duration", json!({"secs": 1, "nanos": 2, "extra": 3}),)).is_err(),);
+    assert!(
+        crate::decode_value_wire_value(scalar_wire("duration", json!({"secs": 1, "nanos": 1_000_000_000}),)).is_err(),
+    );
+    assert!(
+        crate::decode_value_wire_value(scalar_wire("duration", json!({"secs": 1, "nanos": 2, "extra": 3}),)).is_err(),
+    );
     assert!(
         crate::decode_value_wire_value(collection_wire(
             "duration",

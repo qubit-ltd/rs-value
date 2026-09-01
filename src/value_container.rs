@@ -554,10 +554,7 @@ impl ValueContainer {
     where
         T: DataConversionTarget,
     {
-        self.to_first_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_first_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts a scalar or the first collection item using explicit policy and
@@ -581,11 +578,7 @@ impl ValueContainer {
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
-    pub fn to_first_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<T>
+    pub fn to_first_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -647,10 +640,7 @@ impl ValueContainer {
     where
         T: DataConversionTarget,
     {
-        self.to_list_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_list_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts to a list using explicit conversion policy and limits.
@@ -672,11 +662,7 @@ impl ValueContainer {
     ///
     /// Returns the mapped single-value or indexed list conversion error.
     #[cfg(feature = "converter")]
-    pub fn to_list_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
@@ -768,10 +754,7 @@ impl ValueContainer {
     /// Returns the same structured projection error as the contained value.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
-        self.to_json_value_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Projects this container using explicit conversion policy and limits.
