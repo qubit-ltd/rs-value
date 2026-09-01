@@ -21,8 +21,6 @@ use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonEncodeSession;
 #[cfg(feature = "json")]
 use qubit_json::encode::JsonEncoder;
-use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
 
@@ -31,7 +29,6 @@ use super::VALUE_WIRE_V1_VERSION;
 use super::ValueWireDecodeError;
 use super::ValueWireEncodeError;
 use super::ValueWirePayloadV1;
-use super::deserialize_wire;
 use super::serialize_wire;
 use crate::MultiValues;
 use crate::Value;
@@ -45,13 +42,9 @@ use crate::ValueContainer;
 /// and future runtime data types require a new wire version instead of
 /// extending V1.
 ///
-/// # Resource limits
-///
-/// The generic [`Deserialize`] implementation is intended
-/// for already-bounded embedded documents and does not enforce message-size or
-/// structural limits. Use `ValueWireV1::decode_json_slice` or
-/// `ValueWireV1::decode_json_slice_with_limits` for untrusted complete JSON
-/// input.
+/// Deserialization is intentionally available through
+/// [`crate::ValueWireV1Seed`], which lets a bounded decoder control the
+/// complete input and structure.
 ///
 /// # Examples
 ///
@@ -329,18 +322,5 @@ impl Serialize for ValueWireV1 {
         S: Serializer,
     {
         serialize_wire(self.value.container().into(), serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueWireV1 {
-    /// Deserializes a validated V1 runtime container into the DTO.
-    #[inline(always)]
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserialize_wire(deserializer)
-            .map(ValueWirePayloadV1::from_decoded)
-            .map(Self::new)
     }
 }

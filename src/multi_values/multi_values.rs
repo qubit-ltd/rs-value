@@ -110,6 +110,7 @@ macro_rules! impl_multi_values_constructors {
                 $number_projection:ident,
                 $value_doc:literal,
                 $multi_doc:literal
+                $(, $_wire:tt)*
             )
         ),+ $(,)?
     ) => {
@@ -488,7 +489,7 @@ impl MultiValues {
 
 /// Maps private collection storage variants to their runtime data types.
 macro_rules! multi_values_data_type_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(dt) => *dt,
             $($(#[$cfg])* MultiValuesRepr::$variant(_) => $data_type,)+
@@ -498,7 +499,7 @@ macro_rules! multi_values_data_type_match {
 
 /// Returns the concrete element count for each collection storage variant.
 macro_rules! multi_values_count_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(_) => 0,
             $($(#[$cfg])* MultiValuesRepr::$variant(values) => values.len(),)+
@@ -508,7 +509,7 @@ macro_rules! multi_values_count_match {
 
 /// Clears the concrete elements of each collection storage variant.
 macro_rules! multi_values_clear_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &mut $value.repr {
             MultiValuesRepr::Unset(_) => {}
             $($(#[$cfg])* MultiValuesRepr::$variant(values) => values.clear(),)+
@@ -518,7 +519,7 @@ macro_rules! multi_values_clear_match {
 
 /// Appends same-typed elements to an existing collection storage variant.
 macro_rules! multi_values_append_match {
-    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match (&mut $left.repr, &mut $right.repr) {
             $(
                 $(#[$cfg])*
@@ -536,7 +537,7 @@ macro_rules! multi_values_append_match {
 
 /// Clones the first collection element into a scalar value.
 macro_rules! multi_values_first_value_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(data_type) => Value::new_unset(*data_type),
             $(
@@ -553,7 +554,7 @@ macro_rules! multi_values_first_value_match {
 
 /// Moves the first collection element into a scalar value.
 macro_rules! multi_values_into_first_value_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match $value.repr {
             MultiValuesRepr::Unset(data_type) => Value::new_unset(data_type),
             $(
@@ -570,7 +571,7 @@ macro_rules! multi_values_into_first_value_match {
 
 /// Merges same-typed collection storage while preserving element order.
 macro_rules! multi_values_merge_match {
-    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($left:expr, $right:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match (&mut $left.repr, &$right.repr) {
             $(
                 $(#[$cfg])*
@@ -586,7 +587,7 @@ macro_rules! multi_values_merge_match {
 
 /// Converts one private scalar storage variant into collection storage.
 macro_rules! value_into_multi_values_match {
-    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match $value.repr {
             ValueRepr::Unset(data_type) => MultiValues::new_unset(data_type),
             $($(#[$cfg])* ValueRepr::$variant(value) => {
@@ -1215,7 +1216,7 @@ impl From<Value> for MultiValues {
 /// Converts the first collection element with a standalone policy and limits.
 #[cfg(feature = "converter")]
 macro_rules! multi_values_convert_first_match {
-    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
@@ -1233,7 +1234,7 @@ macro_rules! multi_values_convert_first_match {
 /// Converts every collection element with a standalone policy and limits.
 #[cfg(feature = "converter")]
 macro_rules! multi_values_convert_list_match {
-    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
@@ -1251,7 +1252,7 @@ macro_rules! multi_values_convert_list_match {
 /// Converts the first collection element through a caller-owned session.
 #[cfg(feature = "converter")]
 macro_rules! multi_values_convert_first_in_match {
-    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())
@@ -1271,7 +1272,7 @@ macro_rules! multi_values_convert_first_in_match {
 /// Converts every collection element through a caller-owned session.
 #[cfg(feature = "converter")]
 macro_rules! multi_values_convert_list_in_match {
-    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal)),+ $(,)?) => {
+    ($value:expr, $session:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match &$value.repr {
             MultiValuesRepr::Unset(from) => {
                 Err(DataConversionError::missing(*from, T::DATA_TYPE).into())

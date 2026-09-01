@@ -15,13 +15,20 @@ use serde::Serialize;
 /// Defines the complete V1 data type tag set and runtime mappings.
 macro_rules! define_wire_data_type_v1 {
     (
+        $($arg:expr),*;
         $(
             (
                 [$($cfg:meta),*],
-                [$($scalar_attr:meta),*],
-                [$($collection_attr:meta),*],
                 $variant:ident,
                 $type:ty,
+                $_data_type:expr,
+                $_materialization:ident,
+                $_json_class:ident,
+                $_number_projection:ident,
+                $_value_doc:literal,
+                $_multi_doc:literal,
+                [$($scalar_attr:meta),*],
+                [$($collection_attr:meta),*],
                 $tag:literal
             )
         ),+ $(,)?
@@ -59,4 +66,4 @@ macro_rules! define_wire_data_type_v1 {
     };
 }
 
-for_each_wire_type!(define_wire_data_type_v1);
+for_each_value_type!(define_wire_data_type_v1);

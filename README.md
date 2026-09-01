@@ -180,6 +180,14 @@ Natural JSON intentionally omits runtime type tags. The user guide contains the
 full Wire workflow, borrowed payload examples, feature compatibility rules,
 and resource-limit handling.
 
+The Wire DTOs implement `Serialize`, but deliberately do not implement generic
+`Deserialize`: a general Serde deserializer cannot enforce the raw-input and
+structural limits required at an untrusted boundary. Use the bounded
+`ValueWireV1::decode_json_slice` helpers for complete JSON documents. For an
+embedded value, pass `ValueWireV1Seed::new()` or `ValueWirePayloadV1Seed::new()`
+to the surrounding `JsonDecoder::decode_seed_utf8` or `next_value_seed` call so
+the outer protocol owns one shared budget.
+
 Natural JSON cannot reconstruct `DataType`, unset state, or scalar-versus-
 collection shape. Wire V1 rejects non-finite floats and unsupported or malformed
 payloads instead of guessing. Use a fresh bounded session for each independent

@@ -15,7 +15,7 @@ fn test_owned_collection_wire_round_trip() {
 
     let wire = ValueWireV1::try_from(ValueContainer::from(vec![1_i32])).expect("construct wire");
     assert_eq!(
-        serde_json::from_value::<ValueWireV1>(serde_json::to_value(wire).unwrap())
+        crate::decode_value_wire_value(serde_json::to_value(wire).unwrap())
             .unwrap()
             .into_container(),
         ValueContainer::from(vec![1_i32])

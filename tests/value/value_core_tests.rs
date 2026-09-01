@@ -91,7 +91,7 @@ fn test_value_wire_rejects_non_finite_floats() {
     let finite = Value::Float64(1.25);
     let wire = ValueWireV1::try_from(finite.clone()).expect("finite value should fit the V1 wire contract");
     let json = serde_json::to_string(&wire).expect("serialize V1 wire");
-    let decoded: ValueWireV1 = serde_json::from_str(&json).expect("deserialize V1 wire");
+    let decoded = crate::decode_value_wire_str(&json).expect("deserialize V1 wire");
     assert_eq!(decoded.into_container(), finite.into());
 
     for value in [
