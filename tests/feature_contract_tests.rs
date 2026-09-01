@@ -18,7 +18,7 @@ use chrono::NaiveDate;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 #[cfg(feature = "converter")]
-use qubit_datatype::ConversionSession;
+use qubit_datatype::ConversionContext;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionError;
 #[cfg(feature = "converter")]
@@ -141,9 +141,9 @@ impl DataTypeOf for Port {
 impl DataConversionTarget for Port {
     fn convert_from(
         source: &DataConverter<'_>,
-        session: &mut ConversionSession<'_>,
+        context: &mut ConversionContext<'_, '_>,
     ) -> Result<Self, DataConversionError> {
-        session.delegate::<u16>(source).map(Self)
+        context.delegate::<u16>(source).map(Self)
     }
 }
 
