@@ -331,7 +331,8 @@ assert!(restored.is_scalar());
 assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
 ```
 
-解码入口使用 `qubit-budget` 提供的通用 JSON/Serde adapter。
+解码入口使用 `qubit-budget` 的 JSON adapter。Wire DTO 刻意只实现 `Serialize`，不实现通用的
+`Deserialize`，因为普通 Serde deserializer 无法同时约束不可信输入的原始大小和结构资源。
 `ValueWireV1::default_json_decode_limits()` 与 `default_json_encode_limits()` 分别提供
 V1 默认定向 profile；应用自行控制输入、输出或 value 预算时，传入对应的
 `JsonDecodeLimits` 或 `JsonEncodeLimits`。
@@ -366,29 +367,23 @@ marker 保留规则。
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
 use qubit_json::decode::JsonDecoder;
-use qubit_value::ValueContainer;
-use qubit_value::ValueWireV1;
-use serde::Deserialize;
+use qubit_value::{ValueContainer, ValueWireV1Seed};
 
-#[derive(Deserialize)]
-struct Request {
-    value: ValueWireV1,
-}
-
-let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
+let input = br#"{"version":1,"value":{"collection":{"int32":[1,2]}}}"#;
 let limits = JsonDecodeLimits::builder()
     .max_input_bytes(64 * 1024)
     .build();
 let session = JsonDecodeSession::from_limits(limits);
 let mut decoder = JsonDecoder::new(session);
-let request: Request = decoder.decode_utf8(input)?;
-let restored: ValueContainer = request.value.into();
+let decoded = decoder.decode_seed_utf8(ValueWireV1Seed::new(), input)?;
+let restored: ValueContainer = decoded.into();
 assert!(restored.is_collection());
 ```
 
-外层 object 和嵌入的 V1 envelope 都属于同一个通用 JSON 文档预算，因此一次解码会统计文档
-中的所有嵌入值。继续用同一个 `JsonDecoder` 解码后续完整文档时，session 会累计记账；每次
-调用也都会拒绝该文档之后的 trailing content。
+如果值嵌在更大的外层 object 中，应在同一个 `MapAccess` 上调用
+`next_value_seed`，传入 `ValueWireV1Seed`；如果外层协议已经拥有版本，则传入
+`ValueWirePayloadV1Seed`。这样外层 object 和 V1 envelope 共享同一个 JSON 文档预算。继续使用
+同一个 `JsonDecoder` 解码后续完整文档时，session 会累计记账，每次调用也都会拒绝 trailing content。
 
 ### Wire 的类型和输入边界
 

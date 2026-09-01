@@ -355,7 +355,9 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
 ```
 
 The decode helpers accept a complete top-level Wire document and use the
-generic `qubit-budget` JSON/Serde adapter.
+`qubit-budget` JSON adapter. The Wire DTOs intentionally implement `Serialize`
+only; they do not implement generic `Deserialize`, because a general Serde
+deserializer cannot enforce raw-input and structural limits.
 `ValueWireV1::default_json_decode_limits()` and
 `default_json_encode_limits()` provide the directional V1 profiles. Pass a
 `JsonDecodeLimits` or `JsonEncodeLimits` value when the application owns a
@@ -396,30 +398,24 @@ one session.
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
 use qubit_json::decode::JsonDecoder;
-use qubit_value::ValueContainer;
-use qubit_value::ValueWireV1;
-use serde::Deserialize;
+use qubit_value::{ValueContainer, ValueWireV1Seed};
 
-#[derive(Deserialize)]
-struct Request {
-    value: ValueWireV1,
-}
-
-let input = br#"{"value":{"version":1,"value":{"collection":{"int32":[1,2]}}}}"#;
+let input = br#"{"version":1,"value":{"collection":{"int32":[1,2]}}}"#;
 let limits = JsonDecodeLimits::builder()
     .max_input_bytes(64 * 1024)
     .build();
 let session = JsonDecodeSession::from_limits(limits);
 let mut decoder = JsonDecoder::new(session);
-let request: Request = decoder.decode_utf8(input)?;
-let restored: ValueContainer = request.value.into();
+let decoded = decoder.decode_seed_utf8(ValueWireV1Seed::new(), input)?;
+let restored: ValueContainer = decoded.into();
 assert!(restored.is_collection());
 ```
 
-The outer object and embedded V1 envelope are both part of the same generic JSON
-document budget, so one decode accounts for every embedded value. Reusing the
-same `JsonDecoder` for later complete documents keeps the session accounting
-cumulative, and each call rejects trailing content after its document.
+For a value embedded in a larger outer object, call `next_value_seed` with the
+same `ValueWireV1Seed` (or `ValueWirePayloadV1Seed` when the outer protocol owns
+the version). The outer object and embedded V1 envelope then share one JSON
+document budget. Reusing the same `JsonDecoder` for later complete documents
+keeps session accounting cumulative, and each call rejects trailing content.
 
 ### Wire-specific type and input boundaries
 
