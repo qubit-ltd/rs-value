@@ -7,8 +7,7 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
-use qubit_json::encode::JsonEncodeError;
-use qubit_json::encode::JsonSerializationError;
+use qubit_json::encode::JsonEncoder;
 use qubit_json::encode::JsonSerializationErrorKind;
 use qubit_value::Value;
 use qubit_value::ValueWireEncodeError;
@@ -31,12 +30,16 @@ fn test_value_wire_encode_error_rejects_non_finite_float() {
 /// failure without introducing backend diagnostic text.
 #[test]
 fn test_value_wire_encode_error_preserves_serialization_kind() {
-    let source = JsonSerializationError::new(JsonSerializationErrorKind::CustomSerialization);
-    let error = ValueWireEncodeError::from(JsonEncodeError::Serialize(source));
+    let source = JsonEncoder::unlimited()
+        .to_vec(&u128::MAX)
+        .expect_err("wide integer must fail JSON serialization");
+    let error = ValueWireEncodeError::from(source);
 
     assert!(matches!(
         error,
         ValueWireEncodeError::Json(source)
-            if source.kind() == JsonSerializationErrorKind::CustomSerialization
+            if source.kind() == JsonSerializationErrorKind::IntegerOutOfRange {
+                signedness: qubit_json::encode::JsonIntegerSignedness::Unsigned,
+            }
     ));
 }

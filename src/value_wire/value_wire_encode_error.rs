@@ -22,6 +22,8 @@ use qubit_json::decode::JsonSyntaxError;
 #[cfg(feature = "json")]
 use qubit_json::encode::JsonEncodeError;
 #[cfg(feature = "json")]
+use qubit_json::encode::JsonEncodeErrorKind;
+#[cfg(feature = "json")]
 use qubit_json::encode::JsonSerializationError;
 use thiserror::Error;
 
@@ -102,14 +104,27 @@ pub enum ValueWireEncodeError {
 impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
     #[inline]
     fn from(error: JsonEncodeError<JsonResource>) -> Self {
-        match error {
-            JsonEncodeError::Budget(error) => match error {
+        match error.kind() {
+            JsonEncodeErrorKind::Budget => match error
+                .into_budget_error()
+                .expect("budget kind must retain a budget source")
+            {
                 MeasuredBudgetError::Budget(error) => Self::Budget(error),
                 MeasuredBudgetError::Quantity { resource, source } => Self::Quantity { resource, source },
             },
-            JsonEncodeError::InvalidRawJson(error) => Self::Syntax(error),
-            JsonEncodeError::Serialize(error) => Self::Json(error),
-            JsonEncodeError::Write(error) => Self::Io(error),
+            JsonEncodeErrorKind::InvalidRawJson => Self::Syntax(
+                error
+                    .into_syntax_error()
+                    .expect("invalid raw JSON kind must retain a syntax source"),
+            ),
+            JsonEncodeErrorKind::Serialize => Self::Json(
+                error
+                    .into_serialization_error()
+                    .expect("serialize kind must retain a serialization source"),
+            ),
+            JsonEncodeErrorKind::Write => {
+                Self::Io(error.into_write_error().expect("write kind must retain an I/O source"))
+            }
         }
     }
 }
