@@ -153,6 +153,12 @@ key。完整类型表、JSON 数字契约、错误、资源限制和 feature 兼
 带版本的格式；自然 JSON 刻意不包含运行时类型标签。完整的 Wire 工作流、借用 payload、feature
 兼容性和资源限制处理，请参阅用户手册。
 
+Wire DTO 实现了 `Serialize`，但刻意不实现通用的 `Deserialize`：普通 Serde deserializer 无法在
+不可信边界上同时约束原始输入大小和结构资源。完整 JSON 文档应使用有界的
+`ValueWireV1::decode_json_slice` 系列入口。嵌入外层协议时，应将
+`ValueWireV1Seed::new()` 或 `ValueWirePayloadV1Seed::new()` 传给外层的
+`JsonDecoder::decode_seed_utf8` 或 `next_value_seed`，由外层协议统一持有并共享一个 budget。
+
 自然 JSON 无法恢复 `DataType`、unset 状态或标量/集合形态。Wire V1 会拒绝非有限浮点、
 不支持的类型和非法 payload，不会猜测输入含义。每个独立 Wire 操作应创建新的有界 session；
 只有多个嵌入值属于同一个外层请求预算时，才应复用 session。

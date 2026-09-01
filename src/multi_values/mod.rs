@@ -8,6 +8,10 @@
 //! # Multiple Values Module
 //!
 //! Public entry for multiple-values container implementations.
+//!
+//! Construction, access, identity, and borrowing have independent modules.
+//! The core collection state machine remains together because its unset,
+//! empty, typed, and promotion transitions share one invariant boundary.
 
 mod internal;
 #[allow(clippy::module_inception)]

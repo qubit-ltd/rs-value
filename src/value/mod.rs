@@ -8,6 +8,12 @@
 //! # Value Module
 //!
 //! Public entry for the single-value container implementation.
+//!
+//! The private modules are split by stable responsibility: representation,
+//! construction, access, identity, conversion, redaction, and borrowing.
+//! The core `value` module intentionally retains the state-machine methods
+//! that must be reviewed together; splitting those methods would obscure the
+//! invariants without creating an independent test or ownership boundary.
 
 mod internal;
 #[cfg(feature = "redact")]
