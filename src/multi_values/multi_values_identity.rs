@@ -46,11 +46,7 @@ macro_rules! payloads_eq {
                 .all(|(left, right)| canonical_f64_bits(*left) == canonical_f64_bits(*right))
     };
     (Json, $left:expr, $right:expr) => {
-        $left.len() == $right.len()
-            && $left
-                .iter()
-                .zip($right)
-                .all(|(left, right)| json_eq(left, right))
+        $left.len() == $right.len() && $left.iter().zip($right).all(|(left, right)| json_eq(left, right))
     };
     ($variant:ident, $left:expr, $right:expr) => {
         $left == $right

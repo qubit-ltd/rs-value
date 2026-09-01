@@ -10,7 +10,6 @@
 
 #[test]
 fn test_duration_wire_rejects_invalid_nanos() {
-
     assert!(
         crate::decode_value_wire_value(
             serde_json::json!({"version": 1, "value": {"scalar": {"duration": {"secs": 1, "nanos": 1_000_000_000}}}})

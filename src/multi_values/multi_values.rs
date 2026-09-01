@@ -459,10 +459,7 @@ impl MultiValues {
     /// when an item cannot be represented as JSON.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
-        self.to_json_value_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Projects this collection using explicit conversion policy and limits.
@@ -713,9 +710,7 @@ impl MultiValues {
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
             result => result,
         }
     }
@@ -835,9 +830,7 @@ impl MultiValues {
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get_first() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
             result => result,
         }
     }
@@ -1334,9 +1327,7 @@ where
     I: Iterator,
     I::Item: Into<DataConverter<'a>>,
 {
-    values
-        .to_first_with(policy, limits)
-        .map_err(ValueError::from)
+    values.to_first_with(policy, limits).map_err(ValueError::from)
 }
 
 /// Converts every item from a batch converter using conversion policy and
@@ -1401,10 +1392,7 @@ impl MultiValues {
     where
         T: DataConversionTarget,
     {
-        self.to_first_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_first_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts the first stored value to `T`, or returns `default` when the
@@ -1472,9 +1460,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }
@@ -1503,11 +1489,7 @@ impl MultiValues {
     /// Returns a structured missing-value conversion error when the container
     /// is unset, an empty-collection error for a concrete empty vector, or a
     /// conversion error when the first value cannot be converted to `T`.
-    pub fn to_first_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<T>
+    pub fn to_first_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -1617,9 +1599,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.to_first_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }
@@ -1647,10 +1627,7 @@ impl MultiValues {
     where
         T: DataConversionTarget,
     {
-        self.to_list_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_list_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts all stored values to `T`, or returns `default` when storage is
@@ -1714,9 +1691,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }
@@ -1743,11 +1718,7 @@ impl MultiValues {
     ///
     /// Returns the first conversion error encountered while converting an
     /// element.
-    pub fn to_list_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
@@ -1855,9 +1826,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.to_list_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }

@@ -12,7 +12,8 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::de::DeserializeSeed;
 
-use crate::{ValueWireV1, ValueWireV1Seed};
+use crate::ValueWireV1;
+use crate::ValueWireV1Seed;
 
 fn deserialize_value_wire<'de, D>(deserializer: D) -> Result<ValueWireV1, D::Error>
 where
