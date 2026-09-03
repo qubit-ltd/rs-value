@@ -8,6 +8,7 @@
 
 use qubit_datatype::DataType;
 use qubit_json::encode::JsonEncoder;
+use qubit_json::encode::JsonIntegerSignedness;
 use qubit_json::encode::JsonSerializationErrorKind;
 use qubit_value::Value;
 use qubit_value::ValueWireEncodeError;
@@ -39,7 +40,7 @@ fn test_value_wire_encode_error_preserves_serialization_kind() {
         error,
         ValueWireEncodeError::Json(source)
             if source.kind() == JsonSerializationErrorKind::IntegerOutOfRange {
-                signedness: qubit_json::encode::JsonIntegerSignedness::Unsigned,
+                signedness: JsonIntegerSignedness::Unsigned,
             }
     ));
 }
