@@ -98,7 +98,7 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 
 ## 安装与 feature 选择
 
-要运行本手册中的全部示例，请添加以下依赖。贯穿场景本身只需要启用 `converter` 的
+要运行本手册中的全部示例，请添加以下依赖。实战场景本身只需要启用 `converter` 的
 `qubit-value` 和 `qubit-datatype`；其余 crate 用于 Wire 与嵌入文档章节。
 
 ```toml
