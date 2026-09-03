@@ -96,7 +96,7 @@ all = [
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 qubit-budget = { version = "0.4", features = ["json"], optional = true }
-qubit-json = { version = "0.8", path = "../rs-json", optional = true }
+qubit-json = { version = "0.8", optional = true }
 serde_json = { version = "1.0", features = ["float_roundtrip"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["std", "serde"], optional = true }
 url = { version = "2.5", features = ["serde"], optional = true }
