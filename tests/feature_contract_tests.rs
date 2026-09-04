@@ -18,13 +18,12 @@ use chrono::NaiveDate;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 #[cfg(feature = "converter")]
-use qubit_datatype::ConversionContext;
+use qubit_datatype::AdmittedConversion;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionError;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionTarget;
 #[cfg(feature = "converter")]
-use qubit_datatype::DataConverter;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
@@ -142,12 +141,8 @@ impl DataTypeOf for Port {
 
 #[cfg(feature = "converter")]
 impl DataConversionTarget for Port {
-    fn convert_from(
-        source: &DataConverter<'_>,
-        context: &mut ConversionContext<'_, '_>,
-    ) -> Result<Self, DataConversionError> {
-        // SAFETY: `source` is the value admitted by the outer conversion.
-        unsafe { context.delegate::<u16>(source) }.map(Self)
+    fn convert(input: AdmittedConversion<'_, '_, '_>) -> Result<Self, DataConversionError> {
+        input.convert::<u16>().map(Self)
     }
 }
 
