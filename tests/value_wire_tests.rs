@@ -8,6 +8,7 @@
 //! Golden tests for the type-preserving versioned wire representation.
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -410,6 +411,47 @@ fn value_wire_v1_fixtures_cover_every_data_type() {
     actual.sort_by_key(|data_type| data_type.as_str());
     expected.sort_by_key(|data_type| data_type.as_str());
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn value_wire_v1_tags_are_unique_and_stable() {
+    let fixtures = value_fixtures();
+    let tags = fixtures.iter().map(|fixture| fixture.tag).collect::<HashSet<_>>();
+
+    assert_eq!(tags.len(), fixtures.len());
+    assert_eq!(
+        fixtures
+            .iter()
+            .map(|fixture| (fixture.data_type, fixture.tag))
+            .collect::<Vec<_>>(),
+        vec![
+            (DataType::Bool, "bool"),
+            (DataType::Char, "char"),
+            (DataType::Int8, "int8"),
+            (DataType::Int16, "int16"),
+            (DataType::Int32, "int32"),
+            (DataType::Int64, "int64"),
+            (DataType::Int128, "int128"),
+            (DataType::UInt8, "uint8"),
+            (DataType::UInt16, "uint16"),
+            (DataType::UInt32, "uint32"),
+            (DataType::UInt64, "uint64"),
+            (DataType::UInt128, "uint128"),
+            (DataType::Float32, "float32"),
+            (DataType::Float64, "float64"),
+            (DataType::BigInteger, "biginteger"),
+            (DataType::BigDecimal, "bigdecimal"),
+            (DataType::String, "string"),
+            (DataType::Date, "date"),
+            (DataType::Time, "time"),
+            (DataType::DateTime, "datetime"),
+            (DataType::Instant, "instant"),
+            (DataType::Duration, "duration"),
+            (DataType::Url, "url"),
+            (DataType::StringMap, "stringmap"),
+            (DataType::Json, "json"),
+        ],
+    );
 }
 
 #[test]
