@@ -45,6 +45,121 @@ use serde_json::from_str;
 use serde_json::json;
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde_json::to_string;
+
+/// Projection budgets cover the whole collection, including cheap scalar paths.
+#[test]
+fn test_natural_json_enforces_cumulative_projection_limits() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(5).build())
+        .build();
+    let values = MultiValues::String(vec!["abc".into(), "def".into()]);
+    let error = values
+        .to_json_value_with(&policy, &limits)
+        .expect_err("cumulative output exceeds five bytes");
+    assert!(matches!(
+        error,
+        ValueError::JsonProjectionLimit {
+            source_index: Some(1),
+            ..
+        }
+    ));
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_items(0).build())
+        .build();
+    assert!(Value::Int32(1).to_json_value_with(&policy, &limits).is_err());
+}
+
+/// Float budgets measure the projected JSON representation at exact boundaries.
+#[test]
+fn test_natural_json_float_budget_matches_projected_number() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    let policy = ConversionPolicy::default();
+    for value in [
+        Value::Float64(1.0),
+        Value::Float64(-0.0),
+        Value::Float64(1e-30),
+        Value::Float32(1.0),
+        Value::Float32(1e-30),
+    ] {
+        let projected = value.to_json_value().expect("finite float projection");
+        let bytes = projected.to_string().len() as u64;
+        let limits = ConversionLimits::builder()
+            .operation_limits(ConversionOperationLimits::builder().max_output_bytes(bytes).build())
+            .build();
+        assert_eq!(value.to_json_value_with(&policy, &limits).unwrap(), projected);
+        let limits = ConversionLimits::builder()
+            .operation_limits(ConversionOperationLimits::builder().max_output_bytes(bytes - 1).build())
+            .build();
+        assert!(value.to_json_value_with(&policy, &limits).is_err(), "{projected}");
+    }
+}
+
+/// JSON and map payloads obey the same structural limits as projected lists.
+#[test]
+fn test_natural_json_enforces_structure_before_materializing() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::StructuredConversionLimits;
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::builder()
+        .structured_limits(
+            StructuredConversionLimits::builder()
+                .max_depth(2)
+                .max_map_entries(1)
+                .max_sequence_items(1)
+                .build(),
+        )
+        .build();
+    assert!(Value::Json(json!([[0]])).to_json_value_with(&policy, &limits).is_err());
+    assert!(
+        Value::StringMap(HashMap::from([("a".into(), "1".into()), ("b".into(), "2".into())]))
+            .to_json_value_with(&policy, &limits)
+            .is_err()
+    );
+    assert!(
+        MultiValues::Int32(vec![1, 2])
+            .to_json_value_with(&policy, &limits)
+            .is_err()
+    );
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_structured_nodes(1).build())
+        .build();
+    assert!(
+        MultiValues::Int32(vec![1])
+            .to_json_value_with(&policy, &limits)
+            .is_err()
+    );
+}
+
+/// Duration formatting shares cumulative output capacity with every list item.
+#[test]
+fn test_natural_json_bounds_duration_and_wide_number_text() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
+        .build();
+    assert!(
+        MultiValues::Duration(vec![Duration::from_secs(1); 2])
+            .to_json_value_with(&policy, &limits)
+            .is_err()
+    );
+    assert!(Value::Int128(i128::MAX).to_json_value_with(&policy, &limits).is_err());
+    assert!(
+        Value::BigDecimal("123456789.123".parse().expect("decimal"))
+            .to_json_value_with(&policy, &limits)
+            .is_err()
+    );
+}
 #[cfg(all(feature = "converter", feature = "json"))]
 use url::Url;
 
@@ -255,4 +370,170 @@ fn test_natural_json_projects_every_collection_variant() {
         MultiValues::Json(vec![json!({"z": 1, "a": 2})]),
         json!([{ "a": 2, "z": 1 }])
     );
+}
+
+/// Cumulative failures retain the original maximum and previously consumed
+/// bytes.
+#[test]
+fn test_natural_json_limit_error_preserves_budget_facts() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::ConversionResource;
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(5).build())
+        .build();
+    let error = MultiValues::String(vec!["abc".into(), "def".into()])
+        .to_json_value_with(&policy, &limits)
+        .expect_err("second item exceeds output budget");
+    assert_eq!(error, error.clone());
+    assert!(!error.is_missing());
+    assert!(error.missing().is_none());
+    let ValueError::JsonProjectionLimit {
+        data_type,
+        source_index,
+        source,
+    } = error
+    else {
+        panic!("expected structured projection error");
+    };
+    assert_eq!(data_type, DataType::String);
+    assert_eq!(source_index, Some(1));
+    assert_eq!(*source.resource(), ConversionResource::OutputBytes);
+    let budget = source.budget_error().expect("representable budget failure");
+    assert_eq!(budget.configured_limit(), 5);
+    assert_eq!(budget.used(), Some(3));
+    assert_eq!(budget.remaining(), Some(2));
+}
+
+/// Input, keys, payload, big-number guards and empty/unset shapes remain
+/// distinct.
+#[test]
+fn test_natural_json_projection_boundary_matrix() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::NumericConversionLimits;
+    let policy = ConversionPolicy::default();
+    let input = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_input_bytes(2).build())
+        .build();
+    for value in [
+        Value::from("abc"),
+        Value::Json(json!({"abc": 0})),
+        Value::StringMap(HashMap::from([("a".into(), "bc".into())])),
+    ] {
+        assert!(matches!(
+            value.to_json_value_with(&policy, &input),
+            Err(ValueError::JsonProjectionLimit { .. })
+        ));
+    }
+    let payload = ConversionLimits::builder()
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_structured_payload_bytes(2)
+                .build(),
+        )
+        .build();
+    assert!(
+        Value::Json(json!(["ab", 3]))
+            .to_json_value_with(&policy, &payload)
+            .is_err()
+    );
+    let numeric = ConversionLimits::builder()
+        .numeric_limits(
+            NumericConversionLimits::builder()
+                .max_big_integer_digits(2)
+                .max_big_decimal_scale_magnitude(2)
+                .build(),
+        )
+        .build();
+    assert!(
+        Value::BigInteger(BigInt::from(1000))
+            .to_json_value_with(&policy, &numeric)
+            .is_err()
+    );
+    assert!(
+        Value::BigDecimal("1e100".parse().expect("decimal"))
+            .to_json_value_with(&policy, &numeric)
+            .is_err()
+    );
+    let zero_items = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_items(0).build())
+        .build();
+    assert_eq!(
+        MultiValues::Int32(vec![])
+            .to_json_value_with(&policy, &zero_items)
+            .expect("no scalar items"),
+        json!([])
+    );
+    assert!(
+        MultiValues::new_unset(DataType::Int32)
+            .to_json_value_with(&policy, &zero_items)
+            .is_err()
+    );
+}
+
+/// Nested keys and string values consume the same operation-wide output budget.
+#[test]
+fn test_natural_json_keys_and_values_share_output_budget() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::ConversionResource;
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(1).build())
+        .build();
+    for value in [
+        Value::Json(json!({"ab": null})),
+        Value::StringMap(HashMap::from([("ab".into(), "v".into())])),
+    ] {
+        let error = value
+            .to_json_value_with(&policy, &limits)
+            .expect_err("keys consume output bytes");
+        let ValueError::JsonProjectionLimit { source, .. } = error else {
+            panic!("expected a projection budget failure");
+        };
+        assert_eq!(*source.resource(), ConversionResource::OutputBytes);
+        assert_eq!(source.budget_error().unwrap().configured_limit(), 1);
+    }
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(3).build())
+        .build();
+    let values = MultiValues::Json(vec![json!({"a": "b"}), json!({"c": "d"})]);
+    let error = values
+        .to_json_value_with(&policy, &limits)
+        .expect_err("four bytes across two objects");
+    let ValueError::JsonProjectionLimit {
+        source_index, source, ..
+    } = error
+    else {
+        panic!("expected a projection budget failure");
+    };
+    assert_eq!(source_index, Some(1));
+    assert_eq!(*source.resource(), ConversionResource::OutputBytes);
+    let budget = source.budget_error().unwrap();
+    assert_eq!(budget.configured_limit(), 3);
+    assert_eq!(budget.used(), Some(3));
+    assert_eq!(budget.remaining(), Some(0));
+}
+
+/// A string's representation does not determine whether the text bound applies.
+#[test]
+fn test_natural_json_text_limit_applies_inside_json_and_maps() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::StructuredConversionLimits;
+    let limits = ConversionLimits::builder()
+        .structured_limits(StructuredConversionLimits::builder().max_text_bytes(2).build())
+        .build();
+    for value in [
+        Value::from("abc"),
+        Value::Json(json!("abc")),
+        Value::StringMap(HashMap::from([("a".into(), "abc".into())])),
+    ] {
+        assert!(value.to_json_value_with(&ConversionPolicy::default(), &limits).is_err());
+    }
 }

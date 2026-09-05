@@ -10,6 +10,13 @@
 
 use std::str::FromStr;
 
+use qubit_budget::json::JsonMeasurement;
+
+mod json_children;
+mod projection_budget;
+
+use json_children::JsonChildren;
+use projection_budget::ProjectionBudget;
 use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataConversionError;
@@ -177,12 +184,169 @@ macro_rules! multi_values_to_json_match {
     };
 }
 
+/// Checks source big-number limits before decimal formatting can allocate.
+macro_rules! check_projection_number {
+    (BigInteger, $value:expr, $budget:expr) => {
+        $budget
+            .limits
+            .numeric()
+            .big_integer()
+            .check($value)
+            .map_err(|error| $budget.error(error))?
+    };
+    (BigDecimal, $value:expr, $budget:expr) => {
+        $budget
+            .limits
+            .numeric()
+            .big_decimal()
+            .check($value)
+            .map_err(|error| $budget.error(error))?
+    };
+    ($variant:ident, $value:expr, $budget:expr) => {};
+}
+
+/// Admits one projected payload while preserving natural JSON type semantics.
+macro_rules! admit_projection {
+    (json_bool, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        let _ = $value;
+        $budget.admit(JsonMeasurement::Boolean { depth: $depth })
+    }};
+    (json_number, $value:expr, $from:expr, $budget:expr, $depth:expr) => {
+        $budget.display($value, $depth, true)
+    };
+    (json_float32, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        let projected = finite_float32(*$value, $from)?;
+        $budget.display(&projected, $depth, true)
+    }};
+    (json_float64, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        let projected = finite_float64(*$value, $from)?;
+        $budget.display(&projected, $depth, true)
+    }};
+    (json_string, $value:expr, $from:expr, $budget:expr, $depth:expr) => {
+        $budget.display($value, $depth, false)
+    };
+    (json_duration, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        let text = DataConverter::from(*$value).to_in::<String>(&mut $budget.conversion)?;
+        $budget.display(&text, $depth, false)
+    }};
+    (json_object, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        $budget.admit(JsonMeasurement::Object {
+            depth: $depth,
+            entries: $value.len(),
+        })?;
+        for (key, value) in $value {
+            $budget.text(key, $depth, true)?;
+            $budget.text(value, $depth.saturating_add(1), false)?;
+        }
+        Ok(())
+    }};
+    (json_identity, $value:expr, $from:expr, $budget:expr, $depth:expr) => {
+        admit_json($value, $depth, &mut $budget)
+    };
+}
+
+/// Admits one scalar, charging original String bytes before formatting.
+macro_rules! admit_scalar_match {
+    ($value:expr, $budget:expr, $depth:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {{
+        $budget.item()?;
+        if let ValueRepr::String(text) = &$value.repr { $budget.input(text)?; }
+        match &$value.repr {
+            ValueRepr::Unset(_) => $budget.admit(JsonMeasurement::Null { depth: $depth }),
+            $($(#[$cfg])* ValueRepr::$variant(stored) => {
+                let value = value_storage_ref!($variant, stored);
+                check_projection_number!($variant, value, $budget);
+                admit_projection!($json_class, value, $data_type, $budget, $depth)
+            },)+
+        }
+    }};
+}
+
+/// Charges original string bytes once at the corresponding element index.
+macro_rules! admit_projection_input {
+    (String, $value:expr, $budget:expr) => {
+        $budget.input($value)?;
+    };
+    ($variant:ident, $value:expr, $budget:expr) => {};
+}
+
+/// Admits the explicit array shape and every indexed scalar before allocation.
+macro_rules! admit_collection_match {
+    ($value:expr, $budget:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {{
+        match &$value.repr {
+            MultiValuesRepr::Unset(_) => {
+                $budget.item()?;
+                $budget.admit(JsonMeasurement::Null { depth: 1 })
+            },
+            $($(#[$cfg])* MultiValuesRepr::$variant(values) => {
+                $budget.admit(JsonMeasurement::Array { depth: 1, items: values.len() })?;
+                for (index, value) in values.iter().enumerate() {
+                    $budget.source_index = Some(index);
+                    $budget.item()?;
+                    admit_projection_input!($variant, value, $budget);
+                    check_projection_number!($variant, value, $budget);
+                    let mut admit = || -> ValueResult<()> {
+                        admit_projection!($json_class, value, $data_type, $budget, 2_usize)
+                    };
+                    let result = admit();
+                    result.map_err(|error| match error {
+                        ValueError::Conversion(source) => ValueError::from(DataListConversionError::new(index, source)),
+                        error => error,
+                    })?;
+                }
+                Ok(())
+            },)+
+        }
+    }};
+}
+
+/// Traverses nested JSON iteratively, charging keys and leaf text before
+/// cloning.
+fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>) -> ValueResult<()> {
+    let mut frames = Vec::<JsonChildren<'_>>::new();
+    let mut next = Some((None, value, depth));
+    while let Some((key, value, depth)) = next.take() {
+        if let Some(key) = key {
+            budget.text(key, depth, true)?;
+        }
+        match value {
+            JsonValue::Null => budget.admit(JsonMeasurement::Null { depth })?,
+            JsonValue::Bool(_) => budget.admit(JsonMeasurement::Boolean { depth })?,
+            JsonValue::Number(value) => budget.display(value, depth, true)?,
+            JsonValue::String(value) => budget.text(value, depth, false)?,
+            JsonValue::Array(values) => {
+                budget.admit(JsonMeasurement::Array {
+                    depth,
+                    items: values.len(),
+                })?;
+                frames.push(JsonChildren::Array(values.iter(), depth.saturating_add(1)));
+            }
+            JsonValue::Object(values) => {
+                budget.admit(JsonMeasurement::Object {
+                    depth,
+                    entries: values.len(),
+                })?;
+                frames.push(JsonChildren::Object(values.iter(), depth.saturating_add(1)));
+            }
+        }
+        while let Some(frame) = frames.last_mut() {
+            if let Some(child) = frame.next() {
+                next = Some(child);
+                break;
+            }
+            frames.pop();
+        }
+    }
+    Ok(())
+}
+
 /// Projects a scalar value using explicit conversion policy and limits.
 pub(crate) fn value_to_json_value_with(
     value: &Value,
     policy: &ConversionPolicy,
     limits: &ConversionLimits,
 ) -> ValueResult<JsonValue> {
+    let mut budget = ProjectionBudget::new(value.data_type(), policy, limits);
+    for_each_value_type!(admit_scalar_match, value, budget, 1_usize)?;
     for_each_value_type!(value_to_json_match, value, policy, limits)
 }
 
@@ -192,6 +356,8 @@ pub(crate) fn multi_values_to_json_value_with(
     policy: &ConversionPolicy,
     limits: &ConversionLimits,
 ) -> ValueResult<JsonValue> {
+    let mut budget = ProjectionBudget::new(values.data_type(), policy, limits);
+    for_each_value_type!(admit_collection_match, values, budget)?;
     for_each_value_type!(multi_values_to_json_match, values, policy, limits)
 }
 
