@@ -19,6 +19,7 @@ use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
 use qubit_value::Value;
+use qubit_value::ValueContainer;
 use serde_json::json;
 
 /// Renders a domain value through one explicit policy snapshot.
@@ -309,4 +310,43 @@ fn test_named_values_disabled_policy_restores_payloads() {
         redactor.inspect(&collection).expect("inspection").max_sensitivity(),
         None
     );
+}
+
+/// Map keys retain their classification inside a homogeneous collection.
+#[test]
+fn test_string_map_collection_redacts_keys_and_preserves_public_values() {
+    let map = HashMap::from([
+        ("password".to_owned(), "collection-secret".to_owned()),
+        ("region".to_owned(), "eu-west".to_owned()),
+    ]);
+    let value = ValueContainer::Collection(MultiValues::StringMap(vec![map]));
+    let redactor = Redactor::standard();
+    let output = redactor.redact(&value);
+    assert!(!output.text().as_str().contains("collection-secret"));
+    assert!(output.text().as_str().contains("eu-west"));
+    assert_eq!(
+        redactor.inspect(&value).expect("complete inspection").max_sensitivity(),
+        Some(Sensitivity::Secret)
+    );
+    let disabled = Redactor::new(RedactionPolicy::disabled()).redact(&value);
+    assert!(disabled.text().as_str().contains("collection-secret"));
+}
+
+/// A nested map shares the outer sequence's item budget.
+#[test]
+fn test_string_map_collection_stops_before_unadmitted_maps() {
+    let values = MultiValues::StringMap(vec![
+        HashMap::new(),
+        HashMap::from([("region".to_owned(), "must-not-be-visited".to_owned())]),
+    ]);
+    let policy = RedactionPolicy::builder()
+        .limits(|limits| {
+            limits.max_collection_items(1);
+        })
+        .expect("valid limits")
+        .build()
+        .expect("valid policy");
+    let output = Redactor::new(policy).redact(&values);
+    assert_eq!(output.summary().completion(), RedactionCompletion::Truncated);
+    assert!(!output.text().as_str().contains("must-not-be-visited"));
 }
