@@ -20,6 +20,7 @@ use qubit_json::value::traverse::JsonTreeReader;
 
 use super::hash_destination::HashDestination;
 use super::hash_frame::HashFrame;
+use super::json_equality_frame::JsonEqualityFrame;
 use super::object_hash::ObjectHash;
 
 /// Stable standard hasher used for each order-independent object entry.
@@ -39,46 +40,45 @@ type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHash
 #[must_use]
 #[inline(always)]
 pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bool {
-    let mut pending = Vec::with_capacity(1);
-    pending.push((left, right));
-    while let Some((left, right)) = pending.pop() {
+    let mut frames = Vec::new();
+    let mut next = Some((left, right));
+    while let Some((left, right)) = next.take() {
         match (left, right) {
             (serde_json::Value::Null, serde_json::Value::Null) => {}
-            (serde_json::Value::Bool(left), serde_json::Value::Bool(right)) => {
-                if left != right {
-                    return false;
-                }
+            (serde_json::Value::Bool(left), serde_json::Value::Bool(right)) if left == right => {}
+            (serde_json::Value::Number(left), serde_json::Value::Number(right)) if left == right => {}
+            (serde_json::Value::String(left), serde_json::Value::String(right)) if left == right => {}
+            (serde_json::Value::Array(left), serde_json::Value::Array(right)) if left.len() == right.len() => {
+                frames.push(JsonEqualityFrame::Array {
+                    left: left.iter(),
+                    right: right.iter(),
+                });
             }
-            (serde_json::Value::Number(left), serde_json::Value::Number(right)) => {
-                if left != right {
-                    return false;
-                }
-            }
-            (serde_json::Value::String(left), serde_json::Value::String(right)) => {
-                if left != right {
-                    return false;
-                }
-            }
-            (serde_json::Value::Array(left), serde_json::Value::Array(right)) => {
-                if left.len() != right.len() {
-                    return false;
-                }
-                for (left, right) in left.iter().rev().zip(right.iter().rev()) {
-                    pending.push((left, right));
-                }
-            }
-            (serde_json::Value::Object(left), serde_json::Value::Object(right)) => {
-                if left.len() != right.len() {
-                    return false;
-                }
-                for (key, left) in left {
-                    let Some(right) = right.get(key) else {
-                        return false;
-                    };
-                    pending.push((left, right));
-                }
+            (serde_json::Value::Object(left), serde_json::Value::Object(right)) if left.len() == right.len() => {
+                frames.push(JsonEqualityFrame::Object {
+                    left: left.iter(),
+                    right,
+                });
             }
             _ => return false,
+        }
+        while let Some(frame) = frames.last_mut() {
+            next = match frame {
+                JsonEqualityFrame::Array { left, right } => left.next().zip(right.next()),
+                JsonEqualityFrame::Object { left, right } => match left.next() {
+                    Some((key, left)) => {
+                        let Some(right) = right.get(key) else {
+                            return false;
+                        };
+                        Some((left, right))
+                    }
+                    None => None,
+                },
+            };
+            if next.is_some() {
+                break;
+            }
+            frames.pop();
         }
     }
     true

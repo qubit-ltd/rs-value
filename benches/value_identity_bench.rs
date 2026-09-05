@@ -114,9 +114,27 @@ fn benchmark_hash_map_lookup(c: &mut Criterion) {
     });
 }
 
+/// Measures equality of wide arrays and objects without hash computation.
+fn benchmark_wide_json_equality(c: &mut Criterion) {
+    let array = serde_json::Value::Array((0..16_384).map(serde_json::Value::from).collect());
+    let object = serde_json::Value::Object(
+        (0..16_384)
+            .map(|index| (index.to_string(), serde_json::Value::from(index)))
+            .collect(),
+    );
+    for (name, json) in [("array", array), ("object", object)] {
+        let left = Value::Json(json.clone());
+        let right = Value::Json(json);
+        c.bench_function(&format!("identity/equal_wide_{name}"), |bencher| {
+            bencher.iter(|| black_box(&left) == black_box(&right));
+        });
+    }
+}
+
 criterion_group!(
     benches,
     benchmark_scalar_hash,
+    benchmark_wide_json_equality,
     benchmark_string_map_hash,
     benchmark_json_hash,
     benchmark_big_decimal_hash,
