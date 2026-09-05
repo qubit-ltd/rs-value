@@ -104,7 +104,7 @@ num-bigint = { version = "0.4", optional = true }
 bigdecimal = { version = "0.4", optional = true }
 
 qubit-datatype = { version = "0.12", path = "../rs-datatype", default-features = false }
-qubit-redact = { version = "0.5", path = "../rs-redact", default-features = false, optional = true }
+qubit-redact = { version = "0.6", path = "../rs-redact", default-features = false, optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false }
