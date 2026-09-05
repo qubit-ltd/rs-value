@@ -6,11 +6,54 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionOperationLimits;
+use qubit_datatype::ConversionPolicy;
+use qubit_datatype::ConversionSession;
 use qubit_datatype::DataConversionErrorKind;
 use qubit_datatype::DataConverter;
 use qubit_datatype::DataType;
 use qubit_value::Value;
 use qubit_value::ValueError;
+
+/// Value adapters preserve direct converter outcomes and cumulative accounting.
+#[test]
+fn test_value_converter_matches_direct_session_contract() {
+    let limits = ConversionLimits::builder()
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_items(4)
+                .max_output_bytes(4)
+                .build(),
+        )
+        .build();
+    for policy in [ConversionPolicy::strict(), ConversionPolicy::env_friendly()] {
+        let mut direct = ConversionSession::new(&policy, &limits);
+        let mut adapted = ConversionSession::new(&policy, &limits);
+        for text in ["42", " 3 ", "3.9", "bad", "1"] {
+            let expected = DataConverter::from(text)
+                .to_in::<u8>(&mut direct)
+                .map_err(ValueError::from);
+            let actual = Value::String(text.to_owned()).to_in::<u8>(&mut adapted);
+            assert_eq!(actual, expected, "numeric adapter drift for {text:?}");
+            assert_eq!(adapted.items_used(), direct.items_used());
+            assert_eq!(adapted.input_bytes_used(), direct.input_bytes_used());
+            assert_eq!(adapted.output_bytes_used(), direct.output_bytes_used());
+        }
+        let mut direct = ConversionSession::new(&policy, &limits);
+        let mut adapted = ConversionSession::new(&policy, &limits);
+        for text in ["é", " abc ", "xy", "z"] {
+            let expected = DataConverter::from(text)
+                .to_in::<String>(&mut direct)
+                .map_err(ValueError::from);
+            let actual = Value::String(text.to_owned()).to_in::<String>(&mut adapted);
+            assert_eq!(actual, expected, "text adapter drift for {text:?}");
+            assert_eq!(adapted.items_used(), direct.items_used());
+            assert_eq!(adapted.input_bytes_used(), direct.input_bytes_used());
+            assert_eq!(adapted.output_bytes_used(), direct.output_bytes_used());
+        }
+    }
+}
 
 #[test]
 fn test_value_converter_converts_and_reports_invalid_input() {
