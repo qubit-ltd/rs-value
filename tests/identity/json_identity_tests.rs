@@ -494,3 +494,27 @@ fn dismantle_json_value(value: serde_json::Value) {
         }
     }
 }
+
+/// Equality preserves early and late mismatches in wide nested containers.
+#[test]
+fn test_json_equality_wide_containers() {
+    let array = serde_json::Value::Array((0..8192).map(serde_json::Value::from).collect());
+    let object = serde_json::Value::Object(
+        (0..8192)
+            .map(|index| (index.to_string(), serde_json::Value::from(index)))
+            .collect(),
+    );
+    for json in [array, object] {
+        let left = Value::Json(json.clone());
+        assert_eq!(left, Value::Json(json.clone()));
+        let mut changed = json;
+        match &mut changed {
+            serde_json::Value::Array(items) => items[8191] = serde_json::Value::Null,
+            serde_json::Value::Object(items) => {
+                items.insert("8191".into(), serde_json::Value::Null);
+            }
+            _ => unreachable!("wide container fixture"),
+        }
+        assert_ne!(left, Value::Json(changed));
+    }
+}
