@@ -376,3 +376,20 @@ fn converter_json_features_convert_text_to_json() {
         serde_json::json!({"answer": 42})
     );
 }
+
+/// The compatibility combination and its alias expose the same bounded
+/// projection.
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_natural_json_feature_combination_preserves_shape() {
+    let scalar = ValueContainer::from("one");
+    let collection = ValueContainer::from(vec!["one".to_owned()]);
+    assert_eq!(
+        scalar.to_json_value().expect("scalar projection"),
+        serde_json::json!("one")
+    );
+    assert_eq!(
+        collection.to_json_value().expect("collection projection"),
+        serde_json::json!(["one"])
+    );
+}

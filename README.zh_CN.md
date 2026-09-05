@@ -91,7 +91,7 @@ assert_eq!((first, second), (8080, 8081));
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["converter"] }
-qubit-datatype = { version = "0.11", default-features = false }
+qubit-datatype = { version = "0.12", default-features = false }
 ```
 
 快速开始使用了 `Value::to`，因此这里启用 `converter`。默认 feature 集为空，请只启用实际
@@ -106,7 +106,7 @@ qubit-datatype = { version = "0.11", default-features = false }
 | `big-number` | 同时启用两个大数 feature 的兼容别名 |
 | `url` | 由 `url::Url` 支持的 `Url` |
 | `json` | 由 `serde_json::Value` 支持的 `Json`，以及有界版本化 JSON Wire 编解码 |
-| `natural-json` | 通过 `Value::to_json_value` 投影自然 JSON；同时启用 `converter` 和 `json` |
+| `natural-json` | `converter` + `json` 的便捷组合；两者同时启用时也提供自然 JSON 投影 |
 | `redact` | 通过 `qubit-redact` 提供按策略脱敏的视图 |
 | `all` | `converter`、`chrono`、`big-number`、`url`、`json`、`natural-json` 和 `redact` |
 
