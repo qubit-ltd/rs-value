@@ -102,7 +102,7 @@ Add the core crate and its type vocabulary to `Cargo.toml`:
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["converter"] }
-qubit-datatype = { version = "0.11", default-features = false }
+qubit-datatype = { version = "0.12", default-features = false }
 ```
 
 The quick-start example uses `Value::to`, so it enables `converter`. The
@@ -117,7 +117,7 @@ default feature set is empty; enable only the families you use:
 | `big-number` | Compatibility alias for both big-number features |
 | `url` | `Url` backed by `url::Url` |
 | `json` | `Json` backed by `serde_json::Value` and bounded versioned JSON Wire encoding/decoding |
-| `natural-json` | Natural JSON projection through `Value::to_json_value`; enables `converter` and `json` |
+| `natural-json` | Convenience alias for `converter` + `json`; their combination also enables Natural JSON |
 | `redact` | Policy-aware redacted views through `qubit-redact` |
 | `all` | `converter`, `chrono`, `big-number`, `url`, `json`, `natural-json`, and `redact` |
 

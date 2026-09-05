@@ -56,6 +56,11 @@ path = "tests/core_feature_tests.rs"
 name = "feature_contract_tests"
 path = "tests/feature_contract_tests.rs"
 
+[[test]]
+name = "documentation_installation_tests"
+path = "tests/documentation_installation_tests.rs"
+required-features = ["all"]
+
 [features]
 default = []
 chrono = ["dep:chrono", "qubit-datatype/chrono"]
@@ -77,8 +82,8 @@ json = [
     "qubit-datatype/json",
     "qubit-redact?/json",
 ]
-# Natural JSON is the ordinary `serde_json::Value` projection.  Keep it
-# separate from the versioned JSON wire representation exposed by `json`.
+# Convenience alias: converter + json also enables the projection API.
+# Natural JSON semantics remain distinct from versioned Wire JSON.
 natural-json = ["converter", "json"]
 converter = ["qubit-datatype/converter"]
 redact = ["dep:qubit-redact"]

@@ -104,7 +104,7 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-datatype = { version = "0.11", default-features = false }
+qubit-datatype = { version = "0.12", default-features = false }
 qubit-budget = { version = "0.5", features = ["json"] }
 qubit-json = "0.9"
 serde = { version = "1.0", features = ["derive"] }
@@ -122,7 +122,7 @@ serde_json = "1.0"
 | `big-number` | `big-integer` 与 `big-decimal` 的兼容别名 |
 | `url` | `Url` |
 | `json` | `Json` 和有界版本化 JSON Wire 编解码 |
-| `natural-json` | 通过 `Value::to_json_value` 投影自然 JSON；同时启用 `converter` 和 `json` |
+| `natural-json` | `converter` + `json` 的便捷组合；两者同时启用时也提供自然 JSON 投影 |
 | `redact` | `Value` 脱敏视图；应用还需要从 `qubit-redact` 导入 `Redact` |
 | `all` | `converter`、`chrono`、`big-number`、`url`、`json`、`natural-json` 和 `redact` |
 
@@ -403,6 +403,21 @@ assert!(restored.is_collection());
   的外部标签文档都会被拒绝。
 
 ## 自然 JSON
+
+`natural-json` 是 `converter` + `json` 的便捷组合。为兼容现有调用者，显式启用这两个
+feature 同样提供投影接口。
+
+`to_json_value_with` 在构造最终 JSON 树之前检查整次操作。集合中所有元素共享 item、
+输入字节、输出载荷字节、结构节点和结构载荷限额；Duration 格式化使用一个共享转换会话。
+结构深度包含根节点，外层集合数组也占一个节点。输入字节计算借用字符串、map 键和值、
+JSON 字符串与键；输出载荷计算 JSON 字符串、键和数字文本，不计算标点、转义、布尔值或
+null 的编码字节。大数在格式化前检查系数和 scale 限额。有界临时格式化与预检查会增加
+一次遍历，以确保最终树的分配发生在所有限额检查之后。
+
+投影预算错误使用 `ValueError::JsonProjectionLimit`，保留资源、实际预算事实和可选集合
+索引；普通转换错误仍保留原有类型。每次调用使用新预算。需要限制最终编码字节时，请使用
+Wire 的 `JsonEncodeLimits` 或 rs-json 的有界编码器；`ConversionLimits` 不是 JSON 编码
+长度上限。
 
 启用 `natural-json` 后，自然 JSON 将运行时值投影为普通的 `serde_json::Value`。下面的
 示例展示几种常见值实际生成的 JSON 字符串：

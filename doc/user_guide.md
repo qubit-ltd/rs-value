@@ -113,7 +113,7 @@ additional crates support the Wire and embedded-document sections.
 ```toml
 [dependencies]
 qubit-value = { version = "0.10", features = ["all"] }
-qubit-datatype = { version = "0.11", default-features = false }
+qubit-datatype = { version = "0.12", default-features = false }
 qubit-budget = { version = "0.5", features = ["json"] }
 qubit-json = "0.9"
 serde = { version = "1.0", features = ["derive"] }
@@ -132,7 +132,7 @@ application:
 | `big-number` | Compatibility alias for `big-integer` and `big-decimal` |
 | `url` | `Url` |
 | `json` | `Json` and bounded versioned JSON Wire encoding/decoding |
-| `natural-json` | Natural JSON projection through `Value::to_json_value`; enables `converter` and `json` |
+| `natural-json` | Convenience alias for `converter` + `json`; their combination also enables Natural JSON |
 | `redact` | `Value` redacted views; the application also imports `Redact` from `qubit-redact` |
 | `all` | `converter`, `chrono`, `big-number`, `url`, `json`, `natural-json`, and `redact` |
 
@@ -439,6 +439,26 @@ keeps session accounting cumulative, and each call rejects trailing content.
   versions, and pre-0.10 externally tagged documents are rejected.
 
 ## Natural JSON
+
+`natural-json` is a convenience alias for `converter` + `json`. Enabling both
+features explicitly also exposes projection methods for existing callers.
+
+`to_json_value_with` checks the complete operation before constructing the final
+JSON tree. All collection elements share item, input-byte, output-payload,
+structural-node and structural-payload limits; duration formatting uses one
+shared conversion session. Depth includes the root, and the outer collection
+array consumes one node. Input bytes count borrowed strings, map keys and values,
+and JSON strings and keys. Output payload counts JSON strings, keys and number
+text, excluding punctuation, escaping, booleans and null encoding bytes.
+Big-number coefficient and scale limits are checked before formatting. Bounded
+temporary formatting and preflight add a traversal so final tree allocation
+occurs only after every limit check succeeds.
+
+Projection budget errors use `ValueError::JsonProjectionLimit`, preserving the
+resource, exact budget facts and optional collection index. Ordinary conversion
+errors retain their existing types. Each call starts fresh accounting. Use
+Wire `JsonEncodeLimits` or a bounded rs-json encoder to constrain final encoded
+bytes; `ConversionLimits` is not a JSON encoding length limit.
 
 With `natural-json`, Natural JSON projects a runtime value into ordinary
 `serde_json::Value`. The following example shows the exact JSON string emitted
