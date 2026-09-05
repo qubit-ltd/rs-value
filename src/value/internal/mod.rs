@@ -8,6 +8,11 @@
 
 //! Internal implementation details for scalar values.
 
+#[cfg(feature = "redact")]
+mod redacted_string_map;
 mod value_repr;
+
+#[cfg(feature = "redact")]
+pub(in crate::value) use redacted_string_map::RedactedStringMap;
 
 pub(crate) use self::value_repr::ValueRepr;

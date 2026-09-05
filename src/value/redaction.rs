@@ -12,6 +12,7 @@ use qubit_redact::RedactionWriter;
 
 use super::Value;
 use super::ValueRepr;
+use super::internal::RedactedStringMap;
 use crate::MultiValues;
 use crate::MultiValuesRef;
 use crate::NamedMultiValues;
@@ -44,6 +45,13 @@ impl Redact for MultiValues {
     /// Writes a typed collection through the shared structured writer.
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         match self.view() {
+            MultiValuesRef::StringMap(values) => {
+                writer.sequence(|items| {
+                    items.for_each(values, |items, values| {
+                        items.nested_item(&RedactedStringMap { values });
+                    });
+                });
+            }
             MultiValuesRef::String(values) => {
                 writer.sequence(|items| {
                     items.for_each(values, |items, value| {
