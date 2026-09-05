@@ -163,6 +163,7 @@ fn test_named_value_masks_non_strings_with_configured_opaque_value() {
     let policy = RedactionPolicy::builder()
         .fields(|fields| {
             fields
+                .disable_floor()
                 .raise("token", Sensitivity::Low)
                 .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0));
         })
@@ -178,6 +179,7 @@ fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
     let policy = RedactionPolicy::builder()
         .fields(|fields| {
             fields
+                .disable_floor()
                 .raise("token", Sensitivity::Low)
                 .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "MASK", 0));
         })
@@ -245,4 +247,66 @@ fn test_named_multi_values_exact_wrapper_node_budget_is_complete() {
 
     assert!(!output.contains("first-secret"), "{output}");
     assert!(!output.contains("<truncated>"), "{output}");
+}
+
+/// The business name, rather than the literal display label `value`, selects
+/// policy.
+#[test]
+fn test_named_values_classify_payload_by_business_name() {
+    let redactor = Redactor::standard();
+    let scalar = NamedValue::new("password", Value::String("raw-secret".to_owned()));
+    let collection = NamedMultiValues::new("password", MultiValues::String(vec!["raw-secret".to_owned()]));
+
+    for inspection in [redactor.inspect(&scalar), redactor.inspect(&collection)] {
+        assert_eq!(
+            inspection.expect("complete inspection").max_sensitivity(),
+            Some(Sensitivity::Secret)
+        );
+    }
+    assert!(
+        redactor
+            .redact(&scalar)
+            .text()
+            .as_str()
+            .contains("value: \"<redacted>\"")
+    );
+    assert!(
+        redactor
+            .redact(&collection)
+            .text()
+            .as_str()
+            .contains("value: \"<redacted>\"")
+    );
+}
+
+/// Unknown business names remain visible under standard policy.
+#[test]
+fn test_named_values_preserve_public_payloads() {
+    let redactor = Redactor::standard();
+    let scalar = NamedValue::new("region", Value::String("eu-west".to_owned()));
+    let collection = NamedMultiValues::new("region", MultiValues::String(vec!["eu-west".to_owned()]));
+
+    assert!(redactor.redact(&scalar).text().as_str().contains("eu-west"));
+    assert!(redactor.redact(&collection).text().as_str().contains("eu-west"));
+    assert_eq!(redactor.inspect(&scalar).expect("inspection").max_sensitivity(), None);
+    assert_eq!(
+        redactor.inspect(&collection).expect("inspection").max_sensitivity(),
+        None
+    );
+}
+
+/// Disabled policy restores both scalar and collection payloads.
+#[test]
+fn test_named_values_disabled_policy_restores_payloads() {
+    let redactor = Redactor::new(RedactionPolicy::disabled());
+    let scalar = NamedValue::new("password", Value::String("raw-secret".to_owned()));
+    let collection = NamedMultiValues::new("password", MultiValues::String(vec!["raw-secret".to_owned()]));
+
+    assert!(redactor.redact(&scalar).text().as_str().contains("raw-secret"));
+    assert!(redactor.redact(&collection).text().as_str().contains("raw-secret"));
+    assert_eq!(redactor.inspect(&scalar).expect("inspection").max_sensitivity(), None);
+    assert_eq!(
+        redactor.inspect(&collection).expect("inspection").max_sensitivity(),
+        None
+    );
 }

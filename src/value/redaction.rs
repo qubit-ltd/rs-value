@@ -9,7 +9,6 @@
 
 use qubit_redact::Redact;
 use qubit_redact::RedactionWriter;
-use qubit_redact::Sensitivity;
 
 use super::Value;
 use super::ValueRepr;
@@ -47,17 +46,17 @@ impl Redact for MultiValues {
         match self.view() {
             MultiValuesRef::String(values) => {
                 writer.sequence(|items| {
-                    for value in values {
+                    items.for_each(values, |items, value| {
                         items.unredacted_item(|| value);
-                    }
+                    });
                 });
             }
             #[cfg(feature = "json")]
             MultiValuesRef::Json(values) => {
                 writer.sequence(|items| {
-                    for value in values {
+                    items.for_each(values, |items, value| {
                         items.json_value_item(value);
-                    }
+                    });
                 });
             }
             _ => {
@@ -90,7 +89,7 @@ impl Redact for NamedValue {
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         writer.record("NamedValue", |fields| {
             fields.unredacted("name", || self.name());
-            fields.sensitive(Sensitivity::Low, "value", || self.value());
+            fields.keyed("value", self.name(), || self.value());
         });
     }
 }
@@ -100,7 +99,7 @@ impl Redact for NamedMultiValues {
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         writer.record("NamedMultiValues", |fields| {
             fields.unredacted("name", || self.name());
-            fields.sensitive(Sensitivity::Low, "value", || self.values());
+            fields.keyed("value", self.name(), || self.values());
         });
     }
 }
