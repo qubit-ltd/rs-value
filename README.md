@@ -101,7 +101,7 @@ Add the core crate and its type vocabulary to `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.10", features = ["converter"] }
+qubit-value = { version = "0.11", features = ["converter"] }
 qubit-datatype = { version = "0.12", default-features = false }
 ```
 

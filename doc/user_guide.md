@@ -9,7 +9,7 @@ fields, or other values whose concrete type is known at runtime. It explains
 how to keep those values type-safe without forcing every caller to create a
 different ad-hoc enum.
 
-The guide covers `qubit-value` 0.10. It focuses on the value layer. It does not
+The guide covers `qubit-value` 0.11. It focuses on the value layer. It does not
 turn `qubit-value` into a configuration service, schema registry, or persistent
 database. For ready-made key-value containers built directly on `Value`, see
 [`rs-config`](https://github.com/qubit-ltd/rs-config) and
@@ -112,7 +112,7 @@ additional crates support the Wire and embedded-document sections.
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.10", features = ["all"] }
+qubit-value = { version = "0.11", features = ["all"] }
 qubit-datatype = { version = "0.12", default-features = false }
 qubit-budget = { version = "0.5", features = ["json"] }
 qubit-json = "0.9"
@@ -436,7 +436,7 @@ keeps session accounting cumulative, and each call rejects trailing content.
 - A concrete rich type can be decoded only by a build with its corresponding
   feature. Unsupported feature-gated payloads are rejected rather than guessed.
 - Unknown fields, unknown types, wrong scalar/collection shapes, non-numeric
-  versions, and pre-0.10 externally tagged documents are rejected.
+  versions, and pre-0.11 externally tagged documents are rejected.
 
 ## Natural JSON
 
