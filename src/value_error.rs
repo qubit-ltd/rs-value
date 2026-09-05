@@ -9,6 +9,10 @@
 //!
 //! Defines various errors that may occur during value processing.
 
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_budget::MeasuredBudgetError;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::ConversionResource;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionError;
 #[cfg(feature = "converter")]
@@ -47,8 +51,21 @@ use crate::ValueMissing;
 /// ```
 #[non_exhaustive]
 #[must_use]
-#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[derive(Debug, Clone, Error)]
 pub enum ValueError {
+    /// Resource rejection before materializing a natural JSON projection.
+    #[cfg(all(feature = "converter", feature = "json"))]
+    #[error("JSON projection limit for {data_type} at collection index {source_index:?}: {source}")]
+    JsonProjectionLimit {
+        /// Runtime scalar or collection element type being projected.
+        data_type: DataType,
+        /// Collection element index, or `None` for a scalar or outer shape.
+        source_index: Option<usize>,
+        /// Exact rejected resource measurement, including its configured bound.
+        #[source]
+        source: MeasuredBudgetError<ConversionResource, u64>,
+    },
+
     /// No concrete item is available from typed runtime storage or conversion.
     #[error("Missing value: {0}")]
     Missing(
@@ -84,6 +101,51 @@ pub enum ValueError {
     ),
 }
 
+impl PartialEq for ValueError {
+    /// Compares structured error facts without depending on diagnostic text.
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Missing(left), Self::Missing(right)) => left == right,
+            (
+                Self::TypeMismatch {
+                    expected: le,
+                    actual: la,
+                },
+                Self::TypeMismatch {
+                    expected: re,
+                    actual: ra,
+                },
+            ) => le == re && la == ra,
+            #[cfg(feature = "converter")]
+            (Self::Conversion(left), Self::Conversion(right)) => left == right,
+            #[cfg(feature = "converter")]
+            (Self::ListConversion(left), Self::ListConversion(right)) => left == right,
+            #[cfg(all(feature = "converter", feature = "json"))]
+            (
+                Self::JsonProjectionLimit {
+                    data_type: lt,
+                    source_index: li,
+                    source: ls,
+                },
+                Self::JsonProjectionLimit {
+                    data_type: rt,
+                    source_index: ri,
+                    source: rs,
+                },
+            ) => {
+                lt == rt
+                    && li == ri
+                    && ls.resource() == rs.resource()
+                    && ls.budget_error() == rs.budget_error()
+                    && ls.quantity_error() == rs.quantity_error()
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Eq for ValueError {}
+
 impl ValueError {
     /// Reports whether this error describes a missing value.
     ///
@@ -107,6 +169,8 @@ impl ValueError {
         match self {
             Self::Missing(missing) => Some(missing),
             Self::TypeMismatch { .. } => None,
+            #[cfg(all(feature = "converter", feature = "json"))]
+            Self::JsonProjectionLimit { .. } => None,
             #[cfg(feature = "converter")]
             Self::Conversion(_) | Self::ListConversion(_) => None,
         }
