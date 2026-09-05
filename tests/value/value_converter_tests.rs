@@ -34,6 +34,13 @@ fn test_value_converter_uses_default_only_for_empty_values() {
 }
 
 #[test]
+fn test_value_converter_uses_default_for_cross_type_unset_values() {
+    let value = Value::Unset(DataType::StringMap);
+
+    assert_eq!(value.to_or::<bool>(false), Ok(false));
+}
+
+#[test]
 fn test_value_borrows_as_data_converter_without_reimplementing_dispatch() {
     let value = Value::String("42".to_owned());
     let source = DataConverter::from(&value);
