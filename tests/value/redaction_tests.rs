@@ -25,7 +25,7 @@ use serde_json::json;
 /// Renders a domain value through one explicit policy snapshot.
 fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
     Redactor::new(policy.clone())
-        .redact(value)
+        .redact_text(value)
         .into_complete_text()
         .expect("test output must be complete")
         .into_string()
@@ -133,7 +133,7 @@ fn test_multi_values_json_stops_before_unadmitted_items() {
         .build()
         .expect("policy should build");
 
-    let result = Redactor::new(policy).redact(&values);
+    let result = Redactor::new(policy).redact_text(&values);
     let output = result.text().as_str();
 
     assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
@@ -266,14 +266,14 @@ fn test_named_values_classify_payload_by_business_name() {
     }
     assert!(
         redactor
-            .redact(&scalar)
+            .redact_text(&scalar)
             .text()
             .as_str()
             .contains("value: \"<redacted>\"")
     );
     assert!(
         redactor
-            .redact(&collection)
+            .redact_text(&collection)
             .text()
             .as_str()
             .contains("value: \"<redacted>\"")
@@ -287,8 +287,8 @@ fn test_named_values_preserve_public_payloads() {
     let scalar = NamedValue::new("region", Value::String("eu-west".to_owned()));
     let collection = NamedMultiValues::new("region", MultiValues::String(vec!["eu-west".to_owned()]));
 
-    assert!(redactor.redact(&scalar).text().as_str().contains("eu-west"));
-    assert!(redactor.redact(&collection).text().as_str().contains("eu-west"));
+    assert!(redactor.redact_text(&scalar).text().as_str().contains("eu-west"));
+    assert!(redactor.redact_text(&collection).text().as_str().contains("eu-west"));
     assert_eq!(redactor.inspect(&scalar).expect("inspection").max_sensitivity(), None);
     assert_eq!(
         redactor.inspect(&collection).expect("inspection").max_sensitivity(),
@@ -303,8 +303,8 @@ fn test_named_values_disabled_policy_restores_payloads() {
     let scalar = NamedValue::new("password", Value::String("raw-secret".to_owned()));
     let collection = NamedMultiValues::new("password", MultiValues::String(vec!["raw-secret".to_owned()]));
 
-    assert!(redactor.redact(&scalar).text().as_str().contains("raw-secret"));
-    assert!(redactor.redact(&collection).text().as_str().contains("raw-secret"));
+    assert!(redactor.redact_text(&scalar).text().as_str().contains("raw-secret"));
+    assert!(redactor.redact_text(&collection).text().as_str().contains("raw-secret"));
     assert_eq!(redactor.inspect(&scalar).expect("inspection").max_sensitivity(), None);
     assert_eq!(
         redactor.inspect(&collection).expect("inspection").max_sensitivity(),
@@ -321,14 +321,14 @@ fn test_string_map_collection_redacts_keys_and_preserves_public_values() {
     ]);
     let value = ValueContainer::Collection(MultiValues::StringMap(vec![map]));
     let redactor = Redactor::standard();
-    let output = redactor.redact(&value);
+    let output = redactor.redact_text(&value);
     assert!(!output.text().as_str().contains("collection-secret"));
     assert!(output.text().as_str().contains("eu-west"));
     assert_eq!(
         redactor.inspect(&value).expect("complete inspection").max_sensitivity(),
         Some(Sensitivity::Secret)
     );
-    let disabled = Redactor::new(RedactionPolicy::disabled()).redact(&value);
+    let disabled = Redactor::new(RedactionPolicy::disabled()).redact_text(&value);
     assert!(disabled.text().as_str().contains("collection-secret"));
 }
 
@@ -346,7 +346,7 @@ fn test_string_map_collection_stops_before_unadmitted_maps() {
         .expect("valid limits")
         .build()
         .expect("valid policy");
-    let output = Redactor::new(policy).redact(&values);
+    let output = Redactor::new(policy).redact_text(&values);
     assert_eq!(output.summary().completion(), RedactionCompletion::Truncated);
     assert!(!output.text().as_str().contains("must-not-be-visited"));
 }

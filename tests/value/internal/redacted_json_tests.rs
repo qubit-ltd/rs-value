@@ -38,7 +38,7 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
         .expect("policy should build");
 
     let output = Redactor::new(policy)
-        .redact(&value)
+        .redact_text(&value)
         .into_complete_text()
         .expect("test output must be complete")
         .into_string();

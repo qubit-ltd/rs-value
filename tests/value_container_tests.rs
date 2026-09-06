@@ -87,7 +87,7 @@ fn test_multi_values_stop_before_unadmitted_collection_elements() {
     let values = MultiValues::String(vec!["visible".to_owned(), "must-not-be-formatted".to_owned()]);
     let policy = policy_with_domain_limits(64, 1);
 
-    let result = Redactor::new(policy).redact(&values);
+    let result = Redactor::new(policy).redact_text(&values);
     assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     let output = result.text().as_str();
 
@@ -104,7 +104,7 @@ fn test_multi_values_exact_collection_limit_is_complete() {
     let policy = policy_with_domain_limits(64, 1);
 
     let output = Redactor::new(policy)
-        .redact(&values)
+        .redact_text(&values)
         .into_complete_text()
         .expect("test output must be complete")
         .into_string();
@@ -120,7 +120,7 @@ fn test_value_container_stops_before_unadmitted_variant_payload() {
     let value = ValueContainer::Scalar(Value::String("must-not-be-formatted".to_owned()));
     let policy = policy_with_domain_limits(1, 8);
 
-    let result = Redactor::new(policy).redact(&value);
+    let result = Redactor::new(policy).redact_text(&value);
     assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     let output = result.text().as_str();
 
@@ -135,7 +135,7 @@ fn test_value_container_stops_before_unadmitted_variant_payload() {
 fn test_public_value_wrappers_render_after_input_admission() {
     let named = NamedValue::new("field", Value::String("value".to_owned()));
     let output = Redactor::standard()
-        .redact(&named)
+        .redact_text(&named)
         .into_complete_text()
         .expect("test output must be complete")
         .into_string();
@@ -146,7 +146,7 @@ fn test_public_value_wrappers_render_after_input_admission() {
         "value".to_owned(),
     )]));
     let output = Redactor::standard()
-        .redact(&map)
+        .redact_text(&map)
         .into_complete_text()
         .expect("test output must be complete")
         .into_string();

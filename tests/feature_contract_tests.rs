@@ -44,7 +44,7 @@ use qubit_redact::Sensitivity;
 #[cfg(feature = "redact")]
 fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
     Redactor::new(policy.clone())
-        .redact(value)
+        .redact_text(value)
         .into_complete_text()
         .expect("test output must be complete")
         .into_string()
@@ -311,7 +311,7 @@ fn redact_feature_stops_before_unadmitted_collection_elements() {
         .build()
         .expect("the test domain limits should build a policy");
 
-    let result = Redactor::new(policy).redact(&values);
+    let result = Redactor::new(policy).redact_text(&values);
     assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     let output = result.text().as_str();
 
