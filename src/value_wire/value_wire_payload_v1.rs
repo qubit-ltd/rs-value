@@ -12,6 +12,8 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
+use qubit_budget::MeasuredBudgetError;
+#[cfg(feature = "json")]
 use qubit_budget::json::JsonDecodeLimits;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonDecodeSession;
@@ -19,6 +21,8 @@ use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonEncodeLimits;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonEncodeSession;
+#[cfg(feature = "json")]
+use qubit_budget::json::JsonResource;
 #[cfg(feature = "json")]
 use qubit_json::decode::JsonDecoder;
 #[cfg(feature = "json")]
@@ -60,6 +64,14 @@ pub struct ValueWirePayloadV1 {
 }
 
 impl ValueWirePayloadV1 {
+    #[cfg(feature = "json")]
+    pub(in crate::value_wire) fn preflight(
+        &self,
+        limits: JsonEncodeLimits,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        let mut checker = super::ValueWireEncodePreflight::new(limits);
+        checker.check_container(&self.value)
+    }
     /// Wraps a payload decoded through V1's finite-number Serde adapters.
     ///
     /// # Parameters
@@ -199,6 +211,7 @@ impl ValueWirePayloadV1 {
     /// payload cannot be serialized.
     #[cfg(feature = "json")]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+        self.preflight(limits).map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -256,6 +269,7 @@ impl ValueWirePayloadV1 {
     where
         W: Write,
     {
+        self.preflight(limits).map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .write_buffered(writer, self)

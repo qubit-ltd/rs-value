@@ -33,7 +33,7 @@ impl TryFrom<&BigDecimal> for BigDecimalPayload {
     /// Creates an exact payload without formatting the decimal value.
     #[inline]
     fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
-        let (coefficient, scale) = value.as_bigint_and_exponent();
+        let (coefficient, scale) = value.as_bigint_and_scale();
         if !is_valid_big_decimal_scale(scale) {
             return Err("decimal scale exceeds the V1 maximum absolute scale");
         }

@@ -12,9 +12,13 @@
 use std::io::Write;
 
 #[cfg(feature = "json")]
+use qubit_budget::MeasuredBudgetError;
+#[cfg(feature = "json")]
 use qubit_budget::json::JsonEncodeLimits;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonEncodeSession;
+#[cfg(feature = "json")]
+use qubit_budget::json::JsonResource;
 #[cfg(feature = "json")]
 use qubit_json::encode::JsonEncoder;
 use serde::Serialize;
@@ -54,9 +58,31 @@ use crate::wire::is_valid_big_decimal_scale;
 pub struct ValueWirePayloadRefV1<'a> {
     /// Borrowed scalar-or-collection shape validated for V1 serialization.
     shape: WireShapeRef<'a>,
+    #[cfg(feature = "json")]
+    source: Option<PreflightSource<'a>>,
+}
+
+#[cfg(feature = "json")]
+enum PreflightSource<'a> {
+    Value(&'a Value),
+    Values(&'a MultiValues),
+    Container(&'a ValueContainer),
 }
 
 impl<'a> ValueWirePayloadRefV1<'a> {
+    #[cfg(feature = "json")]
+    pub(in crate::value_wire) fn preflight(
+        &self,
+        limits: JsonEncodeLimits,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        let mut checker = super::ValueWireEncodePreflight::new(limits);
+        match self.source {
+            Some(PreflightSource::Value(value)) => checker.check_value(value),
+            Some(PreflightSource::Values(values)) => checker.check_values(values),
+            Some(PreflightSource::Container(value)) => checker.check_container(value),
+            None => Ok(()),
+        }
+    }
     /// Borrows a scalar after validating V1's finite-float invariant.
     ///
     /// # Parameters
@@ -75,6 +101,8 @@ impl<'a> ValueWirePayloadRefV1<'a> {
         validate_value(value)?;
         Ok(Self {
             shape: WireShapeRef::Scalar(value.into()),
+            #[cfg(feature = "json")]
+            source: Some(PreflightSource::Value(value)),
         })
     }
 
@@ -96,6 +124,8 @@ impl<'a> ValueWirePayloadRefV1<'a> {
         validate_values(values)?;
         Ok(Self {
             shape: WireShapeRef::Collection(values.into()),
+            #[cfg(feature = "json")]
+            source: Some(PreflightSource::Values(values)),
         })
     }
 
@@ -118,7 +148,11 @@ impl<'a> ValueWirePayloadRefV1<'a> {
             ValueContainer::Scalar(value) => validate_value(value)?,
             ValueContainer::Collection(values) => validate_values(values)?,
         }
-        Ok(Self { shape: value.into() })
+        Ok(Self {
+            shape: value.into(),
+            #[cfg(feature = "json")]
+            source: Some(PreflightSource::Container(value)),
+        })
     }
 
     /// Returns the borrowed internal shape used by V1 serialization.
@@ -165,6 +199,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     #[cfg(feature = "json")]
     #[inline]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+        self.preflight(limits).map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -223,6 +258,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     where
         W: Write,
     {
+        self.preflight(limits).map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .write_buffered(writer, self)
@@ -247,7 +283,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
 pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "big-decimal")]
     if let ValueRepr::BigDecimal(value) = &value.repr {
-        validate_big_decimal_scale(value.as_bigint_and_exponent().1)?;
+        validate_big_decimal_scale(value.fractional_digit_count())?;
     }
     let non_finite = matches!(&value.repr, ValueRepr::Float32(value) if !value.is_finite())
         || matches!(&value.repr, ValueRepr::Float64(value) if !value.is_finite());
@@ -277,7 +313,7 @@ pub(in crate::value_wire) fn validate_values(values: &MultiValues) -> Result<(),
     #[cfg(feature = "big-decimal")]
     if let MultiValuesRepr::BigDecimal(values) = &values.repr {
         for value in values {
-            validate_big_decimal_scale(value.as_bigint_and_exponent().1)?;
+            validate_big_decimal_scale(value.fractional_digit_count())?;
         }
     }
     let non_finite = match &values.repr {

@@ -218,6 +218,10 @@ impl NamedMultiValues {
     /// named collection cannot be serialized.
     #[cfg(feature = "json")]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+        let mut preflight = crate::ValueWireEncodePreflight::new(limits);
+        preflight
+            .check_values(self.values())
+            .map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -276,6 +280,10 @@ impl NamedMultiValues {
     where
         W: Write,
     {
+        let mut preflight = crate::ValueWireEncodePreflight::new(limits);
+        preflight
+            .check_values(self.values())
+            .map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .write_buffered(writer, self)

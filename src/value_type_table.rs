@@ -115,6 +115,39 @@ macro_rules! value_storage_ref {
     };
 }
 
+/// Projects a table row into the payload type used by a borrowed view.
+#[allow(unused_macros)]
+macro_rules! value_view_payload_type {
+    (Bool, $projection:ident, $lt:lifetime, $ty:ty) => { bool };
+    (Char, $projection:ident, $lt:lifetime, $ty:ty) => { char };
+    (String, $projection:ident, $lt:lifetime, $ty:ty) => { &$lt str };
+    ($variant:ident, number_copy, $lt:lifetime, $ty:ty) => { $ty };
+    ($variant:ident, $projection:ident, $lt:lifetime, $ty:ty) => { &$lt $ty };
+}
+
+/// Projects table storage into the corresponding borrowed-view payload.
+#[allow(unused_macros)]
+macro_rules! value_view_payload {
+    (Bool, $projection:ident, $value:expr) => {
+        *$value
+    };
+    (Char, $projection:ident, $value:expr) => {
+        *$value
+    };
+    (String, $projection:ident, $value:expr) => {
+        $value.as_str()
+    };
+    (Url, $projection:ident, $value:expr) => {
+        $value.as_ref()
+    };
+    ($variant:ident, number_copy, $value:expr) => {
+        *$value
+    };
+    ($variant:ident, $projection:ident, $value:expr) => {
+        $value
+    };
+}
+
 /// Materializes an owned public payload from scalar enum storage.
 macro_rules! materialize_value_storage {
     (Url, $materialization:ident, $value:expr) => {
@@ -122,6 +155,16 @@ macro_rules! materialize_value_storage {
     };
     ($variant:ident, $materialization:ident, $value:expr) => {
         materialize_stored!($materialization, $value)
+    };
+}
+
+/// Moves scalar enum storage into its public payload type.
+macro_rules! move_value_storage {
+    (Url, $value:expr) => {
+        *$value
+    };
+    ($variant:ident, $value:expr) => {
+        $value
     };
 }
 

@@ -115,3 +115,14 @@ impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
         }
     }
 }
+
+#[cfg(feature = "json")]
+impl From<MeasuredBudgetError<JsonResource, usize>> for ValueWireEncodeError {
+    #[inline]
+    fn from(error: MeasuredBudgetError<JsonResource, usize>) -> Self {
+        match error {
+            MeasuredBudgetError::Budget(error) => Self::Budget(error),
+            MeasuredBudgetError::Quantity { resource, source } => Self::Quantity { resource, source },
+        }
+    }
+}

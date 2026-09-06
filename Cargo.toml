@@ -61,6 +61,20 @@ name = "documentation_installation_tests"
 path = "tests/documentation_installation_tests.rs"
 required-features = ["all"]
 
+[[test]]
+name = "borrow_owned_api_tests"
+path = "tests/borrow_owned_api_tests.rs"
+
+[[test]]
+name = "wire_preparation_tests"
+path = "tests/wire_preparation_tests.rs"
+required-features = ["json"]
+
+[[test]]
+name = "wire_preparation_allocation_tests"
+path = "tests/wire_preparation_allocation_tests.rs"
+required-features = ["json"]
+
 [features]
 default = []
 chrono = ["dep:chrono", "qubit-datatype/chrono"]

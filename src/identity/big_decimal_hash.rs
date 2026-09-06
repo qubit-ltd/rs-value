@@ -27,7 +27,7 @@ use num_bigint::Sign;
 ///
 /// * `H` - Hasher receiving the normalized decimal identity.
 pub(crate) fn hash_big_decimal<H: Hasher>(value: &BigDecimal, state: &mut H) {
-    let (coefficient, scale) = value.as_bigint_and_exponent();
+    let (coefficient, scale) = value.as_bigint_and_scale();
     if coefficient.sign() == Sign::NoSign {
         0_u8.hash(state);
         return;

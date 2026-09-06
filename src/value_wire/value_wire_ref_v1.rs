@@ -148,6 +148,7 @@ impl<'a> ValueWireRefV1<'a> {
     #[cfg(feature = "json")]
     #[inline]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+        self.value.preflight(limits).map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -206,6 +207,7 @@ impl<'a> ValueWireRefV1<'a> {
     where
         W: Write,
     {
+        self.value.preflight(limits).map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .write_buffered(writer, self)
