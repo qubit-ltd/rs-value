@@ -163,7 +163,10 @@ impl NamedValue {
     ///
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
-    pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice_with_limits(
+        input: &[u8],
+        limits: JsonDecodeLimits,
+    ) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
             .decode_utf8(input)
@@ -201,7 +204,10 @@ impl NamedValue {
     /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits` or the
     /// named scalar cannot be serialized.
     #[cfg(feature = "json")]
-    pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+    pub fn to_json_vec_with_limits(
+        &self,
+        limits: JsonEncodeLimits,
+    ) -> Result<Vec<u8>, ValueWireEncodeError> {
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -255,7 +261,11 @@ impl NamedValue {
     /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits`, the
     /// named scalar cannot be serialized, or `writer` rejects output.
     #[cfg(feature = "json")]
-    pub fn to_json_writer_with_limits<W>(&self, writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(
+        &self,
+        writer: W,
+        limits: JsonEncodeLimits,
+    ) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
@@ -381,10 +391,9 @@ impl<'de> Deserialize<'de> for NamedValue {
         D: Deserializer<'de>,
     {
         let NamedValueWireOwned { name, value } = NamedValueWireOwned::deserialize(deserializer)?;
-        let value = value
-            .into_container()
-            .into_scalar()
-            .map_err(|_| DeserializeError::custom("named value wire payload must contain a scalar"))?;
+        let value = value.into_container().into_scalar().map_err(|_| {
+            DeserializeError::custom("named value wire payload must contain a scalar")
+        })?;
         Ok(Self::new(name, value))
     }
 }

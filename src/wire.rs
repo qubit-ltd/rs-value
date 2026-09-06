@@ -118,7 +118,11 @@ where
 ///
 /// Returns `D::Error` for deserialization, parsing, or non-canonical text.
 #[cfg(any(feature = "chrono", feature = "url"))]
-fn deserialize_canonical<'de, D, T, P, F>(deserializer: D, parse: P, format: F) -> Result<T, D::Error>
+fn deserialize_canonical<'de, D, T, P, F>(
+    deserializer: D,
+    parse: P,
+    format: F,
+) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     P: FnOnce(&str) -> Result<T, String>,
@@ -156,7 +160,11 @@ where
 ///
 /// Returns `S::Error` when sequence serialization fails.
 #[cfg(any(feature = "chrono", feature = "url"))]
-fn serialize_canonical_vec<S, T, F>(values: &[T], serializer: S, format: F) -> Result<S::Ok, S::Error>
+fn serialize_canonical_vec<S, T, F>(
+    values: &[T],
+    serializer: S,
+    format: F,
+) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
     F: Fn(&T) -> String,
@@ -187,7 +195,11 @@ where
 ///
 /// Returns `D::Error` for deserialization, parsing, or non-canonical text.
 #[cfg(any(feature = "chrono", feature = "url"))]
-fn deserialize_canonical_vec<'de, D, T, P, F>(deserializer: D, parse: P, format: F) -> Result<Vec<T>, D::Error>
+fn deserialize_canonical_vec<'de, D, T, P, F>(
+    deserializer: D,
+    parse: P,
+    format: F,
+) -> Result<Vec<T>, D::Error>
 where
     D: Deserializer<'de>,
     P: Fn(&str) -> Result<T, String>,
@@ -337,7 +349,8 @@ define_chrono_wire!(
     time,
     time_vec,
     chrono::NaiveTime,
-    |input| chrono::NaiveTime::parse_from_str(input, "%H:%M:%S%.f").map_err(|error| error.to_string()),
+    |input| chrono::NaiveTime::parse_from_str(input, "%H:%M:%S%.f")
+        .map_err(|error| error.to_string()),
     |value: &chrono::NaiveTime| value.format("%H:%M:%S%.f").to_string()
 );
 
@@ -346,7 +359,8 @@ define_chrono_wire!(
     datetime,
     datetime_vec,
     chrono::NaiveDateTime,
-    |input| chrono::NaiveDateTime::parse_from_str(input, "%Y-%m-%dT%H:%M:%S%.f").map_err(|error| error.to_string()),
+    |input| chrono::NaiveDateTime::parse_from_str(input, "%Y-%m-%dT%H:%M:%S%.f")
+        .map_err(|error| error.to_string()),
     |value: &chrono::NaiveDateTime| value.format("%Y-%m-%dT%H:%M:%S%.f").to_string()
 );
 
@@ -358,7 +372,8 @@ define_chrono_wire!(
     |input| chrono::DateTime::parse_from_rfc3339(input)
         .map(|value| value.with_timezone(&chrono::Utc))
         .map_err(|error| error.to_string()),
-    |value: &chrono::DateTime<chrono::Utc>| value.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
+    |value: &chrono::DateTime<chrono::Utc>| value
+        .to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
 );
 
 /// Defines canonical scalar and vector wire adapters for URL values.
@@ -392,7 +407,9 @@ macro_rules! define_url_wire {
             where
                 S: Serializer,
             {
-                super::serialize_canonical(value, serializer, |value: &::url::Url| value.as_str().to_owned())
+                super::serialize_canonical(value, serializer, |value: &::url::Url| {
+                    value.as_str().to_owned()
+                })
             }
 
             /// Deserializes only a canonical normalized URL string.
@@ -447,11 +464,16 @@ macro_rules! define_url_wire {
             /// # Errors
             ///
             /// Returns `S::Error` when sequence serialization fails.
-            pub(crate) fn serialize<S>(values: &[::url::Url], serializer: S) -> Result<S::Ok, S::Error>
+            pub(crate) fn serialize<S>(
+                values: &[::url::Url],
+                serializer: S,
+            ) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
             {
-                super::serialize_canonical_vec(values, serializer, |value: &::url::Url| value.as_str().to_owned())
+                super::serialize_canonical_vec(values, serializer, |value: &::url::Url| {
+                    value.as_str().to_owned()
+                })
             }
 
             /// Deserializes only canonical normalized URL strings.

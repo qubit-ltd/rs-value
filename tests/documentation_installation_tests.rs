@@ -74,7 +74,8 @@ qubit-value = {{ path = {:?} }}
             root,
             datatype_patch
         );
-        fs::write(workspace.join("Cargo.toml"), manifest).expect("write literal dependency fixture");
+        fs::write(workspace.join("Cargo.toml"), manifest)
+            .expect("write literal dependency fixture");
         let output = Command::new(env!("CARGO"))
             .args(["check", "--offline", "--quiet", "--manifest-path"])
             .arg(workspace.join("Cargo.toml"))

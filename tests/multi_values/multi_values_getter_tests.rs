@@ -44,7 +44,10 @@ fn test_multi_values_first_read_reports_precise_missing_state() {
 #[test]
 fn test_multi_values_first_big_integer_getter() {
     let values = MultiValues::BigInteger(vec![num_bigint::BigInt::from(7)]);
-    assert_eq!(values.get_first_biginteger().unwrap(), num_bigint::BigInt::from(7));
+    assert_eq!(
+        values.get_first_biginteger().unwrap(),
+        num_bigint::BigInt::from(7)
+    );
 }
 
 #[cfg(feature = "big-decimal")]

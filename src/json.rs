@@ -81,7 +81,9 @@ fn finite_float32(value: f32, from: DataType) -> Result<JsonValue, DataConversio
     // value.
     Number::from_str(&value.to_string())
         .map(JsonValue::Number)
-        .map_err(|_| DataConversionError::invalid(from, DataType::Json, InvalidValueReason::NonFinite))
+        .map_err(|_| {
+            DataConversionError::invalid(from, DataType::Json, InvalidValueReason::NonFinite)
+        })
 }
 
 /// Projects one scalar storage payload into its natural JSON representation.
@@ -301,7 +303,11 @@ macro_rules! admit_collection_match {
 
 /// Traverses nested JSON iteratively, charging keys and leaf text before
 /// cloning.
-fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>) -> ValueResult<()> {
+fn admit_json(
+    value: &JsonValue,
+    depth: usize,
+    budget: &mut ProjectionBudget<'_>,
+) -> ValueResult<()> {
     let mut frames = Vec::<JsonChildren<'_>>::new();
     let mut next = Some((None, value, depth));
     while let Some((key, value, depth)) = next.take() {
@@ -369,6 +375,8 @@ pub(crate) fn value_container_to_json_value_with(
 ) -> ValueResult<JsonValue> {
     match container {
         ValueContainer::Scalar(value) => value_to_json_value_with(value, policy, limits),
-        ValueContainer::Collection(values) => multi_values_to_json_value_with(values, policy, limits),
+        ValueContainer::Collection(values) => {
+            multi_values_to_json_value_with(values, policy, limits)
+        }
     }
 }

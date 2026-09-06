@@ -113,7 +113,8 @@ fn assert_wire_serialization(value: impl Into<ValueContainer>) {
     let _encoded = serde_json::to_string(&wire).expect("serialize wire payload");
     #[cfg(feature = "json")]
     {
-        let decoded = ValueWirePayloadV1::decode_json_slice(_encoded.as_bytes()).expect("deserialize wire payload");
+        let decoded = ValueWirePayloadV1::decode_json_slice(_encoded.as_bytes())
+            .expect("deserialize wire payload");
         assert_eq!(decoded, wire);
     }
 }
@@ -125,7 +126,10 @@ fn converter_feature_converts_core_values() {
     let collection = ValueContainer::from(vec![43_i32, 44]);
 
     assert_eq!(scalar.to_first::<i64>().expect("convert scalar"), 42);
-    assert_eq!(collection.to_list::<i64>().expect("convert collection"), vec![43, 44]);
+    assert_eq!(
+        collection.to_list::<i64>().expect("convert collection"),
+        vec![43, 44]
+    );
     assert_wire_serialization(collection);
 }
 
@@ -152,10 +156,15 @@ impl DataConversionTarget for Port {
 fn converter_feature_accepts_target_side_extension() {
     assert_eq!(Value::from("8080").to::<Port>().unwrap(), Port(8080));
     assert_eq!(
-        MultiValues::from(vec!["8080", "8081"]).to_list::<Port>().unwrap(),
+        MultiValues::from(vec!["8080", "8081"])
+            .to_list::<Port>()
+            .unwrap(),
         vec![Port(8080), Port(8081)]
     );
-    assert_eq!(ValueContainer::from("8082").to_first::<Port>().unwrap(), Port(8082));
+    assert_eq!(
+        ValueContainer::from("8082").to_first::<Port>().unwrap(),
+        Port(8082)
+    );
 }
 
 #[cfg(feature = "chrono")]
@@ -178,8 +187,14 @@ fn big_integer_feature_preserves_values_and_wire_payloads() {
     let integer_value = Value::BigInteger(integer.clone());
     let integers = MultiValues::BigInteger(vec![integer.clone()]);
 
-    assert_eq!(integer_value.get::<BigInt>().expect("read big integer"), integer);
-    assert_eq!(integers.get_bigintegers().expect("read big integers"), &[integer]);
+    assert_eq!(
+        integer_value.get::<BigInt>().expect("read big integer"),
+        integer
+    );
+    assert_eq!(
+        integers.get_bigintegers().expect("read big integers"),
+        &[integer]
+    );
     assert_wire_serialization(integer_value);
     assert_wire_serialization(integers);
 }
@@ -191,8 +206,14 @@ fn big_decimal_feature_preserves_values_and_wire_payloads() {
     let decimal_value = Value::BigDecimal(decimal.clone());
     let decimals = MultiValues::BigDecimal(vec![decimal.clone()]);
 
-    assert_eq!(decimal_value.get::<BigDecimal>().expect("read big decimal"), decimal);
-    assert_eq!(decimals.get_bigdecimals().expect("read big decimals"), &[decimal]);
+    assert_eq!(
+        decimal_value.get::<BigDecimal>().expect("read big decimal"),
+        decimal
+    );
+    assert_eq!(
+        decimals.get_bigdecimals().expect("read big decimals"),
+        &[decimal]
+    );
     assert_wire_serialization(decimal_value);
     assert_wire_serialization(decimals);
 }
@@ -217,7 +238,10 @@ fn json_feature_preserves_values_and_wire_payloads() {
     let scalar = Value::Json(json.clone());
     let collection = MultiValues::Json(vec![json.clone()]);
 
-    assert_eq!(scalar.get::<serde_json::Value>().expect("read JSON value"), json);
+    assert_eq!(
+        scalar.get::<serde_json::Value>().expect("read JSON value"),
+        json
+    );
     assert_eq!(collection.get_jsons().expect("read JSON values"), &[json]);
     assert_wire_serialization(scalar);
     assert_wire_serialization(collection);
@@ -250,9 +274,10 @@ fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
     let value = NamedValue::new("secret_number", Value::Int32(12345));
     let policy = RedactionPolicy::builder()
         .fields(|fields| {
-            fields
-                .raise("secret_number", Sensitivity::Low)
-                .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0));
+            fields.raise("secret_number", Sensitivity::Low).mask(
+                Sensitivity::Low,
+                MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
+            );
         })
         .expect("the test policy should be valid")
         .build()
@@ -302,7 +327,10 @@ fn redact_feature_recursively_masks_sensitive_json_object_entries() {
 #[cfg(feature = "redact")]
 #[test]
 fn redact_feature_stops_before_unadmitted_collection_elements() {
-    let values = MultiValues::String(vec!["visible".to_owned(), "must-not-be-formatted".to_owned()]);
+    let values = MultiValues::String(vec![
+        "visible".to_owned(),
+        "must-not-be-formatted".to_owned(),
+    ]);
     let policy = RedactionPolicy::builder()
         .limits(|limits| {
             limits.max_nodes(64).max_collection_items(1).max_depth(8);
@@ -312,7 +340,10 @@ fn redact_feature_stops_before_unadmitted_collection_elements() {
         .expect("the test domain limits should build a policy");
 
     let result = Redactor::new(policy).redact_text(&values);
-    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
     let output = result.text().as_str();
 
     assert!(output.contains("visible"), "{output}");

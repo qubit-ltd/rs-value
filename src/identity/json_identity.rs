@@ -46,15 +46,21 @@ pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bo
         match (left, right) {
             (serde_json::Value::Null, serde_json::Value::Null) => {}
             (serde_json::Value::Bool(left), serde_json::Value::Bool(right)) if left == right => {}
-            (serde_json::Value::Number(left), serde_json::Value::Number(right)) if left == right => {}
-            (serde_json::Value::String(left), serde_json::Value::String(right)) if left == right => {}
-            (serde_json::Value::Array(left), serde_json::Value::Array(right)) if left.len() == right.len() => {
+            (serde_json::Value::Number(left), serde_json::Value::Number(right))
+                if left == right => {}
+            (serde_json::Value::String(left), serde_json::Value::String(right))
+                if left == right => {}
+            (serde_json::Value::Array(left), serde_json::Value::Array(right))
+                if left.len() == right.len() =>
+            {
                 frames.push(JsonEqualityFrame::Array {
                     left: left.iter(),
                     right: right.iter(),
                 });
             }
-            (serde_json::Value::Object(left), serde_json::Value::Object(right)) if left.len() == right.len() => {
+            (serde_json::Value::Object(left), serde_json::Value::Object(right))
+                if left.len() == right.len() =>
+            {
                 frames.push(JsonEqualityFrame::Object {
                     left: left.iter(),
                     right,
@@ -244,7 +250,11 @@ where
                     .expect("an array must have a hash destination")
                     .hash(&length);
             }
-            HashFrame::VisitArray { values, depth, next } => {
+            HashFrame::VisitArray {
+                values,
+                depth,
+                next,
+            } => {
                 if let Some(value) = values.get(next) {
                     frames.push(HashFrame::VisitArray {
                         values,
@@ -268,7 +278,10 @@ where
                 destinations.push(HashDestination::ObjectEntry(entry));
             }
             HashFrame::FinishObjectEntry => {
-                let Some(hash) = destinations.pop().and_then(HashDestination::finish_object_entry) else {
+                let Some(hash) = destinations
+                    .pop()
+                    .and_then(HashDestination::finish_object_entry)
+                else {
                     continue;
                 };
                 let object = objects
@@ -278,8 +291,12 @@ where
                 object.xor ^= hash.rotate_left(17);
             }
             HashFrame::FinishObject => {
-                let ObjectHash { sum, xor } = objects.pop().expect("a finished object must have an aggregate");
-                let destination = destinations.last_mut().expect("an object must have a hash destination");
+                let ObjectHash { sum, xor } = objects
+                    .pop()
+                    .expect("a finished object must have an aggregate");
+                let destination = destinations
+                    .last_mut()
+                    .expect("an object must have a hash destination");
                 destination.hash(&sum);
                 destination.hash(&xor);
             }

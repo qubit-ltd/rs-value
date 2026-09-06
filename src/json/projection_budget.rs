@@ -51,7 +51,11 @@ pub(super) struct ProjectionBudget<'a> {
 
 impl<'a> ProjectionBudget<'a> {
     /// Creates one budget for the whole scalar or collection operation.
-    pub(super) fn new(data_type: DataType, policy: &'a ConversionPolicy, limits: &'a ConversionLimits) -> Self {
+    pub(super) fn new(
+        data_type: DataType,
+        policy: &'a ConversionPolicy,
+        limits: &'a ConversionLimits,
+    ) -> Self {
         let operation = limits.operation();
         let structure_limits = limits
             .structured()
@@ -89,14 +93,18 @@ impl<'a> ProjectionBudget<'a> {
 
     /// Admits one scalar before formatting or traversing its payload.
     pub(super) fn item(&mut self) -> ValueResult<()> {
-        self.items.try_consume(1).map_err(|error| self.error(error.into()))
+        self.items
+            .try_consume(1)
+            .map_err(|error| self.error(error.into()))
     }
 
     /// Admits one complete structure measurement before allocating output.
     pub(super) fn admit(&mut self, measurement: JsonMeasurement) -> ValueResult<()> {
         let result = {
             let mut transaction = self.structure.transaction();
-            transaction.try_admit(measurement).and_then(|()| transaction.commit())
+            transaction
+                .try_admit(measurement)
+                .and_then(|()| transaction.commit())
         };
         result.map_err(|error| self.error(error))
     }
@@ -143,7 +151,12 @@ impl<'a> ProjectionBudget<'a> {
     ///
     /// The temporary renderer stops at the smallest remaining payload bound.
     /// `number` selects numeric JSON measurement instead of string measurement.
-    pub(super) fn display<T: Display + ?Sized>(&mut self, value: &T, depth: usize, number: bool) -> ValueResult<()> {
+    pub(super) fn display<T: Display + ?Sized>(
+        &mut self,
+        value: &T,
+        depth: usize,
+        number: bool,
+    ) -> ValueResult<()> {
         // Reject unavailable depth/node capacity before invoking Display.
         let probe = if number {
             JsonMeasurement::Number { depth, bytes: 0 }
@@ -152,15 +165,18 @@ impl<'a> ProjectionBudget<'a> {
         };
         let result = self.structure.transaction().try_admit(probe);
         result.map_err(|error| self.error(error))?;
-        let mut rendering = ResourceBudget::from_limit(*self.limits.operation().output_bytes_limit());
+        let mut rendering =
+            ResourceBudget::from_limit(*self.limits.operation().output_bytes_limit());
         rendering
             .try_consume(self.output.used())
             .map_err(|error| self.error(error.into()))?;
-        let mut payload = ResourceBudget::from_limit(*self.limits.operation().structured_payload_bytes_limit());
+        let mut payload =
+            ResourceBudget::from_limit(*self.limits.operation().structured_payload_bytes_limit());
         payload
             .try_consume(self.structure.used_payload_bytes().unwrap_or(0))
             .map_err(|error| self.error(error.into()))?;
-        let text_limit = ResourceBudget::from_limit(*self.limits.structured().max_text_bytes_limit());
+        let text_limit =
+            ResourceBudget::from_limit(*self.limits.structured().max_text_bytes_limit());
         for candidate in [payload, text_limit] {
             if candidate.remaining() < rendering.remaining() {
                 rendering = candidate;

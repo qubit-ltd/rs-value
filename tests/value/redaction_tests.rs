@@ -136,7 +136,10 @@ fn test_multi_values_json_stops_before_unadmitted_items() {
     let result = Redactor::new(policy).redact_text(&values);
     let output = result.text().as_str();
 
-    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
     assert!(output.contains("first"), "{output}");
     assert!(!output.contains("second"), "{output}");
     assert!(output.contains("<truncated>"), "{output}");
@@ -166,7 +169,10 @@ fn test_named_value_masks_non_strings_with_configured_opaque_value() {
             fields
                 .disable_floor()
                 .raise("token", Sensitivity::Low)
-                .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0));
+                .mask(
+                    Sensitivity::Low,
+                    MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
+                );
         })
         .expect("the test policy should be valid")
         .build()
@@ -182,7 +188,10 @@ fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
             fields
                 .disable_floor()
                 .raise("token", Sensitivity::Low)
-                .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "MASK", 0));
+                .mask(
+                    Sensitivity::Low,
+                    MaskPolicy::preserve_edges(1, 1, "MASK", 0),
+                );
         })
         .expect("the test policy should be valid")
         .build()
@@ -202,9 +211,10 @@ fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
     );
     let policy = RedactionPolicy::builder()
         .fields(|fields| {
-            fields
-                .raise("tokens", Sensitivity::Low)
-                .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0));
+            fields.raise("tokens", Sensitivity::Low).mask(
+                Sensitivity::Low,
+                MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
+            );
         })
         .expect("the test policy should be valid")
         .build()
@@ -241,7 +251,10 @@ fn test_named_value_one_less_wrapper_node_truncates() {
 
 #[test]
 fn test_named_multi_values_exact_wrapper_node_budget_is_complete() {
-    let value = NamedMultiValues::new("tokens", MultiValues::String(vec!["first-secret".to_owned()]));
+    let value = NamedMultiValues::new(
+        "tokens",
+        MultiValues::String(vec!["first-secret".to_owned()]),
+    );
     let policy = sensitive_policy_with_nodes("tokens", 5);
 
     let output = redacted_text(&value, &policy);
@@ -256,7 +269,10 @@ fn test_named_multi_values_exact_wrapper_node_budget_is_complete() {
 fn test_named_values_classify_payload_by_business_name() {
     let redactor = Redactor::standard();
     let scalar = NamedValue::new("password", Value::String("raw-secret".to_owned()));
-    let collection = NamedMultiValues::new("password", MultiValues::String(vec!["raw-secret".to_owned()]));
+    let collection = NamedMultiValues::new(
+        "password",
+        MultiValues::String(vec!["raw-secret".to_owned()]),
+    );
 
     for inspection in [redactor.inspect(&scalar), redactor.inspect(&collection)] {
         assert_eq!(
@@ -285,13 +301,35 @@ fn test_named_values_classify_payload_by_business_name() {
 fn test_named_values_preserve_public_payloads() {
     let redactor = Redactor::standard();
     let scalar = NamedValue::new("region", Value::String("eu-west".to_owned()));
-    let collection = NamedMultiValues::new("region", MultiValues::String(vec!["eu-west".to_owned()]));
+    let collection =
+        NamedMultiValues::new("region", MultiValues::String(vec!["eu-west".to_owned()]));
 
-    assert!(redactor.redact_text(&scalar).text().as_str().contains("eu-west"));
-    assert!(redactor.redact_text(&collection).text().as_str().contains("eu-west"));
-    assert_eq!(redactor.inspect(&scalar).expect("inspection").max_sensitivity(), None);
+    assert!(
+        redactor
+            .redact_text(&scalar)
+            .text()
+            .as_str()
+            .contains("eu-west")
+    );
+    assert!(
+        redactor
+            .redact_text(&collection)
+            .text()
+            .as_str()
+            .contains("eu-west")
+    );
     assert_eq!(
-        redactor.inspect(&collection).expect("inspection").max_sensitivity(),
+        redactor
+            .inspect(&scalar)
+            .expect("inspection")
+            .max_sensitivity(),
+        None
+    );
+    assert_eq!(
+        redactor
+            .inspect(&collection)
+            .expect("inspection")
+            .max_sensitivity(),
         None
     );
 }
@@ -324,13 +362,37 @@ fn test_named_value_recursively_redacts_json_under_public_business_name() {
 fn test_named_values_disabled_policy_restores_payloads() {
     let redactor = Redactor::new(RedactionPolicy::disabled());
     let scalar = NamedValue::new("password", Value::String("raw-secret".to_owned()));
-    let collection = NamedMultiValues::new("password", MultiValues::String(vec!["raw-secret".to_owned()]));
+    let collection = NamedMultiValues::new(
+        "password",
+        MultiValues::String(vec!["raw-secret".to_owned()]),
+    );
 
-    assert!(redactor.redact_text(&scalar).text().as_str().contains("raw-secret"));
-    assert!(redactor.redact_text(&collection).text().as_str().contains("raw-secret"));
-    assert_eq!(redactor.inspect(&scalar).expect("inspection").max_sensitivity(), None);
+    assert!(
+        redactor
+            .redact_text(&scalar)
+            .text()
+            .as_str()
+            .contains("raw-secret")
+    );
+    assert!(
+        redactor
+            .redact_text(&collection)
+            .text()
+            .as_str()
+            .contains("raw-secret")
+    );
     assert_eq!(
-        redactor.inspect(&collection).expect("inspection").max_sensitivity(),
+        redactor
+            .inspect(&scalar)
+            .expect("inspection")
+            .max_sensitivity(),
+        None
+    );
+    assert_eq!(
+        redactor
+            .inspect(&collection)
+            .expect("inspection")
+            .max_sensitivity(),
         None
     );
 }
@@ -348,7 +410,10 @@ fn test_string_map_collection_redacts_keys_and_preserves_public_values() {
     assert!(!output.text().as_str().contains("collection-secret"));
     assert!(output.text().as_str().contains("eu-west"));
     assert_eq!(
-        redactor.inspect(&value).expect("complete inspection").max_sensitivity(),
+        redactor
+            .inspect(&value)
+            .expect("complete inspection")
+            .max_sensitivity(),
         Some(Sensitivity::Secret)
     );
     let disabled = Redactor::new(RedactionPolicy::disabled()).redact_text(&value);
@@ -370,6 +435,9 @@ fn test_string_map_collection_stops_before_unadmitted_maps() {
         .build()
         .expect("valid policy");
     let output = Redactor::new(policy).redact_text(&values);
-    assert_eq!(output.summary().completion(), RedactionCompletion::Truncated);
+    assert_eq!(
+        output.summary().completion(),
+        RedactionCompletion::Truncated
+    );
     assert!(!output.text().as_str().contains("must-not-be-visited"));
 }

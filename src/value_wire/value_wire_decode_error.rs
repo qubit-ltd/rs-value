@@ -111,13 +111,17 @@ impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
         match error.into_source() {
             JsonDecodeErrorSource::Budget { source, .. } => match source {
                 MeasuredBudgetError::Budget(error) => Self::Budget(error),
-                MeasuredBudgetError::Quantity { resource, source } => Self::Quantity { resource, source },
+                MeasuredBudgetError::Quantity { resource, source } => {
+                    Self::Quantity { resource, source }
+                }
             },
             JsonDecodeErrorSource::InvalidJson { syntax, .. } => Self::Syntax(syntax),
             JsonDecodeErrorSource::EmptyInput { .. }
             | JsonDecodeErrorSource::InvalidUtf8 { .. }
             | JsonDecodeErrorSource::UnexpectedTopLevel { .. }
-            | JsonDecodeErrorSource::Deserialize { .. } => Self::deserialize(Category::Data, line, column),
+            | JsonDecodeErrorSource::Deserialize { .. } => {
+                Self::deserialize(Category::Data, line, column)
+            }
         }
     }
 }

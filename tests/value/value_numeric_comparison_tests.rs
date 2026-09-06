@@ -59,13 +59,19 @@ fn test_value_numeric_cmp_distinguishes_missing_and_non_numeric_operands() {
         }),
     );
     assert_eq!(
-        Value::Int32(1).numeric_cmp(&Value::Unset(DataType::Float64), NumericComparisonPolicy::Exact,),
+        Value::Int32(1).numeric_cmp(
+            &Value::Unset(DataType::Float64),
+            NumericComparisonPolicy::Exact,
+        ),
         Err(NumericComparisonError::RightMissing {
             declared: DataType::Float64,
         }),
     );
     assert_eq!(
-        Value::Unset(DataType::Int32).numeric_cmp(&Value::Unset(DataType::Int64), NumericComparisonPolicy::Exact,),
+        Value::Unset(DataType::Int32).numeric_cmp(
+            &Value::Unset(DataType::Int64),
+            NumericComparisonPolicy::Exact,
+        ),
         Err(NumericComparisonError::LeftMissing {
             declared: DataType::Int32,
         }),
@@ -78,7 +84,9 @@ fn test_value_numeric_cmp_distinguishes_missing_and_non_numeric_operands() {
     );
     assert_eq!(
         Value::Int32(1).numeric_cmp(&Value::Bool(true), NumericComparisonPolicy::Exact),
-        Err(NumericComparisonError::RightNotNumeric { actual: DataType::Bool }),
+        Err(NumericComparisonError::RightNotNumeric {
+            actual: DataType::Bool
+        }),
     );
 }
 
@@ -101,7 +109,9 @@ fn test_value_numeric_cmp_reports_nan_position_after_type_validation() {
     );
     assert_eq!(
         nan.numeric_cmp(&Value::Bool(true), NumericComparisonPolicy::Exact),
-        Err(NumericComparisonError::RightNotNumeric { actual: DataType::Bool }),
+        Err(NumericComparisonError::RightNotNumeric {
+            actual: DataType::Bool
+        }),
     );
 }
 

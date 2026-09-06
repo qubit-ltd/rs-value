@@ -327,7 +327,9 @@ fn test_hash_json_with_budget_checks_number_bytes() {
 #[test]
 fn test_hash_json_with_budget_error_is_atomic() {
     let value = serde_json::json!([null]);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .budget();
     let mut state = RecordingHasher::default();
 
     assert!(
@@ -345,7 +347,9 @@ fn test_hash_json_with_budget_error_is_atomic() {
 #[test]
 fn test_hash_json_with_budget_panic_rolls_back_and_reuses_budget() {
     let value = serde_json::json!(null);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .budget();
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         Value::Json(value.clone()).hash_with_json_budget(&mut PanickingHasher, &mut budget)
@@ -413,7 +417,10 @@ fn test_deep_json_identity_equality_in_isolated_process() {
     let equal = ManuallyDrop::new(Value::Json(build_deep_json_value(1)));
     let unequal = ManuallyDrop::new(Value::Json(build_deep_json_value(2)));
 
-    assert!(*left == *equal, "matching deeply nested JSON values must be equal");
+    assert!(
+        *left == *equal,
+        "matching deeply nested JSON values must be equal"
+    );
     assert!(
         *left != *unequal,
         "leaf differences in deeply nested JSON values must not be equal"
@@ -476,7 +483,13 @@ fn build_deep_json_value(leaf: i64) -> serde_json::Value {
 unsafe fn read_json_fixture(value: &ManuallyDrop<Value>) -> serde_json::Value {
     // SAFETY: the caller keeps `value` manually dropped and moves the payload
     // exactly once into `dismantle_json_value`.
-    unsafe { std::ptr::read(value.get_json_ref().expect("test fixture must retain its JSON payload")) }
+    unsafe {
+        std::ptr::read(
+            value
+                .get_json_ref()
+                .expect("test fixture must retain its JSON payload"),
+        )
+    }
 }
 
 /// Iteratively consumes a JSON fixture so its destructor cannot recurse.
