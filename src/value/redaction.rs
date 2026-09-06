@@ -97,7 +97,7 @@ impl Redact for NamedValue {
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         writer.record("NamedValue", |fields| {
             fields.unredacted("name", || self.name());
-            fields.keyed("value", self.name(), || self.value());
+            fields.keyed_nested("value", self.name(), self.value());
         });
     }
 }
@@ -107,7 +107,7 @@ impl Redact for NamedMultiValues {
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         writer.record("NamedMultiValues", |fields| {
             fields.unredacted("name", || self.name());
-            fields.keyed("value", self.name(), || self.values());
+            fields.keyed_nested("value", self.name(), self.values());
         });
     }
 }

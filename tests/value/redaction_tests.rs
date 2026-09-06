@@ -296,6 +296,29 @@ fn test_named_values_preserve_public_payloads() {
     );
 }
 
+/// A public wrapper key must not bypass classification of fields in its JSON
+/// payload. This is the regression for the former `Debug` fallback in keyed
+/// wrappers.
+#[test]
+fn test_named_value_recursively_redacts_json_under_public_business_name() {
+    let value = NamedValue::new(
+        "region",
+        Value::Json(json!({"password": "nested-secret", "label": "visible"})),
+    );
+
+    let output = Redactor::standard().redact_text(&value);
+
+    assert!(!output.text().as_str().contains("nested-secret"));
+    assert!(output.text().as_str().contains("visible"));
+    assert_eq!(
+        Redactor::standard()
+            .inspect(&value)
+            .expect("complete inspection")
+            .max_sensitivity(),
+        Some(Sensitivity::Secret)
+    );
+}
+
 /// Disabled policy restores both scalar and collection payloads.
 #[test]
 fn test_named_values_disabled_policy_restores_payloads() {
