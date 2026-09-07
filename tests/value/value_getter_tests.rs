@@ -33,6 +33,62 @@ fn test_value_getter_is_strict_and_default_is_empty_only() {
     assert_eq!(empty.get_or::<String>("missing").unwrap(), "missing");
 }
 
+#[test]
+fn test_value_try_from_borrowed_value_reports_each_storage_state() {
+    let value = Value::Bool(true);
+    assert_eq!(<&bool>::try_from(&value), Ok(&true));
+    assert_eq!(
+        <&bool>::try_from(&Value::Unset(DataType::Bool)),
+        Err(ValueError::Missing(ValueMissing::UnsetScalar {
+            data_type: DataType::Bool,
+        })),
+    );
+    assert_eq!(
+        <&bool>::try_from(&Value::Int32(1)),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Bool,
+            actual: DataType::Int32,
+        }),
+    );
+}
+
+#[test]
+fn test_value_try_from_owned_value_reports_each_storage_state() {
+    assert_eq!(bool::try_from(Value::Bool(true)), Ok(true));
+    assert_eq!(
+        bool::try_from(Value::Unset(DataType::Bool)),
+        Err(ValueError::Missing(ValueMissing::UnsetScalar {
+            data_type: DataType::Bool,
+        })),
+    );
+    assert_eq!(
+        bool::try_from(Value::Int32(1)),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Bool,
+            actual: DataType::Int32,
+        }),
+    );
+}
+
+#[test]
+fn test_value_try_from_borrowed_string_reports_each_storage_state() {
+    let value = Value::String("text".to_owned());
+    assert_eq!(<&str>::try_from(&value), Ok("text"));
+    assert_eq!(
+        <&str>::try_from(&Value::Unset(DataType::String)),
+        Err(ValueError::Missing(ValueMissing::UnsetScalar {
+            data_type: DataType::String,
+        })),
+    );
+    assert_eq!(
+        <&str>::try_from(&Value::Int32(1)),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::String,
+            actual: DataType::Int32,
+        }),
+    );
+}
+
 macro_rules! assert_scalar_getter_contract {
     ($value:expr, $getter:ident, $expected:expr, $data_type:expr, $wrong_type:expr) => {{
         let value = $value;

@@ -8,6 +8,11 @@
 
 //! Wide-integer wire visitor behavior.
 
+use qubit_value::Value;
+use qubit_value::ValueWireV1Seed;
+use serde::de::DeserializeSeed;
+use serde::de::IntoDeserializer;
+
 #[test]
 fn test_wide_integer_wire_rejects_number_payload() {
     assert!(
@@ -46,8 +51,6 @@ fn test_wide_integer_wire_rejects_invalid_decimal_text() {
 /// Verifies both signed and unsigned visitors accept their representable limits.
 #[test]
 fn test_wide_integer_wire_parses_extreme_values() {
-    use qubit_value::Value;
-
     for (text, expected) in [
         (i128::MIN.to_string(), Value::Int128(i128::MIN).into()),
         (i128::MAX.to_string(), Value::Int128(i128::MAX).into()),
@@ -75,4 +78,29 @@ fn test_wide_integer_wire_parses_extreme_values() {
             expected,
         );
     }
+}
+
+/// Verifies the visitor accepts owned strings at both signed and unsigned limits.
+#[test]
+fn test_wide_integer_wire_parses_owned_extreme_strings() {
+    for (tag, text, expected) in [
+        ("int128", i128::MIN.to_string(), Value::Int128(i128::MIN)),
+        ("uint128", u128::MAX.to_string(), Value::UInt128(u128::MAX)),
+    ] {
+        let input = serde_json::json!({"version": 1, "value": {"scalar": {tag: text}}});
+        let wire = ValueWireV1Seed::new()
+            .deserialize(input.into_deserializer())
+            .expect("owned extreme integer string must decode");
+        assert_eq!(wire.into_container(), expected.into());
+    }
+}
+
+/// Verifies an owned non-canonical integer string reports the exact visitor error.
+#[test]
+fn test_wide_integer_wire_rejects_owned_noncanonical_string_precisely() {
+    let input = serde_json::json!({"version": 1, "value": {"scalar": {"int128": "+1"}}});
+    let error = ValueWireV1Seed::new()
+        .deserialize(input.into_deserializer())
+        .expect_err("owned non-canonical integer string must be rejected");
+    assert_eq!(error.to_string(), "non-canonical 128-bit integer string",);
 }

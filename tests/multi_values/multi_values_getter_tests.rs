@@ -25,6 +25,153 @@ fn test_multi_values_getter_is_strict() {
 }
 
 #[test]
+fn test_multi_values_try_from_first_value_reports_each_storage_state() {
+    assert_eq!(bool::try_from(&MultiValues::Bool(vec![true])), Ok(true));
+    assert_eq!(
+        bool::try_from(&MultiValues::Bool(Vec::new())),
+        Err(ValueError::Missing(ValueMissing::EmptyCollection {
+            data_type: DataType::Bool,
+        })),
+    );
+    assert_eq!(
+        bool::try_from(&MultiValues::Unset(DataType::Bool)),
+        Err(ValueError::Missing(ValueMissing::UnsetCollection {
+            data_type: DataType::Bool,
+        })),
+    );
+    assert_eq!(
+        bool::try_from(&MultiValues::Int32(vec![1])),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Bool,
+            actual: DataType::Int32,
+        }),
+    );
+}
+
+#[test]
+fn test_multi_values_try_from_borrowed_vector_reports_each_storage_state() {
+    assert_eq!(
+        Vec::<bool>::try_from(&MultiValues::Bool(vec![true, false])),
+        Ok(vec![true, false]),
+    );
+    assert_eq!(
+        Vec::<bool>::try_from(&MultiValues::Bool(Vec::new())),
+        Ok(Vec::new()),
+    );
+    assert_eq!(
+        Vec::<bool>::try_from(&MultiValues::Unset(DataType::Bool)),
+        Err(ValueError::Missing(ValueMissing::UnsetCollection {
+            data_type: DataType::Bool,
+        })),
+    );
+    assert_eq!(
+        Vec::<bool>::try_from(&MultiValues::Int32(vec![1])),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Bool,
+            actual: DataType::Int32,
+        }),
+    );
+}
+
+#[test]
+fn test_multi_values_try_from_borrowed_first_reports_each_storage_state() {
+    let values = MultiValues::Bool(vec![true]);
+    assert_eq!(<&bool>::try_from(&values), Ok(&true));
+    assert_eq!(
+        <&bool>::try_from(&MultiValues::Bool(Vec::new())),
+        Err(ValueError::Missing(ValueMissing::EmptyCollection {
+            data_type: DataType::Bool,
+        })),
+    );
+    assert_eq!(
+        <&bool>::try_from(&MultiValues::Unset(DataType::Bool)),
+        Err(ValueError::Missing(ValueMissing::UnsetCollection {
+            data_type: DataType::Bool,
+        })),
+    );
+    assert_eq!(
+        <&bool>::try_from(&MultiValues::Int32(vec![1])),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Bool,
+            actual: DataType::Int32,
+        }),
+    );
+}
+
+#[test]
+fn test_multi_values_try_from_borrowed_slice_reports_each_storage_state() {
+    let values = MultiValues::Bool(vec![true, false]);
+    assert_eq!(<&[bool]>::try_from(&values), Ok([true, false].as_slice()));
+    assert_eq!(
+        <&[bool]>::try_from(&MultiValues::Bool(Vec::new())),
+        Ok([].as_slice()),
+    );
+    assert_eq!(
+        <&[bool]>::try_from(&MultiValues::Unset(DataType::Bool)),
+        Err(ValueError::Missing(ValueMissing::UnsetCollection {
+            data_type: DataType::Bool,
+        })),
+    );
+    assert_eq!(
+        <&[bool]>::try_from(&MultiValues::Int32(vec![1])),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Bool,
+            actual: DataType::Int32,
+        }),
+    );
+}
+
+#[test]
+fn test_multi_values_try_from_owned_vector_reports_each_storage_state() {
+    assert_eq!(
+        Vec::<bool>::try_from(MultiValues::Bool(vec![true, false])),
+        Ok(vec![true, false]),
+    );
+    assert_eq!(
+        Vec::<bool>::try_from(MultiValues::Bool(Vec::new())),
+        Ok(Vec::new()),
+    );
+    assert_eq!(
+        Vec::<bool>::try_from(MultiValues::Unset(DataType::Bool)),
+        Err(ValueError::Missing(ValueMissing::UnsetCollection {
+            data_type: DataType::Bool,
+        })),
+    );
+    assert_eq!(
+        Vec::<bool>::try_from(MultiValues::Int32(vec![1])),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Bool,
+            actual: DataType::Int32,
+        }),
+    );
+}
+
+#[test]
+fn test_multi_values_try_from_borrowed_string_reports_each_storage_state() {
+    let values = MultiValues::String(vec!["text".to_owned()]);
+    assert_eq!(<&str>::try_from(&values), Ok("text"));
+    assert_eq!(
+        <&str>::try_from(&MultiValues::String(Vec::new())),
+        Err(ValueError::Missing(ValueMissing::EmptyCollection {
+            data_type: DataType::String,
+        })),
+    );
+    assert_eq!(
+        <&str>::try_from(&MultiValues::Unset(DataType::String)),
+        Err(ValueError::Missing(ValueMissing::UnsetCollection {
+            data_type: DataType::String,
+        })),
+    );
+    assert_eq!(
+        <&str>::try_from(&MultiValues::Int32(vec![1])),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::String,
+            actual: DataType::Int32,
+        }),
+    );
+}
+
+#[test]
 fn test_multi_values_first_read_reports_precise_missing_state() {
     assert_eq!(
         MultiValues::Unset(DataType::Int32).get_first::<i32>(),
