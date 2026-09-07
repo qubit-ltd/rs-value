@@ -24,7 +24,6 @@ use qubit_datatype::DataConversionError;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionTarget;
 #[cfg(feature = "converter")]
-#[cfg(feature = "converter")]
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataTypeOf;
@@ -121,7 +120,7 @@ fn assert_wire_serialization(value: impl Into<ValueContainer>) {
 
 #[cfg(feature = "converter")]
 #[test]
-fn converter_feature_converts_core_values() {
+fn test_converter_feature_converts_core_values() {
     let scalar = ValueContainer::from(42_i32);
     let collection = ValueContainer::from(vec![43_i32, 44]);
 
@@ -153,7 +152,7 @@ impl DataConversionTarget for Port {
 /// Verifies every value shape accepts a downstream-owned target directly.
 #[cfg(feature = "converter")]
 #[test]
-fn converter_feature_accepts_target_side_extension() {
+fn test_converter_feature_accepts_target_side_extension() {
     assert_eq!(Value::from("8080").to::<Port>().unwrap(), Port(8080));
     assert_eq!(
         MultiValues::from(vec!["8080", "8081"])
@@ -169,7 +168,7 @@ fn converter_feature_accepts_target_side_extension() {
 
 #[cfg(feature = "chrono")]
 #[test]
-fn chrono_feature_preserves_values_and_wire_payloads() {
+fn test_chrono_feature_preserves_values_and_wire_payloads() {
     let date = NaiveDate::from_ymd_opt(2026, 7, 15).expect("valid date");
     let scalar = Value::Date(date);
     let collection = MultiValues::Date(vec![date]);
@@ -182,7 +181,7 @@ fn chrono_feature_preserves_values_and_wire_payloads() {
 
 #[cfg(feature = "big-integer")]
 #[test]
-fn big_integer_feature_preserves_values_and_wire_payloads() {
+fn test_big_integer_feature_preserves_values_and_wire_payloads() {
     let integer = BigInt::from(123_456_789_i64);
     let integer_value = Value::BigInteger(integer.clone());
     let integers = MultiValues::BigInteger(vec![integer.clone()]);
@@ -201,7 +200,7 @@ fn big_integer_feature_preserves_values_and_wire_payloads() {
 
 #[cfg(feature = "big-decimal")]
 #[test]
-fn big_decimal_feature_preserves_values_and_wire_payloads() {
+fn test_big_decimal_feature_preserves_values_and_wire_payloads() {
     let decimal = BigDecimal::from_str("123.4500").expect("valid decimal");
     let decimal_value = Value::BigDecimal(decimal.clone());
     let decimals = MultiValues::BigDecimal(vec![decimal.clone()]);
@@ -220,7 +219,7 @@ fn big_decimal_feature_preserves_values_and_wire_payloads() {
 
 #[cfg(feature = "url")]
 #[test]
-fn url_feature_preserves_values_and_wire_payloads() {
+fn test_url_feature_preserves_values_and_wire_payloads() {
     let url = Url::parse("https://example.com/path?q=1").expect("valid URL");
     let scalar = Value::new(url.clone());
     let collection = MultiValues::Url(vec![url.clone()]);
@@ -233,7 +232,7 @@ fn url_feature_preserves_values_and_wire_payloads() {
 
 #[cfg(feature = "json")]
 #[test]
-fn json_feature_preserves_values_and_wire_payloads() {
+fn test_json_feature_preserves_values_and_wire_payloads() {
     let json = serde_json::json!({"nested": [true, 42]});
     let scalar = Value::Json(json.clone());
     let collection = MultiValues::Json(vec![json.clone()]);
@@ -249,7 +248,7 @@ fn json_feature_preserves_values_and_wire_payloads() {
 
 #[cfg(feature = "redact")]
 #[test]
-fn redact_feature_masks_sensitive_string_map_entries() {
+fn test_redact_feature_masks_sensitive_string_map_entries() {
     let value = Value::StringMap(HashMap::from([
         ("api_key".to_owned(), "raw-secret".to_owned()),
         ("label".to_owned(), "visible".to_owned()),
@@ -270,7 +269,7 @@ fn redact_feature_masks_sensitive_string_map_entries() {
 
 #[cfg(feature = "redact")]
 #[test]
-fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
+fn test_redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
     let value = NamedValue::new("secret_number", Value::Int32(12345));
     let policy = RedactionPolicy::builder()
         .fields(|fields| {
@@ -291,7 +290,7 @@ fn redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
 
 #[cfg(all(feature = "redact", feature = "json"))]
 #[test]
-fn redact_feature_recursively_masks_sensitive_json_object_entries() {
+fn test_redact_feature_recursively_masks_sensitive_json_object_entries() {
     let value = Value::Json(serde_json::json!({
         "profile": {
             "api_key": "nested-secret",
@@ -326,7 +325,7 @@ fn redact_feature_recursively_masks_sensitive_json_object_entries() {
 
 #[cfg(feature = "redact")]
 #[test]
-fn redact_feature_stops_before_unadmitted_collection_elements() {
+fn test_redact_feature_stops_before_unadmitted_collection_elements() {
     let values = MultiValues::String(vec![
         "visible".to_owned(),
         "must-not-be-formatted".to_owned(),
@@ -353,7 +352,7 @@ fn redact_feature_stops_before_unadmitted_collection_elements() {
 
 #[cfg(all(feature = "converter", feature = "chrono"))]
 #[test]
-fn converter_chrono_features_convert_text_to_date() {
+fn test_converter_chrono_features_convert_text_to_date() {
     let expected = NaiveDate::from_ymd_opt(2026, 7, 15).expect("valid date");
     assert_eq!(
         Value::from("2026-07-15")
@@ -365,7 +364,7 @@ fn converter_chrono_features_convert_text_to_date() {
 
 #[cfg(all(feature = "converter", feature = "big-integer"))]
 #[test]
-fn converter_big_integer_features_convert_text_to_big_integer() {
+fn test_converter_big_integer_features_convert_text_to_big_integer() {
     assert_eq!(
         Value::from("123456789")
             .to::<BigInt>()
@@ -376,7 +375,7 @@ fn converter_big_integer_features_convert_text_to_big_integer() {
 
 #[cfg(all(feature = "converter", feature = "big-decimal"))]
 #[test]
-fn converter_big_decimal_features_convert_text_to_big_decimal() {
+fn test_converter_big_decimal_features_convert_text_to_big_decimal() {
     assert_eq!(
         Value::from("123.4500")
             .to::<BigDecimal>()
@@ -387,7 +386,7 @@ fn converter_big_decimal_features_convert_text_to_big_decimal() {
 
 #[cfg(all(feature = "converter", feature = "url"))]
 #[test]
-fn converter_url_features_convert_text_to_url() {
+fn test_converter_url_features_convert_text_to_url() {
     let expected = Url::parse("https://example.com/path").expect("valid URL");
     assert_eq!(
         Value::from("https://example.com/path")
@@ -399,7 +398,7 @@ fn converter_url_features_convert_text_to_url() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
-fn converter_json_features_convert_text_to_json() {
+fn test_converter_json_features_convert_text_to_json() {
     assert_eq!(
         Value::from(r#"{"answer":42}"#)
             .to::<serde_json::Value>()

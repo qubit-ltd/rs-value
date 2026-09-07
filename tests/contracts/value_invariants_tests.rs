@@ -13,7 +13,7 @@ use qubit_value::MultiValues;
 use qubit_value::Value;
 
 #[test]
-fn unset_preserves_declared_type_without_becoming_a_concrete_value() {
+fn test_unset_preserves_declared_type_without_becoming_a_concrete_value() {
     let value = Value::new_unset(DataType::Int32);
 
     assert!(value.is_unset());
@@ -22,7 +22,7 @@ fn unset_preserves_declared_type_without_becoming_a_concrete_value() {
 }
 
 #[test]
-fn strict_getter_does_not_convert_a_concrete_value() {
+fn test_strict_getter_does_not_convert_a_concrete_value() {
     let value = Value::Int32(7);
 
     assert_eq!(value.get::<i32>().unwrap(), 7);
@@ -30,7 +30,7 @@ fn strict_getter_does_not_convert_a_concrete_value() {
 }
 
 #[test]
-fn empty_collection_is_distinct_from_unset_collection() {
+fn test_empty_collection_is_distinct_from_unset_collection() {
     let empty = MultiValues::Int32(Vec::new());
     let unset = MultiValues::new_unset(DataType::Int32);
 

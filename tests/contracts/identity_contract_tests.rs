@@ -22,7 +22,7 @@ fn hash(value: &Value) -> u64 {
 }
 
 #[test]
-fn float_identity_normalizes_signed_zero_and_nan_payloads() {
+fn test_float_identity_normalizes_signed_zero_and_nan_payloads() {
     assert_eq!(Value::Float64(-0.0), Value::Float64(0.0));
     assert_eq!(hash(&Value::Float64(-0.0)), hash(&Value::Float64(0.0)));
 
@@ -34,7 +34,7 @@ fn float_identity_normalizes_signed_zero_and_nan_payloads() {
 
 #[cfg(feature = "json")]
 #[test]
-fn map_and_json_object_identity_ignores_insertion_order() {
+fn test_map_and_json_object_identity_ignores_insertion_order() {
     let left_map = Value::StringMap(HashMap::from([
         ("a".to_owned(), "1".to_owned()),
         ("b".to_owned(), "2".to_owned()),

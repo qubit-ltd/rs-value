@@ -13,7 +13,7 @@ use qubit_value::Value;
 use qubit_value::ValueContainer;
 
 #[test]
-fn adding_same_type_scalars_promotes_to_an_ordered_collection() {
+fn test_adding_same_type_scalars_promotes_to_an_ordered_collection() {
     let mut container = ValueContainer::Scalar(Value::Int32(7));
 
     container
@@ -27,7 +27,7 @@ fn adding_same_type_scalars_promotes_to_an_ordered_collection() {
 }
 
 #[test]
-fn adding_different_types_rejects_without_changing_shape() {
+fn test_adding_different_types_rejects_without_changing_shape() {
     let mut container = ValueContainer::Scalar(Value::Int32(7));
 
     assert!(

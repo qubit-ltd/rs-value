@@ -13,7 +13,7 @@ use qubit_value::MultiValues;
 use qubit_value::Value;
 
 #[test]
-fn all_core_types_have_scalar_and_collection_constructors() {
+fn test_all_core_types_have_scalar_and_collection_constructors() {
     let scalars = [
         Value::Bool(true).data_type(),
         Value::Char('x').data_type(),

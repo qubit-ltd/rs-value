@@ -1,3 +1,11 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
+
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::Value;
@@ -5,7 +13,7 @@ use qubit_value::ValueContainer;
 use qubit_value::ValueError;
 
 #[test]
-fn borrowed_scalar_and_collection_reads_keep_storage() {
+fn test_borrowed_scalar_and_collection_reads_keep_storage() {
     let text = String::from("hello");
     let ptr = text.as_ptr();
     let value = Value::String(text);
@@ -26,7 +34,7 @@ fn borrowed_scalar_and_collection_reads_keep_storage() {
 }
 
 #[test]
-fn borrowed_reads_preserve_missing_and_mismatch_errors() {
+fn test_borrowed_reads_preserve_missing_and_mismatch_errors() {
     let unset = Value::new_unset(DataType::String);
     assert!(matches!(unset.get_ref::<String>(), Err(ValueError::Missing(_))));
 
@@ -43,7 +51,7 @@ fn borrowed_reads_preserve_missing_and_mismatch_errors() {
 }
 
 #[test]
-fn consuming_reads_move_storage() {
+fn test_consuming_reads_move_storage() {
     let text = String::from("owned");
     let ptr = text.as_ptr();
     let value = Value::String(text);

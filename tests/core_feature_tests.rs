@@ -17,7 +17,7 @@ use qubit_value::ValueError;
 use qubit_value::ValueRef;
 
 #[test]
-fn unset_is_distinct_from_concrete_empty_values_without_optional_features() {
+fn test_unset_is_distinct_from_concrete_empty_values_without_optional_features() {
     let unset_value = Value::Unset(DataType::String);
     let empty_string = Value::String(String::new());
     assert!(unset_value.is_unset());
@@ -31,7 +31,7 @@ fn unset_is_distinct_from_concrete_empty_values_without_optional_features() {
 }
 
 #[test]
-fn generic_mutation_is_available_without_optional_features() {
+fn test_generic_mutation_is_available_without_optional_features() {
     let mut value = Value::Unset(DataType::Int32);
     value.set(42_i32);
     assert_eq!(value.get::<i32>().unwrap(), 42);
@@ -51,7 +51,7 @@ fn generic_mutation_is_available_without_optional_features() {
 }
 
 #[test]
-fn semantic_views_expose_core_values_without_storage_layout() {
+fn test_semantic_views_expose_core_values_without_storage_layout() {
     let value = Value::Int32(7);
     assert!(matches!(value.view(), ValueRef::Int32(7)));
 
@@ -63,7 +63,7 @@ fn semantic_views_expose_core_values_without_storage_layout() {
 }
 
 #[test]
-fn lazy_scalar_default_is_only_evaluated_for_unset_values() {
+fn test_lazy_scalar_default_is_only_evaluated_for_unset_values() {
     let value = Value::Int32(42);
     let mut evaluated = false;
 
@@ -219,7 +219,7 @@ fn test_value_container_rejects_mismatched_add() {
 }
 
 #[test]
-fn numeric_classification_depends_on_concrete_state() {
+fn test_numeric_classification_depends_on_concrete_state() {
     assert!(!Value::Unset(DataType::Int128).is_numeric());
     assert!(Value::Int128(i128::MIN).is_numeric());
     assert!(!MultiValues::Unset(DataType::UInt128).is_numeric());
@@ -228,7 +228,7 @@ fn numeric_classification_depends_on_concrete_state() {
 }
 
 #[test]
-fn named_wrappers_retain_generic_core_access() {
+fn test_named_wrappers_retain_generic_core_access() {
     let mut named = NamedValue::new("port", Value::Int32(8080));
     named.value_mut().set(9090_i32);
     assert_eq!(named.value().get_int32().unwrap(), 9090);

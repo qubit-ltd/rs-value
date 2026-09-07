@@ -413,7 +413,7 @@ fn value_fixtures() -> Vec<ValueFixture> {
 }
 
 #[test]
-fn value_wire_v1_fixtures_cover_every_data_type() {
+fn test_value_wire_v1_fixtures_cover_every_data_type() {
     let mut actual = value_fixtures()
         .into_iter()
         .map(|fixture| fixture.data_type)
@@ -425,7 +425,7 @@ fn value_wire_v1_fixtures_cover_every_data_type() {
 }
 
 #[test]
-fn value_wire_v1_tags_are_unique_and_stable() {
+fn test_value_wire_v1_tags_are_unique_and_stable() {
     let fixtures = value_fixtures();
     let tags = fixtures
         .iter()
@@ -469,7 +469,7 @@ fn value_wire_v1_tags_are_unique_and_stable() {
 }
 
 #[test]
-fn value_wire_v1_unset_tags_cover_every_data_type() {
+fn test_value_wire_v1_unset_tags_cover_every_data_type() {
     for &data_type in DataType::ALL {
         let scalar = ValueContainer::Scalar(Value::Unset(data_type));
         let collection = ValueContainer::Collection(MultiValues::Unset(data_type));
@@ -502,7 +502,7 @@ fn value_wire_v1_unset_tags_cover_every_data_type() {
 }
 
 #[test]
-fn value_wire_v1_scalar_golden_round_trips_all_types() {
+fn test_value_wire_v1_scalar_golden_round_trips_all_types() {
     for fixture in value_fixtures() {
         let expected = scalar_wire(fixture.tag, fixture.payload);
         let dto = ValueWireV1::try_from(fixture.value.clone()).expect("construct scalar wire");
@@ -516,7 +516,7 @@ fn value_wire_v1_scalar_golden_round_trips_all_types() {
 }
 
 #[test]
-fn value_wire_v1_collection_golden_round_trips_all_types() {
+fn test_value_wire_v1_collection_golden_round_trips_all_types() {
     for fixture in value_fixtures() {
         let values = MultiValues::from(fixture.value);
         let expected = collection_wire(fixture.tag, json!([fixture.payload]));
@@ -531,7 +531,7 @@ fn value_wire_v1_collection_golden_round_trips_all_types() {
 }
 
 #[test]
-fn value_wire_v1_borrowed_payload_golden_round_trips_all_types() {
+fn test_value_wire_v1_borrowed_payload_golden_round_trips_all_types() {
     for fixture in value_fixtures() {
         let expected_scalar = shaped_value("scalar", fixture.tag, fixture.payload.clone());
         let scalar = ValueWirePayloadRefV1::try_from(&fixture.value)
@@ -559,7 +559,7 @@ fn value_wire_v1_borrowed_payload_golden_round_trips_all_types() {
 }
 
 #[test]
-fn value_wire_v1_preserves_unset_empty_singleton_and_json_null() {
+fn test_value_wire_v1_preserves_unset_empty_singleton_and_json_null() {
     let cases = [
         (
             ValueContainer::Scalar(Value::Unset(DataType::Int32)),
@@ -602,7 +602,7 @@ fn value_wire_v1_preserves_unset_empty_singleton_and_json_null() {
 }
 
 #[test]
-fn value_wire_v1_owned_conversions_preserve_shape() {
+fn test_value_wire_v1_owned_conversions_preserve_shape() {
     let into_container: fn(ValueWireV1) -> ValueContainer = ValueWireV1::into_container;
     let scalar = ValueWireV1::try_from(Value::Int32(42)).expect("construct scalar wire");
     assert_eq!(
@@ -633,7 +633,7 @@ fn value_wire_v1_owned_conversions_preserve_shape() {
 }
 
 #[test]
-fn named_values_keep_outer_fields_and_embed_value_wire_v1() {
+fn test_named_values_keep_outer_fields_and_embed_value_wire_v1() {
     let named = NamedValue::new("port", Value::Int32(8080));
     let expected = json!({
         "name": "port",
@@ -652,7 +652,7 @@ fn named_values_keep_outer_fields_and_embed_value_wire_v1() {
 }
 
 #[test]
-fn value_wire_v1_rejects_invalid_envelopes_and_unknown_tags() {
+fn test_value_wire_v1_rejects_invalid_envelopes_and_unknown_tags() {
     let valid_value = json!({"scalar": {"int32": 42}});
     for invalid in [
         json!({"value": valid_value}),
@@ -672,7 +672,7 @@ fn value_wire_v1_rejects_invalid_envelopes_and_unknown_tags() {
 }
 
 #[test]
-fn value_wire_v1_rejects_noncanonical_external_tag_shapes() {
+fn test_value_wire_v1_rejects_noncanonical_external_tag_shapes() {
     for noncanonical in [
         json!({"Int32": 42}),
         json!({"Unset": "int32"}),
@@ -684,7 +684,7 @@ fn value_wire_v1_rejects_noncanonical_external_tag_shapes() {
 }
 
 #[test]
-fn value_wire_v1_wide_integer_payloads_require_canonical_decimal_strings() {
+fn test_value_wire_v1_wide_integer_payloads_require_canonical_decimal_strings() {
     for invalid in [
         scalar_wire("int128", json!(128)),
         scalar_wire("int128", json!("12x")),
@@ -704,7 +704,7 @@ fn value_wire_v1_wide_integer_payloads_require_canonical_decimal_strings() {
 }
 
 #[test]
-fn value_wire_v1_big_number_payloads_require_canonical_structures() {
+fn test_value_wire_v1_big_number_payloads_require_canonical_structures() {
     for invalid in [
         scalar_wire("biginteger", json!([1, [123]])),
         scalar_wire("biginteger", json!("12x")),
@@ -726,7 +726,7 @@ fn value_wire_v1_big_number_payloads_require_canonical_structures() {
 }
 
 #[test]
-fn value_wire_v1_duration_payload_is_strict() {
+fn test_value_wire_v1_duration_payload_is_strict() {
     assert!(
         crate::decode_value_wire_value(scalar_wire(
             "duration",
