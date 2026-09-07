@@ -37,6 +37,7 @@ then the reader chooses strict access, explicit conversion, or a typed default.
 The snippet assumes it is inside a function that returns a compatible `Result`,
 so `?` can propagate value errors.
 
+<!-- example:quick-start compile -->
 ```rust
 use std::collections::HashMap;
 use std::time::Duration;
@@ -83,6 +84,7 @@ Use `to_with` when the boundary needs an explicit policy and limits. Every
 `to_with` call creates a fresh `ConversionSession`, so independent reads do not
 share cumulative consumption:
 
+<!-- example:conversion-policy compile -->
 ```rust
 use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;

@@ -60,6 +60,7 @@ success criteria are:
 
 The core path is:
 
+<!-- example:runtime-config compile -->
 ```rust
 use std::collections::HashMap;
 use std::time::Duration;
@@ -185,6 +186,7 @@ Rust value. `StringMap` is a native map type and does not require `json`; the
 Use a typed constructor when the Rust type is known. Use `Value::new_unset` when
 the key has a declared type but no value yet.
 
+<!-- example:single-value compile -->
 ```rust
 use qubit_datatype::DataType;
 use qubit_value::Value;
@@ -213,6 +215,7 @@ value is unset. A type mismatch is still an error.
 vectors, and borrowed string collections where the corresponding conversion is
 implemented.
 
+<!-- example:multi-values compile -->
 ```rust
 use qubit_value::MultiValues;
 
@@ -239,6 +242,7 @@ With `converter`, `to` applies the shared `qubit-datatype` conversion contract.
 Use `to_with` when the default strict policy is not the policy the application
 wants.
 
+<!-- example:conversion compile -->
 ```rust
 use qubit_value::Value;
 
@@ -258,12 +262,14 @@ details live in the [`qubit-datatype` API documentation](https://docs.rs/qubit-d
 
 ### Preserve names without changing value semantics
 
+<!-- example:named-values compile -->
 ```rust
 use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
 
 let mut timeout = NamedValue::new("timeout", Value::new(30u64));
 assert_eq!(timeout.name(), "timeout");
-assert_eq!(timeout.value().get()?, 30);
+let timeout_seconds: u64 = timeout.value().get()?;
+assert_eq!(timeout_seconds, 30);
 timeout.value_mut().set(45u64);
 
 let mut ports = NamedMultiValues::new("ports", MultiValues::new([8080u16, 8081]));
@@ -321,6 +327,7 @@ The following example creates an explicitly scalar value, converts it into the
 owned Wire DTO, serializes it, applies input and semantic limits during decode,
 and restores the original container.
 
+<!-- example:wire-round-trip compile -->
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonEncodeLimits};
 use qubit_value::Value;
@@ -368,6 +375,7 @@ different input, output, or value budget.
 Use a borrowed adapter when the source value already lives long enough for the
 serialization call and cloning would be unnecessary.
 
+<!-- example:borrowed-wire compile -->
 ```rust
 use qubit_value::{Value, ValueWireRefV1};
 
@@ -395,6 +403,7 @@ value is nested inside a larger JSON document, use the shared `qubit-budget`
 Serde adapter for the complete outer document so every JSON node is charged in
 one session.
 
+<!-- example:shared-decode-session compile -->
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
 use qubit_json::decode::JsonDecoder;
@@ -402,7 +411,7 @@ use qubit_value::{ValueContainer, ValueWireV1Seed};
 
 let input = br#"{"version":1,"value":{"collection":{"int32":[1,2]}}}"#;
 let limits = JsonDecodeLimits::builder()
-    .max_input_bytes(64 * 1024)
+    .max_input_bytes(64usize * 1024)
     .build();
 let session = JsonDecodeSession::from_limits(limits);
 let mut decoder = JsonDecoder::new(session);
@@ -464,6 +473,7 @@ With `natural-json`, Natural JSON projects a runtime value into ordinary
 `serde_json::Value`. The following example shows the exact JSON string emitted
 for several common values:
 
+<!-- example:natural-json compile -->
 ```rust
 use std::collections::HashMap;
 
@@ -507,6 +517,7 @@ string-map keys are emitted in dictionary order.
 
 For a single map value, the equivalent construction is:
 
+<!-- example:natural-json-map compile -->
 ```rust
 use qubit_value::Value;
 
