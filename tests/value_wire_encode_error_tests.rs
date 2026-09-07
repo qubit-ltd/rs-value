@@ -9,6 +9,11 @@
 use std::io;
 use std::io::Write;
 
+use qubit_budget::BudgetError;
+use qubit_budget::MeasuredBudgetError;
+use qubit_budget::Observation;
+use qubit_budget::QuantityConversionError;
+use qubit_budget::QuantityMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_datatype::DataType;
 use qubit_json::encode::JsonEncodeError;
@@ -96,5 +101,38 @@ fn test_value_wire_encode_error_maps_owned_encoder_sources() {
     assert!(matches!(
         ValueWireEncodeError::from(writer),
         ValueWireEncodeError::Io(_)
+    ));
+}
+
+#[test]
+fn test_value_wire_encode_error_maps_measured_budget_failure_precisely() {
+    let budget = MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
+        resource: JsonResource::OutputBytes,
+        observed: Observation::Exact(2_usize),
+        maximum: 1_usize,
+    });
+    let budget_error = ValueWireEncodeError::from(budget);
+    assert!(matches!(
+        budget_error,
+        ValueWireEncodeError::Budget(BudgetError::LimitExceeded {
+            resource: JsonResource::OutputBytes,
+            observed: Observation::Exact(2),
+            maximum: 1,
+        })
+    ));
+}
+
+#[test]
+fn test_value_wire_encode_error_maps_quantity_failure_precisely() {
+    let source = QuantityConversionError::new(QuantityMeasurement::U64(u64::MAX), "usize");
+    let quantity =
+        MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::NumberBytes, source);
+    let quantity_error = ValueWireEncodeError::from(quantity);
+    assert!(matches!(
+        quantity_error,
+        ValueWireEncodeError::Quantity {
+            resource: JsonResource::NumberBytes,
+            source: actual,
+        } if actual == source
     ));
 }

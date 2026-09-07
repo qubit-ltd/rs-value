@@ -6,8 +6,12 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+use std::io;
+use std::io::Write;
+
 use qubit_budget::BudgetError;
 use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_value::MultiValues;
 use qubit_value::Value;
@@ -15,6 +19,22 @@ use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
+
+/// Writer that rejects every write with a stable error.
+struct RejectingWriter;
+
+impl Write for RejectingWriter {
+    fn write(&mut self, _buffer: &[u8]) -> io::Result<usize> {
+        Err(io::Error::new(
+            io::ErrorKind::BrokenPipe,
+            "payload writer rejected",
+        ))
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
 
 /// Verifies unversioned V1 payloads retain an explicit collection shape.
 #[test]
@@ -125,4 +145,91 @@ fn test_value_wire_payload_ref_v1_default_writer_matches_vec() {
             .to_json_vec()
             .expect("borrowed payload should encode")
     );
+}
+
+#[test]
+fn test_value_wire_payload_v1_default_limits_are_stable() {
+    let decode = ValueWirePayloadV1::default_json_decode_limits();
+    let encode = ValueWirePayloadV1::default_json_encode_limits();
+    assert_eq!(decode.max_input_bytes(), Some(1_048_576));
+    assert_eq!(encode.max_output_bytes(), Some(1_048_576));
+}
+
+#[test]
+fn test_value_wire_payload_v1_golden_bytes_are_stable() {
+    let payload = ValueWirePayloadV1::try_from(Value::String("ready".to_owned()))
+        .expect("construct a string payload");
+    assert_eq!(
+        payload.to_json_vec().expect("encode the payload"),
+        br#"{"scalar":{"string":"ready"}}"#,
+    );
+}
+
+#[test]
+fn test_value_wire_payload_v1_bounded_writer_matches_golden_bytes() {
+    let payload =
+        ValueWirePayloadV1::try_from(Value::Int32(42)).expect("construct an integer payload");
+    let mut output = Vec::new();
+    payload
+        .to_json_writer_with_limits(
+            &mut output,
+            JsonEncodeLimits::builder().max_output_bytes(1_024).build(),
+        )
+        .expect("write a bounded payload");
+    assert_eq!(output, br#"{"scalar":{"int32":42}}"#);
+}
+
+#[test]
+fn test_value_wire_payload_v1_writer_error_is_precise() {
+    let payload =
+        ValueWirePayloadV1::try_from(Value::Int32(42)).expect("construct an integer payload");
+    let error = payload
+        .to_json_writer(RejectingWriter)
+        .expect_err("the rejecting writer must fail");
+    assert!(matches!(
+        error,
+        qubit_value::ValueWireEncodeError::Io(source)
+            if source.kind() == io::ErrorKind::BrokenPipe
+                && source.to_string() == "payload writer rejected"
+    ));
+}
+
+#[test]
+fn test_value_wire_payload_v1_output_budget_error_is_precise() {
+    let payload =
+        ValueWirePayloadV1::try_from(Value::Int32(42)).expect("construct an integer payload");
+    let error = payload
+        .to_json_vec_with_limits(JsonEncodeLimits::builder().max_output_bytes(1).build())
+        .expect_err("a one-byte output budget must reject the payload");
+    assert!(matches!(
+        error,
+        qubit_value::ValueWireEncodeError::Budget(
+            BudgetError::LimitExceeded {
+                resource: JsonResource::OutputBytes,
+                ..
+            } | BudgetError::Insufficient {
+                resource: JsonResource::OutputBytes,
+                ..
+            }
+        )
+    ));
+}
+
+#[test]
+fn test_value_wire_payload_v1_decode_rejects_json_boundaries_precisely() {
+    let error =
+        ValueWirePayloadV1::decode_json_slice(b"\xff").expect_err("invalid UTF-8 must be rejected");
+    assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
+
+    let error =
+        ValueWirePayloadV1::decode_json_slice(b"").expect_err("empty input must be rejected");
+    assert!(matches!(error, ValueWireDecodeError::Syntax(_)));
+
+    let error = ValueWirePayloadV1::decode_json_slice(b"[]")
+        .expect_err("a top-level array is not a V1 payload shape");
+    assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
+
+    let error = ValueWirePayloadV1::decode_json_slice(br#"{"scalar":{"int32":1}} trailing"#)
+        .expect_err("trailing data must be rejected");
+    assert!(matches!(error, ValueWireDecodeError::Syntax(_)));
 }
