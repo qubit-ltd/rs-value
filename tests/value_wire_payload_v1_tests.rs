@@ -176,7 +176,7 @@ fn test_value_wire_payload_v1_output_budget_error_is_precise() {
         .expect_err("a one-byte output budget must reject the payload");
     assert!(matches!(
         error,
-        qubit_value::ValueWireEncodeError::Budget(
+        ValueWireEncodeError::Budget(
             BudgetError::LimitExceeded {
                 resource: JsonResource::OutputBytes,
                 ..
