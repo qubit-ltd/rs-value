@@ -16,14 +16,9 @@ use qubit_value::ValueContainer;
 fn test_adding_same_type_scalars_promotes_to_an_ordered_collection() {
     let mut container = ValueContainer::Scalar(Value::Int32(7));
 
-    container
-        .add(ValueContainer::Scalar(Value::Int32(8)))
-        .unwrap();
+    container.add(ValueContainer::Scalar(Value::Int32(8))).unwrap();
 
-    assert_eq!(
-        container,
-        ValueContainer::Collection(MultiValues::Int32(vec![7, 8]))
-    );
+    assert_eq!(container, ValueContainer::Collection(MultiValues::Int32(vec![7, 8])));
 }
 
 #[test]

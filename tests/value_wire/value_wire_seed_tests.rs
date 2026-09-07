@@ -17,7 +17,7 @@ use serde::de::DeserializeSeed;
 fn test_value_wire_payload_v1_seed_decodes_scalar_shape() {
     let input = r#"{"scalar":{"int32":7}}"#;
     let mut deserializer = serde_json::Deserializer::from_str(input);
-    let payload = ValueWirePayloadV1Seed::default()
+    let payload = ValueWirePayloadV1Seed
         .deserialize(&mut deserializer)
         .expect("the valid scalar V1 payload should decode");
 
@@ -32,10 +32,7 @@ fn test_value_wire_payload_v1_seed_decodes_collection_shape() {
         .deserialize(&mut deserializer)
         .expect("the valid collection V1 payload should decode");
 
-    assert_eq!(
-        payload.into_container(),
-        ValueContainer::from(vec![7_i32, 8])
-    );
+    assert_eq!(payload.into_container(), ValueContainer::from(vec![7_i32, 8]));
 }
 
 #[test]
@@ -58,7 +55,7 @@ fn test_value_wire_v1_seed_preserves_the_golden_envelope() {
     let input = r#"{"version":1,"value":{"scalar":{"string":"ready"}}}"#;
     let mut deserializer = serde_json::Deserializer::from_str(input);
 
-    let wire = ValueWireV1Seed::default()
+    let wire = ValueWireV1Seed
         .deserialize(&mut deserializer)
         .expect("the valid V1 envelope should decode");
 
@@ -75,9 +72,7 @@ fn test_value_wire_v1_seed_rejects_an_unsupported_version_precisely() {
         .expect_err("V1 seed must reject another wire version");
 
     assert!(
-        error
-            .to_string()
-            .contains("unsupported qubit-value wire version 2"),
+        error.to_string().contains("unsupported qubit-value wire version 2"),
         "unexpected seed error: {error}"
     );
 }

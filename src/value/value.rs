@@ -501,9 +501,7 @@ impl Value {
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => {
-                Ok(default.into_value_default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
             result => result,
         }
     }
@@ -581,10 +579,7 @@ impl Value {
     where
         T: DataConversionTarget,
     {
-        self.to_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts this value to `T`, or returns `default` when storage is unset
@@ -654,9 +649,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }
@@ -805,9 +798,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }
@@ -998,10 +989,7 @@ impl Value {
     /// including non-finite floating-point values and inexact durations.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
-        self.to_json_value_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Projects this typed value using explicit conversion policy and limits.
@@ -1139,18 +1127,12 @@ impl Value {
         let json = JsonValueEncoder::new().encode(value).map_err(|error| {
             let reason = match error.kind() {
                 JsonSerializationErrorKind::NonFiniteFloat => InvalidValueReason::NonFinite,
-                JsonSerializationErrorKind::IntegerOutOfRange { .. } => {
-                    InvalidValueReason::OutOfRange
-                }
+                JsonSerializationErrorKind::IntegerOutOfRange { .. } => InvalidValueReason::OutOfRange,
                 _ => InvalidValueReason::Serialization {
                     format: DataFormat::Json,
                 },
             };
-            ValueError::from(DataConversionError::invalid(
-                DataType::Json,
-                DataType::Json,
-                reason,
-            ))
+            ValueError::from(DataConversionError::invalid(DataType::Json, DataType::Json, reason))
         })?;
         Ok(Value::Json(json))
     }
@@ -1480,9 +1462,7 @@ impl Value {
         match &self.repr {
             ValueRepr::BigInteger(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigInteger => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigInteger,
@@ -1513,9 +1493,7 @@ impl Value {
         match &self.repr {
             ValueRepr::BigDecimal(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigDecimal => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigDecimal,
@@ -1546,9 +1524,7 @@ impl Value {
         match &self.repr {
             ValueRepr::Url(v) => Ok(v.as_ref()),
             ValueRepr::Unset(dt) if *dt == DataType::Url => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Url,
@@ -1578,9 +1554,7 @@ impl Value {
         match &self.repr {
             ValueRepr::StringMap(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::StringMap => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::StringMap,
@@ -1611,9 +1585,7 @@ impl Value {
         match &self.repr {
             ValueRepr::Json(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
@@ -1657,9 +1629,7 @@ impl Value {
                 ))
             }),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                    data_type: *dt,
-                }))
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
@@ -1765,14 +1735,10 @@ impl Value {
         policy: NumericComparisonPolicy,
     ) -> Result<Ordering, NumericComparisonError> {
         if let ValueRepr::Unset(declared) = &self.repr {
-            return Err(NumericComparisonError::LeftMissing {
-                declared: *declared,
-            });
+            return Err(NumericComparisonError::LeftMissing { declared: *declared });
         }
         if let ValueRepr::Unset(declared) = &other.repr {
-            return Err(NumericComparisonError::RightMissing {
-                declared: *declared,
-            });
+            return Err(NumericComparisonError::RightMissing { declared: *declared });
         }
 
         let left = self
@@ -1780,12 +1746,11 @@ impl Value {
             .ok_or_else(|| NumericComparisonError::LeftNotNumeric {
                 actual: self.data_type(),
             })?;
-        let right =
-            other
-                .as_number_ref()
-                .ok_or_else(|| NumericComparisonError::RightNotNumeric {
-                    actual: other.data_type(),
-                })?;
+        let right = other
+            .as_number_ref()
+            .ok_or_else(|| NumericComparisonError::RightNotNumeric {
+                actual: other.data_type(),
+            })?;
 
         match (left.is_nan(), right.is_nan()) {
             (true, true) => return Err(NumericComparisonError::BothNaN),

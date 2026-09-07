@@ -21,10 +21,8 @@ use serde::de::IntoDeserializer;
 #[test]
 fn test_big_integer_wire_rejects_noncanonical_string() {
     assert!(
-        crate::decode_value_wire_value(
-            serde_json::json!({"version": 1, "value": {"scalar": {"biginteger": "042"}}})
-        )
-        .is_err()
+        crate::decode_value_wire_value(serde_json::json!({"version": 1, "value": {"scalar": {"biginteger": "042"}}}))
+            .is_err()
     );
 }
 
@@ -37,14 +35,10 @@ fn test_big_integer_wire_rejects_invalid_decimal_text() {
             "version": 1,
             "value": {"scalar": {"biginteger": text}},
         });
-        let error = crate::decode_value_wire_value(input)
-            .expect_err("invalid big integer text must be rejected");
+        let error = crate::decode_value_wire_value(input).expect_err("invalid big integer text must be rejected");
         let message = error.to_string();
         if matches!(text, "+1" | "01" | "-0") {
-            assert!(
-                message.contains("canonical"),
-                "unexpected error for {text:?}: {error}"
-            );
+            assert!(message.contains("canonical"), "unexpected error for {text:?}: {error}");
         } else {
             assert!(
                 message.contains("invalid") || message.contains("empty"),
@@ -54,14 +48,13 @@ fn test_big_integer_wire_rejects_invalid_decimal_text() {
     }
 }
 
-/// Verifies the decimal visitor accepts an owned extreme-magnitude integer string.
+/// Verifies the decimal visitor accepts an owned extreme-magnitude integer
+/// string.
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_parses_owned_extreme_string() {
     let text = format!("-{}", "9".repeat(256));
-    let expected = text
-        .parse::<num_bigint::BigInt>()
-        .expect("test integer must parse");
+    let expected = text.parse::<num_bigint::BigInt>().expect("test integer must parse");
     let input = serde_json::json!({"version": 1, "value": {"scalar": {"biginteger": text}}});
     let wire = ValueWireV1Seed::new()
         .deserialize(input.into_deserializer())
@@ -69,7 +62,8 @@ fn test_big_integer_wire_parses_owned_extreme_string() {
     assert_eq!(wire.into_container(), Value::BigInteger(expected).into());
 }
 
-/// Verifies an owned non-canonical decimal string reports the exact visitor error.
+/// Verifies an owned non-canonical decimal string reports the exact visitor
+/// error.
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_rejects_owned_noncanonical_string_precisely() {

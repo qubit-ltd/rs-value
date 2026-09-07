@@ -31,10 +31,7 @@ use qubit_value::ValueWireEncodePreflight;
 use url::Url;
 
 /// Verifies that an error identifies the expected exhausted JSON resource.
-fn assert_limit_exceeded(
-    error: MeasuredBudgetError<JsonResource, usize>,
-    expected_resource: JsonResource,
-) {
+fn assert_limit_exceeded(error: MeasuredBudgetError<JsonResource, usize>, expected_resource: JsonResource) {
     assert!(
         matches!(
             error,
@@ -169,19 +166,13 @@ fn test_check_value_traverses_every_scalar_shape_and_accumulates_nodes() {
         (Value::Float64(-2.25), 1),
         (Value::BigInteger(BigInt::from(0)), 1),
         (Value::BigInteger(BigInt::from(-7)), 1),
-        (
-            Value::BigDecimal("7.5".parse::<BigDecimal>().expect("decimal")),
-            2,
-        ),
+        (Value::BigDecimal("7.5".parse::<BigDecimal>().expect("decimal")), 2),
         (Value::Duration(Duration::from_secs(1)), 1),
         (Value::Date(date), 1),
         (Value::Time(time), 1),
         (Value::DateTime(datetime), 1),
         (Value::Instant(instant), 1),
-        (
-            Value::Url(Url::parse("https://example.com/path").expect("URL")),
-            1,
-        ),
+        (Value::Url(Url::parse("https://example.com/path").expect("URL")), 1),
         (
             Value::StringMap(HashMap::from([("key".to_owned(), "value".to_owned())])),
             2,
@@ -194,11 +185,7 @@ fn test_check_value_traverses_every_scalar_shape_and_accumulates_nodes() {
         ),
     ];
     let maximum_nodes = values.iter().map(|(_, nodes)| nodes).sum::<usize>();
-    let mut checker = ValueWireEncodePreflight::new(
-        JsonEncodeLimits::builder()
-            .max_nodes(maximum_nodes)
-            .build(),
-    );
+    let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_nodes(maximum_nodes).build());
 
     for (value, _) in &values {
         checker
@@ -209,12 +196,7 @@ fn test_check_value_traverses_every_scalar_shape_and_accumulates_nodes() {
         .check_value(&Value::Bool(false))
         .expect_err("one more scalar must exceed the accumulated node budget");
 
-    assert_lower_bound_limit(
-        error,
-        JsonResource::Nodes,
-        maximum_nodes + 1,
-        maximum_nodes,
-    );
+    assert_lower_bound_limit(error, JsonResource::Nodes, maximum_nodes + 1, maximum_nodes);
 }
 
 #[test]
@@ -222,15 +204,9 @@ fn test_check_values_traverses_specialized_collection_shapes() {
     let collections = vec![
         (MultiValues::Bool(vec![true, false]), 3_usize),
         (MultiValues::Char(vec!['a', 'λ']), 3),
+        (MultiValues::String(vec!["a".to_owned(), "bc".to_owned()]), 3),
         (
-            MultiValues::String(vec!["a".to_owned(), "bc".to_owned()]),
-            3,
-        ),
-        (
-            MultiValues::StringMap(vec![HashMap::from([(
-                "key".to_owned(),
-                "value".to_owned(),
-            )])]),
+            MultiValues::StringMap(vec![HashMap::from([("key".to_owned(), "value".to_owned())])]),
             3,
         ),
         (
@@ -241,15 +217,8 @@ fn test_check_values_traverses_specialized_collection_shapes() {
         ),
         (MultiValues::UInt128(vec![1, 2]), 3),
     ];
-    let maximum_nodes = collections
-        .iter()
-        .map(|(_, nodes)| nodes)
-        .sum::<usize>();
-    let mut checker = ValueWireEncodePreflight::new(
-        JsonEncodeLimits::builder()
-            .max_nodes(maximum_nodes)
-            .build(),
-    );
+    let maximum_nodes = collections.iter().map(|(_, nodes)| nodes).sum::<usize>();
+    let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_nodes(maximum_nodes).build());
 
     for (values, _) in &collections {
         checker
@@ -260,12 +229,7 @@ fn test_check_values_traverses_specialized_collection_shapes() {
         .check_value(&Value::Bool(false))
         .expect_err("one more scalar must exceed the accumulated node budget");
 
-    assert_lower_bound_limit(
-        error,
-        JsonResource::Nodes,
-        maximum_nodes + 1,
-        maximum_nodes,
-    );
+    assert_lower_bound_limit(error, JsonResource::Nodes, maximum_nodes + 1, maximum_nodes);
 }
 
 #[test]
@@ -280,30 +244,21 @@ fn test_check_value_reports_each_point_limit_precisely() {
         ),
         (
             Value::String("abc".to_owned()),
-            JsonEncodeLimits::builder()
-                .max_string_bytes(2_usize)
-                .build(),
+            JsonEncodeLimits::builder().max_string_bytes(2_usize).build(),
             JsonResource::StringBytes,
             3,
             2,
         ),
         (
             Value::UInt128(123),
-            JsonEncodeLimits::builder()
-                .max_number_bytes(2_usize)
-                .build(),
+            JsonEncodeLimits::builder().max_number_bytes(2_usize).build(),
             JsonResource::NumberBytes,
             3,
             2,
         ),
         (
-            Value::StringMap(HashMap::from([(
-                "long".to_owned(),
-                "value".to_owned(),
-            )])),
-            JsonEncodeLimits::builder()
-                .max_key_bytes(3_usize)
-                .build(),
+            Value::StringMap(HashMap::from([("long".to_owned(), "value".to_owned())])),
+            JsonEncodeLimits::builder().max_key_bytes(3_usize).build(),
             JsonResource::KeyBytes,
             4,
             3,
@@ -313,9 +268,7 @@ fn test_check_value_reports_each_point_limit_precisely() {
                 ("a".to_owned(), "1".to_owned()),
                 ("b".to_owned(), "2".to_owned()),
             ])),
-            JsonEncodeLimits::builder()
-                .max_map_entries(1_usize)
-                .build(),
+            JsonEncodeLimits::builder().max_map_entries(1_usize).build(),
             JsonResource::MapEntries,
             2,
             1,
@@ -330,11 +283,7 @@ fn test_check_value_reports_each_point_limit_precisely() {
         assert_exact_limit(error, resource, observed, maximum);
     }
 
-    let mut checker = ValueWireEncodePreflight::new(
-        JsonEncodeLimits::builder()
-            .max_sequence_items(1_usize)
-            .build(),
-    );
+    let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_sequence_items(1_usize).build());
     let error = checker
         .check_values(&MultiValues::Bool(vec![true, false]))
         .expect_err("the sequence-item limit must reject two values");
@@ -350,16 +299,12 @@ fn test_check_value_reports_each_cumulative_limit_precisely() {
             1,
         ),
         (
-            JsonEncodeLimits::builder()
-                .max_payload_bytes(0_usize)
-                .build(),
+            JsonEncodeLimits::builder().max_payload_bytes(0_usize).build(),
             JsonResource::PayloadBytes,
             1,
         ),
         (
-            JsonEncodeLimits::builder()
-                .max_output_bytes(4_usize)
-                .build(),
+            JsonEncodeLimits::builder().max_output_bytes(4_usize).build(),
             JsonResource::OutputBytes,
             5,
         ),
@@ -416,9 +361,7 @@ fn test_check_value_failure_does_not_mutate_accumulated_state() {
 
 #[test]
 fn test_check_values_failure_does_not_mutate_accumulated_state() {
-    let limits = JsonEncodeLimits::builder()
-        .max_payload_bytes(4_usize)
-        .build();
+    let limits = JsonEncodeLimits::builder().max_payload_bytes(4_usize).build();
     let mut checker = ValueWireEncodePreflight::new(limits);
 
     checker
@@ -436,9 +379,7 @@ fn test_check_values_failure_does_not_mutate_accumulated_state() {
 
 #[test]
 fn test_check_container_failure_does_not_mutate_accumulated_state() {
-    let limits = JsonEncodeLimits::builder()
-        .max_output_bytes(6_usize)
-        .build();
+    let limits = JsonEncodeLimits::builder().max_output_bytes(6_usize).build();
     let mut checker = ValueWireEncodePreflight::new(limits);
 
     checker

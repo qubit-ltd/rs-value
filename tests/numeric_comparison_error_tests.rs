@@ -32,9 +32,7 @@ fn test_numeric_comparison_error_display_and_equality() {
             "left value is not numeric: string",
         ),
         (
-            NumericComparisonError::RightNotNumeric {
-                actual: DataType::Bool,
-            },
+            NumericComparisonError::RightNotNumeric { actual: DataType::Bool },
             "right value is not numeric: bool",
         ),
         (NumericComparisonError::LeftNaN, "left value is NaN"),

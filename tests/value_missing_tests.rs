@@ -37,9 +37,7 @@ fn test_value_missing_predicates_distinguish_storage_empty_and_conversion() {
             false,
         ),
         (
-            ValueMissing::EmptyCollectionConversion {
-                to: DataType::UInt64,
-            },
+            ValueMissing::EmptyCollectionConversion { to: DataType::UInt64 },
             false,
             true,
             true,
@@ -96,10 +94,7 @@ fn test_value_missing_display_includes_structured_context() {
         "empty collection with element type int32"
     );
     assert_eq!(
-        ValueMissing::EmptyCollectionConversion {
-            to: DataType::UInt64,
-        }
-        .to_string(),
+        ValueMissing::EmptyCollectionConversion { to: DataType::UInt64 }.to_string(),
         "empty collection conversion to uint64 produced no value"
     );
     assert_eq!(
@@ -137,9 +132,7 @@ fn test_value_missing_accessors_preserve_conversion_context() {
 
 #[test]
 fn test_empty_collection_conversion_exposes_target_context() {
-    let missing = ValueMissing::EmptyCollectionConversion {
-        to: DataType::Int32,
-    };
+    let missing = ValueMissing::EmptyCollectionConversion { to: DataType::Int32 };
 
     assert_eq!(missing.source_type(), None);
     assert_eq!(missing.target_type(), Some(DataType::Int32));
@@ -159,9 +152,7 @@ fn test_value_missing_accessors_cover_all_variants_and_display() {
         ValueMissing::EmptyCollection {
             data_type: DataType::Int32,
         },
-        ValueMissing::EmptyCollectionConversion {
-            to: DataType::UInt64,
-        },
+        ValueMissing::EmptyCollectionConversion { to: DataType::UInt64 },
         ValueMissing::Conversion {
             from: DataType::String,
             to: DataType::Int32,

@@ -55,8 +55,7 @@ fn test_value_wire_v1_default_json_limits_are_stable() {
 
 #[test]
 fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {
-    let expected =
-        ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2, 3])).expect("construct V1 wire");
+    let expected = ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2, 3])).expect("construct V1 wire");
     let input = serde_json::to_vec(&expected).expect("wire value should serialize");
 
     let actual = ValueWireV1::decode_json_slice(&input).expect("bounded input should decode");
@@ -68,12 +67,10 @@ fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {
 fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
     let expected = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
     let input = serde_json::to_vec(&expected).expect("wire value should serialize");
-    let limits = JsonDecodeLimits::builder()
-        .max_input_bytes(input.len())
-        .build();
+    let limits = JsonDecodeLimits::builder().max_input_bytes(input.len()).build();
 
-    let actual = ValueWireV1::decode_json_slice_with_limits(&input, limits)
-        .expect("input at the byte limit should decode");
+    let actual =
+        ValueWireV1::decode_json_slice_with_limits(&input, limits).expect("input at the byte limit should decode");
 
     assert_eq!(actual, expected);
 }
@@ -81,9 +78,7 @@ fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
 #[test]
 fn test_value_wire_v1_rejects_oversized_input_before_parsing() {
     let input = b"definitely not valid JSON";
-    let limits = JsonDecodeLimits::builder()
-        .max_input_bytes(input.len() - 1)
-        .build();
+    let limits = JsonDecodeLimits::builder().max_input_bytes(input.len() - 1).build();
 
     let error = ValueWireV1::decode_json_slice_with_limits(input, limits)
         .expect_err("oversized input must be rejected before JSON parsing");
@@ -105,20 +100,18 @@ fn test_value_wire_v1_rejects_oversized_input_before_parsing() {
 #[test]
 fn test_value_wire_v1_reports_malformed_bounded_input_as_syntax() {
     let input = b"not JSON";
-    let limits = JsonDecodeLimits::builder()
-        .max_input_bytes(input.len())
-        .build();
+    let limits = JsonDecodeLimits::builder().max_input_bytes(input.len()).build();
 
-    let error = ValueWireV1::decode_json_slice_with_limits(input, limits)
-        .expect_err("malformed bounded input must fail");
+    let error =
+        ValueWireV1::decode_json_slice_with_limits(input, limits).expect_err("malformed bounded input must fail");
 
     assert!(matches!(error, ValueWireDecodeError::Syntax(_)));
 }
 
 #[test]
 fn test_value_wire_v1_reports_typed_mismatch_as_invalid_json() {
-    let error = ValueWireV1::decode_json_slice(br#"{"version":1,"value":false}"#)
-        .expect_err("a boolean is not a V1 payload");
+    let error =
+        ValueWireV1::decode_json_slice(br#"{"version":1,"value":false}"#).expect_err("a boolean is not a V1 payload");
 
     assert!(
         matches!(error, ValueWireDecodeError::InvalidJson(_)),
@@ -129,8 +122,7 @@ fn test_value_wire_v1_reports_typed_mismatch_as_invalid_json() {
 #[test]
 fn test_value_wire_v1_decoding_honors_structural_budgets() {
     let scalar = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
-    let string =
-        ValueWireV1::try_from(ValueContainer::from("ready")).expect("construct string wire");
+    let string = ValueWireV1::try_from(ValueContainer::from("ready")).expect("construct string wire");
     let scalar_input = serde_json::to_vec(&scalar).expect("scalar wire should serialize");
     let string_input = serde_json::to_vec(&string).expect("string wire should serialize");
     let cases = [
@@ -173,18 +165,14 @@ fn test_bounded_decode_reports_unsupported_version() {
 
     assert!(matches!(
         error,
-        ValueWireDecodeError::UnsupportedVersion {
-            expected: 1,
-            actual: 2
-        }
+        ValueWireDecodeError::UnsupportedVersion { expected: 1, actual: 2 }
     ));
 }
 
 #[test]
 fn test_bounded_decode_reports_out_of_range_version_as_invalid_json() {
-    let error =
-        ValueWireV1::decode_json_slice(br#"{"version":256,"value":{"scalar":{"int32":1}}}"#)
-            .expect_err("a version outside u8 must be rejected during typed decoding");
+    let error = ValueWireV1::decode_json_slice(br#"{"version":256,"value":{"scalar":{"int32":1}}}"#)
+        .expect_err("a version outside u8 must be rejected during typed decoding");
 
     assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
 }
@@ -223,10 +211,7 @@ fn test_value_wire_v1_default_encoding_round_trips() {
     let wire = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
     let encoded = wire.to_json_vec().expect("default limits should encode");
 
-    assert_eq!(
-        encoded,
-        serde_json::to_vec(&wire).expect("wire should serialize")
-    );
+    assert_eq!(encoded, serde_json::to_vec(&wire).expect("wire should serialize"));
     assert_eq!(
         ValueWireV1::decode_json_slice(&encoded).expect("default limits should decode"),
         wire
@@ -241,10 +226,7 @@ fn test_value_wire_v1_default_writer_encoding_matches_vec() {
     wire.to_json_writer(&mut output)
         .expect("default limits should encode to writer");
 
-    assert_eq!(
-        output,
-        wire.to_json_vec().expect("default limits should encode")
-    );
+    assert_eq!(output, wire.to_json_vec().expect("default limits should encode"));
 }
 
 #[test]
@@ -264,8 +246,7 @@ fn test_value_wire_ref_v1_bounded_encoding_matches_owned_wire() {
 #[test]
 fn test_value_wire_v1_encoding_honors_structural_budgets() {
     let scalar = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
-    let collection = ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2]))
-        .expect("construct collection wire");
+    let collection = ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2])).expect("construct collection wire");
     let cases = [
         (
             scalar.to_json_vec_with_limits(JsonEncodeLimits::builder().max_depth(1).build()),
@@ -276,8 +257,7 @@ fn test_value_wire_v1_encoding_honors_structural_budgets() {
             JsonResource::Nodes,
         ),
         (
-            collection
-                .to_json_vec_with_limits(JsonEncodeLimits::builder().max_sequence_items(1).build()),
+            collection.to_json_vec_with_limits(JsonEncodeLimits::builder().max_sequence_items(1).build()),
             JsonResource::SequenceItems,
         ),
         (
@@ -331,10 +311,7 @@ fn test_value_wire_v1_writer_budget_failure_does_not_write() {
     let mut output = Vec::new();
 
     let error = wire
-        .to_json_writer_with_limits(
-            &mut output,
-            JsonEncodeLimits::builder().max_output_bytes(1).build(),
-        )
+        .to_json_writer_with_limits(&mut output, JsonEncodeLimits::builder().max_output_bytes(1).build())
         .expect_err("output budget should reject the document");
 
     assert!(matches!(

@@ -10,8 +10,8 @@
 //! Integration tests for `MultiValues` module.
 
 mod multi_values_adders_tests;
-mod multi_values_contract_coverage_tests;
 mod multi_values_constructor_tests;
+mod multi_values_contract_coverage_tests;
 mod multi_values_converters_tests;
 mod multi_values_core_tests;
 mod multi_values_generic_coverage_tests;

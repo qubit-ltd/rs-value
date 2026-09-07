@@ -109,48 +109,12 @@ macro_rules! assert_scalar_getter_contract {
 
 #[test]
 fn test_value_scalar_getters_cover_all_builtin_types() {
-    assert_scalar_getter_contract!(
-        Value::Bool(true),
-        get_bool,
-        true,
-        DataType::Bool,
-        DataType::String
-    );
-    assert_scalar_getter_contract!(
-        Value::Char('x'),
-        get_char,
-        'x',
-        DataType::Char,
-        DataType::String
-    );
-    assert_scalar_getter_contract!(
-        Value::Int8(-8),
-        get_int8,
-        -8,
-        DataType::Int8,
-        DataType::String
-    );
-    assert_scalar_getter_contract!(
-        Value::Int16(-16),
-        get_int16,
-        -16,
-        DataType::Int16,
-        DataType::String
-    );
-    assert_scalar_getter_contract!(
-        Value::Int32(-32),
-        get_int32,
-        -32,
-        DataType::Int32,
-        DataType::String
-    );
-    assert_scalar_getter_contract!(
-        Value::Int64(-64),
-        get_int64,
-        -64,
-        DataType::Int64,
-        DataType::String
-    );
+    assert_scalar_getter_contract!(Value::Bool(true), get_bool, true, DataType::Bool, DataType::String);
+    assert_scalar_getter_contract!(Value::Char('x'), get_char, 'x', DataType::Char, DataType::String);
+    assert_scalar_getter_contract!(Value::Int8(-8), get_int8, -8, DataType::Int8, DataType::String);
+    assert_scalar_getter_contract!(Value::Int16(-16), get_int16, -16, DataType::Int16, DataType::String);
+    assert_scalar_getter_contract!(Value::Int32(-32), get_int32, -32, DataType::Int32, DataType::String);
+    assert_scalar_getter_contract!(Value::Int64(-64), get_int64, -64, DataType::Int64, DataType::String);
     assert_scalar_getter_contract!(
         Value::Int128(-128),
         get_int128,
@@ -158,34 +122,10 @@ fn test_value_scalar_getters_cover_all_builtin_types() {
         DataType::Int128,
         DataType::String
     );
-    assert_scalar_getter_contract!(
-        Value::UInt8(8),
-        get_uint8,
-        8,
-        DataType::UInt8,
-        DataType::String
-    );
-    assert_scalar_getter_contract!(
-        Value::UInt16(16),
-        get_uint16,
-        16,
-        DataType::UInt16,
-        DataType::String
-    );
-    assert_scalar_getter_contract!(
-        Value::UInt32(32),
-        get_uint32,
-        32,
-        DataType::UInt32,
-        DataType::String
-    );
-    assert_scalar_getter_contract!(
-        Value::UInt64(64),
-        get_uint64,
-        64,
-        DataType::UInt64,
-        DataType::String
-    );
+    assert_scalar_getter_contract!(Value::UInt8(8), get_uint8, 8, DataType::UInt8, DataType::String);
+    assert_scalar_getter_contract!(Value::UInt16(16), get_uint16, 16, DataType::UInt16, DataType::String);
+    assert_scalar_getter_contract!(Value::UInt32(32), get_uint32, 32, DataType::UInt32, DataType::String);
+    assert_scalar_getter_contract!(Value::UInt64(64), get_uint64, 64, DataType::UInt64, DataType::String);
     assert_scalar_getter_contract!(
         Value::UInt128(128),
         get_uint128,
@@ -257,14 +197,8 @@ fn test_value_chrono_getters_cover_unset_and_values() {
 #[test]
 fn test_value_big_integer_getters_cover_owned_and_borrowed_access() {
     let value = Value::BigInteger(num_bigint::BigInt::from(123));
-    assert_eq!(
-        value.get_biginteger().unwrap(),
-        num_bigint::BigInt::from(123)
-    );
-    assert_eq!(
-        value.get_biginteger_ref().unwrap(),
-        &num_bigint::BigInt::from(123)
-    );
+    assert_eq!(value.get_biginteger().unwrap(), num_bigint::BigInt::from(123));
+    assert_eq!(value.get_biginteger_ref().unwrap(), &num_bigint::BigInt::from(123));
 }
 
 #[cfg(feature = "big-decimal")]
@@ -394,10 +328,8 @@ fn test_value_json_borrowed_getter_reports_storage_errors() {
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_value_json_accessors_cover_serialization_and_deserialization() {
-    let value =
-        Value::from_serializable(&serde_json::json!({"answer": 42})).expect("serialize JSON value");
-    let decoded: std::collections::HashMap<String, i32> =
-        value.deserialize_json().expect("deserialize JSON value");
+    let value = Value::from_serializable(&serde_json::json!({"answer": 42})).expect("serialize JSON value");
+    let decoded: std::collections::HashMap<String, i32> = value.deserialize_json().expect("deserialize JSON value");
     assert_eq!(decoded.get("answer"), Some(&42));
     assert!(matches!(
         Value::Unset(DataType::Json).deserialize_json::<serde_json::Value>(),

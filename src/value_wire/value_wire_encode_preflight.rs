@@ -439,10 +439,7 @@ mod tests {
 
     /// Verifies a counter-overflow error retains the exhausted resource and
     /// conservative lower bound.
-    fn assert_overflow(
-        error: MeasuredBudgetError<JsonResource, usize>,
-        expected_resource: JsonResource,
-    ) {
+    fn assert_overflow(error: MeasuredBudgetError<JsonResource, usize>, expected_resource: JsonResource) {
         assert!(
             matches!(
                 error,

@@ -26,15 +26,10 @@ fn test_multi_values_merge_clones_matching_non_empty_payload() {
     let mut values = MultiValues::Int32(vec![1, 2]);
     let other = MultiValues::Int32(vec![3, 4]);
 
-    values
-        .merge(&other)
-        .expect("matching collections should merge");
+    values.merge(&other).expect("matching collections should merge");
 
     assert_eq!(values.get_int32s().expect("merged values"), &[1, 2, 3, 4]);
-    assert_eq!(
-        other.get_int32s().expect("source values remain intact"),
-        &[3, 4]
-    );
+    assert_eq!(other.get_int32s().expect("source values remain intact"), &[3, 4]);
 }
 
 #[test]
@@ -71,10 +66,7 @@ fn test_multi_values_add_empty_input_still_checks_type() {
 #[test]
 fn test_multi_values_view_distinguishes_unset_and_concrete_empty() {
     let unset = MultiValues::Unset(DataType::Int32);
-    assert!(matches!(
-        unset.view(),
-        MultiValuesRef::Unset(DataType::Int32)
-    ));
+    assert!(matches!(unset.view(), MultiValuesRef::Unset(DataType::Int32)));
 
     let empty = MultiValues::Int32(Vec::new());
     assert!(matches!(empty.view(), MultiValuesRef::Int32(items) if items.is_empty()));
@@ -84,12 +76,6 @@ fn test_multi_values_view_distinguishes_unset_and_concrete_empty() {
 fn test_multi_values_first_value_and_owned_projection_preserve_type_when_empty() {
     let values = MultiValues::Int64(Vec::new());
 
-    assert_eq!(
-        values.first_value(),
-        qubit_value::Value::Unset(DataType::Int64)
-    );
-    assert_eq!(
-        values.into_first_value(),
-        qubit_value::Value::Unset(DataType::Int64)
-    );
+    assert_eq!(values.first_value(), qubit_value::Value::Unset(DataType::Int64));
+    assert_eq!(values.into_first_value(), qubit_value::Value::Unset(DataType::Int64));
 }

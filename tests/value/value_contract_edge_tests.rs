@@ -62,7 +62,10 @@ fn test_value_get_ref_matches_owned_strict_reads() {
 fn test_value_view_preserves_scalar_and_collection_semantics() {
     let map = HashMap::from([(String::from("key"), String::from("value"))]);
     let duration = std::time::Duration::from_secs(3);
-    assert!(matches!(Value::new_unset(DataType::Bool).view(), ValueRef::Unset(DataType::Bool)));
+    assert!(matches!(
+        Value::new_unset(DataType::Bool).view(),
+        ValueRef::Unset(DataType::Bool)
+    ));
     assert!(matches!(Value::Bool(true).view(), ValueRef::Bool(true)));
     assert!(matches!(Value::Char('x').view(), ValueRef::Char('x')));
     assert!(matches!(Value::Int8(-1).view(), ValueRef::Int8(-1)));
@@ -77,7 +80,10 @@ fn test_value_view_preserves_scalar_and_collection_semantics() {
     assert!(matches!(Value::UInt128(5).view(), ValueRef::UInt128(5)));
     assert!(matches!(Value::Float32(1.5).view(), ValueRef::Float32(value) if value == 1.5));
     assert!(matches!(Value::Float64(2.5).view(), ValueRef::Float64(value) if value == 2.5));
-    assert!(matches!(Value::String("text".to_owned()).view(), ValueRef::String("text")));
+    assert!(matches!(
+        Value::String("text".to_owned()).view(),
+        ValueRef::String("text")
+    ));
     assert!(matches!(Value::Duration(duration).view(), ValueRef::Duration(value) if value == &duration));
     assert!(matches!(Value::StringMap(map.clone()).view(), ValueRef::StringMap(value) if value == &map));
 }

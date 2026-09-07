@@ -25,10 +25,7 @@ struct RejectingWriter;
 
 impl Write for RejectingWriter {
     fn write(&mut self, _buffer: &[u8]) -> io::Result<usize> {
-        Err(io::Error::new(
-            io::ErrorKind::BrokenPipe,
-            "wire writer rejected",
-        ))
+        Err(io::Error::new(io::ErrorKind::BrokenPipe, "wire writer rejected"))
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -73,12 +70,8 @@ fn test_value_wire_ref_v1_default_writer_matches_golden_bytes() {
     let container = ValueContainer::from("ready");
     let wire = ValueWireRefV1::from_container(&container).expect("borrow a string wire");
     let mut output = Vec::new();
-    wire.to_json_writer(&mut output)
-        .expect("write the borrowed wire");
-    assert_eq!(
-        output,
-        br#"{"version":1,"value":{"scalar":{"string":"ready"}}}"#,
-    );
+    wire.to_json_writer(&mut output).expect("write the borrowed wire");
+    assert_eq!(output, br#"{"version":1,"value":{"scalar":{"string":"ready"}}}"#,);
 }
 
 #[test]

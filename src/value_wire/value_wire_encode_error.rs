@@ -48,9 +48,7 @@ pub enum ValueWireEncodeError {
         data_type: DataType,
     },
     /// A V1 decimal exponent must stay within the bounded wire range.
-    #[error(
-        "V1 JSON wire cannot represent decimal scale {scale}; maximum absolute scale is {maximum_absolute_scale}"
-    )]
+    #[error("V1 JSON wire cannot represent decimal scale {scale}; maximum absolute scale is {maximum_absolute_scale}")]
     BigDecimalScaleTooLarge {
         /// Rejected decimal exponent.
         scale: i64,
@@ -109,9 +107,7 @@ impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
         match error.into_source() {
             JsonEncodeErrorSource::Budget(source) => match source {
                 MeasuredBudgetError::Budget(error) => Self::Budget(error),
-                MeasuredBudgetError::Quantity { resource, source } => {
-                    Self::Quantity { resource, source }
-                }
+                MeasuredBudgetError::Quantity { resource, source } => Self::Quantity { resource, source },
             },
             JsonEncodeErrorSource::InvalidRawJson(source) => Self::Syntax(source),
             JsonEncodeErrorSource::Serialize(source) => Self::Json(source),

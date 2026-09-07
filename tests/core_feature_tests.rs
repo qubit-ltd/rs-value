@@ -104,9 +104,7 @@ fn test_add_moves_owned_strings_when_promoting_scalar() {
     let appended = vec!["appended".to_string()];
     let appended_ptr = appended[0].as_ptr();
 
-    container
-        .add(appended)
-        .expect("owned strings have the same data type");
+    container.add(appended).expect("owned strings have the same data type");
 
     let ValueContainer::Collection(values) = container else {
         panic!("expected a string collection");
@@ -123,9 +121,7 @@ fn test_add_moves_owned_strings_into_collection() {
     let appended = vec!["appended".to_string()];
     let appended_ptr = appended[0].as_ptr();
 
-    container
-        .add(appended)
-        .expect("owned strings have the same data type");
+    container.add(appended).expect("owned strings have the same data type");
 
     let ValueContainer::Collection(values) = container else {
         panic!("expected a string collection");
@@ -187,17 +183,11 @@ fn test_value_container_mutation_preserves_shape() {
     scalar.set("replacement");
     collection.add(44_i32).expect("append compatible scalar");
     assert_eq!(scalar, ValueContainer::from("replacement"));
-    assert_eq!(
-        collection,
-        ValueContainer::Collection(MultiValues::Int32(vec![43, 44]))
-    );
+    assert_eq!(collection, ValueContainer::Collection(MultiValues::Int32(vec![43, 44])));
 
     scalar.unset();
     collection.unset();
-    assert_eq!(
-        scalar,
-        ValueContainer::Scalar(Value::Unset(DataType::String))
-    );
+    assert_eq!(scalar, ValueContainer::Scalar(Value::Unset(DataType::String)));
     assert_eq!(
         collection,
         ValueContainer::Collection(MultiValues::Unset(DataType::Int32))

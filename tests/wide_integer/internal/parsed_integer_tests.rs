@@ -13,11 +13,9 @@ fn test_wide_integer_wire_parses_canonical_string() {
     use qubit_value::Value;
 
     assert_eq!(
-        crate::decode_value_wire_value(
-            serde_json::json!({"version": 1, "value": {"scalar": {"uint128": "1"}}})
-        )
-        .unwrap()
-        .into_container(),
+        crate::decode_value_wire_value(serde_json::json!({"version": 1, "value": {"scalar": {"uint128": "1"}}}))
+            .unwrap()
+            .into_container(),
         Value::UInt128(1).into(),
     );
 }
@@ -40,8 +38,5 @@ fn test_wide_integer_wire_parses_collection_and_rejects_noncanonical_item() {
         "value": {"collection": {"int128": ["-2", "03"]}},
     }))
     .expect_err("non-canonical collection item must be rejected");
-    assert!(
-        error.to_string().contains("canonical"),
-        "unexpected error: {error}"
-    );
+    assert!(error.to_string().contains("canonical"), "unexpected error: {error}");
 }

@@ -26,8 +26,7 @@ use qubit_value::ValueWireDecodeError;
 /// Rejects schema fields outside the stable named-value wrapper contract.
 #[test]
 fn test_named_value_rejects_unknown_fields() {
-    let input =
-        r#"{"name":"port","value":{"version":1,"value":{"scalar":{"int32":42}}},"extra":true}"#;
+    let input = r#"{"name":"port","value":{"version":1,"value":{"scalar":{"int32":42}}},"extra":true}"#;
 
     assert!(serde_json::from_str::<NamedValue>(input).is_err());
 }
@@ -91,9 +90,7 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
 #[test]
 fn test_named_value_default_encoding_round_trips() {
     let named = NamedValue::new("port", Value::Int32(42));
-    let encoded = named
-        .to_json_vec()
-        .expect("default limits should encode named value");
+    let encoded = named.to_json_vec().expect("default limits should encode named value");
 
     assert_eq!(
         NamedValue::decode_json_slice(&encoded).expect("default limits should decode named value"),
@@ -267,10 +264,7 @@ fn test_named_value_get_string() {
 
 #[test]
 fn test_named_value_get_date() {
-    let nv = NamedValue::new(
-        "d",
-        Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()),
-    );
+    let nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()));
     assert_eq!(
         nv.value().get_date().unwrap(),
         NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()
@@ -440,10 +434,7 @@ fn test_named_value_set_get_string() {
 
 #[test]
 fn test_named_value_set_get_date() {
-    let mut nv = NamedValue::new(
-        "d",
-        Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()),
-    );
+    let mut nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()));
     let date = NaiveDate::from_ymd_opt(2020, 5, 17).unwrap();
     nv.value_mut().set(date);
     let got: NaiveDate = nv.value().get().unwrap();

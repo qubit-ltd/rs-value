@@ -27,8 +27,7 @@ fn test_wire_round_trips_scalar_value() {
 /// Verifies nested protocols receive an unversioned but typed V1 payload.
 #[test]
 fn test_wire_payload_preserves_shape_without_version() {
-    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(vec![7_i32]))
-        .expect("construct V1 payload");
+    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(vec![7_i32])).expect("construct V1 payload");
 
     assert_eq!(
         serde_json::to_value(payload).expect("serialize V1 payload"),

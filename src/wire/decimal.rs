@@ -161,6 +161,5 @@ where
     T::Err: fmt::Display,
     D: Deserializer<'de>,
 {
-    Vec::<ParsedDecimal<T>>::deserialize(deserializer)
-        .map(|values| values.into_iter().map(|value| value.0).collect())
+    Vec::<ParsedDecimal<T>>::deserialize(deserializer).map(|values| values.into_iter().map(|value| value.0).collect())
 }

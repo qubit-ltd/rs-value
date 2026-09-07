@@ -125,8 +125,7 @@ fn test_value_wire_encode_error_maps_measured_budget_failure_precisely() {
 #[test]
 fn test_value_wire_encode_error_maps_quantity_failure_precisely() {
     let source = QuantityConversionError::new(QuantityMeasurement::U64(u64::MAX), "usize");
-    let quantity =
-        MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::NumberBytes, source);
+    let quantity = MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::NumberBytes, source);
     let quantity_error = ValueWireEncodeError::from(quantity);
     assert!(matches!(
         quantity_error,
@@ -140,8 +139,7 @@ fn test_value_wire_encode_error_maps_quantity_failure_precisely() {
 #[test]
 fn test_value_wire_encode_error_maps_encoder_quantity_failure_precisely() {
     let source = QuantityConversionError::new(QuantityMeasurement::U64(u64::MAX), "usize");
-    let measured =
-        MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::StringBytes, source);
+    let measured = MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::StringBytes, source);
     let encoder_error = JsonEncodeError::from(measured);
 
     let wire_error = ValueWireEncodeError::from(encoder_error);

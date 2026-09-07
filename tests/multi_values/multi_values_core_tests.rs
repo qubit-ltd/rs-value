@@ -42,10 +42,7 @@ fn test_multi_values_core_tracks_len_and_type_changes() {
     values.set_type(DataType::String);
     assert!(values.is_unset());
     assert_eq!(values.data_type(), DataType::String);
-    assert!(matches!(
-        values.get_first::<String>(),
-        Err(ValueError::Missing(_))
-    ));
+    assert!(matches!(values.get_first::<String>(), Err(ValueError::Missing(_))));
 }
 
 #[test]
@@ -75,8 +72,7 @@ fn test_multi_values_wire_rejects_non_finite_floats() {
         MultiValues::Float32(vec![1.0, 2.5]),
         MultiValues::Float64(vec![1.0, 2.5]),
     ] {
-        let wire = ValueWireV1::try_from(finite.clone())
-            .expect("finite collection should fit the V1 wire contract");
+        let wire = ValueWireV1::try_from(finite.clone()).expect("finite collection should fit the V1 wire contract");
         let json = serde_json::to_string(&wire).expect("serialize V1 wire");
         let decoded = crate::decode_value_wire_str(&json).expect("deserialize V1 wire");
         assert_eq!(decoded.into_container(), finite.into());
@@ -113,10 +109,7 @@ fn test_multi_values_core_get_first_reads_first_or_default() {
 
     let empty = MultiValues::Unset(DataType::Int32);
     assert_eq!(empty.get_first_or::<i32>(99).unwrap(), 99);
-    assert!(matches!(
-        empty.get_first::<i32>(),
-        Err(ValueError::Missing(_))
-    ));
+    assert!(matches!(empty.get_first::<i32>(), Err(ValueError::Missing(_))));
 }
 
 #[test]
@@ -193,10 +186,7 @@ fn test_multi_values_core_add_appends_matching_single_value() {
     assert_eq!(values.get_bools().unwrap(), &[true, false]);
 
     let mut strings = MultiValues::String(vec!["x".to_string()]);
-    assert!(matches!(
-        strings.add(1i32),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(matches!(strings.add(1i32), Err(ValueError::TypeMismatch { .. })));
 }
 
 #[test]

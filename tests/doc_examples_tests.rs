@@ -32,10 +32,7 @@ fn diagnostic(file: &str, id: &str, message: &str) -> String {
 }
 
 /// Extracts fenced Rust fragments carrying a stable compile marker.
-fn extract_compile_examples(
-    file: &str,
-    document: &str,
-) -> Result<BTreeMap<String, MarkdownExample>, String> {
+fn extract_compile_examples(file: &str, document: &str) -> Result<BTreeMap<String, MarkdownExample>, String> {
     let lines: Vec<&str> = document.lines().collect();
     let mut examples = BTreeMap::new();
     let mut index = 0;
@@ -187,20 +184,14 @@ edition = "2024"
 qubit-value = {{ path = {root:?} }}
 {datatype_patch}"#,
     );
-    fs::write(workspace.join("Cargo.toml"), manifest).map_err(|error| {
-        diagnostic(
-            file,
-            &example.id,
-            &format!("write fixture manifest: {error}"),
-        )
-    })?;
+    fs::write(workspace.join("Cargo.toml"), manifest)
+        .map_err(|error| diagnostic(file, &example.id, &format!("write fixture manifest: {error}")))?;
     let source = format!(
         "fn main() -> Result<(), Box<dyn std::error::Error>> {{\n{}\n    Ok(())\n}}\n",
         example.source
     );
-    fs::write(workspace.join("src/main.rs"), source).map_err(|error| {
-        diagnostic(file, &example.id, &format!("write fixture source: {error}"))
-    })?;
+    fs::write(workspace.join("src/main.rs"), source)
+        .map_err(|error| diagnostic(file, &example.id, &format!("write fixture source: {error}")))?;
     let output = Command::new(env!("CARGO"))
         .args(["check", "--offline", "--quiet", "--manifest-path"])
         .arg(workspace.join("Cargo.toml"))
@@ -218,10 +209,7 @@ qubit-value = {{ path = {root:?} }}
         Err(diagnostic(
             file,
             &example.id,
-            &format!(
-                "cargo check failed:\n{}",
-                String::from_utf8_lossy(&output.stderr)
-            ),
+            &format!("cargo check failed:\n{}", String::from_utf8_lossy(&output.stderr)),
         ))
     }
 }
@@ -261,8 +249,7 @@ fn test_bilingual_example_ids_must_match() {
     )
     .unwrap();
     let chinese = BTreeMap::new();
-    let error =
-        ensure_matching_ids("README.md", &english, "README.zh_CN.md", &chinese).unwrap_err();
+    let error = ensure_matching_ids("README.md", &english, "README.zh_CN.md", &chinese).unwrap_err();
     assert!(error.contains("README.md"), "{error}");
     assert!(error.contains("README.zh_CN.md"), "{error}");
     assert!(error.contains("english-only"), "{error}");
@@ -334,18 +321,13 @@ fn test_bilingual_markdown_examples_compile_from_source() {
     let target = fixture_target(root);
     fs::create_dir_all(&target).expect("create Markdown example target");
     for (english_file, chinese_file, expected_ids) in pairs {
-        let english_document =
-            fs::read_to_string(root.join(english_file)).expect("read English document");
-        let chinese_document =
-            fs::read_to_string(root.join(chinese_file)).expect("read Chinese document");
+        let english_document = fs::read_to_string(root.join(english_file)).expect("read English document");
+        let chinese_document = fs::read_to_string(root.join(chinese_file)).expect("read Chinese document");
         let english = extract_compile_examples(english_file, &english_document).unwrap();
         let chinese = extract_compile_examples(chinese_file, &chinese_document).unwrap();
         ensure_matching_ids(english_file, &english, chinese_file, &chinese).unwrap();
         let actual_ids: Vec<&str> = english.keys().map(String::as_str).collect();
-        assert_eq!(
-            actual_ids, expected_ids,
-            "{english_file}: compile example IDs"
-        );
+        assert_eq!(actual_ids, expected_ids, "{english_file}: compile example IDs");
         for (file, document, examples) in [
             (english_file, &english_document, &english),
             (chinese_file, &chinese_document, &chinese),
