@@ -26,7 +26,6 @@ fn test_wide_integer_wire_parses_canonical_string() {
 #[test]
 fn test_wide_integer_wire_parses_collection_and_rejects_noncanonical_item() {
     use qubit_value::MultiValues;
-    use qubit_value::Value;
 
     let decoded = crate::decode_value_wire_value(serde_json::json!({
         "version": 1,

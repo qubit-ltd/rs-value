@@ -29,7 +29,7 @@ fn test_wide_integer_wire_rejects_invalid_decimal_text() {
         let error = crate::decode_value_wire_value(input)
             .expect_err("invalid unsigned integer text must be rejected");
         let message = error.to_string();
-        if matches!(text, "+1" | "01" | "-1") {
+        if matches!(text, "+1" | "01") {
             assert!(
                 message.contains("canonical"),
                 "unexpected error for {text:?}: {error}"

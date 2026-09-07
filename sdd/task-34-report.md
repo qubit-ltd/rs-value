@@ -30,3 +30,21 @@ values.
 - `tests/wire/decimal/internal/display_decimal_tests.rs`
 - `tests/wire/decimal/internal/parsed_decimal_tests.rs`
 
+## Integration follow-up
+
+- Corrected the unsigned `"-1"` assertion to require the actual invalid-digit
+  parse error rather than a non-canonical error.
+- Removed an unused import from the wide-integer collection test.
+- Re-ran the focused and related test commands after the correction; results
+  are recorded in the follow-up commit.
+
+## Follow-up verification results
+
+- `cargo test --locked --all-features --test integration_tests wide_integer`:
+  10 passed.
+- `cargo test --locked --all-features --test integration_tests identity`:
+  52 passed, 2 ignored.
+- `cargo test --locked --all-features --test integration_tests 'wire::decimal'`:
+  8 passed.
+- `cargo test --locked --all-features --test integration_tests`:
+  679 passed, 2 ignored.
