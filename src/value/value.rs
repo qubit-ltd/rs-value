@@ -183,6 +183,16 @@ macro_rules! impl_value_constructors {
 for_each_value_type!(impl_value_constructors);
 
 impl Value {
+    /// Strictly borrows a stored scalar without allocating.
+    #[must_use = "the borrowed strict value result should be handled"]
+    #[inline(always)]
+    pub fn get_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
+    where
+        &'a T: TryFrom<&'a Self, Error = ValueError>,
+    {
+        <&'a T>::try_from(self)
+    }
+
     /// Hashes this value while applying `budget` to a JSON payload.
     ///
     /// # Type Parameters

@@ -237,6 +237,33 @@ impl From<MultiValues> for ValueContainer {
 }
 
 impl ValueContainer {
+    /// Strictly borrows the scalar or first collection item without allocating.
+    #[must_use = "the borrowed first-value result should be handled"]
+    #[inline(always)]
+    pub fn get_first_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
+    where
+        &'a T: TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
+    {
+        match self {
+            Self::Scalar(value) => <&'a T>::try_from(value),
+            Self::Collection(values) => <&'a T>::try_from(values),
+        }
+    }
+
+    /// Strictly borrows a scalar as a one-item slice or a complete collection.
+    #[must_use = "the borrowed collection result should be handled"]
+    #[inline(always)]
+    pub fn get_slice<'a, T>(&'a self) -> ValueResult<&'a [T]>
+    where
+        &'a T: TryFrom<&'a Value, Error = ValueError>,
+        &'a [T]: TryFrom<&'a MultiValues, Error = ValueError>,
+    {
+        match self {
+            Self::Scalar(value) => value.get_ref().map(std::slice::from_ref),
+            Self::Collection(values) => values.get_slice(),
+        }
+    }
+
     /// Creates an unset scalar container for a declared data type.
     ///
     /// # Parameters

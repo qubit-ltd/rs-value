@@ -168,6 +168,26 @@ macro_rules! impl_multi_values_constructors {
 for_each_value_type!(impl_multi_values_constructors);
 
 impl MultiValues {
+    /// Strictly borrows the first stored item without allocating.
+    #[must_use = "the borrowed first-value result should be handled"]
+    #[inline(always)]
+    pub fn get_first_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
+    where
+        &'a T: TryFrom<&'a Self, Error = ValueError>,
+    {
+        <&'a T>::try_from(self)
+    }
+
+    /// Strictly borrows the complete collection without allocating.
+    #[must_use = "the borrowed collection result should be handled"]
+    #[inline(always)]
+    pub fn get_slice<'a, T>(&'a self) -> ValueResult<&'a [T]>
+    where
+        &'a [T]: TryFrom<&'a Self, Error = ValueError>,
+    {
+        <&'a [T]>::try_from(self)
+    }
+
     /// Hashes this collection while applying `budget` to JSON elements.
     ///
     /// # Type Parameters

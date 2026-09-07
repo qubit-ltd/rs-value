@@ -8,6 +8,8 @@
 
 //! `TryFrom<&Value>` implementations for strict typed reads.
 
+use qubit_datatype::DataType;
+
 use super::ValueRepr;
 use super::value::Value;
 use crate::ValueMissing;
@@ -61,3 +63,84 @@ macro_rules! impl_value_try_from_table {
 }
 
 for_each_value_type!(impl_value_try_from_table);
+
+/// Implements zero-copy scalar reads from the shared value table.
+macro_rules! impl_value_borrowed_try_from_table {
+    (
+        ;
+        $(
+            (
+                [$($cfg:meta),*],
+                $variant:ident,
+                $type:ty,
+                $data_type:expr,
+                $materialization:ident,
+                $json_class:ident,
+                $number_projection:ident,
+                $value_doc:literal,
+                $multi_doc:literal
+                $(, $_wire:tt)*
+            )
+        ),+ $(,)?
+    ) => {
+        $(
+            $(#[$cfg])*
+            impl<'a> TryFrom<&'a Value> for &'a $type {
+                type Error = ValueError;
+
+                #[inline(always)]
+                fn try_from(value: &'a Value) -> ValueResult<Self> {
+                    match &value.repr {
+                        ValueRepr::$variant(value) => Ok(value_storage_ref!($variant, value)),
+                        ValueRepr::Unset(actual) if *actual == $data_type => {
+                            Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *actual }))
+                        }
+                        _ => Err(ValueError::TypeMismatch {
+                            expected: $data_type,
+                            actual: value.data_type(),
+                        }),
+                    }
+                }
+            }
+
+            $(#[$cfg])*
+            impl TryFrom<Value> for $type {
+                type Error = ValueError;
+
+                #[inline(always)]
+                fn try_from(value: Value) -> ValueResult<Self> {
+                    match value.repr {
+                        ValueRepr::$variant(value) => Ok(move_value_storage!($variant, value)),
+                        ValueRepr::Unset(actual) if actual == $data_type => {
+                            Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: actual }))
+                        }
+                        other => Err(ValueError::TypeMismatch {
+                            expected: $data_type,
+                            actual: Value { repr: other }.data_type(),
+                        }),
+                    }
+                }
+            }
+        )+
+    };
+}
+
+for_each_value_type!(impl_value_borrowed_try_from_table);
+
+impl<'a> TryFrom<&'a Value> for &'a str {
+    type Error = ValueError;
+
+    #[inline(always)]
+    fn try_from(value: &'a Value) -> ValueResult<Self> {
+        match &value.repr {
+            ValueRepr::String(value) => Ok(value.as_str()),
+            ValueRepr::Unset(actual) if *actual == DataType::String => {
+                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *actual }))
+            }
+            _ => Err(ValueError::TypeMismatch {
+                expected: DataType::String,
+                actual: value.data_type(),
+            }),
+        }
+    }
+}
