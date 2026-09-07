@@ -18,3 +18,29 @@ fn test_big_integer_wire_rejects_noncanonical_string() {
         .is_err()
     );
 }
+
+/// Verifies decimal visitors reject malformed and non-canonical integers.
+#[cfg(feature = "big-integer")]
+#[test]
+fn test_big_integer_wire_rejects_invalid_decimal_text() {
+    for text in ["", "+1", "01", "-0", "12x"] {
+        let input = serde_json::json!({
+            "version": 1,
+            "value": {"scalar": {"biginteger": text}},
+        });
+        let error = crate::decode_value_wire_value(input)
+            .expect_err("invalid big integer text must be rejected");
+        let message = error.to_string();
+        if matches!(text, "+1" | "01" | "-0") {
+            assert!(
+                message.contains("canonical"),
+                "unexpected error for {text:?}: {error}"
+            );
+        } else {
+            assert!(
+                message.contains("invalid") || message.contains("empty"),
+                "unexpected parse error for {text:?}: {error}"
+            );
+        }
+    }
+}

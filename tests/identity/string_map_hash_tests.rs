@@ -15,7 +15,22 @@ use qubit_value::Value;
 /// Verifies string-map insertion order does not affect public value identity.
 #[test]
 fn test_string_map_hash_ignores_insertion_order() {
-    let left = Value::StringMap(HashMap::from([("first".into(), "1".into())]));
-    let right = Value::StringMap(HashMap::from([("first".into(), "1".into())]));
+    let left = Value::StringMap(HashMap::from([
+        ("first".into(), "1".into()),
+        ("second".into(), "2".into()),
+    ]));
+    let right = Value::StringMap(HashMap::from([
+        ("second".into(), "2".into()),
+        ("first".into(), "1".into()),
+    ]));
     assert_eq!(left, right);
+}
+
+/// Verifies changing a map value changes its public identity.
+#[test]
+fn test_string_map_hash_distinguishes_different_values() {
+    let left = Value::StringMap(HashMap::from([("key".into(), "left".into())]));
+    let right = Value::StringMap(HashMap::from([("key".into(), "right".into())]));
+
+    assert_ne!(left, right);
 }
