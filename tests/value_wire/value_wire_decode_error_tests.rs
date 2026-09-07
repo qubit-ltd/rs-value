@@ -12,6 +12,8 @@ use std::error::Error;
 
 use qubit_budget::BudgetError;
 use qubit_budget::Observation;
+use qubit_budget::QuantityConversionError;
+use qubit_budget::QuantityMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireV1;
@@ -74,4 +76,23 @@ fn test_value_wire_decode_error_reports_unsupported_version() {
         "unsupported qubit-value wire version 2; expected 1"
     );
     assert!(error.source().is_none());
+}
+
+#[test]
+fn test_value_wire_decode_error_preserves_quantity_failure() {
+    let source = QuantityConversionError::new(QuantityMeasurement::U64(u64::MAX), "usize");
+    let error = ValueWireDecodeError::Quantity {
+        resource: JsonResource::StringBytes,
+        source,
+    };
+
+    assert!(matches!(
+        &error,
+        ValueWireDecodeError::Quantity {
+            resource: JsonResource::StringBytes,
+            source: actual,
+        } if *actual == source
+    ));
+    assert!(error.to_string().contains("StringBytes"));
+    assert_eq!(error.source().map(ToString::to_string), Some(source.to_string()));
 }

@@ -39,6 +39,21 @@ fn test_value_wire_payload_v1_seed_decodes_collection_shape() {
 }
 
 #[test]
+fn test_value_wire_payload_v1_seed_rejects_an_unknown_shape_tag() {
+    let input = r#"{"unknown":{"int32":7}}"#;
+    let mut deserializer = serde_json::Deserializer::from_str(input);
+
+    let error = ValueWirePayloadV1Seed::new()
+        .deserialize(&mut deserializer)
+        .expect_err("an unknown payload shape must be rejected");
+
+    assert!(
+        error.to_string().contains("unknown variant `unknown`"),
+        "unexpected seed error: {error}"
+    );
+}
+
+#[test]
 fn test_value_wire_v1_seed_preserves_the_golden_envelope() {
     let input = r#"{"version":1,"value":{"scalar":{"string":"ready"}}}"#;
     let mut deserializer = serde_json::Deserializer::from_str(input);

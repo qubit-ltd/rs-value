@@ -136,3 +136,21 @@ fn test_value_wire_encode_error_maps_quantity_failure_precisely() {
         } if actual == source
     ));
 }
+
+#[test]
+fn test_value_wire_encode_error_maps_encoder_quantity_failure_precisely() {
+    let source = QuantityConversionError::new(QuantityMeasurement::U64(u64::MAX), "usize");
+    let measured =
+        MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::StringBytes, source);
+    let encoder_error = JsonEncodeError::from(measured);
+
+    let wire_error = ValueWireEncodeError::from(encoder_error);
+
+    assert!(matches!(
+        wire_error,
+        ValueWireEncodeError::Quantity {
+            resource: JsonResource::StringBytes,
+            source: actual,
+        } if actual == source
+    ));
+}

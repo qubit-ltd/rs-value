@@ -366,6 +366,21 @@ fn test_natural_json_canonicalizes_nested_json_object_keys() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
+fn test_natural_json_canonicalizes_objects_nested_inside_arrays() {
+    let value = Value::Json(
+        from_str(r#"[{"z":1,"a":{"d":4,"c":3}}]"#).expect("parse JSON array"),
+    );
+
+    let projected = value.to_json_value().expect("project JSON array");
+
+    assert_eq!(
+        to_string(&projected).expect("serialize projected array"),
+        r#"[{"a":{"c":3,"d":4},"z":1}]"#,
+    );
+}
+
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
 fn test_natural_json_projects_every_collection_variant() {
     macro_rules! assert_collection {
         ($values:expr, $expected:expr) => {
@@ -629,6 +644,101 @@ fn test_natural_json_text_limit_applies_inside_json_and_maps() {
             value
                 .to_json_value_with(&ConversionPolicy::default(), &limits)
                 .is_err()
+        );
+    }
+}
+
+/// Natural projection errors retain the public resource identity and source
+/// position of the rejected value.
+#[test]
+fn test_natural_json_reports_each_projection_budget_resource_precisely() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::ConversionResource;
+    use qubit_datatype::StructuredConversionLimits;
+
+    let policy = ConversionPolicy::default();
+    let cases = [
+        (
+            Value::String("abc".to_owned()),
+            ConversionLimits::builder()
+                .operation_limits(
+                    ConversionOperationLimits::builder()
+                        .max_input_bytes(2)
+                        .build(),
+                )
+                .build(),
+            ConversionResource::InputBytes,
+            2_u64,
+        ),
+        (
+            Value::String("abc".to_owned()),
+            ConversionLimits::builder()
+                .structured_limits(
+                    StructuredConversionLimits::builder()
+                        .max_text_bytes(2)
+                        .build(),
+                )
+                .build(),
+            ConversionResource::StructuredTextBytes,
+            2,
+        ),
+        (
+            Value::Json(json!("abc")),
+            ConversionLimits::builder()
+                .operation_limits(
+                    ConversionOperationLimits::builder()
+                        .max_structured_payload_bytes(2)
+                        .build(),
+                )
+                .build(),
+            ConversionResource::StructuredPayloadBytes,
+            2,
+        ),
+        (
+            Value::Bool(true),
+            ConversionLimits::builder()
+                .operation_limits(
+                    ConversionOperationLimits::builder()
+                        .max_structured_nodes(0)
+                        .build(),
+                )
+                .build(),
+            ConversionResource::StructuredNodes,
+            0,
+        ),
+        (
+            Value::Int32(7),
+            ConversionLimits::builder()
+                .operation_limits(ConversionOperationLimits::builder().max_items(0).build())
+                .build(),
+            ConversionResource::Items,
+            0,
+        ),
+    ];
+
+    for (value, limits, expected_resource, expected_limit) in cases {
+        let error = value
+            .to_json_value_with(&policy, &limits)
+            .expect_err("the configured projection limit must reject the value");
+        let ValueError::JsonProjectionLimit {
+            data_type,
+            source_index,
+            source,
+        } = error
+        else {
+            panic!("expected a structured projection limit error");
+        };
+        assert_eq!(data_type, value.data_type());
+        assert_eq!(source_index, None);
+        assert_eq!(*source.resource(), expected_resource);
+        assert_eq!(
+            source
+                .budget_error()
+                .expect("native measurements must produce budget failures")
+                .configured_limit(),
+            expected_limit,
         );
     }
 }

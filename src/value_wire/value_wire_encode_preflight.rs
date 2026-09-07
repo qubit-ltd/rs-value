@@ -425,3 +425,79 @@ fn bigint_digits(value: &num_bigint::BigInt) -> usize {
         ((value.bits().saturating_sub(1)) / 4 + 1) as usize + usize::from(value.sign() == num_bigint::Sign::Minus)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use qubit_budget::BudgetError;
+    use qubit_budget::MeasuredBudgetError;
+    use qubit_budget::Observation;
+    use qubit_budget::json::JsonEncodeLimits;
+    use qubit_budget::json::JsonResource;
+
+    use super::ValueWireEncodePreflight;
+    use crate::Value;
+
+    /// Verifies a counter-overflow error retains the exhausted resource and
+    /// conservative lower bound.
+    fn assert_overflow(
+        error: MeasuredBudgetError<JsonResource, usize>,
+        expected_resource: JsonResource,
+    ) {
+        assert!(
+            matches!(
+                error,
+                MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
+                    resource,
+                    observed: Observation::AtLeast(usize::MAX),
+                    maximum: 0,
+                }) if resource == expected_resource
+            ),
+            "expected {expected_resource:?} overflow, got {error:?}",
+        );
+    }
+
+    #[test]
+    fn test_check_value_reports_node_counter_overflow_and_rolls_back() {
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        checker.nodes = usize::MAX;
+
+        let error = checker
+            .check_value(&Value::Bool(true))
+            .expect_err("the node counter cannot exceed usize::MAX");
+
+        assert_overflow(error, JsonResource::Nodes);
+        assert_eq!(checker.nodes, usize::MAX);
+        assert_eq!(checker.payload_bytes, 0);
+        assert_eq!(checker.output_bytes, 0);
+    }
+
+    #[test]
+    fn test_check_value_reports_payload_counter_overflow_and_rolls_back() {
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        checker.payload_bytes = usize::MAX;
+
+        let error = checker
+            .check_value(&Value::Bool(true))
+            .expect_err("the payload counter cannot exceed usize::MAX");
+
+        assert_overflow(error, JsonResource::PayloadBytes);
+        assert_eq!(checker.nodes, 0);
+        assert_eq!(checker.payload_bytes, usize::MAX);
+        assert_eq!(checker.output_bytes, 0);
+    }
+
+    #[test]
+    fn test_check_value_reports_output_counter_overflow_and_rolls_back() {
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        checker.output_bytes = usize::MAX;
+
+        let error = checker
+            .check_value(&Value::Bool(true))
+            .expect_err("the output counter cannot exceed usize::MAX");
+
+        assert_overflow(error, JsonResource::OutputBytes);
+        assert_eq!(checker.nodes, 0);
+        assert_eq!(checker.payload_bytes, 0);
+        assert_eq!(checker.output_bytes, usize::MAX);
+    }
+}
