@@ -24,8 +24,29 @@ use crate::ValueRef;
 
 /// Performs conservative resource checks before Wire V1 sorting and formatting.
 ///
-/// The checker records only lower bounds. It does not serialize, retain a
-/// sorting index, or replace the final `JsonEncodeSession` checks.
+/// The checker accumulates conservative lower bounds across successful calls.
+/// Each public check is atomic: if it returns an error, all counters are
+/// restored to their values before that call. The checker does not serialize,
+/// retain a sorting index, or replace the authoritative final
+/// `JsonEncodeSession` checks.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::MeasuredBudgetError;
+/// use qubit_budget::json::JsonEncodeLimits;
+/// use qubit_budget::json::JsonResource;
+/// use qubit_value::Value;
+/// use qubit_value::ValueWireEncodePreflight;
+///
+/// # fn main() -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+/// let limits = JsonEncodeLimits::builder().max_nodes(2_usize).build();
+/// let mut preflight = ValueWireEncodePreflight::new(limits);
+/// preflight.check_value(&Value::from(1_i32))?;
+/// preflight.check_value(&Value::from(2_i32))?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone)]
 pub struct ValueWireEncodePreflight {
     limits: JsonEncodeLimits,
@@ -34,8 +55,15 @@ pub struct ValueWireEncodePreflight {
     output_bytes: usize,
 }
 
+/// Converts a `u64` limit to the current platform's native budget quantity.
+///
+/// Values outside the `usize` range saturate at [`usize::MAX`].
+fn saturating_u64_to_usize(value: u64) -> usize {
+    usize::try_from(value).unwrap_or(usize::MAX)
+}
+
 impl ValueWireEncodePreflight {
-    /// Creates a checker from one JSON encoding limit profile.
+    /// Creates a checker with zero accumulated usage from one limit profile.
     #[must_use]
     pub fn new(limits: JsonEncodeLimits) -> Self {
         Self {
@@ -46,8 +74,10 @@ impl ValueWireEncodePreflight {
         }
     }
 
-    /// Creates a checker for value limits when the outer output budget is
-    /// accounted for by another protocol envelope.
+    /// Creates a checker with zero accumulated usage for value-only limits.
+    ///
+    /// The outer output budget remains unconfigured because another protocol
+    /// envelope is expected to account for it.
     #[must_use]
     pub fn new_value_limits(limits: JsonValueLimits) -> Self {
         let mut checker = Self::new(JsonEncodeLimits::new());
@@ -56,56 +86,86 @@ impl ValueWireEncodePreflight {
     }
 
     /// Creates a checker from the `u64` profile used by configuration wire
-    /// limits. Values are converted to the native `usize` checker quantity.
+    /// limits.
+    ///
+    /// Values greater than [`usize::MAX`] on the current platform saturate at
+    /// [`usize::MAX`] instead of wrapping or truncating.
     #[must_use]
     pub fn new_u64_limits(limits: JsonEncodeLimitsU64<JsonResource, u64>) -> Self {
         let value = limits.value_limits();
         let mut builder = JsonEncodeLimits::builder();
         if let Some(limit) = limits.max_output_bytes() {
-            builder = builder.max_output_bytes(limit as usize);
+            builder = builder.max_output_bytes(saturating_u64_to_usize(limit));
         }
         if let Some(limit) = value.max_depth() {
-            builder = builder.max_depth(limit as usize);
+            builder = builder.max_depth(saturating_u64_to_usize(limit));
         }
         if let Some(limit) = value.max_nodes() {
-            builder = builder.max_nodes(limit as usize);
+            builder = builder.max_nodes(saturating_u64_to_usize(limit));
         }
         if let Some(limit) = value.max_sequence_items() {
-            builder = builder.max_sequence_items(limit as usize);
+            builder = builder.max_sequence_items(saturating_u64_to_usize(limit));
         }
         if let Some(limit) = value.max_map_entries() {
-            builder = builder.max_map_entries(limit as usize);
+            builder = builder.max_map_entries(saturating_u64_to_usize(limit));
         }
         if let Some(limit) = value.max_key_bytes() {
-            builder = builder.max_key_bytes(limit as usize);
+            builder = builder.max_key_bytes(saturating_u64_to_usize(limit));
         }
         if let Some(limit) = value.max_string_bytes() {
-            builder = builder.max_string_bytes(limit as usize);
+            builder = builder.max_string_bytes(saturating_u64_to_usize(limit));
         }
         if let Some(limit) = value.max_number_bytes() {
-            builder = builder.max_number_bytes(limit as usize);
+            builder = builder.max_number_bytes(saturating_u64_to_usize(limit));
         }
         if let Some(limit) = value.max_payload_bytes() {
-            builder = builder.max_payload_bytes(limit as usize);
+            builder = builder.max_payload_bytes(saturating_u64_to_usize(limit));
         }
         Self::new(builder.build())
     }
 
-    /// Checks one scalar value at the root of a payload.
+    /// Checks and accumulates one scalar value at the root of a payload.
+    ///
+    /// Returns the first exceeded JSON resource limit. If checking fails, the
+    /// accumulated state is restored to its value before this call.
     pub fn check_value(&mut self, value: &Value) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        self.check_value_at(value, 1)
+        self.transaction(|checker| checker.check_value_at(value, 1))
     }
 
-    /// Checks one homogeneous collection at the root of a payload.
+    /// Checks and accumulates one homogeneous collection at the payload root.
+    ///
+    /// Returns the first exceeded JSON resource limit. If checking fails, the
+    /// accumulated state is restored to its value before this call.
     pub fn check_values(&mut self, values: &MultiValues) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        self.check_values_at(values, 1)
+        self.transaction(|checker| checker.check_values_at(values, 1))
     }
 
-    /// Checks an explicit scalar-or-collection payload.
+    /// Checks and accumulates an explicit scalar-or-collection payload.
+    ///
+    /// Returns the first exceeded JSON resource limit. If checking fails, the
+    /// accumulated state is restored to its value before this call.
     pub fn check_container(&mut self, value: &ValueContainer) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        match value {
-            ValueContainer::Scalar(value) => self.check_value(value),
-            ValueContainer::Collection(values) => self.check_values(values),
+        self.transaction(|checker| match value {
+            ValueContainer::Scalar(value) => checker.check_value_at(value, 1),
+            ValueContainer::Collection(values) => checker.check_values_at(values, 1),
+        })
+    }
+
+    /// Executes one public check as a transaction over cumulative counters.
+    ///
+    /// Successful checks retain their measurements. An error restores all
+    /// counters and returns the original budget error unchanged.
+    fn transaction<F>(&mut self, check: F) -> Result<(), MeasuredBudgetError<JsonResource, usize>>
+    where
+        F: FnOnce(&mut Self) -> Result<(), MeasuredBudgetError<JsonResource, usize>>,
+    {
+        let snapshot = (self.nodes, self.payload_bytes, self.output_bytes);
+        match check(self) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                (self.nodes, self.payload_bytes, self.output_bytes) = snapshot;
+                Err(error)
+            }
         }
     }
 
