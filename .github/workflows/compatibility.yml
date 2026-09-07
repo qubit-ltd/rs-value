@@ -1,0 +1,120 @@
+name: API and downstream compatibility
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_TOOLCHAIN: "1.94.0"
+  CARGO_SEMVER_CHECKS_VERSION: "0.50.0"
+  QUBIT_REDACT_REVISION: 41adde89b8b2b842bbb3e6c7a1d786a1818f2cc4
+  QUBIT_CONFIG_REVISION: 8daf6c2596c66a0e8487bfe36a7dc265d58f6953
+  QUBIT_METADATA_REVISION: 33f13edad527e483d480e3c497adb133419a519a
+
+jobs:
+  semver:
+    name: Semver (${{ matrix.feature_mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        feature_mode: ["--default-features", "--all-features"]
+    steps:
+      - name: Checkout rs-value
+        uses: actions/checkout@v6
+        with:
+          path: workspace/rs-value
+
+      - name: Checkout compatible rs-redact
+        uses: actions/checkout@v6
+        with:
+          repository: qubit-ltd/rs-redact
+          ref: ${{ env.QUBIT_REDACT_REVISION }}
+          path: workspace/rs-redact
+
+      - name: Install Rust
+        run: rustup toolchain install "${RUST_TOOLCHAIN}" --profile minimal
+
+      # Installation and the registry baseline both require network access. Any
+      # download failure is intentionally a hard failure rather than a skipped check.
+      - name: Install cargo-semver-checks
+        run: cargo +${RUST_TOOLCHAIN} install cargo-semver-checks --version "=${CARGO_SEMVER_CHECKS_VERSION}" --locked
+
+      - name: Compare with qubit-value 0.11.0
+        working-directory: workspace/rs-value
+        run: >-
+          cargo +${RUST_TOOLCHAIN} semver-checks
+          --manifest-path Cargo.toml
+          --baseline-version 0.11.0
+          --release-type patch
+          ${{ matrix.feature_mode }}
+
+  rs-config:
+    name: rs-config all features
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout rs-value
+        uses: actions/checkout@v6
+        with:
+          path: workspace/rs-value
+
+      - name: Checkout compatible rs-redact
+        uses: actions/checkout@v6
+        with:
+          repository: qubit-ltd/rs-redact
+          ref: ${{ env.QUBIT_REDACT_REVISION }}
+          path: workspace/rs-redact
+
+      - name: Checkout rs-config
+        uses: actions/checkout@v6
+        with:
+          repository: qubit-ltd/rs-config
+          ref: ${{ env.QUBIT_CONFIG_REVISION }}
+          path: workspace/rs-config
+
+      - name: Install Rust
+        run: rustup toolchain install "${RUST_TOOLCHAIN}" --profile minimal
+
+      - name: Test rs-config
+        working-directory: workspace/rs-config
+        run: cargo +${RUST_TOOLCHAIN} test --locked --all-features
+
+  rs-metadata:
+    name: rs-metadata all features
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout rs-value
+        uses: actions/checkout@v6
+        with:
+          path: workspace/rs-value
+
+      - name: Checkout compatible rs-redact
+        uses: actions/checkout@v6
+        with:
+          repository: qubit-ltd/rs-redact
+          ref: ${{ env.QUBIT_REDACT_REVISION }}
+          path: workspace/rs-redact
+
+      - name: Checkout rs-metadata
+        uses: actions/checkout@v6
+        with:
+          repository: qubit-ltd/rs-metadata
+          ref: ${{ env.QUBIT_METADATA_REVISION }}
+          path: workspace/rs-metadata
+
+      - name: Install Rust
+        run: rustup toolchain install "${RUST_TOOLCHAIN}" --profile minimal
+
+      - name: Test rs-metadata
+        working-directory: workspace/rs-metadata
+        run: cargo +${RUST_TOOLCHAIN} test --locked --all-features
