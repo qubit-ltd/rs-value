@@ -65,8 +65,7 @@ pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Value, D::Error>
 where
     D: Deserializer<'de>,
 {
-    DuplicateKeyRejectingJsonValue::deserialize(deserializer)
-        .map(DuplicateKeyRejectingJsonValue::into_inner)
+    DuplicateKeyRejectingJsonValue::deserialize(deserializer).map(DuplicateKeyRejectingJsonValue::into_inner)
 }
 
 /// Returns a recursively canonical JSON value for natural projections.

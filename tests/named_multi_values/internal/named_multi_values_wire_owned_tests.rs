@@ -19,8 +19,5 @@ fn test_named_multi_values_wire_owned_deserializes_v1_envelope() {
     }))
     .expect("named collection should deserialize");
 
-    assert_eq!(
-        decoded,
-        NamedMultiValues::new("ports", MultiValues::Int32(vec![42]))
-    );
+    assert_eq!(decoded, NamedMultiValues::new("ports", MultiValues::Int32(vec![42])));
 }

@@ -160,10 +160,7 @@ impl ValueWirePayloadV1 {
     /// `limits`, or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn decode_json_slice_with_limits(
-        input: &[u8],
-        limits: JsonDecodeLimits,
-    ) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
             .decode_seed_utf8(ValueWirePayloadV1Seed::new(), input)
@@ -201,10 +198,7 @@ impl ValueWirePayloadV1 {
     /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits` or the
     /// payload cannot be serialized.
     #[cfg(feature = "json")]
-    pub fn to_json_vec_with_limits(
-        &self,
-        limits: JsonEncodeLimits,
-    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+    pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -258,11 +252,7 @@ impl ValueWirePayloadV1 {
     /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits`, the
     /// payload cannot be serialized, or `writer` rejects output.
     #[cfg(feature = "json")]
-    pub fn to_json_writer_with_limits<W>(
-        &self,
-        writer: W,
-        limits: JsonEncodeLimits,
-    ) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(&self, writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {

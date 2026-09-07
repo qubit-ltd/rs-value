@@ -243,10 +243,7 @@ fn test_generic_add_convenient_inputs_for_coverage() {
 
     let owned_array_ref = ["f".to_string(), "g".to_string()];
     values.add(&owned_array_ref).unwrap();
-    assert_eq!(
-        values.get_strings().unwrap(),
-        &["a", "b", "c", "d", "e", "f", "g"]
-    );
+    assert_eq!(values.get_strings().unwrap(), &["a", "b", "c", "d", "e", "f", "g"]);
 
     let str_vec_ref = vec!["h", "i"];
     values.add(&str_vec_ref).unwrap();
@@ -265,9 +262,7 @@ fn test_generic_add_convenient_inputs_for_coverage() {
     values.add(str_array_ref).unwrap();
     assert_eq!(
         values.get_strings().unwrap(),
-        &[
-            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"
-        ]
+        &["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"]
     );
 }
 
@@ -322,8 +317,7 @@ fn test_into_value_default_inputs_for_coverage() {
 
     let str_array_ref = ["i", "j"];
     let str_array_ref_arg: &[&str; 2] = &str_array_ref;
-    let value =
-        <&[&str; 2] as IntoValueDefault<Vec<String>>>::into_value_default(str_array_ref_arg);
+    let value = <&[&str; 2] as IntoValueDefault<Vec<String>>>::into_value_default(str_array_ref_arg);
     assert_eq!(value, vec!["i".to_string(), "j".to_string()]);
 }
 

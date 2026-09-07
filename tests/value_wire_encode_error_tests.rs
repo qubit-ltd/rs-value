@@ -9,6 +9,9 @@
 use std::io;
 use std::io::Write;
 
+use qubit_budget::MeasuredBudgetError;
+use qubit_budget::QuantityConversionError;
+use qubit_budget::QuantityMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_datatype::DataType;
 use qubit_json::encode::JsonEncodeError;
@@ -97,4 +100,24 @@ fn test_value_wire_encode_error_maps_owned_encoder_sources() {
         ValueWireEncodeError::from(writer),
         ValueWireEncodeError::Io(_)
     ));
+}
+
+/// Both conversion entry points preserve the quantity failure and resource.
+#[test]
+fn test_encode_error_preserves_quantity_conversion_failure() {
+    let quantity = QuantityConversionError::new(QuantityMeasurement::Usize(256), "u8");
+    for via_encoder in [false, true] {
+        let measured: MeasuredBudgetError<JsonResource, usize> = MeasuredBudgetError::Quantity {
+            resource: JsonResource::OutputBytes,
+            source: quantity,
+        };
+        let error = if via_encoder {
+            ValueWireEncodeError::from(JsonEncodeError::from(measured))
+        } else {
+            ValueWireEncodeError::from(measured)
+        };
+        assert!(matches!(error, ValueWireEncodeError::Quantity {
+            resource: JsonResource::OutputBytes, source,
+        } if source == quantity));
+    }
 }

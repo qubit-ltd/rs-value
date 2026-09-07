@@ -114,10 +114,7 @@ where
 /// # Errors
 ///
 /// Returns a mapped missing, conversion, or budget error.
-pub(super) fn convert_with_data_converter_in<T>(
-    value: &Value,
-    session: &mut ConversionSession<'_>,
-) -> ValueResult<T>
+pub(super) fn convert_with_data_converter_in<T>(value: &Value, session: &mut ConversionSession<'_>) -> ValueResult<T>
 where
     T: DataConversionTarget,
 {

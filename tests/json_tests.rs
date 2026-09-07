@@ -54,11 +54,7 @@ fn test_natural_json_enforces_cumulative_projection_limits() {
     use qubit_datatype::ConversionPolicy;
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
-        .operation_limits(
-            ConversionOperationLimits::builder()
-                .max_output_bytes(5)
-                .build(),
-        )
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(5).build())
         .build();
     let values = MultiValues::String(vec!["abc".into(), "def".into()]);
     let error = values
@@ -74,11 +70,7 @@ fn test_natural_json_enforces_cumulative_projection_limits() {
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_items(0).build())
         .build();
-    assert!(
-        Value::Int32(1)
-            .to_json_value_with(&policy, &limits)
-            .is_err()
-    );
+    assert!(Value::Int32(1).to_json_value_with(&policy, &limits).is_err());
 }
 
 /// Float budgets measure the projected JSON representation at exact boundaries.
@@ -98,27 +90,13 @@ fn test_natural_json_float_budget_matches_projected_number() {
         let projected = value.to_json_value().expect("finite float projection");
         let bytes = projected.to_string().len() as u64;
         let limits = ConversionLimits::builder()
-            .operation_limits(
-                ConversionOperationLimits::builder()
-                    .max_output_bytes(bytes)
-                    .build(),
-            )
+            .operation_limits(ConversionOperationLimits::builder().max_output_bytes(bytes).build())
             .build();
-        assert_eq!(
-            value.to_json_value_with(&policy, &limits).unwrap(),
-            projected
-        );
+        assert_eq!(value.to_json_value_with(&policy, &limits).unwrap(), projected);
         let limits = ConversionLimits::builder()
-            .operation_limits(
-                ConversionOperationLimits::builder()
-                    .max_output_bytes(bytes - 1)
-                    .build(),
-            )
+            .operation_limits(ConversionOperationLimits::builder().max_output_bytes(bytes - 1).build())
             .build();
-        assert!(
-            value.to_json_value_with(&policy, &limits).is_err(),
-            "{projected}"
-        );
+        assert!(value.to_json_value_with(&policy, &limits).is_err(), "{projected}");
     }
 }
 
@@ -139,18 +117,11 @@ fn test_natural_json_enforces_structure_before_materializing() {
                 .build(),
         )
         .build();
+    assert!(Value::Json(json!([[0]])).to_json_value_with(&policy, &limits).is_err());
     assert!(
-        Value::Json(json!([[0]]))
+        Value::StringMap(HashMap::from([("a".into(), "1".into()), ("b".into(), "2".into())]))
             .to_json_value_with(&policy, &limits)
             .is_err()
-    );
-    assert!(
-        Value::StringMap(HashMap::from([
-            ("a".into(), "1".into()),
-            ("b".into(), "2".into())
-        ]))
-        .to_json_value_with(&policy, &limits)
-        .is_err()
     );
     assert!(
         MultiValues::Int32(vec![1, 2])
@@ -158,11 +129,7 @@ fn test_natural_json_enforces_structure_before_materializing() {
             .is_err()
     );
     let limits = ConversionLimits::builder()
-        .operation_limits(
-            ConversionOperationLimits::builder()
-                .max_structured_nodes(1)
-                .build(),
-        )
+        .operation_limits(ConversionOperationLimits::builder().max_structured_nodes(1).build())
         .build();
     assert!(
         MultiValues::Int32(vec![1])
@@ -179,22 +146,14 @@ fn test_natural_json_bounds_duration_and_wide_number_text() {
     use qubit_datatype::ConversionPolicy;
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
-        .operation_limits(
-            ConversionOperationLimits::builder()
-                .max_output_bytes(6)
-                .build(),
-        )
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
         .build();
     assert!(
         MultiValues::Duration(vec![Duration::from_secs(1); 2])
             .to_json_value_with(&policy, &limits)
             .is_err()
     );
-    assert!(
-        Value::Int128(i128::MAX)
-            .to_json_value_with(&policy, &limits)
-            .is_err()
-    );
+    assert!(Value::Int128(i128::MAX).to_json_value_with(&policy, &limits).is_err());
     assert!(
         Value::BigDecimal("123456789.123".parse().expect("decimal"))
             .to_json_value_with(&policy, &limits)
@@ -207,10 +166,7 @@ use url::Url;
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_natural_json_projects_scalar() {
-    assert_eq!(
-        Value::Int32(42).to_json_value().expect("project scalar"),
-        json!(42),
-    );
+    assert_eq!(Value::Int32(42).to_json_value().expect("project scalar"), json!(42),);
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -254,18 +210,12 @@ fn test_natural_json_projects_every_scalar_variant() {
     let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
     assert_scalar!(Value::Instant(instant), json!("2025-01-01 01:02:03 UTC"));
     assert_scalar!(Value::BigInteger(BigInt::from(7)), json!("7"));
-    assert_scalar!(
-        Value::BigDecimal("7.5".parse::<BigDecimal>().unwrap()),
-        json!("7.5")
-    );
+    assert_scalar!(Value::BigDecimal("7.5".parse::<BigDecimal>().unwrap()), json!("7.5"));
     assert_scalar!(
         Value::Url(Url::parse("https://example.com").unwrap()),
         json!("https://example.com/")
     );
-    assert_scalar!(
-        Value::Json(json!({"z": 1, "a": 2})),
-        json!({"a": 2, "z": 1})
-    );
+    assert_scalar!(Value::Json(json!({"z": 1, "a": 2})), json!({"a": 2, "z": 1}));
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -312,9 +262,7 @@ fn test_natural_json_projects_float32_without_widening() {
         0x2696_F5F4_u32, // 0.000000000000001047500658
     ] {
         let value = f32::from_bits(bits);
-        let projected = Value::Float32(value)
-            .to_json_value()
-            .expect("project float32");
+        let projected = Value::Float32(value).to_json_value().expect("project float32");
         let projected_text = to_string(&projected).expect("serialize json");
 
         let legacy_text = to_string(&JsonValue::Number(
@@ -342,9 +290,7 @@ fn test_natural_json_projects_string_map_keys_in_dictionary_order() {
         ("a".to_owned(), "1".to_owned()),
         ("m".to_owned(), "13".to_owned()),
     ]);
-    let projected = Value::StringMap(map)
-        .to_json_value()
-        .expect("project string map");
+    let projected = Value::StringMap(map).to_json_value().expect("project string map");
 
     assert_eq!(
         to_string(&projected).expect("serialize projected map"),
@@ -369,10 +315,7 @@ fn test_natural_json_canonicalizes_nested_json_object_keys() {
 fn test_natural_json_projects_every_collection_variant() {
     macro_rules! assert_collection {
         ($values:expr, $expected:expr) => {
-            assert_eq!(
-                $values.to_json_value().expect("project collection"),
-                $expected
-            );
+            assert_eq!($values.to_json_value().expect("project collection"), $expected);
         };
     }
 
@@ -406,33 +349,21 @@ fn test_natural_json_projects_every_collection_variant() {
         .unwrap()
         .and_hms_opt(1, 2, 3)
         .unwrap();
-    assert_collection!(
-        MultiValues::DateTime(vec![datetime]),
-        json!(["2025-01-01 01:02:03"])
-    );
+    assert_collection!(MultiValues::DateTime(vec![datetime]), json!(["2025-01-01 01:02:03"]));
     let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
-    assert_collection!(
-        MultiValues::Instant(vec![instant]),
-        json!(["2025-01-01 01:02:03 UTC"])
-    );
+    assert_collection!(MultiValues::Instant(vec![instant]), json!(["2025-01-01 01:02:03 UTC"]));
     assert_collection!(MultiValues::BigInteger(vec![BigInt::from(7)]), json!(["7"]));
     assert_collection!(
         MultiValues::BigDecimal(vec!["7.5".parse::<BigDecimal>().unwrap()]),
         json!(["7.5"])
     );
-    assert_collection!(
-        MultiValues::Duration(vec![Duration::from_secs(1)]),
-        json!(["1000ms"])
-    );
+    assert_collection!(MultiValues::Duration(vec![Duration::from_secs(1)]), json!(["1000ms"]));
     assert_collection!(
         MultiValues::Url(vec![Url::parse("https://example.com").unwrap()]),
         json!(["https://example.com/"])
     );
     assert_collection!(
-        MultiValues::StringMap(vec![HashMap::from([(
-            "key".to_string(),
-            "value".to_string()
-        ),])]),
+        MultiValues::StringMap(vec![HashMap::from([("key".to_string(), "value".to_string()),])]),
         json!([{"key": "value"}])
     );
     assert_collection!(
@@ -451,11 +382,7 @@ fn test_natural_json_limit_error_preserves_budget_facts() {
     use qubit_datatype::ConversionResource;
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
-        .operation_limits(
-            ConversionOperationLimits::builder()
-                .max_output_bytes(5)
-                .build(),
-        )
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(5).build())
         .build();
     let error = MultiValues::String(vec!["abc".into(), "def".into()])
         .to_json_value_with(&policy, &limits)
@@ -490,11 +417,7 @@ fn test_natural_json_projection_boundary_matrix() {
     use qubit_datatype::NumericConversionLimits;
     let policy = ConversionPolicy::default();
     let input = ConversionLimits::builder()
-        .operation_limits(
-            ConversionOperationLimits::builder()
-                .max_input_bytes(2)
-                .build(),
-        )
+        .operation_limits(ConversionOperationLimits::builder().max_input_bytes(2).build())
         .build();
     for value in [
         Value::from("abc"),
@@ -561,11 +484,7 @@ fn test_natural_json_keys_and_values_share_output_budget() {
     use qubit_datatype::ConversionResource;
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
-        .operation_limits(
-            ConversionOperationLimits::builder()
-                .max_output_bytes(1)
-                .build(),
-        )
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(1).build())
         .build();
     for value in [
         Value::Json(json!({"ab": null})),
@@ -581,20 +500,14 @@ fn test_natural_json_keys_and_values_share_output_budget() {
         assert_eq!(source.budget_error().unwrap().configured_limit(), 1);
     }
     let limits = ConversionLimits::builder()
-        .operation_limits(
-            ConversionOperationLimits::builder()
-                .max_output_bytes(3)
-                .build(),
-        )
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(3).build())
         .build();
     let values = MultiValues::Json(vec![json!({"a": "b"}), json!({"c": "d"})]);
     let error = values
         .to_json_value_with(&policy, &limits)
         .expect_err("four bytes across two objects");
     let ValueError::JsonProjectionLimit {
-        source_index,
-        source,
-        ..
+        source_index, source, ..
     } = error
     else {
         panic!("expected a projection budget failure");
@@ -614,21 +527,13 @@ fn test_natural_json_text_limit_applies_inside_json_and_maps() {
     use qubit_datatype::ConversionPolicy;
     use qubit_datatype::StructuredConversionLimits;
     let limits = ConversionLimits::builder()
-        .structured_limits(
-            StructuredConversionLimits::builder()
-                .max_text_bytes(2)
-                .build(),
-        )
+        .structured_limits(StructuredConversionLimits::builder().max_text_bytes(2).build())
         .build();
     for value in [
         Value::from("abc"),
         Value::Json(json!("abc")),
         Value::StringMap(HashMap::from([("a".into(), "abc".into())])),
     ] {
-        assert!(
-            value
-                .to_json_value_with(&ConversionPolicy::default(), &limits)
-                .is_err()
-        );
+        assert!(value.to_json_value_with(&ConversionPolicy::default(), &limits).is_err());
     }
 }

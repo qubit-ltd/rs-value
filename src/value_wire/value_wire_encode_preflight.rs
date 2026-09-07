@@ -357,3 +357,42 @@ fn bigint_digits(value: &num_bigint::BigInt) -> usize {
         ((value.bits().saturating_sub(1)) / 4 + 1) as usize + usize::from(value.sign() == num_bigint::Sign::Minus)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use qubit_budget::BudgetError;
+    use qubit_budget::MeasuredBudgetError;
+    use qubit_budget::Observation;
+    use qubit_budget::json::JsonEncodeLimits;
+    use qubit_budget::json::JsonResource;
+
+    use super::ValueWireEncodePreflight;
+    use crate::Value;
+
+    /// Native counters fail closed instead of wrapping when a cumulative
+    /// ledger reaches the address-space limit.
+    #[test]
+    fn test_preflight_counter_overflow_preserves_the_rejected_resource() {
+        for resource in [
+            JsonResource::Nodes,
+            JsonResource::PayloadBytes,
+            JsonResource::OutputBytes,
+        ] {
+            let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+            match resource {
+                JsonResource::Nodes => checker.nodes = usize::MAX,
+                JsonResource::PayloadBytes => checker.payload_bytes = usize::MAX,
+                JsonResource::OutputBytes => checker.output_bytes = usize::MAX,
+                _ => unreachable!(),
+            }
+            let error = checker
+                .check_value(&Value::Bool(true))
+                .expect_err("counter must not wrap");
+            assert!(matches!(error, MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
+                resource: actual,
+                observed: Observation::AtLeast(usize::MAX),
+                maximum: 0,
+            }) if actual == resource));
+        }
+    }
+}
