@@ -13,6 +13,7 @@
 mod internal;
 mod redaction_tests;
 mod value_constructor_tests;
+mod value_contract_edge_tests;
 mod value_converter_coverage_tests;
 mod value_converter_tests;
 mod value_converters_tests;
