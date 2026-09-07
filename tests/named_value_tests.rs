@@ -114,6 +114,25 @@ fn test_named_value_identity_includes_name() {
 }
 
 #[test]
+fn test_named_value_identity_changes_when_value_changes() {
+    let left = NamedValue::new("port", Value::Int32(80));
+    let right = NamedValue::new("port", Value::Int32(443));
+
+    assert_ne!(left, right);
+}
+
+#[test]
+fn test_named_value_mutation_updates_name_and_value_together() {
+    let mut named = NamedValue::new("before", Value::Bool(false));
+
+    named.set_name(String::from("after"));
+    named.set_value(Value::Bool(true));
+
+    assert_eq!(named.name(), "after");
+    assert_eq!(named.value(), &Value::Bool(true));
+}
+
+#[test]
 fn test_named_value_new() {
     let mut nv = NamedValue::new("port", Value::Int32(8080));
     assert_eq!(nv.name(), "port");

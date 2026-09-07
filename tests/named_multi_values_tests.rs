@@ -369,6 +369,43 @@ fn test_named_multi_values_first_named_value_empty_preserves_type() {
 }
 
 #[test]
+fn test_named_multi_values_first_named_value_concrete_empty_preserves_type() {
+    let nmv = NamedMultiValues::new("threshold", MultiValues::Float64(Vec::new()));
+    let named = nmv.first_named_value();
+
+    assert_eq!(named.name(), "threshold");
+    assert_eq!(named.value().data_type(), DataType::Float64);
+    assert!(matches!(
+        named.value().get_float64(),
+        Err(ValueError::Missing(_))
+    ));
+}
+
+#[test]
+fn test_named_multi_values_into_first_named_value_empty_preserves_type() {
+    let nmv = NamedMultiValues::new("threshold", MultiValues::Unset(DataType::Float64));
+    let named = nmv.into_first_named_value();
+
+    assert_eq!(named.name(), "threshold");
+    assert_eq!(named.value().data_type(), DataType::Float64);
+    assert!(named.value().is_unset());
+}
+
+#[test]
+fn test_named_multi_values_identity_includes_name_and_collection() {
+    let values = MultiValues::Int32(vec![1, 2]);
+
+    assert_ne!(
+        NamedMultiValues::new("left", values.clone()),
+        NamedMultiValues::new("right", values.clone())
+    );
+    assert_ne!(
+        NamedMultiValues::new("same", values),
+        NamedMultiValues::new("same", MultiValues::Int32(vec![1, 3]))
+    );
+}
+
+#[test]
 fn test_named_multi_values_empty_get_mismatched_type_returns_error() {
     let nmv = NamedMultiValues::new("ports", MultiValues::Unset(DataType::Int32));
     assert!(matches!(
