@@ -1,6 +1,6 @@
 # qubit-value User Guide
 
-[中文版本](user_guide.zh_CN.md) · [README](../README.md) · [API documentation](https://docs.rs/qubit-value)
+[中文版本](user_guide.zh_CN.md) · [README](../README.md) · [Design](design.md) · [API documentation](https://docs.rs/qubit-value)
 
 ## Purpose and audience
 

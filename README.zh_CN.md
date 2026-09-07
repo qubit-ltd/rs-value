@@ -168,6 +168,7 @@ Wire DTO 实现了 `Serialize`，但刻意不实现通用的 `Deserialize`：普
 ## 延伸阅读
 
 - [中文用户手册](doc/user_guide.zh_CN.md)
+- [架构与 Wire 设计](doc/design.zh_CN.md)
 - [English user guide](doc/user_guide.md)
 - [API 文档](https://docs.rs/qubit-value)
 - [`qubit-datatype` 转换契约](https://docs.rs/qubit-datatype/latest/qubit_datatype/)

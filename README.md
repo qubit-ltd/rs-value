@@ -199,6 +199,7 @@ same outer request budget.
 ## Learn more
 
 - [English user guide](doc/user_guide.md)
+- [Architecture and Wire design](doc/design.md)
 - [中文用户手册](doc/user_guide.zh_CN.md)
 - [API documentation](https://docs.rs/qubit-value)
 - [`qubit-datatype` conversion contract](https://docs.rs/qubit-datatype/latest/qubit_datatype/)
