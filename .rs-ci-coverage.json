@@ -1,31 +1,21 @@
 {
   "threshold_exempt_files": {
     "qubit-value": [
-      "src/finite_float.rs",
       "src/identity/json_identity.rs",
-      "src/json.rs",
       "src/multi_values/multi_values.rs",
       "src/multi_values/multi_values_identity.rs",
       "src/named_multi_values.rs",
       "src/named_value.rs",
-      "src/value/redaction.rs",
       "src/value/value.rs",
-      "src/value/value_converters.rs",
       "src/value/value_identity.rs",
       "src/value_container.rs",
       "src/value_error.rs",
       "src/value_missing.rs",
-      "src/value_wire/value_wire_payload_ref_v1.rs",
       "src/value_wire/value_wire_payload_v1.rs",
       "src/value_wire/value_wire_ref_v1.rs",
       "src/value_wire/value_wire_v1.rs",
       "src/wire.rs",
-      "src/wire/internal/big_decimal_payload.rs",
-      "src/wire/internal/canonical_json.rs",
-      "src/wire/internal/strict_string_map.rs",
-      "src/wire/json_vec.rs",
-      "src/wire/string_map.rs",
-      "src/wire/string_map_vec.rs"
+      "src/wire/internal/strict_string_map.rs"
     ]
   }
 }
