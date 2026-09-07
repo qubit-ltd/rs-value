@@ -19,6 +19,7 @@
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::MultiValuesRef;
+use qubit_value::Value;
 use qubit_value::ValueError;
 
 #[test]
@@ -76,6 +77,6 @@ fn test_multi_values_view_distinguishes_unset_and_concrete_empty() {
 fn test_multi_values_first_value_and_owned_projection_preserve_type_when_empty() {
     let values = MultiValues::Int64(Vec::new());
 
-    assert_eq!(values.first_value(), qubit_value::Value::Unset(DataType::Int64));
-    assert_eq!(values.into_first_value(), qubit_value::Value::Unset(DataType::Int64));
+    assert_eq!(values.first_value(), Value::Unset(DataType::Int64));
+    assert_eq!(values.into_first_value(), Value::Unset(DataType::Int64));
 }

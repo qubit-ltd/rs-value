@@ -17,6 +17,7 @@ use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
 
@@ -161,7 +162,7 @@ fn test_value_wire_payload_v1_writer_error_is_precise() {
         .expect_err("the rejecting writer must fail");
     assert!(matches!(
         error,
-        qubit_value::ValueWireEncodeError::Io(source)
+        ValueWireEncodeError::Io(source)
             if source.kind() == io::ErrorKind::BrokenPipe
                 && source.to_string() == "payload writer rejected"
     ));
