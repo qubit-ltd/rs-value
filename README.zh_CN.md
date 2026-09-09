@@ -92,7 +92,7 @@ assert_eq!((first, second), (8080, 8081));
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.11", features = ["converter"] }
+qubit-value = { version = "0.12", features = ["converter"] }
 qubit-datatype = { version = "0.12", default-features = false }
 ```
 
@@ -116,6 +116,8 @@ qubit-datatype = { version = "0.12", default-features = false }
 
 - `Value` 和 `MultiValues` 提供类型化构造函数、类型化 getter、泛型修改、借用读取和明确
   的 unset 状态。
+- `view()` 提供运行时类型的借用视图，供适配器检查值，无需克隆字符串、map、JSON tree
+  或集合缓冲区。
 - `ValueContainer::Scalar` 和 `ValueContainer::Collection` 保留形态；单元素集合仍然是集合。
 - `get_or`/`to_or` 及其集合版本让 fallback 语义保持明确：未设置值可以使用默认值，类型不
   匹配和普通转换失败仍会报告错误。
@@ -166,6 +168,12 @@ Wire DTO 实现了 `Serialize`，但刻意不实现通用的 `Deserialize`：普
 只有多个嵌入值属于同一个外层请求预算时，才应复用 session。
 
 ## 延伸阅读
+
+0.12 将 `ValueMissing` 从 enum 改为保存缺失事实的对象。原先匹配其变体的代码应改用
+`reason()`、`source_type()`、`target_type()` 和 `source_index()`；判断是否回退时，使用
+严格读取或转换读取对应的 defaultability predicate。集合中的某项缺失，以及从具体空集合读取
+首项，仍然返回错误。`conversion_error()` 和 `Error::source` 保留原始转换错误。
+Wire V1、运行时类型 identity 和标量/集合形态保持不变。
 
 - [中文用户手册](doc/user_guide.zh_CN.md)
 - [架构与 Wire 设计](doc/design.zh_CN.md)

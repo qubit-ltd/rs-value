@@ -9,7 +9,7 @@ fields, or other values whose concrete type is known at runtime. It explains
 how to keep those values type-safe without forcing every caller to create a
 different ad-hoc enum.
 
-The guide covers `qubit-value` 0.11. It focuses on the value layer. It does not
+The guide covers `qubit-value` 0.12. It focuses on the value layer. It does not
 turn `qubit-value` into a configuration service, schema registry, or persistent
 database. For ready-made key-value containers built directly on `Value`, see
 [`rs-config`](https://github.com/qubit-ltd/rs-config) and
@@ -113,7 +113,7 @@ additional crates support the Wire and embedded-document sections.
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.11", features = ["all"] }
+qubit-value = { version = "0.12", features = ["all"] }
 qubit-datatype = { version = "0.12", default-features = false }
 qubit-budget = { version = "0.5", features = ["json"] }
 qubit-json = "0.9"
@@ -238,6 +238,14 @@ concrete empty collection remain distinguishable through `is_unset()` and
 
 ### Convert with explicit policy
 
+For adapters that must inspect runtime types, `Value::view()` returns
+`ValueRef` and `MultiValues::view()` returns `MultiValuesRef`. Strings, maps,
+JSON trees, and collection slices remain borrowed. The collection view offers
+`data_type()`, `len()`, `is_empty()`, and `get(index)`; an indexed item is an
+optional `ValueRef`, so no temporary owned `Value` is needed. Keep a wildcard
+arm when matching these non-exhaustive views. With `converter`, a `ValueRef`
+can be passed directly to `DataConverter`.
+
 With `converter`, `to` applies the shared `qubit-datatype` conversion contract.
 Use `to_with` when the default strict policy is not the policy the application
 wants.
@@ -259,6 +267,12 @@ assert_eq!(fallback, 8080);
 configured blank-as-missing behavior. It does not hide an ordinary type
 mismatch or invalid conversion. The full source/target matrix and policy
 details live in the [`qubit-datatype` API documentation](https://docs.rs/qubit-datatype/latest/qubit_datatype/).
+
+Default parameters use `IntoValueDefault<T>`: for example, a string literal can
+supply a `String` default without eagerly allocating it. Adaptation runs only
+when the read needs a fallback. A policy-missing collection item never defaults,
+including item zero in a first-item read; a concrete empty collection also
+cannot supply a first-item default.
 
 ### Preserve names without changing value semantics
 
@@ -460,8 +474,11 @@ array consumes one node. Input bytes count borrowed strings, map keys and values
 and JSON strings and keys. Output payload counts JSON strings, keys and number
 text, excluding punctuation, escaping, booleans and null encoding bytes.
 Big-number coefficient and scale limits are checked before formatting. Bounded
-temporary formatting and preflight add a traversal so final tree allocation
-occurs only after every limit check succeeds.
+measurement and preflight add a traversal so final tree allocation occurs only
+after every limit check succeeds. Source strings stay borrowed until the final
+JSON string allocation; rich formatted values are cached and reused, including
+Duration formatting through the shared session. Numeric measurement does not
+allocate an intermediate heap string.
 
 Projection budget errors use `ValueError::JsonProjectionLimit`, preserving the
 resource, exact budget facts and optional collection index. Ordinary conversion
@@ -555,6 +572,24 @@ the explicit `redact` view when the application has sensitive fields; ordinary
 
 ## Troubleshooting
 
+### Migrate missing-value handling from 0.11
+
+`ValueError::Missing` now carries a `ValueMissing` fact object with private
+fields, rather than a `ValueMissing` enum. Migrate consumers as follows:
+
+| Previous usage | Replacement | Behavior |
+| --- | --- | --- |
+| Match a `ValueMissing` variant | Inspect `reason()` or `is_unset()` / `is_empty_collection()` | Storage state stays separate from conversion provenance |
+| Treat every missing error as a default | Use `is_defaultable_for_strict_read()` or `is_defaultable_for_conversion()` | Empty first-item reads and missing collection items propagate errors |
+| Flatten a conversion-missing error into text | Retain the error and inspect `conversion_error()` / `Error::source` | Original conversion category and resource facts remain available |
+
+`source_type()` and `target_type()` describe the stored and requested types;
+`source_index()` identifies a failing collection item. Unknown source types
+remain `None`, for example with a generic empty conversion iterator. An unset
+conversion may satisfy both `is_unset()` and `is_conversion()`; these predicates
+answer different questions. Wire V1 and equality/hash semantics do not change
+with this API migration.
+
 ### `get<T>()` returns a type mismatch
 
 Inspect `value.data_type()` and use a typed getter when the source type must be
@@ -613,6 +648,10 @@ product. Two sibling crates build directly on it:
 
 Use these crates when you need key management and domain-level operations in
 addition to the typed storage and conversion primitives described here.
+
+Their read names have different contracts: `Config::get` converts according to
+the reader policy, while `Metadata::get` reads strictly and `Metadata::convert`
+requests conversion explicitly. Both reuse `IntoValueDefault` for defaults.
 
 ## Further reading
 

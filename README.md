@@ -103,7 +103,7 @@ Add the core crate and its type vocabulary to `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.11", features = ["converter"] }
+qubit-value = { version = "0.12", features = ["converter"] }
 qubit-datatype = { version = "0.12", default-features = false }
 ```
 
@@ -127,6 +127,8 @@ default feature set is empty; enable only the families you use:
 
 - `Value` and `MultiValues` have typed constructors, typed getters, generic
   mutation, borrowed reads, and explicit unset state.
+- `view()` exposes borrowed runtime variants for adapters that inspect values
+  without cloning strings, maps, JSON trees, or collection buffers.
 - `ValueContainer::Scalar` and `ValueContainer::Collection` preserve shape;
   a one-item collection remains a collection.
 - `get_or`/`to_or` and collection variants make fallback behavior explicit:
@@ -197,6 +199,14 @@ Wire operation; reuse a session only when several embedded values belong to the
 same outer request budget.
 
 ## Learn more
+
+Version 0.12 replaces the `ValueMissing` enum with a fact object. Inspect
+`reason()`, `source_type()`, `target_type()`, and `source_index()` instead of
+matching its old variants; use the strict/conversion defaultability predicates
+when deciding whether to fall back. Missing collection items and first-item
+reads from concrete empty collections remain errors. Original conversion errors
+remain available through `conversion_error()` and `Error::source`. Wire V1,
+runtime type identity, and scalar/collection shape remain unchanged.
 
 - [English user guide](doc/user_guide.md)
 - [Architecture and Wire design](doc/design.md)

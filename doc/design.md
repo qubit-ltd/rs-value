@@ -3,7 +3,7 @@
 [中文版](design.zh_CN.md) · [README](../README.md) · [User guide](user_guide.md) · [API documentation](https://docs.rs/qubit-value)
 
 This document records the architectural boundaries and compatibility rules for
-`qubit-value` 0.11. It is aimed at maintainers of this crate and authors of
+`qubit-value` 0.12. It is aimed at maintainers of this crate and authors of
 protocols or downstream crates that build on its value model.
 
 <a id="scope"></a>
@@ -69,6 +69,13 @@ borrowing non-copy payloads from the source. Copy-sized scalar values are
 projected by value; strings, large values, maps, JSON trees, and collection
 slices remain borrowed. Downstream matches must retain a wildcard arm because
 the borrowed-view enums may grow.
+
+The closed value table generates both views and their owned-to-borrowed
+dispatch. `MultiValuesRef` exposes `data_type`, `len`, `is_empty`, and indexed
+`get`, returning a `ValueRef` without building a temporary scalar container.
+With `converter`, `DataConverter` accepts `ValueRef` directly. This lets
+configuration Serde visitors convert original numeric types and borrow native
+collections without first materializing a Natural JSON tree.
 
 Wire ownership is also explicit:
 
@@ -161,6 +168,12 @@ JSON object keys for deterministic output, rejects non-finite floats, and
 applies one conversion budget across a complete projection. It cannot recover
 the original integer width, distinguish unset from concrete JSON null, or
 recover a declared type from JSON alone.
+
+Projection preparation borrows source text and admits it before allocating the
+final JSON string. Numeric measurement uses bounded formatting without a heap
+string; formatted rich values are cached for the final projection, so conversion
+is charged once. Preparation failure produces no usable partial result. These
+changes preserve the existing Natural JSON categories and resource limits.
 
 Wire JSON uses explicit version, shape, and type tags. The DTOs implement
 `Serialize`, but intentionally do not implement generic `Deserialize`.
@@ -277,6 +290,15 @@ Collection conversion errors retain the failing source index. Natural JSON
 projection limit errors retain the data type, optional collection index, and
 the measured resource facts.
 
+`ValueMissing` is a private-field fact object, classified by
+`ValueMissingReason`. It records source type, requested target type, optional
+source index, and the original conversion error when present. Storage
+classification and conversion provenance are independent: an unset read may
+still carry its original conversion failure. Callers use
+`is_defaultable_for_strict_read()` or `is_defaultable_for_conversion()` rather
+than assuming every missing result permits a fallback. A missing collection
+item and a first-item read from a concrete empty collection never default.
+
 Wire errors do not include raw input contents. Decode errors preserve safe
 location and category information. Both `ValueError` and Wire error enums are
 non-exhaustive where downstream code must tolerate future diagnostic variants;
@@ -287,7 +309,8 @@ downstream matches therefore need a fallback arm.
 
 `rs-config` uses `ValueContainer` as its property payload so configuration
 sources and readers preserve scalar-versus-collection shape. Strict reads use
-`StrictValueRead`; standalone property values use `ValueWireV1` or
+`StrictValueRead` at the value boundary; `Config::get` remains a converting
+read. Standalone property values use `ValueWireV1` or
 `ValueWireRefV1`. Before encoding a complete configuration, one
 `ValueWireEncodePreflight` accumulates conservative charges for all properties
 using the configuration's `u64` limit profile.
@@ -297,6 +320,11 @@ using the configuration's `u64` limit profile.
 and filter protocols. Its decoder uses `ValueWirePayloadV1Seed` so the outer
 document owns one decode session. Metadata and filter encoders likewise reuse
 one preflight checker across contained values.
+
+Metadata's `get` family uses strict reads, while its `convert` family requests
+conversion explicitly. Both downstream crates preserve `ValueError` sources
+and reuse `IntoValueDefault`; callers must not infer identical read semantics
+from the shared method name `get`.
 
 These integrations define the intended layering:
 

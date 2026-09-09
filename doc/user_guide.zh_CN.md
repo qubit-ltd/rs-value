@@ -8,7 +8,7 @@
 类型只能在运行时确定，但调用方仍需要明确类型、受控转换和可预期错误时，可以使用
 `qubit-value`。
 
-本手册适用于 `qubit-value` 0.11，介绍的是值容器层本身，不会把它扩展成配置服务、schema
+本手册适用于 `qubit-value` 0.12，介绍的是值容器层本身，不会把它扩展成配置服务、schema
 registry 或持久化数据库。需要基于 `Value` 实现的现成 key-value 容器时，请参阅文末的
 [`rs-config`](https://github.com/qubit-ltd/rs-config) 和
 [`rs-metadata`](https://github.com/qubit-ltd/rs-metadata)。
@@ -104,7 +104,7 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.11", features = ["all"] }
+qubit-value = { version = "0.12", features = ["all"] }
 qubit-datatype = { version = "0.12", default-features = false }
 qubit-budget = { version = "0.5", features = ["json"] }
 qubit-json = "0.9"
@@ -222,6 +222,12 @@ assert_eq!(first, 9000);
 
 ### 使用显式策略转换
 
+需要检查运行时类型的适配器可以使用 `Value::view()` 和 `MultiValues::view()`，分别获得
+`ValueRef` 和 `MultiValuesRef`。字符串、map、JSON tree 和集合 slice 都保持借用。
+集合视图提供 `data_type()`、`len()`、`is_empty()` 和 `get(index)`；按索引读取返回可选的
+`ValueRef`，无需构造临时 owned `Value`。匹配这些非穷尽视图时要保留 wildcard 分支。
+启用 `converter` 后，可以直接把 `ValueRef` 传给 `DataConverter`。
+
 启用 `converter` 后，`to` 使用 `qubit-datatype` 的共享转换契约。如果默认的严格策略不适合，
 使用 `to_with` 指定策略。
 
@@ -241,6 +247,10 @@ assert_eq!(fallback, 8080);
 如果转换策略将源值判定为缺失，例如配置了“空白即缺失”，`to_or` 也可以使用默认值；但它
 不会掩盖普通类型不匹配或非法转换。完整的源/目标矩阵和策略说明请参阅
 [`qubit-datatype` API 文档](https://docs.rs/qubit-datatype/latest/qubit_datatype/)。
+
+默认值参数使用 `IntoValueDefault<T>`，例如可直接用字符串字面量作为 `String` 的默认值，
+无需提前分配。适配仅在确实需要回退时执行。集合某项被策略判定为缺失时不会使用默认值，
+读取首项时的第零项也不例外；从具体空集合读取首项同样不能回退。
 
 ### 保留名称但不改变值语义
 
@@ -420,8 +430,9 @@ feature 同样提供投影接口。
 输入字节、输出载荷字节、结构节点和结构载荷限额；Duration 格式化使用一个共享转换会话。
 结构深度包含根节点，外层集合数组也占一个节点。输入字节计算借用字符串、map 键和值、
 JSON 字符串与键；输出载荷计算 JSON 字符串、键和数字文本，不计算标点、转义、布尔值或
-null 的编码字节。大数在格式化前检查系数和 scale 限额。有界临时格式化与预检查会增加
-一次遍历，以确保最终树的分配发生在所有限额检查之后。
+null 的编码字节。大数在格式化前检查系数和 scale 限额。有界测量与预检查会增加一次遍历，
+以确保最终树的分配发生在所有限额检查之后。源字符串一直借用到最终 JSON string 分配；
+富类型的格式化结果缓存复用，Duration 也只通过共享会话格式化一次。数字测量不分配临时堆字符串。
 
 投影预算错误使用 `ValueError::JsonProjectionLimit`，保留资源、实际预算事实和可选集合
 索引；普通转换错误仍保留原有类型。每次调用使用新预算。需要限制最终编码字节时，请使用
@@ -507,6 +518,22 @@ assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
 
 ## 排障
 
+### 从 0.11 迁移缺失值处理
+
+`ValueError::Missing` 现在携带私有字段的 `ValueMissing` 事实对象，`ValueMissing` 不再是
+enum。调用方按下表迁移：
+
+| 原用法 | 新用法 | 行为 |
+| --- | --- | --- |
+| 匹配 `ValueMissing` 变体 | 检查 `reason()` 或 `is_unset()` / `is_empty_collection()` | 存储状态与转换来源分别保留 |
+| 对所有 missing 使用默认值 | 使用 `is_defaultable_for_strict_read()` 或 `is_defaultable_for_conversion()` | 空集合首项和集合某项缺失继续报错 |
+| 把转换 missing 压成文本 | 保留错误，检查 `conversion_error()` / `Error::source` | 保留原始转换类别和资源事实 |
+
+`source_type()` 和 `target_type()` 描述存储类型与请求类型，`source_index()` 标识失败的集合
+元素。无法得知源类型时保留 `None`，例如泛型转换接收空迭代器的情况。unset 转换可能同时满足
+`is_unset()` 和 `is_conversion()`，因为二者回答不同问题。这次 API 迁移不改变 Wire V1
+或相等/hash 语义。
+
 ### `get<T>()` 返回类型不匹配
 
 检查 `value.data_type()`，当源类型必须完全一致时使用类型化 getter。如果确实需要转换，启用
@@ -555,6 +582,9 @@ assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
   元数据和属性值，以及过滤和查询场景。
 
 除了类型化存储和转换原语之外，还需要 key 管理和领域操作时，应使用这些 crate。
+
+两者的读取契约不同：`Config::get` 按 reader 策略转换，`Metadata::get` 严格读取，
+`Metadata::convert` 显式请求转换；默认值都复用 `IntoValueDefault`。
 
 ## 延伸阅读
 

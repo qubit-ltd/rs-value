@@ -2,7 +2,7 @@
 
 [English version](design.md) · [README](../README.zh_CN.md) · [用户手册](user_guide.zh_CN.md) · [API 文档](https://docs.rs/qubit-value)
 
-本文记录 `qubit-value` 0.11 的架构边界与兼容性规则，面向本 crate 的维护者，以及基于这套
+本文记录 `qubit-value` 0.12 的架构边界与兼容性规则，面向本 crate 的维护者，以及基于这套
 值模型设计协议或下游 crate 的开发者。
 
 <a id="scope"></a>
@@ -53,6 +53,11 @@ DTO 都由该表驱动，因此两组容器能够保持一致，而生成的存�
 `MultiValuesRef<'_>`。这两个 `non_exhaustive` enum 提供语义化变体，同时从源对象借用非
 copy payload。可复制的标量按值投影；字符串、大值、map、JSON tree 和集合 slice 继续保持
 借用。由于借用视图未来可以扩展，下游 match 必须保留 wildcard 分支。
+
+两个视图及 owned-to-borrowed 分派都由封闭的 value table 生成。`MultiValuesRef` 提供
+`data_type`、`len`、`is_empty` 和按索引读取的 `get`，直接返回 `ValueRef`，不构造临时标量容器。
+启用 `converter` 时，`DataConverter` 可直接接收 `ValueRef`。配置 Serde visitor 因而能保留原始
+数值类型并借用原生集合，无需先物化一棵自然 JSON tree。
 
 Wire 层同样明确区分所有权：
 
@@ -129,6 +134,10 @@ JSON 相等与 hash 使用迭代遍历，避免递归调用。带 budget 的 has
 自然 JSON 将运行时值投影成 `serde_json::Value`。它会排序字符串 map 和 JSON object 的 key，
 以得到确定输出；同时拒绝非有限浮点，并对完整投影使用同一 conversion budget。仅凭 JSON 无法
 恢复原整数宽度、区分 unset 与具体 JSON null，或恢复声明类型。
+
+投影准备阶段借用源文本，完成准入后才分配最终 JSON string。数字测量使用有界格式化，
+不分配临时堆字符串；需要格式化的富类型缓存结果供最终投影复用，使转换只记账一次。
+准备失败不会产生可用的部分结果。这些优化保持原有自然 JSON 类别和资源限制。
 
 Wire JSON 使用明确的版本、shape 和类型 tag。DTO 实现 `Serialize`，但刻意不实现通用
 `Deserialize`。完整的不可信 JSON 文档必须通过有界 decode helper 读取；嵌入式 payload 应在
@@ -227,6 +236,12 @@ feature 的 decoder 会拒绝 payload，而不会强制转换成其他类型。�
 转换错误保留失败的源 index；自然 JSON 投影限额错误保留 data type、可选集合 index，以及
 实际测得的资源信息。
 
+`ValueMissing` 使用私有字段保存事实，由 `ValueMissingReason` 分类，同时记录源类型、请求的
+目标类型、可选源索引和原始转换错误。存储分类与转换来源彼此独立：unset 读取也可能携带原始
+转换失败。调用方应使用 `is_defaultable_for_strict_read()` 或
+`is_defaultable_for_conversion()` 决定是否回退，不能认为所有 missing 都允许默认值。
+集合某项缺失，以及从具体空集合读取首项，都不允许回退。
+
 Wire 错误不包含原始输入内容；decode 错误只保留安全的位置和类别信息。`ValueError` 和 Wire
 错误 enum 在需要允许未来增加诊断变体时使用 `non_exhaustive`，下游 match 因此必须有 fallback
 分支。
@@ -235,7 +250,8 @@ Wire 错误不包含原始输入内容；decode 错误只保留安全的位置�
 ## 下游集成
 
 `rs-config` 使用 `ValueContainer` 保存属性 payload，使配置源和 reader 能够保留标量/集合
-形态。严格读取使用 `StrictValueRead`，独立属性值使用 `ValueWireV1` 或 `ValueWireRefV1`。
+形态。值层严格读取使用 `StrictValueRead`；`Config::get` 仍是转换读取。
+独立属性值使用 `ValueWireV1` 或 `ValueWireRefV1`。
 完整配置编码前，同一个 `ValueWireEncodePreflight` 使用配置的 `u64` 限额 profile，为所有属性
 累计保守费用。
 
@@ -243,6 +259,9 @@ Wire 错误不包含原始输入内容；decode 错误只保留安全的位置�
 `ValueWirePayloadRefV1` 嵌入自己的带版本 metadata 和 filter 协议。decoder 使用
 `ValueWirePayloadV1Seed`，让外层文档持有唯一 decode session；metadata 与 filter encoder
 同样会在多个内部值之间复用一个 preflight checker。
+
+Metadata 的 `get` 系列执行严格读取，`convert` 系列显式请求转换。两个下游都保留
+`ValueError` 错误来源，并复用 `IntoValueDefault`；不能因为方法同名 `get` 就认为读取语义相同。
 
 这些集成体现了预期分层：
 
