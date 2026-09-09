@@ -180,6 +180,18 @@ macro_rules! impl_value_constructors {
     };
 }
 
+/// Borrows owned storage through the shared type table.
+macro_rules! owned_view_match {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
+        match &$value.repr {
+            ValueRepr::Unset(data_type) => ValueRef::Unset(*data_type),
+            $($(#[$cfg])* ValueRepr::$variant(value) => ValueRef::$variant(
+                value_view_payload!($variant, $number_projection, value_storage_ref!($variant, value))
+            ),)+
+        }
+    };
+}
+
 for_each_value_type!(impl_value_constructors);
 
 impl Value {
@@ -275,42 +287,7 @@ impl Value {
     #[must_use = "the borrowed value view should be used"]
     #[inline(always)]
     pub fn view(&self) -> ValueRef<'_> {
-        match &self.repr {
-            ValueRepr::Unset(data_type) => ValueRef::Unset(*data_type),
-            ValueRepr::Bool(value) => ValueRef::Bool(*value),
-            ValueRepr::Char(value) => ValueRef::Char(*value),
-            ValueRepr::Int8(value) => ValueRef::Int8(*value),
-            ValueRepr::Int16(value) => ValueRef::Int16(*value),
-            ValueRepr::Int32(value) => ValueRef::Int32(*value),
-            ValueRepr::Int64(value) => ValueRef::Int64(*value),
-            ValueRepr::Int128(value) => ValueRef::Int128(*value),
-            ValueRepr::UInt8(value) => ValueRef::UInt8(*value),
-            ValueRepr::UInt16(value) => ValueRef::UInt16(*value),
-            ValueRepr::UInt32(value) => ValueRef::UInt32(*value),
-            ValueRepr::UInt64(value) => ValueRef::UInt64(*value),
-            ValueRepr::UInt128(value) => ValueRef::UInt128(*value),
-            ValueRepr::Float32(value) => ValueRef::Float32(*value),
-            ValueRepr::Float64(value) => ValueRef::Float64(*value),
-            #[cfg(feature = "big-integer")]
-            ValueRepr::BigInteger(value) => ValueRef::BigInteger(value),
-            #[cfg(feature = "big-decimal")]
-            ValueRepr::BigDecimal(value) => ValueRef::BigDecimal(value),
-            ValueRepr::String(value) => ValueRef::String(value),
-            #[cfg(feature = "chrono")]
-            ValueRepr::Date(value) => ValueRef::Date(value),
-            #[cfg(feature = "chrono")]
-            ValueRepr::Time(value) => ValueRef::Time(value),
-            #[cfg(feature = "chrono")]
-            ValueRepr::DateTime(value) => ValueRef::DateTime(value),
-            #[cfg(feature = "chrono")]
-            ValueRepr::Instant(value) => ValueRef::Instant(value),
-            ValueRepr::Duration(value) => ValueRef::Duration(value),
-            #[cfg(feature = "url")]
-            ValueRepr::Url(value) => ValueRef::Url(value.as_ref()),
-            ValueRepr::StringMap(value) => ValueRef::StringMap(value),
-            #[cfg(feature = "json")]
-            ValueRepr::Json(value) => ValueRef::Json(value),
-        }
+        for_each_value_type!(owned_view_match, self)
     }
 }
 
@@ -501,7 +478,9 @@ impl Value {
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -533,7 +512,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => Ok(default()),
             result => result,
         }
     }
@@ -1034,9 +1013,7 @@ macro_rules! impl_get_value {
             match &self.repr {
                 ValueRepr::$variant(v) => Ok(*v),
                 ValueRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::Missing($crate::ValueMissing::UnsetScalar {
-                        data_type: *dt,
-                    }))
+                    Err(ValueError::Missing($crate::ValueMissing::unset_scalar(*dt, *dt)))
                 }
                 ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                     expected: $data_type,
@@ -1069,9 +1046,7 @@ macro_rules! impl_get_value {
                     Ok(conv_fn(v))
                 },
                 ValueRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::Missing($crate::ValueMissing::UnsetScalar {
-                        data_type: *dt,
-                    }))
+                    Err(ValueError::Missing($crate::ValueMissing::unset_scalar(*dt, *dt)))
                 }
                 ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                     expected: $data_type,
@@ -1462,7 +1437,7 @@ impl Value {
         match &self.repr {
             ValueRepr::BigInteger(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigInteger => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
+                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigInteger,
@@ -1493,7 +1468,7 @@ impl Value {
         match &self.repr {
             ValueRepr::BigDecimal(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::BigDecimal => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
+                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::BigDecimal,
@@ -1524,7 +1499,7 @@ impl Value {
         match &self.repr {
             ValueRepr::Url(v) => Ok(v.as_ref()),
             ValueRepr::Unset(dt) if *dt == DataType::Url => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
+                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Url,
@@ -1554,7 +1529,7 @@ impl Value {
         match &self.repr {
             ValueRepr::StringMap(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::StringMap => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
+                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::StringMap,
@@ -1585,7 +1560,7 @@ impl Value {
         match &self.repr {
             ValueRepr::Json(v) => Ok(v),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
+                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,
@@ -1629,7 +1604,7 @@ impl Value {
                 ))
             }),
             ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *dt }))
+                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
             }
             ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
                 expected: DataType::Json,

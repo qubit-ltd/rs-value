@@ -165,6 +165,18 @@ macro_rules! impl_multi_values_constructors {
     };
 }
 
+/// Borrows owned storage through the shared type table.
+macro_rules! owned_view_match {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
+        match &$value.repr {
+            MultiValuesRepr::Unset(data_type) => MultiValuesRef::Unset(*data_type),
+            $($(#[$cfg])* MultiValuesRepr::$variant(value) => MultiValuesRef::$variant(
+                value.as_slice()
+            ),)+
+        }
+    };
+}
+
 for_each_value_type!(impl_multi_values_constructors);
 
 impl MultiValues {
@@ -274,42 +286,7 @@ impl MultiValues {
     #[must_use = "the borrowed collection view should be used"]
     #[inline(always)]
     pub fn view(&self) -> MultiValuesRef<'_> {
-        match &self.repr {
-            MultiValuesRepr::Unset(data_type) => MultiValuesRef::Unset(*data_type),
-            MultiValuesRepr::Bool(values) => MultiValuesRef::Bool(values),
-            MultiValuesRepr::Char(values) => MultiValuesRef::Char(values),
-            MultiValuesRepr::Int8(values) => MultiValuesRef::Int8(values),
-            MultiValuesRepr::Int16(values) => MultiValuesRef::Int16(values),
-            MultiValuesRepr::Int32(values) => MultiValuesRef::Int32(values),
-            MultiValuesRepr::Int64(values) => MultiValuesRef::Int64(values),
-            MultiValuesRepr::Int128(values) => MultiValuesRef::Int128(values),
-            MultiValuesRepr::UInt8(values) => MultiValuesRef::UInt8(values),
-            MultiValuesRepr::UInt16(values) => MultiValuesRef::UInt16(values),
-            MultiValuesRepr::UInt32(values) => MultiValuesRef::UInt32(values),
-            MultiValuesRepr::UInt64(values) => MultiValuesRef::UInt64(values),
-            MultiValuesRepr::UInt128(values) => MultiValuesRef::UInt128(values),
-            MultiValuesRepr::Float32(values) => MultiValuesRef::Float32(values),
-            MultiValuesRepr::Float64(values) => MultiValuesRef::Float64(values),
-            #[cfg(feature = "big-integer")]
-            MultiValuesRepr::BigInteger(values) => MultiValuesRef::BigInteger(values),
-            #[cfg(feature = "big-decimal")]
-            MultiValuesRepr::BigDecimal(values) => MultiValuesRef::BigDecimal(values),
-            MultiValuesRepr::String(values) => MultiValuesRef::String(values),
-            #[cfg(feature = "chrono")]
-            MultiValuesRepr::Date(values) => MultiValuesRef::Date(values),
-            #[cfg(feature = "chrono")]
-            MultiValuesRepr::Time(values) => MultiValuesRef::Time(values),
-            #[cfg(feature = "chrono")]
-            MultiValuesRepr::DateTime(values) => MultiValuesRef::DateTime(values),
-            #[cfg(feature = "chrono")]
-            MultiValuesRepr::Instant(values) => MultiValuesRef::Instant(values),
-            MultiValuesRepr::Duration(values) => MultiValuesRef::Duration(values),
-            #[cfg(feature = "url")]
-            MultiValuesRepr::Url(values) => MultiValuesRef::Url(values),
-            MultiValuesRepr::StringMap(values) => MultiValuesRef::StringMap(values),
-            #[cfg(feature = "json")]
-            MultiValuesRepr::Json(values) => MultiValuesRef::Json(values),
-        }
+        for_each_value_type!(owned_view_match, self)
     }
 }
 
@@ -343,9 +320,7 @@ macro_rules! impl_get_multi_values {
             match &self.repr {
                 MultiValuesRepr::$variant(v) => Ok(v),
                 MultiValuesRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::Missing($crate::ValueMissing::UnsetCollection {
-                        data_type: *dt,
-                    }))
+                    Err(ValueError::Missing($crate::ValueMissing::unset_collection(*dt, *dt)))
                 }
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
@@ -371,9 +346,7 @@ macro_rules! impl_get_multi_values {
             match &self.repr {
                 MultiValuesRepr::$variant(v) => Ok(v.as_slice()),
                 MultiValuesRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::Missing($crate::ValueMissing::UnsetCollection {
-                        data_type: *dt,
-                    }))
+                    Err(ValueError::Missing($crate::ValueMissing::unset_collection(*dt, *dt)))
                 }
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
@@ -409,14 +382,10 @@ macro_rules! impl_get_first_value {
             match &self.repr {
                 MultiValuesRepr::$variant(v) if !v.is_empty() => Ok(v[0]),
                 MultiValuesRepr::$variant(_) => {
-                    Err(ValueError::Missing($crate::ValueMissing::EmptyCollection {
-                        data_type: $data_type,
-                    }))
+                    Err(ValueError::Missing($crate::ValueMissing::empty_collection($data_type, $data_type)))
                 }
                 MultiValuesRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::Missing($crate::ValueMissing::UnsetCollection {
-                        data_type: *dt,
-                    }))
+                    Err(ValueError::Missing($crate::ValueMissing::unset_collection(*dt, *dt)))
                 }
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
@@ -444,14 +413,10 @@ macro_rules! impl_get_first_value {
                     Ok(conv_fn(&v[0]))
                 },
                 MultiValuesRepr::$variant(_) => {
-                    Err(ValueError::Missing($crate::ValueMissing::EmptyCollection {
-                        data_type: $data_type,
-                    }))
+                    Err(ValueError::Missing($crate::ValueMissing::empty_collection($data_type, $data_type)))
                 }
                 MultiValuesRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::Missing($crate::ValueMissing::UnsetCollection {
-                        data_type: *dt,
-                    }))
+                    Err(ValueError::Missing($crate::ValueMissing::unset_collection(*dt, *dt)))
                 }
                 _ => Err(ValueError::TypeMismatch {
                     expected: $data_type,
@@ -730,7 +695,9 @@ impl MultiValues {
         for<'a> Vec<T>: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -765,7 +732,7 @@ impl MultiValues {
         F: FnOnce() -> Vec<T>,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => Ok(default()),
             result => result,
         }
     }
@@ -850,7 +817,9 @@ impl MultiValues {
         for<'a> T: TryFrom<&'a Self, Error = ValueError>,
     {
         match self.get_first() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default.into_value_default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => {
+                Ok(default.into_value_default())
+            }
             result => result,
         }
     }
@@ -882,7 +851,7 @@ impl MultiValues {
         F: FnOnce() -> T,
     {
         match self.get_first() {
-            Err(ValueError::Missing(missing)) if missing.is_unset() => Ok(default()),
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => Ok(default()),
             result => result,
         }
     }
@@ -1388,6 +1357,23 @@ where
 
 #[cfg(feature = "converter")]
 impl MultiValues {
+    /// Enriches only missing failures after conversion, retaining
+    /// resource-error priority.
+    fn contextual_conversion_error(&self, error: ValueError, first: bool) -> ValueError {
+        let ValueError::Missing(missing) = error else {
+            return error;
+        };
+        let reason = if self.is_unset() {
+            crate::ValueMissingReason::UnsetCollection
+        } else if self.is_empty() {
+            crate::ValueMissingReason::EmptyCollection
+        } else {
+            crate::ValueMissingReason::Conversion
+        };
+        let missing = missing.with_storage(self.data_type(), reason);
+        ValueError::Missing(if first { missing.with_first_index() } else { missing })
+    }
+
     /// Converts the first stored value to `T`.
     ///
     /// Unlike [`Self::get_first`], this method uses shared `DataConverter`
@@ -1514,6 +1500,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         for_each_value_type!(multi_values_convert_first_match, self, policy, limits)
+            .map_err(|error| self.contextual_conversion_error(error, true))
     }
 
     /// Converts the first stored value using an existing conversion session.
@@ -1539,6 +1526,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         for_each_value_type!(multi_values_convert_first_in_match, self, session)
+            .map_err(|error| self.contextual_conversion_error(error, true))
     }
 
     /// Converts the first stored value to `T` using conversion policy and
@@ -1743,6 +1731,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         for_each_value_type!(multi_values_convert_list_match, self, policy, limits)
+            .map_err(|error| self.contextual_conversion_error(error, false))
     }
 
     /// Converts every stored value using an existing conversion session.
@@ -1767,6 +1756,7 @@ impl MultiValues {
         T: DataConversionTarget,
     {
         for_each_value_type!(multi_values_convert_list_in_match, self, session)
+            .map_err(|error| self.contextual_conversion_error(error, false))
     }
 
     /// Converts all stored values to `T` using conversion policy and limits, or

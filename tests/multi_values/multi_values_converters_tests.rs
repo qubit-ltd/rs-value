@@ -12,7 +12,7 @@ use qubit_datatype::InvalidValueReason;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueError;
-use qubit_value::ValueMissing;
+use qubit_value::ValueMissingReason;
 
 #[test]
 fn test_multi_values_converters_convert_first_list_and_value() {
@@ -47,10 +47,12 @@ fn test_multi_values_empty_conversion_preserves_conversion_semantics() {
         .to_first::<i32>()
         .expect_err("empty collection has no first converted value");
 
-    let ValueError::Missing(ValueMissing::EmptyCollectionConversion { to }) = error else {
+    let ValueError::Missing(missing) = error else {
         panic!("expected an empty collection conversion error");
     };
-    assert_eq!(to, DataType::Int32);
+    assert_eq!(missing.reason(), ValueMissingReason::EmptyCollection);
+    assert_eq!(missing.source_type(), Some(DataType::String));
+    assert_eq!(missing.target_type(), Some(DataType::Int32));
 }
 
 macro_rules! assert_multi_values_identity_conversion {

@@ -47,9 +47,7 @@ macro_rules! impl_value_try_from_table {
                             Ok(materialize_value_storage!($variant, $materialization, value))
                         }
                         ValueRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                                data_type: *actual,
-                            }))
+                            Err(ValueError::Missing(ValueMissing::unset_scalar(*actual, *actual)))
                         }
                         _ => Err(ValueError::TypeMismatch {
                             expected: $data_type,
@@ -93,7 +91,7 @@ macro_rules! impl_value_borrowed_try_from_table {
                     match &value.repr {
                         ValueRepr::$variant(value) => Ok(value_storage_ref!($variant, value)),
                         ValueRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *actual }))
+                            Err(ValueError::Missing(ValueMissing::unset_scalar(*actual, *actual)))
                         }
                         _ => Err(ValueError::TypeMismatch {
                             expected: $data_type,
@@ -112,7 +110,7 @@ macro_rules! impl_value_borrowed_try_from_table {
                     match value.repr {
                         ValueRepr::$variant(value) => Ok(move_value_storage!($variant, value)),
                         ValueRepr::Unset(actual) if actual == $data_type => {
-                            Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: actual }))
+                            Err(ValueError::Missing(ValueMissing::unset_scalar(actual, actual)))
                         }
                         other => Err(ValueError::TypeMismatch {
                             expected: $data_type,
@@ -135,7 +133,7 @@ impl<'a> TryFrom<&'a Value> for &'a str {
         match &value.repr {
             ValueRepr::String(value) => Ok(value.as_str()),
             ValueRepr::Unset(actual) if *actual == DataType::String => {
-                Err(ValueError::Missing(ValueMissing::UnsetScalar { data_type: *actual }))
+                Err(ValueError::Missing(ValueMissing::unset_scalar(*actual, *actual)))
             }
             _ => Err(ValueError::TypeMismatch {
                 expected: DataType::String,

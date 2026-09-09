@@ -26,7 +26,7 @@ use qubit_datatype::NumericConversionPolicy;
 use qubit_datatype::StringConversionPolicy;
 use qubit_value::Value;
 use qubit_value::ValueError;
-use qubit_value::ValueMissing;
+use qubit_value::ValueMissingReason;
 
 #[test]
 fn test_value_type_conversion() {
@@ -143,7 +143,7 @@ fn test_value_to_with_applies_common_conversion_policy() {
     let blank = Value::String("   ".to_string()).to_with::<String>(&policy, ConversionLimits::default_ref());
     assert!(matches!(
         blank,
-        Err(ValueError::Missing(ValueMissing::Conversion { .. }))
+        Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::Conversion
     ));
     assert_eq!(
         Value::String("   ".to_string())
@@ -224,7 +224,7 @@ fn test_value_as_bool_all_branches() {
     let value = Value::Unset(DataType::Bool);
     assert!(matches!(
         value.to::<bool>(),
-        Err(ValueError::Missing(ValueMissing::Conversion { .. }))
+        Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::UnsetScalar
     ));
 
     // Test unsupported type conversions
@@ -277,7 +277,7 @@ fn test_value_as_int32_all_branches() {
     let value = Value::Unset(DataType::Int32);
     assert!(matches!(
         value.to::<i32>(),
-        Err(ValueError::Missing(ValueMissing::Conversion { .. }))
+        Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::UnsetScalar
     ));
 
     // Test Bool to i32 conversion
@@ -350,7 +350,7 @@ fn test_value_as_int64_all_branches() {
     let value = Value::Unset(DataType::Int64);
     assert!(matches!(
         value.to::<i64>(),
-        Err(ValueError::Missing(ValueMissing::Conversion { .. }))
+        Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::UnsetScalar
     ));
 }
 #[test]
@@ -382,7 +382,7 @@ fn test_value_as_float64_all_branches() {
     let value = Value::Unset(DataType::Float64);
     assert!(matches!(
         value.to::<f64>(),
-        Err(ValueError::Missing(ValueMissing::Conversion { .. }))
+        Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::UnsetScalar
     ));
 
     // Test Bool to f64 conversion
@@ -436,7 +436,7 @@ fn test_value_as_string_all_types() {
     let value = Value::Unset(DataType::String);
     assert!(matches!(
         value.to::<String>(),
-        Err(ValueError::Missing(ValueMissing::Conversion { .. }))
+        Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::UnsetScalar
     ));
 }
 #[test]
@@ -2026,6 +2026,6 @@ fn test_narrow_signed_integer_converters_reject_invalid_values() {
     ));
     assert!(matches!(
         Value::Unset(DataType::Int128).to::<i128>(),
-        Err(ValueError::Missing(ValueMissing::Conversion { .. }))
+        Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::UnsetScalar
     ));
 }

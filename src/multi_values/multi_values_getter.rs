@@ -46,13 +46,9 @@ macro_rules! impl_multi_values_try_from_table {
                         MultiValuesRepr::$variant(values) => values
                             .first()
                             .map(|value| materialize_stored!($materialization, value))
-                            .ok_or(ValueError::Missing(ValueMissing::EmptyCollection {
-                                data_type: $data_type,
-                            })),
+                            .ok_or(ValueError::Missing(ValueMissing::empty_collection($data_type, $data_type))),
                         MultiValuesRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::Missing(ValueMissing::UnsetCollection {
-                                data_type: *actual,
-                            }))
+                            Err(ValueError::Missing(ValueMissing::unset_collection(*actual, *actual)))
                         }
                         _ => Err(ValueError::TypeMismatch {
                             expected: $data_type,
@@ -74,9 +70,7 @@ macro_rules! impl_multi_values_try_from_table {
                             .map(|value| materialize_stored!($materialization, value))
                             .collect()),
                         MultiValuesRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::Missing(ValueMissing::UnsetCollection {
-                                data_type: *actual,
-                            }))
+                            Err(ValueError::Missing(ValueMissing::unset_collection(*actual, *actual)))
                         }
                         _ => Err(ValueError::TypeMismatch {
                             expected: $data_type,
@@ -119,10 +113,10 @@ macro_rules! impl_multi_values_borrowed_and_owned_table {
                 fn try_from(values: &'a MultiValues) -> ValueResult<Self> {
                     match &values.repr {
                         MultiValuesRepr::$variant(values) => values.first().ok_or(
-                            ValueError::Missing(ValueMissing::EmptyCollection { data_type: $data_type }),
+                            ValueError::Missing(ValueMissing::empty_collection($data_type, $data_type)),
                         ),
                         MultiValuesRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::Missing(ValueMissing::UnsetCollection { data_type: *actual }))
+                            Err(ValueError::Missing(ValueMissing::unset_collection(*actual, *actual)))
                         }
                         _ => Err(ValueError::TypeMismatch {
                             expected: $data_type,
@@ -141,7 +135,7 @@ macro_rules! impl_multi_values_borrowed_and_owned_table {
                     match &values.repr {
                         MultiValuesRepr::$variant(values) => Ok(values.as_slice()),
                         MultiValuesRepr::Unset(actual) if *actual == $data_type => {
-                            Err(ValueError::Missing(ValueMissing::UnsetCollection { data_type: *actual }))
+                            Err(ValueError::Missing(ValueMissing::unset_collection(*actual, *actual)))
                         }
                         _ => Err(ValueError::TypeMismatch {
                             expected: $data_type,
@@ -160,7 +154,7 @@ macro_rules! impl_multi_values_borrowed_and_owned_table {
                     match values.repr {
                         MultiValuesRepr::$variant(values) => Ok(values),
                         MultiValuesRepr::Unset(actual) if actual == $data_type => {
-                            Err(ValueError::Missing(ValueMissing::UnsetCollection { data_type: actual }))
+                            Err(ValueError::Missing(ValueMissing::unset_collection(actual, actual)))
                         }
                         other => {
                             let actual = MultiValues { repr: other }.data_type();
@@ -185,14 +179,13 @@ impl<'a> TryFrom<&'a MultiValues> for &'a str {
                 values
                     .first()
                     .map(String::as_str)
-                    .ok_or(ValueError::Missing(ValueMissing::EmptyCollection {
-                        data_type: DataType::String,
-                    }))
+                    .ok_or(ValueError::Missing(ValueMissing::empty_collection(
+                        DataType::String,
+                        DataType::String,
+                    )))
             }
             MultiValuesRepr::Unset(actual) if *actual == DataType::String => {
-                Err(ValueError::Missing(ValueMissing::UnsetCollection {
-                    data_type: *actual,
-                }))
+                Err(ValueError::Missing(ValueMissing::unset_collection(*actual, *actual)))
             }
             _ => Err(ValueError::TypeMismatch {
                 expected: DataType::String,

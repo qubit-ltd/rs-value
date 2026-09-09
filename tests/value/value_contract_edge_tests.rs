@@ -52,9 +52,7 @@ fn test_value_get_ref_matches_owned_strict_reads() {
     assert_eq!(value.get_ref::<str>().expect("string should borrow"), "borrowed");
     assert!(matches!(
         Value::new_unset(DataType::Int32).get_ref::<i32>(),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::Int32,
-        }))
+        Err(ValueError::Missing(ref missing)) if *missing == ValueMissing::unset_scalar(DataType::Int32, DataType::Int32)
     ));
 }
 

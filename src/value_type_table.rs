@@ -116,7 +116,6 @@ macro_rules! value_storage_ref {
 }
 
 /// Projects a table row into the payload type used by a borrowed view.
-#[allow(unused_macros)]
 macro_rules! value_view_payload_type {
     (Bool, $projection:ident, $lt:lifetime, $ty:ty) => { bool };
     (Char, $projection:ident, $lt:lifetime, $ty:ty) => { char };
@@ -126,7 +125,6 @@ macro_rules! value_view_payload_type {
 }
 
 /// Projects table storage into the corresponding borrowed-view payload.
-#[allow(unused_macros)]
 macro_rules! value_view_payload {
     (Bool, $projection:ident, $value:expr) => {
         *$value
@@ -136,9 +134,6 @@ macro_rules! value_view_payload {
     };
     (String, $projection:ident, $value:expr) => {
         $value.as_str()
-    };
-    (Url, $projection:ident, $value:expr) => {
-        $value.as_ref()
     };
     ($variant:ident, number_copy, $value:expr) => {
         *$value

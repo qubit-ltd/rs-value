@@ -11,12 +11,6 @@
 use std::str::FromStr;
 
 use qubit_budget::json::JsonMeasurement;
-
-mod json_children;
-mod projection_budget;
-
-use json_children::JsonChildren;
-use projection_budget::ProjectionBudget;
 use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataConversionError;
@@ -24,165 +18,27 @@ use qubit_datatype::DataConverter;
 use qubit_datatype::DataListConversionError;
 use qubit_datatype::DataType;
 use qubit_datatype::InvalidValueReason;
-use serde_json::Map;
 use serde_json::Number;
 use serde_json::Value as JsonValue;
 
 use crate::MultiValues;
+use crate::MultiValuesRef;
 use crate::Value;
 use crate::ValueContainer;
 use crate::ValueError;
+use crate::ValueRef;
 use crate::ValueResult;
-use crate::multi_values::MultiValuesRepr;
-use crate::value::ValueRepr;
 
-/// Converts a finite float to a JSON number.
-///
-/// # Parameters
-///
-/// * `value` - Finite floating-point value to convert.
-/// * `from` - Runtime type of `value` for conversion diagnostics.
-///
-/// # Returns
-///
-/// The corresponding JSON number.
-///
-/// # Errors
-///
-/// Returns [`DataConversionError`] when `value` is NaN or infinite.
-fn finite_float64(value: f64, from: DataType) -> Result<JsonValue, DataConversionError> {
-    Number::from_f64(value)
-        .map(JsonValue::Number)
-        .ok_or(DataConversionError::invalid(
-            from,
-            DataType::Json,
-            InvalidValueReason::NonFinite,
-        ))
-}
+mod json_children;
+mod measurement_writer;
+mod prepared_projection;
+mod prepared_scalar;
+mod projection_budget;
 
-/// Converts a finite 32-bit float to a JSON number without widening its text.
-///
-/// # Parameters
-///
-/// * `value` - Finite floating-point value to convert.
-/// * `from` - Runtime type of `value` for conversion diagnostics.
-///
-/// # Returns
-///
-/// The corresponding JSON number with the source `f32` textual precision.
-///
-/// # Errors
-///
-/// Returns [`DataConversionError`] when `value` is NaN or infinite.
-fn finite_float32(value: f32, from: DataType) -> Result<JsonValue, DataConversionError> {
-    // Use f32 display output as input here to keep float32 textual precision
-    // stable. Converting through `f64` first can emit a longer/altered decimal
-    // representation, which changes natural JSON bytes for the same `f32`
-    // value.
-    Number::from_str(&value.to_string())
-        .map(JsonValue::Number)
-        .map_err(|_| DataConversionError::invalid(from, DataType::Json, InvalidValueReason::NonFinite))
-}
-
-/// Projects one scalar storage payload into its natural JSON representation.
-macro_rules! scalar_to_json {
-    (json_bool, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
-        Ok(JsonValue::Bool(*$value))
-    };
-    (json_number, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
-        Ok(JsonValue::from(*$value))
-    };
-    (json_float32, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
-        finite_float32(*$value, $from)
-    };
-    (json_float64, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
-        finite_float64(*$value as f64, $from)
-    };
-    (json_string, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
-        Ok(JsonValue::String($value.to_string()))
-    };
-    (json_duration, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
-        DataConverter::from(*$value)
-            .to_with::<String>($policy, $limits)
-            .map(JsonValue::String)
-    };
-    (json_object, $value:expr, $from:expr, $policy:expr, $limits:expr) => {{
-        let mut entries: Vec<_> = $value.iter().collect();
-        entries.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
-        let mut object = Map::with_capacity(entries.len());
-        for (key, value) in entries {
-            object.insert(key.clone(), JsonValue::String(value.clone()));
-        }
-        Ok(JsonValue::Object(object))
-    }};
-    (json_identity, $value:expr, $from:expr, $policy:expr, $limits:expr) => {
-        Ok(crate::wire::json::canonicalize_json_value($value))
-    };
-}
-
-/// Expands the shared value table into a natural JSON projection match.
-macro_rules! value_to_json_match {
-    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {{
-        let result: Result<JsonValue, DataConversionError> = match &$value.repr {
-            ValueRepr::Unset(_) => Ok(JsonValue::Null),
-            $($(#[$cfg])* ValueRepr::$variant(value) => {
-                scalar_to_json!($json_class, value, $data_type, $policy, $limits)
-            },)+
-        };
-        result.map_err(ValueError::from)
-    }};
-}
-
-/// Projects a concrete vector according to the natural JSON cardinality rule.
-///
-/// # Type Parameters
-///
-/// * `T` - Runtime element type.
-/// * `F` - Projection from an element to a JSON value.
-///
-/// # Parameters
-///
-/// * `values` - Concrete values to project.
-/// * `project` - Element projection that can report conversion failures.
-///
-/// # Returns
-///
-/// A JSON array containing the projected values in their original order.
-///
-/// # Errors
-///
-/// Returns [`ValueError`] with a [`DataListConversionError`] identifying the
-/// first source index whose projection fails.
-fn collection_to_json<T, F>(values: &[T], mut project: F) -> ValueResult<JsonValue>
-where
-    F: FnMut(&T) -> Result<JsonValue, DataConversionError>,
-{
-    let mut projected = Vec::with_capacity(values.len());
-    for (source_index, value) in values.iter().enumerate() {
-        match project(value) {
-            Ok(value) => projected.push(value),
-            Err(source) => {
-                return Err(DataListConversionError::new(source_index, source).into());
-            }
-        }
-    }
-
-    Ok(JsonValue::Array(projected))
-}
-
-/// Expands the shared value table into a collection JSON projection match.
-macro_rules! multi_values_to_json_match {
-    ($value:expr, $policy:expr, $limits:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
-        match &$value.repr {
-            MultiValuesRepr::Unset(_) => Ok(JsonValue::Null),
-            $($(#[$cfg])* MultiValuesRepr::$variant(values) => {
-                collection_to_json(values, |value| {
-                    scalar_to_json!($json_class, value, $data_type, $policy, $limits)
-                })
-            },)+
-        }
-    };
-}
+use json_children::JsonChildren;
+use prepared_projection::PreparedProjection;
+use prepared_scalar::PreparedScalar;
+use projection_budget::ProjectionBudget;
 
 /// Checks source big-number limits before decimal formatting can allocate.
 macro_rules! check_projection_number {
@@ -205,31 +61,65 @@ macro_rules! check_projection_number {
     ($variant:ident, $value:expr, $budget:expr) => {};
 }
 
-/// Admits one projected payload while preserving natural JSON type semantics.
-macro_rules! admit_projection {
-    (json_bool, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
+/// Classifies collections requiring a per-element rendering cache.
+macro_rules! cache_projection {
+    (String, $class:ident) => {
+        false
+    };
+    ($variant:ident, json_bool) => {
+        false
+    };
+    ($variant:ident, json_number) => {
+        false
+    };
+    ($variant:ident, json_object) => {
+        false
+    };
+    ($variant:ident, json_identity) => {
+        false
+    };
+    ($variant:ident, $class:ident) => {
+        true
+    };
+}
+
+/// Prepares one scalar while retaining only genuinely required allocations.
+macro_rules! prepare_payload {
+    (String, $class:ident, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        $budget.input($value)?;
+        $budget.admit_output_string($value.len(), $depth)?;
+        Ok(PreparedScalar::Borrowed($view))
+    }};
+    ($variant:ident, json_bool, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
         let _ = $value;
-        $budget.admit(JsonMeasurement::Boolean { depth: $depth })
+        $budget.admit(JsonMeasurement::Boolean { depth: $depth })?;
+        Ok(PreparedScalar::Borrowed($view))
     }};
-    (json_number, $value:expr, $from:expr, $budget:expr, $depth:expr) => {
-        $budget.display($value, $depth, true)
+    ($variant:ident, json_number, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        $budget.display(&$value, $depth, true)?;
+        Ok(PreparedScalar::Borrowed($view))
+    }};
+    ($variant:ident, json_float32, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        let number = Number::from_str(&$value.to_string())
+            .map_err(|_| DataConversionError::invalid($from, DataType::Json, InvalidValueReason::NonFinite))?;
+        $budget.display(&number, $depth, true)?;
+        Ok(PreparedScalar::Number(number))
+    }};
+    ($variant:ident, json_float64, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        let number = Number::from_f64($value)
+            .ok_or_else(|| DataConversionError::invalid($from, DataType::Json, InvalidValueReason::NonFinite))?;
+        $budget.display(&number, $depth, true)?;
+        Ok(PreparedScalar::Number(number))
+    }};
+    ($variant:ident, json_string, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {
+        $budget.format(&$value, $depth).map(PreparedScalar::Formatted)
     };
-    (json_float32, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
-        let projected = finite_float32(*$value, $from)?;
-        $budget.display(&projected, $depth, true)
+    ($variant:ident, json_duration, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        let text = DataConverter::from($value).to_in::<String>(&mut $budget.conversion)?;
+        $budget.admit_output_string(text.len(), $depth)?;
+        Ok(PreparedScalar::Formatted(text))
     }};
-    (json_float64, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
-        let projected = finite_float64(*$value, $from)?;
-        $budget.display(&projected, $depth, true)
-    }};
-    (json_string, $value:expr, $from:expr, $budget:expr, $depth:expr) => {
-        $budget.display($value, $depth, false)
-    };
-    (json_duration, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
-        let text = DataConverter::from(*$value).to_in::<String>(&mut $budget.conversion)?;
-        $budget.display(&text, $depth, false)
-    }};
-    (json_object, $value:expr, $from:expr, $budget:expr, $depth:expr) => {{
+    ($variant:ident, json_object, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
         $budget.admit(JsonMeasurement::Object {
             depth: $depth,
             entries: $value.len(),
@@ -238,65 +128,82 @@ macro_rules! admit_projection {
             $budget.text(key, $depth, true)?;
             $budget.text(value, $depth.saturating_add(1), false)?;
         }
-        Ok(())
+        Ok(PreparedScalar::Borrowed($view))
     }};
-    (json_identity, $value:expr, $from:expr, $budget:expr, $depth:expr) => {
-        admit_json($value, $depth, &mut $budget)
-    };
+    ($variant:ident, json_identity, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
+        admit_json($value, $depth, $budget)?;
+        Ok(PreparedScalar::Borrowed($view))
+    }};
 }
 
-/// Admits one scalar, charging original String bytes before formatting.
-macro_rules! admit_scalar_match {
-    ($value:expr, $budget:expr, $depth:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {{
-        $budget.item()?;
-        if let ValueRepr::String(text) = &$value.repr { $budget.input(text)?; }
-        match &$value.repr {
-            ValueRepr::Unset(_) => $budget.admit(JsonMeasurement::Null { depth: $depth }),
-            $($(#[$cfg])* ValueRepr::$variant(stored) => {
-                let value = value_storage_ref!($variant, stored);
+/// Uses the owned type table to prepare borrowed scalar payloads.
+macro_rules! prepare_scalar_match {
+    ($view:expr, $budget:expr, $depth:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
+        match $view {
+            ValueRef::Unset(_) => {
+                $budget.admit(JsonMeasurement::Null { depth: $depth })?;
+                Ok(PreparedScalar::Borrowed($view))
+            }
+            $($(#[$cfg])* ValueRef::$variant(value) => {
                 check_projection_number!($variant, value, $budget);
-                admit_projection!($json_class, value, $data_type, $budget, $depth)
+                prepare_payload!($variant, $json_class, value, $view, $data_type, $budget, $depth)
             },)+
         }
-    }};
-}
-
-/// Charges original string bytes once at the corresponding element index.
-macro_rules! admit_projection_input {
-    (String, $value:expr, $budget:expr) => {
-        $budget.input($value)?;
     };
-    ($variant:ident, $value:expr, $budget:expr) => {};
 }
 
-/// Admits the explicit array shape and every indexed scalar before allocation.
-macro_rules! admit_collection_match {
-    ($value:expr, $budget:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {{
-        match &$value.repr {
-            MultiValuesRepr::Unset(_) => {
-                $budget.item()?;
-                $budget.admit(JsonMeasurement::Null { depth: 1 })
-            },
-            $($(#[$cfg])* MultiValuesRepr::$variant(values) => {
-                $budget.admit(JsonMeasurement::Array { depth: 1, items: values.len() })?;
-                for (index, value) in values.iter().enumerate() {
-                    $budget.source_index = Some(index);
-                    $budget.item()?;
-                    admit_projection_input!($variant, value, $budget);
-                    check_projection_number!($variant, value, $budget);
-                    let mut admit = || -> ValueResult<()> {
-                        admit_projection!($json_class, value, $data_type, $budget, 2_usize)
-                    };
-                    let result = admit();
-                    result.map_err(|error| match error {
-                        ValueError::Conversion(source) => ValueError::from(DataListConversionError::new(index, source)),
-                        error => error,
-                    })?;
-                }
-                Ok(())
-            },)+
+/// Admits one scalar before allocating a cached rich rendering.
+fn prepare_scalar<'a>(
+    view: ValueRef<'a>,
+    budget: &mut ProjectionBudget<'_>,
+    depth: usize,
+) -> ValueResult<PreparedScalar<'a>> {
+    budget.item()?;
+    for_each_value_type!(prepare_scalar_match, view, budget, depth)
+}
+
+/// Determines whether a homogeneous collection needs a cache before iteration.
+macro_rules! collection_cache_match {
+    ($view:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
+        match $view {
+            MultiValuesRef::Unset(_) => false,
+            $($(#[$cfg])* MultiValuesRef::$variant(_) => cache_projection!($variant, $json_class),)+
         }
-    }};
+    };
+}
+
+/// Admits the full collection before materializing any final JSON output.
+fn prepare_collection<'a>(
+    view: MultiValuesRef<'a>,
+    budget: &mut ProjectionBudget<'_>,
+) -> ValueResult<PreparedProjection<'a>> {
+    if matches!(view, MultiValuesRef::Unset(_)) {
+        budget.item()?;
+        budget.admit(JsonMeasurement::Null { depth: 1 })?;
+        return Ok(PreparedProjection::BorrowedCollection(view));
+    }
+    budget.admit(JsonMeasurement::Array {
+        depth: 1,
+        items: view.len(),
+    })?;
+    let cache = for_each_value_type!(collection_cache_match, view);
+    let mut prepared = Vec::new();
+    for index in 0..view.len() {
+        budget.source_index = Some(index);
+        let item = view.get(index).expect("index is inside the source collection");
+        let scalar = prepare_scalar(item, budget, 2).map_err(|error| match error {
+            ValueError::Conversion(source) => DataListConversionError::new(index, source).into(),
+            error => error,
+        })?;
+        if cache {
+            prepared.push(scalar);
+        }
+    }
+    Ok(if cache {
+        PreparedProjection::Collection(prepared)
+    } else {
+        PreparedProjection::BorrowedCollection(view)
+    })
 }
 
 /// Traverses nested JSON iteratively, charging keys and leaf text before
@@ -339,29 +246,30 @@ fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>
     Ok(())
 }
 
-/// Projects a scalar value using explicit conversion policy and limits.
+/// Projects a scalar after complete bounded preparation.
+///
+/// Returns conversion or resource errors before final JSON allocation.
 pub(crate) fn value_to_json_value_with(
     value: &Value,
     policy: &ConversionPolicy,
     limits: &ConversionLimits,
 ) -> ValueResult<JsonValue> {
     let mut budget = ProjectionBudget::new(value.data_type(), policy, limits);
-    for_each_value_type!(admit_scalar_match, value, budget, 1_usize)?;
-    for_each_value_type!(value_to_json_match, value, policy, limits)
+    Ok(PreparedProjection::Scalar(prepare_scalar(value.view(), &mut budget, 1)?).materialize())
 }
 
-/// Projects a collection using explicit conversion policy and limits.
+/// Projects a collection after complete bounded preparation, preserving its
+/// shape.
 pub(crate) fn multi_values_to_json_value_with(
     values: &MultiValues,
     policy: &ConversionPolicy,
     limits: &ConversionLimits,
 ) -> ValueResult<JsonValue> {
     let mut budget = ProjectionBudget::new(values.data_type(), policy, limits);
-    for_each_value_type!(admit_collection_match, values, budget)?;
-    for_each_value_type!(multi_values_to_json_match, values, policy, limits)
+    Ok(prepare_collection(values.view(), &mut budget)?.materialize())
 }
 
-/// Projects a scalar-or-collection container while preserving its shape.
+/// Projects scalar or collection storage without conflating cardinalities.
 pub(crate) fn value_container_to_json_value_with(
     container: &ValueContainer,
     policy: &ConversionPolicy,

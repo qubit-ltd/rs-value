@@ -5,203 +5,200 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Structured reasons why a value read produced no concrete item.
+//! Missing-value facts retained across storage and conversion boundaries.
 
 use std::fmt;
 
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionError;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionErrorKind;
 use qubit_datatype::DataType;
 
-/// Describes the typed state that produced a missing-value error.
+use crate::ValueMissingReason;
+
+/// Describes the storage state, requested type and source of a missing read.
 ///
-/// # Examples
-///
-/// ```
-/// use qubit_datatype::DataType;
-/// use qubit_value::{Value, ValueError, ValueMissing};
-///
-/// let error = Value::new_unset(DataType::Int32).get::<i32>().unwrap_err();
-/// assert!(matches!(
-///     error,
-///     ValueError::Missing(ValueMissing::UnsetScalar { data_type: DataType::Int32 })
-/// ));
-/// ```
+/// Strict reads record both source and target. Conversion failures additionally
+/// retain their original error and, for collection items, source index.
+/// Inspect [`Self::reason`] and the accessors instead of matching storage
+/// fields.
 #[must_use]
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ValueMissing {
-    /// A scalar was unset with a declared data type.
-    UnsetScalar {
-        /// Type retained by the unset scalar storage.
-        data_type: DataType,
-    },
-    /// A collection was unset with a declared element type.
-    UnsetCollection {
-        /// Element type retained by the unset collection storage.
-        data_type: DataType,
-    },
-    /// A concrete collection contains no item for a first-item read.
-    EmptyCollection {
-        /// Element type of the concrete empty collection.
-        data_type: DataType,
-    },
-    /// A conversion requested one item from an empty collection.
-    ///
-    /// The source collection has no item and therefore no source value type
-    /// can be recovered from the shared conversion error. `to` records the
-    /// requested target type instead of overloading `EmptyCollection`.
-    EmptyCollectionConversion {
-        /// Requested target data type.
-        to: DataType,
-    },
-    /// A conversion policy treated a concrete scalar as missing.
-    Conversion {
-        /// Declared source data type.
-        from: DataType,
-        /// Requested target data type.
-        to: DataType,
-    },
-    /// A collection item conversion produced no value.
-    CollectionItem {
-        /// Original zero-based source position.
-        source_index: usize,
-        /// Declared source data type.
-        from: DataType,
-        /// Requested target data type.
-        to: DataType,
-    },
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ValueMissing {
+    reason: ValueMissingReason,
+    source_type: Option<DataType>,
+    target_type: Option<DataType>,
+    source_index: Option<usize>,
+    #[cfg(feature = "converter")]
+    conversion_error: Option<DataConversionError>,
 }
 
 impl ValueMissing {
-    /// Returns the source or declared data type associated with the error.
-    ///
-    /// Returns `None` for [`Self::EmptyCollectionConversion`] because no source
-    /// item exists for that conversion.
-    ///
-    /// # Returns
-    ///
-    /// `Some(type)` when storage or a source item has a declared type, and
-    /// `None` when an empty collection conversion has no source item.
-    #[must_use]
-    #[inline(always)]
-    pub const fn source_type(self) -> Option<DataType> {
-        match self {
-            Self::UnsetScalar { data_type }
-            | Self::UnsetCollection { data_type }
-            | Self::EmptyCollection { data_type } => Some(data_type),
-            Self::EmptyCollectionConversion { .. } => None,
-            Self::Conversion { from, .. } | Self::CollectionItem { from, .. } => Some(from),
+    /// Creates an unset scalar descriptor for a read from `source` to `target`.
+    pub const fn unset_scalar(source: DataType, target: DataType) -> Self {
+        Self::storage(ValueMissingReason::UnsetScalar, source, target)
+    }
+
+    /// Creates an unset collection descriptor for the requested element type.
+    pub const fn unset_collection(source: DataType, target: DataType) -> Self {
+        Self::storage(ValueMissingReason::UnsetCollection, source, target)
+    }
+
+    /// Creates a descriptor for a first-item read from a concrete empty
+    /// collection.
+    pub const fn empty_collection(source: DataType, target: DataType) -> Self {
+        Self::storage(ValueMissingReason::EmptyCollection, source, target)
+    }
+
+    /// Records a known storage state without inventing a conversion source.
+    const fn storage(reason: ValueMissingReason, source: DataType, target: DataType) -> Self {
+        Self {
+            reason,
+            source_type: Some(source),
+            target_type: Some(target),
+            source_index: None,
+            #[cfg(feature = "converter")]
+            conversion_error: None,
         }
     }
 
-    /// Returns the requested target type for conversion failures.
-    ///
-    /// # Returns
-    ///
-    /// `Some(type)` for conversion-related variants and `None` for storage-only
-    /// missing states.
-    #[must_use]
-    #[inline(always)]
-    pub const fn target_type(self) -> Option<DataType> {
-        match self {
-            Self::Conversion { to, .. } | Self::CollectionItem { to, .. } | Self::EmptyCollectionConversion { to } => {
-                Some(to)
-            }
-            Self::UnsetScalar { .. } | Self::UnsetCollection { .. } | Self::EmptyCollection { .. } => None,
-        }
-    }
-
-    /// Returns the source index for a missing collection item.
-    ///
-    /// # Returns
-    ///
-    /// `Some(index)` for [`Self::CollectionItem`] and `None` otherwise.
-    #[must_use]
-    #[inline(always)]
-    pub const fn source_index(self) -> Option<usize> {
-        match self {
-            Self::CollectionItem { source_index, .. } => Some(source_index),
-            Self::UnsetScalar { .. }
-            | Self::UnsetCollection { .. }
-            | Self::EmptyCollection { .. }
-            | Self::EmptyCollectionConversion { .. }
-            | Self::Conversion { .. } => None,
-        }
-    }
-
-    /// Reports whether storage itself is unset.
-    ///
-    /// # Returns
-    ///
-    /// `true` for unset scalar or collection storage.
-    #[must_use]
-    #[inline(always)]
-    pub const fn is_unset(self) -> bool {
-        matches!(self, Self::UnsetScalar { .. } | Self::UnsetCollection { .. })
-    }
-
-    /// Reports whether a concrete collection is empty.
-    ///
-    /// # Returns
-    ///
-    /// `true` for direct or conversion-related empty collection states.
-    #[must_use]
-    #[inline(always)]
-    pub const fn is_empty_collection(self) -> bool {
-        matches!(
-            self,
-            Self::EmptyCollection { .. } | Self::EmptyCollectionConversion { .. }
-        )
-    }
-
-    /// Reports whether the missing value came from a conversion.
-    ///
-    /// # Returns
-    ///
-    /// `true` for scalar, collection-item, or empty-collection conversions.
-    #[must_use]
-    #[inline(always)]
-    pub const fn is_conversion(self) -> bool {
-        matches!(
-            self,
-            Self::Conversion { .. } | Self::CollectionItem { .. } | Self::EmptyCollectionConversion { .. }
-        )
-    }
-
-    /// Reports whether conversion APIs may use a caller-provided fallback.
-    ///
-    /// # Returns
-    ///
-    /// `true` for unset storage and scalar conversion-missing states.
+    /// Preserves an already classified missing conversion and its original
+    /// index.
     #[cfg(feature = "converter")]
-    #[must_use]
-    #[inline(always)]
-    pub(crate) const fn is_defaultable_for_conversion(self) -> bool {
-        self.is_unset() || matches!(self, Self::Conversion { .. })
+    pub(crate) fn from_conversion(error: DataConversionError, source_index: Option<usize>) -> Self {
+        Self {
+            reason: if error.kind() == DataConversionErrorKind::EmptyCollection {
+                ValueMissingReason::EmptyCollection
+            } else {
+                ValueMissingReason::Conversion
+            },
+            source_type: error.from_type(),
+            target_type: Some(error.to_type()),
+            source_index,
+            conversion_error: Some(error),
+        }
+    }
+
+    /// Enriches a conversion failure with facts known by its owning container.
+    ///
+    /// Only called after conversion admission has produced a missing error.
+    #[cfg(feature = "converter")]
+    pub(crate) fn with_storage(mut self, source: DataType, reason: ValueMissingReason) -> Self {
+        self.source_type = Some(source);
+        self.reason = reason;
+        self
+    }
+
+    /// Records the first collection item's original index when conversion lost
+    /// it.
+    #[cfg(feature = "converter")]
+    pub(crate) fn with_first_index(mut self) -> Self {
+        if self.reason == ValueMissingReason::Conversion && self.source_index.is_none() {
+            self.source_index = Some(0);
+        }
+        self
+    }
+
+    /// Returns the storage or policy reason for this missing result.
+    pub const fn reason(&self) -> ValueMissingReason {
+        self.reason
+    }
+
+    /// Returns the known source type, or `None` for a generic empty iterator.
+    pub const fn source_type(&self) -> Option<DataType> {
+        self.source_type
+    }
+
+    /// Returns the requested target type when known.
+    pub const fn target_type(&self) -> Option<DataType> {
+        self.target_type
+    }
+
+    /// Returns the original collection item index, or `None` for an outer
+    /// failure.
+    pub const fn source_index(&self) -> Option<usize> {
+        self.source_index
+    }
+
+    /// Returns the original conversion error, absent for a strict storage read.
+    #[cfg(feature = "converter")]
+    pub const fn conversion_error(&self) -> Option<&DataConversionError> {
+        self.conversion_error.as_ref()
+    }
+
+    /// Reports whether scalar or collection storage is unset.
+    pub const fn is_unset(&self) -> bool {
+        matches!(
+            self.reason,
+            ValueMissingReason::UnsetScalar | ValueMissingReason::UnsetCollection
+        )
+    }
+
+    /// Reports whether a first-item read failed because a concrete collection
+    /// is empty.
+    pub const fn is_empty_collection(&self) -> bool {
+        matches!(self.reason, ValueMissingReason::EmptyCollection)
+    }
+
+    /// Reports whether conversion produced this failure, including enriched
+    /// unset states.
+    pub const fn is_conversion(&self) -> bool {
+        if matches!(self.reason, ValueMissingReason::Conversion) {
+            return true;
+        }
+        #[cfg(feature = "converter")]
+        {
+            self.conversion_error.is_some()
+        }
+        #[cfg(not(feature = "converter"))]
+        {
+            false
+        }
+    }
+
+    /// Allows strict fallback only for unset storage after the type check
+    /// passed.
+    pub const fn is_defaultable_for_strict_read(&self) -> bool {
+        self.is_unset()
+    }
+
+    /// Allows conversion fallback for unset storage or a policy-missing scalar.
+    ///
+    /// Empty collections and missing collection items never default.
+    pub const fn is_defaultable_for_conversion(&self) -> bool {
+        self.is_unset() || (matches!(self.reason, ValueMissingReason::Conversion) && self.source_index.is_none())
     }
 }
 
 impl fmt::Display for ValueMissing {
+    /// Formats diagnostic types and indices without exposing source payloads.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::UnsetScalar { data_type } => {
-                write!(formatter, "unset scalar with declared type {data_type}")
-            }
-            Self::UnsetCollection { data_type } => {
-                write!(formatter, "unset collection with declared type {data_type}")
-            }
-            Self::EmptyCollection { data_type } => {
-                write!(formatter, "empty collection with element type {data_type}")
-            }
-            Self::Conversion { from, to } => {
-                write!(formatter, "conversion from {from} to {to} produced no value")
-            }
-            Self::CollectionItem { source_index, from, to } => write!(
-                formatter,
-                "collection item at index {source_index} conversion from {from} to {to} produced no value"
-            ),
-            Self::EmptyCollectionConversion { to } => {
-                write!(formatter, "empty collection conversion to {to} produced no value")
-            }
+        write!(
+            formatter,
+            "{:?}: source {:?}, target {:?}",
+            self.reason, self.source_type, self.target_type
+        )?;
+        if let Some(index) = self.source_index {
+            write!(formatter, ", collection index {index}")?;
+        }
+        Ok(())
+    }
+}
+
+impl std::error::Error for ValueMissing {
+    /// Exposes the preserved conversion error, or terminates a strict-read
+    /// chain.
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        #[cfg(feature = "converter")]
+        {
+            self.conversion_error
+                .as_ref()
+                .map(|error| error as &dyn std::error::Error)
+        }
+        #[cfg(not(feature = "converter"))]
+        {
+            None
         }
     }
 }

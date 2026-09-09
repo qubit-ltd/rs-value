@@ -123,6 +123,7 @@ mod value;
 mod value_container;
 mod value_error;
 mod value_missing;
+mod value_missing_reason;
 mod value_wire;
 mod wide_integer;
 mod wire;
@@ -141,6 +142,7 @@ pub use self::value_container::ValueContainer;
 pub use self::value_error::ValueError;
 pub use self::value_error::ValueResult;
 pub use self::value_missing::ValueMissing;
+pub use self::value_missing_reason::ValueMissingReason;
 #[cfg(feature = "json")]
 pub use self::value_wire::ValueWireDecodeError;
 pub use self::value_wire::ValueWireEncodeError;

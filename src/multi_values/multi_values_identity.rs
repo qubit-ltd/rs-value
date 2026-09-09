@@ -90,6 +90,31 @@ macro_rules! hash_payloads {
     };
 }
 
+/// Keeps JSON transaction handling in the caller while dispatching other types.
+#[cfg(feature = "json")]
+macro_rules! budgeted_hash_payload {
+    (Json, $value:expr, $state:expr) => {{
+        let _ = $value;
+        unreachable!("JSON payload hashing is handled by MultiValues::hash_with_json_budget")
+    }};
+    ($variant:ident, $value:expr, $state:expr) => {
+        hash_payloads!($variant, $value, $state)
+    };
+}
+
+/// Generates the non-JSON payload dispatch from the storage type table.
+#[cfg(feature = "json")]
+macro_rules! budgeted_payload_match {
+    ($repr:expr, $state:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
+        match $repr {
+            MultiValuesRepr::Unset(data_type) => data_type.hash($state),
+            $($(#[$cfg])* MultiValuesRepr::$variant(value) => {
+                budgeted_hash_payload!($variant, value, $state)
+            },)+
+        }
+    };
+}
+
 /// Hashes one multi-value payload while applying a budget to JSON elements.
 ///
 /// # Type Parameters
@@ -124,71 +149,7 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
-    match repr {
-        MultiValuesRepr::Unset(data_type) => data_type.hash(state),
-        MultiValuesRepr::Bool(values) => hash_payloads!(Bool, values, state),
-        MultiValuesRepr::Char(values) => hash_payloads!(Char, values, state),
-        MultiValuesRepr::Int8(values) => hash_payloads!(Int8, values, state),
-        MultiValuesRepr::Int16(values) => hash_payloads!(Int16, values, state),
-        MultiValuesRepr::Int32(values) => hash_payloads!(Int32, values, state),
-        MultiValuesRepr::Int64(values) => hash_payloads!(Int64, values, state),
-        MultiValuesRepr::Int128(values) => {
-            hash_payloads!(Int128, values, state)
-        }
-        MultiValuesRepr::UInt8(values) => hash_payloads!(UInt8, values, state),
-        MultiValuesRepr::UInt16(values) => {
-            hash_payloads!(UInt16, values, state)
-        }
-        MultiValuesRepr::UInt32(values) => {
-            hash_payloads!(UInt32, values, state)
-        }
-        MultiValuesRepr::UInt64(values) => {
-            hash_payloads!(UInt64, values, state)
-        }
-        MultiValuesRepr::UInt128(values) => {
-            hash_payloads!(UInt128, values, state)
-        }
-        MultiValuesRepr::Float32(values) => {
-            hash_payloads!(Float32, values, state)
-        }
-        MultiValuesRepr::Float64(values) => {
-            hash_payloads!(Float64, values, state)
-        }
-        #[cfg(feature = "big-integer")]
-        MultiValuesRepr::BigInteger(values) => {
-            hash_payloads!(BigInteger, values, state)
-        }
-        #[cfg(feature = "big-decimal")]
-        MultiValuesRepr::BigDecimal(values) => {
-            hash_payloads!(BigDecimal, values, state)
-        }
-        MultiValuesRepr::String(values) => {
-            hash_payloads!(String, values, state)
-        }
-        #[cfg(feature = "chrono")]
-        MultiValuesRepr::Date(values) => hash_payloads!(Date, values, state),
-        #[cfg(feature = "chrono")]
-        MultiValuesRepr::Time(values) => hash_payloads!(Time, values, state),
-        #[cfg(feature = "chrono")]
-        MultiValuesRepr::DateTime(values) => {
-            hash_payloads!(DateTime, values, state)
-        }
-        #[cfg(feature = "chrono")]
-        MultiValuesRepr::Instant(values) => {
-            hash_payloads!(Instant, values, state)
-        }
-        MultiValuesRepr::Duration(values) => {
-            hash_payloads!(Duration, values, state)
-        }
-        #[cfg(feature = "url")]
-        MultiValuesRepr::Url(values) => hash_payloads!(Url, values, state),
-        MultiValuesRepr::StringMap(values) => {
-            hash_payloads!(StringMap, values, state)
-        }
-        MultiValuesRepr::Json(_) => {
-            unreachable!("JSON payload hashing is handled by MultiValues::hash_with_json_budget")
-        }
-    }
+    for_each_value_type!(budgeted_payload_match, repr, state);
     Ok(())
 }
 

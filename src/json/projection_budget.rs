@@ -26,6 +26,7 @@ use qubit_datatype::DataConversionError;
 use qubit_datatype::DataType;
 use qubit_datatype::InvalidValueReason;
 
+use super::measurement_writer::MeasurementWriter;
 use crate::ValueError;
 use crate::ValueResult;
 
@@ -138,13 +139,26 @@ impl<'a> ProjectionBudget<'a> {
             .map_err(|error| self.error(error))
     }
 
-    /// Measures formatted text with a bounded temporary buffer before final
-    /// output.
-    ///
-    /// The temporary renderer stops at the smallest remaining payload bound.
-    /// `number` selects numeric JSON measurement instead of string measurement.
-    pub(super) fn display<T: Display + ?Sized>(&mut self, value: &T, depth: usize, number: bool) -> ValueResult<()> {
-        // Reject unavailable depth/node capacity before invoking Display.
+    /// Admits output text without charging source input a second time.
+    pub(super) fn admit_output_string(&mut self, bytes: usize, depth: usize) -> ValueResult<()> {
+        let amount = u64::try_from_usize(bytes).map_err(|source| {
+            self.error(MeasuredBudgetError::quantity(
+                ConversionResource::StructuredTextBytes,
+                source,
+            ))
+        })?;
+        self.limits
+            .structured()
+            .max_text_bytes_limit()
+            .check(amount)
+            .map_err(|error| self.error(error.into()))?;
+        self.admit(JsonMeasurement::String { depth, bytes })?;
+        self.output.try_consume_usize(bytes).map_err(|error| self.error(error))
+    }
+
+    /// Probes node capacity before creating a renderer and limits its remaining
+    /// bytes.
+    fn rendering_budget(&mut self, depth: usize, number: bool) -> ValueResult<ResourceBudget<ConversionResource, u64>> {
         let probe = if number {
             JsonMeasurement::Number { depth, bytes: 0 }
         } else {
@@ -166,32 +180,48 @@ impl<'a> ProjectionBudget<'a> {
                 rendering = candidate;
             }
         }
-        let text = rendering
+        Ok(rendering)
+    }
+
+    /// Measures formatted numbers without allocating or retaining their text.
+    pub(super) fn display<T: Display + ?Sized>(&mut self, value: &T, depth: usize, number: bool) -> ValueResult<()> {
+        let mut writer = MeasurementWriter::new(self.rendering_budget(depth, number)?);
+        let formatted = write!(&mut writer, "{value}");
+        let bytes = writer.finish().map_err(|error| self.error(error))?;
+        formatted.map_err(|_| self.format_error())?;
+        let bytes = usize::try_from_u64(bytes)
+            .map_err(|source| self.error(MeasuredBudgetError::quantity(ConversionResource::OutputBytes, source)))?;
+        self.admit(if number {
+            JsonMeasurement::Number { depth, bytes }
+        } else {
+            JsonMeasurement::String { depth, bytes }
+        })?;
+        self.output.try_consume_usize(bytes).map_err(|error| self.error(error))
+    }
+
+    /// Renders rich text exactly once, retaining the admitted result for
+    /// materialization.
+    pub(super) fn format<T: Display + ?Sized>(&mut self, value: &T, depth: usize) -> ValueResult<String> {
+        let text = self
+            .rendering_budget(depth, false)?
             .try_write_string(|writer| write!(writer.as_fmt(), "{value}"))
             .map_err(|error| match error {
                 BudgetedStringError::Budget(error) => self.error(error.into()),
                 BudgetedStringError::Quantity { resource, source } => {
                     self.error(MeasuredBudgetError::quantity(resource, source))
                 }
-                _ => ValueError::Conversion(DataConversionError::invalid(
-                    self.data_type,
-                    DataType::Json,
-                    InvalidValueReason::OutOfRange,
-                )),
+                _ => self.format_error(),
             })?;
-        self.admit(if number {
-            JsonMeasurement::Number {
-                depth,
-                bytes: text.len(),
-            }
-        } else {
-            JsonMeasurement::String {
-                depth,
-                bytes: text.len(),
-            }
-        })?;
-        self.output
-            .try_consume_usize(text.len())
-            .map_err(|error| self.error(error))
+        self.admit_output_string(text.len(), depth)?;
+        Ok(text)
+    }
+
+    /// Reports a formatting failure without exposing source payload text.
+    fn format_error(&self) -> ValueError {
+        ValueError::Conversion(DataConversionError::invalid(
+            self.data_type,
+            DataType::Json,
+            InvalidValueReason::OutOfRange,
+        ))
     }
 }

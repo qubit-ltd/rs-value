@@ -89,6 +89,24 @@ fn benchmark_natural_json_projection(c: &mut Criterion) {
             black_box(json)
         });
     });
+
+    for size in [16, 65_536] {
+        let text = Value::from("x".repeat(size));
+        assert_eq!(text.to_json_value().unwrap().as_str().unwrap().len(), size);
+        c.bench_function(&format!("projection/string/{size}"), |b| {
+            b.iter(|| black_box(black_box(&text).to_json_value().unwrap()));
+        });
+    }
+    let strings = ValueContainer::from(vec!["x".repeat(1024); 32]);
+    assert_eq!(strings.to_json_value().unwrap().as_array().unwrap().len(), 32);
+    c.bench_function("projection/string_collection/32", |b| {
+        b.iter(|| black_box(black_box(&strings).to_json_value().unwrap()));
+    });
+    let durations = ValueContainer::from(vec![std::time::Duration::from_millis(1234); 32]);
+    assert_eq!(durations.to_json_value().unwrap().as_array().unwrap().len(), 32);
+    c.bench_function("projection/duration_collection/32", |b| {
+        b.iter(|| black_box(black_box(&durations).to_json_value().unwrap()));
+    });
 }
 
 /// Benchmarks the V1 wire encoding and bounded decoding paths.

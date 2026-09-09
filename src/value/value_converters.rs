@@ -13,13 +13,33 @@
 use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::ConversionSession;
+use qubit_datatype::DataConversionError;
 use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataConverter;
 
 use super::Value;
 use super::ValueRepr;
+use crate::ValueMissingReason;
+use crate::ValueRef;
 use crate::value_error::ValueError;
 use crate::value_error::ValueResult;
+
+/// Converts semantic views without constructing an owned runtime value.
+macro_rules! value_ref_data_converter_match {
+    ($value:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
+        match $value {
+            ValueRef::Unset(data_type) => DataConverter::Unset(data_type),
+            $($(#[$cfg])* ValueRef::$variant(value) => DataConverter::from(value),)+
+        }
+    };
+}
+
+impl<'a> From<ValueRef<'a>> for DataConverter<'a> {
+    /// Borrows rich view payloads and copies primitive conversion sources.
+    fn from(value: ValueRef<'a>) -> Self {
+        for_each_value_type!(value_ref_data_converter_match, value)
+    }
+}
 
 /// Expands the shared value table into a `DataConverter` construction match.
 macro_rules! value_data_converter_match {
@@ -93,7 +113,7 @@ where
 {
     data_converter_from_value(value)
         .to_with::<T>(policy, limits)
-        .map_err(ValueError::from)
+        .map_err(|error| contextual_conversion_error(value, error))
 }
 
 /// Converts a single `Value` into `T` using an existing conversion session.
@@ -120,5 +140,15 @@ where
 {
     data_converter_from_value(value)
         .to_in::<T>(session)
-        .map_err(ValueError::from)
+        .map_err(|error| contextual_conversion_error(value, error))
+}
+
+/// Preserves scalar storage facts after the converter has completed admission.
+fn contextual_conversion_error(value: &Value, error: DataConversionError) -> ValueError {
+    match ValueError::from(error) {
+        ValueError::Missing(missing) if value.is_unset() => {
+            ValueError::Missing(missing.with_storage(value.data_type(), ValueMissingReason::UnsetScalar))
+        }
+        error => error,
+    }
 }

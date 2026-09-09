@@ -26,9 +26,10 @@ fn test_value_getter_is_strict_and_default_is_empty_only() {
     let empty = Value::Unset(DataType::String);
     assert_eq!(
         empty.get::<String>(),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::String,
-        })),
+        Err(ValueError::Missing(ValueMissing::unset_scalar(
+            DataType::String,
+            DataType::String
+        ))),
     );
     assert_eq!(empty.get_or::<String>("missing").unwrap(), "missing");
 }
@@ -39,9 +40,10 @@ fn test_value_try_from_borrowed_value_reports_each_storage_state() {
     assert_eq!(<&bool>::try_from(&value), Ok(&true));
     assert_eq!(
         <&bool>::try_from(&Value::Unset(DataType::Bool)),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::Bool,
-        })),
+        Err(ValueError::Missing(ValueMissing::unset_scalar(
+            DataType::Bool,
+            DataType::Bool
+        ))),
     );
     assert_eq!(
         <&bool>::try_from(&Value::Int32(1)),
@@ -57,9 +59,10 @@ fn test_value_try_from_owned_value_reports_each_storage_state() {
     assert_eq!(bool::try_from(Value::Bool(true)), Ok(true));
     assert_eq!(
         bool::try_from(Value::Unset(DataType::Bool)),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::Bool,
-        })),
+        Err(ValueError::Missing(ValueMissing::unset_scalar(
+            DataType::Bool,
+            DataType::Bool
+        ))),
     );
     assert_eq!(
         bool::try_from(Value::Int32(1)),
@@ -76,9 +79,10 @@ fn test_value_try_from_borrowed_string_reports_each_storage_state() {
     assert_eq!(<&str>::try_from(&value), Ok("text"));
     assert_eq!(
         <&str>::try_from(&Value::Unset(DataType::String)),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::String,
-        })),
+        Err(ValueError::Missing(ValueMissing::unset_scalar(
+            DataType::String,
+            DataType::String
+        ))),
     );
     assert_eq!(
         <&str>::try_from(&Value::Int32(1)),
@@ -95,9 +99,7 @@ macro_rules! assert_scalar_getter_contract {
         assert_eq!(value.$getter().unwrap(), $expected);
         assert_eq!(
             Value::Unset($data_type).$getter(),
-            Err(ValueError::Missing(ValueMissing::UnsetScalar {
-                data_type: $data_type,
-            }))
+            Err(ValueError::Missing(ValueMissing::unset_scalar($data_type, $data_type)))
         );
         assert!(matches!(
             Value::Unset($wrong_type).$getter(),
@@ -241,9 +243,7 @@ fn test_value_json_getters_cover_owned_and_borrowed_access() {
 fn test_value_big_integer_borrowed_getter_reports_storage_errors() {
     assert!(matches!(
         Value::Unset(DataType::BigInteger).get_biginteger_ref(),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::BigInteger,
-        }))
+        Err(ValueError::Missing(ref missing)) if *missing == ValueMissing::unset_scalar(DataType::BigInteger, DataType::BigInteger)
     ));
     assert!(matches!(
         Value::Int32(1).get_biginteger_ref(),
@@ -259,9 +259,7 @@ fn test_value_big_integer_borrowed_getter_reports_storage_errors() {
 fn test_value_big_decimal_borrowed_getter_reports_storage_errors() {
     assert!(matches!(
         Value::Unset(DataType::BigDecimal).get_bigdecimal_ref(),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::BigDecimal,
-        }))
+        Err(ValueError::Missing(ref missing)) if *missing == ValueMissing::unset_scalar(DataType::BigDecimal, DataType::BigDecimal)
     ));
     assert!(matches!(
         Value::Int32(1).get_bigdecimal_ref(),
@@ -277,9 +275,7 @@ fn test_value_big_decimal_borrowed_getter_reports_storage_errors() {
 fn test_value_url_borrowed_getter_reports_storage_errors() {
     assert!(matches!(
         Value::Unset(DataType::Url).get_url_ref(),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::Url,
-        }))
+        Err(ValueError::Missing(ref missing)) if *missing == ValueMissing::unset_scalar(DataType::Url, DataType::Url)
     ));
     assert!(matches!(
         Value::Int32(1).get_url_ref(),
@@ -294,9 +290,7 @@ fn test_value_url_borrowed_getter_reports_storage_errors() {
 fn test_value_string_map_borrowed_getter_reports_storage_errors() {
     assert!(matches!(
         Value::Unset(DataType::StringMap).get_string_map_ref(),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::StringMap,
-        }))
+        Err(ValueError::Missing(ref missing)) if *missing == ValueMissing::unset_scalar(DataType::StringMap, DataType::StringMap)
     ));
     assert!(matches!(
         Value::Int32(1).get_string_map_ref(),
@@ -312,9 +306,7 @@ fn test_value_string_map_borrowed_getter_reports_storage_errors() {
 fn test_value_json_borrowed_getter_reports_storage_errors() {
     assert!(matches!(
         Value::Unset(DataType::Json).get_json_ref(),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::Json,
-        }))
+        Err(ValueError::Missing(ref missing)) if *missing == ValueMissing::unset_scalar(DataType::Json, DataType::Json)
     ));
     assert!(matches!(
         Value::Int32(1).get_json_ref(),
@@ -333,9 +325,7 @@ fn test_value_json_accessors_cover_serialization_and_deserialization() {
     assert_eq!(decoded.get("answer"), Some(&42));
     assert!(matches!(
         Value::Unset(DataType::Json).deserialize_json::<serde_json::Value>(),
-        Err(ValueError::Missing(ValueMissing::UnsetScalar {
-            data_type: DataType::Json,
-        }))
+        Err(ValueError::Missing(ref missing)) if *missing == ValueMissing::unset_scalar(DataType::Json, DataType::Json)
     ));
     assert!(matches!(
         Value::Int32(1).deserialize_json::<serde_json::Value>(),

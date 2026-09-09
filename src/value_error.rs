@@ -44,10 +44,8 @@ use crate::ValueMissing;
 /// use qubit_datatype::DataType;
 /// use qubit_value::{ValueError, ValueMissing};
 ///
-/// let error = ValueError::Missing(ValueMissing::UnsetScalar {
-///     data_type: DataType::String,
-/// });
-/// assert_eq!(error.to_string(), "Missing value: unset scalar with declared type string");
+/// let error = ValueError::Missing(ValueMissing::unset_scalar(DataType::String, DataType::String));
+/// assert_eq!(error.missing().unwrap().target_type(), Some(DataType::String));
 /// ```
 #[non_exhaustive]
 #[must_use]
@@ -70,6 +68,7 @@ pub enum ValueError {
     #[error("Missing value: {0}")]
     Missing(
         /// Structured typed storage state that caused the missing value.
+        #[source]
         ValueMissing,
     ),
 
@@ -180,16 +179,8 @@ impl ValueError {
 #[cfg(feature = "converter")]
 impl From<DataConversionError> for ValueError {
     fn from(error: DataConversionError) -> Self {
-        if error.is_missing()
-            && let Some(from) = error.from_type()
-        {
-            return Self::Missing(ValueMissing::Conversion {
-                from,
-                to: error.to_type(),
-            });
-        }
-        if error.kind() == DataConversionErrorKind::EmptyCollection {
-            return Self::Missing(ValueMissing::EmptyCollectionConversion { to: error.to_type() });
+        if error.is_missing() || error.kind() == DataConversionErrorKind::EmptyCollection {
+            return Self::Missing(ValueMissing::from_conversion(error, None));
         }
         Self::Conversion(error)
     }
@@ -199,17 +190,8 @@ impl From<DataConversionError> for ValueError {
 impl From<DataListConversionError> for ValueError {
     fn from(error: DataListConversionError) -> Self {
         let (source_index, source) = error.into_parts();
-        if source.is_missing()
-            && let Some(from) = source.from_type()
-        {
-            return Self::Missing(ValueMissing::CollectionItem {
-                source_index,
-                from,
-                to: source.to_type(),
-            });
-        }
-        if source.kind() == DataConversionErrorKind::EmptyCollection {
-            return Self::Missing(ValueMissing::EmptyCollectionConversion { to: source.to_type() });
+        if source.is_missing() || source.kind() == DataConversionErrorKind::EmptyCollection {
+            return Self::Missing(ValueMissing::from_conversion(source, Some(source_index)));
         }
         Self::ListConversion(DataListConversionError::new(source_index, source))
     }
