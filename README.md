@@ -132,8 +132,9 @@ default feature set is empty; enable only the families you use:
 - `ValueContainer::Scalar` and `ValueContainer::Collection` preserve shape;
   a one-item collection remains a collection.
 - `get_or`/`to_or` and collection variants make fallback behavior explicit:
-  unset values can use defaults, while type mismatches and ordinary conversion
-  failures are still reported.
+  unset values can use defaults, while concrete empty first-item reads, missing
+  collection items, type mismatches, and ordinary conversion failures remain
+  errors.
 - `NamedValue` and `NamedMultiValues` attach a key to a runtime value without
   changing the value's type semantics.
 - `ValueWireV1` provides a versioned, type-preserving JSON representation with
@@ -197,6 +198,10 @@ collection shape. Wire V1 rejects non-finite floats and unsupported or malformed
 payloads instead of guessing. Use a fresh bounded session for each independent
 Wire operation; reuse a session only when several embedded values belong to the
 same outer request budget.
+
+For conversion fallbacks, a policy-missing scalar may use the supplied default.
+A missing item inside a concrete collection never does, including item zero;
+an explicitly empty collection also remains an error for first-item reads.
 
 ## Learn more
 

@@ -119,8 +119,8 @@ qubit-datatype = { version = "0.12", default-features = false }
 - `view()` 提供运行时类型的借用视图，供适配器检查值，无需克隆字符串、map、JSON tree
   或集合缓冲区。
 - `ValueContainer::Scalar` 和 `ValueContainer::Collection` 保留形态；单元素集合仍然是集合。
-- `get_or`/`to_or` 及其集合版本让 fallback 语义保持明确：未设置值可以使用默认值，类型不
-  匹配和普通转换失败仍会报告错误。
+- `get_or`/`to_or` 及其集合版本让 fallback 语义保持明确：未设置值可以使用默认值，具体空
+  集合的首项读取、集合元素缺失、类型不匹配和普通转换失败仍会报告错误。
 - `NamedValue` 和 `NamedMultiValues` 为运行时值附加 key，不改变值本身的类型语义。
 - `ValueWireV1` 提供带版本的类型保留 JSON 表示，并提供有界的 `to_json_vec()`、
   `to_json_writer()` 入口；定向 `_with_limits` 方法分别接收 `JsonDecodeLimits` 和
@@ -166,6 +166,9 @@ Wire DTO 实现了 `Serialize`，但刻意不实现通用的 `Deserialize`：普
 自然 JSON 无法恢复 `DataType`、unset 状态或标量/集合形态。Wire V1 会拒绝非有限浮点、
 不支持的类型和非法 payload，不会猜测输入含义。每个独立 Wire 操作应创建新的有界 session；
 只有多个嵌入值属于同一个外层请求预算时，才应复用 session。
+
+对于转换 fallback，策略将标量判定为 missing 时可以使用调用方提供的默认值。具体集合中的
+缺失元素永远不会回退，包括第零项；显式为空的集合读取首项时也仍然返回错误。
 
 ## 延伸阅读
 
