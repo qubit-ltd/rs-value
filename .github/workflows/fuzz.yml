@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [bounded_value_wire_v1, structured_value_wire_v1]
+        target: [bounded_value_wire_v1, structured_value_wire_v1, preflight_soundness]
     steps:
       - name: Checkout source
         uses: actions/checkout@v6

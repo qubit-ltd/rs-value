@@ -80,6 +80,11 @@ name = "wire_preparation_allocation_tests"
 path = "tests/wire_preparation_allocation_tests.rs"
 required-features = ["json"]
 
+[[test]]
+name = "preflight_allocation_tests"
+path = "tests/preflight_allocation_tests.rs"
+required-features = ["big-decimal", "json"]
+
 [features]
 default = []
 chrono = ["dep:chrono", "qubit-datatype/chrono"]

@@ -32,3 +32,10 @@ path = "fuzz_targets/structured_value_wire_v1.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "preflight_soundness"
+path = "fuzz_targets/preflight_soundness.rs"
+test = false
+doc = false
+bench = false
