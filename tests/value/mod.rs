@@ -11,7 +11,7 @@
 
 #[cfg(feature = "json")]
 mod internal;
-#[cfg(feature = "redact")]
+#[cfg(all(feature = "redact", feature = "json"))]
 mod redaction_tests;
 #[cfg(feature = "all")]
 mod value_constructor_tests;
