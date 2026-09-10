@@ -352,11 +352,7 @@ qubit-value = {{ path = {root:?} }}
         file,
         &example.id,
         phase,
-        if example.mode == ExampleMode::Compile {
-            Duration::from_secs(180)
-        } else {
-            Duration::from_secs(180)
-        },
+        Duration::from_secs(180),
         &stdout_path,
         &stderr_path,
     );
