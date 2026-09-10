@@ -436,20 +436,20 @@ where
 
 let input = br#"{"first":{"scalar":{"string":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},"second":{"scalar":{"string":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}}"#;
 let tight = JsonDecodeLimits::builder()
-    .max_string_bytes(64)
-    .max_payload_bytes(64)
+    .max_string_bytes(64usize)
+    .max_payload_bytes(64usize)
     .build();
 let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(tight));
 assert!(decoder.decode_utf8::<Outer>(input).is_err());
 
 let wide = JsonDecodeLimits::builder()
-    .max_string_bytes(64)
-    .max_payload_bytes(128)
+    .max_string_bytes(64usize)
+    .max_payload_bytes(128usize)
     .build();
 let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(wide));
 let outer = decoder.decode_utf8::<Outer>(input)?;
-assert_eq!(outer.first.container().data_type(), qubit_datatype::DataType::String);
-assert_eq!(outer.second.container().data_type(), qubit_datatype::DataType::String);
+assert_eq!(outer.first.container().data_type().as_str(), "string");
+assert_eq!(outer.second.container().data_type().as_str(), "string");
 ```
 
 ### Wire 的类型和输入边界
