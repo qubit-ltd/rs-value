@@ -494,3 +494,15 @@ fn test_check_values_covers_empty_and_nested_json() {
         })]))
         .expect("nested JSON values must be traversed");
 }
+
+#[test]
+fn test_preflight_handles_deep_json_without_recursion() {
+    let mut value = serde_json::Value::Bool(true);
+    for _ in 0..10_000 {
+        value = serde_json::Value::Array(vec![value]);
+    }
+
+    ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_depth(10_001).build())
+        .check_value(&Value::Json(value))
+        .expect("deep JSON values must be checked iteratively");
+}

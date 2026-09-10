@@ -375,45 +375,63 @@ impl ValueWireEncodePreflight {
         value: &serde_json::Value,
         depth: usize,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        match value {
-            serde_json::Value::Null => self.admit(JsonMeasurement::Null { depth }, 1, 0),
-            serde_json::Value::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0),
-            serde_json::Value::Number(value) => {
-                let mut writer = JsonLengthWriter::default();
-                serde_json::to_writer(&mut writer, value).expect("JSON Number serialization cannot fail");
-                self.admit_number(depth, writer.len)
-            }
-            serde_json::Value::String(value) => self.admit_string(depth, value.len()),
-            serde_json::Value::Array(values) => {
-                self.admit(
-                    JsonMeasurement::Array {
-                        depth,
-                        items: values.len(),
-                    },
-                    values.len().saturating_add(2),
-                    2,
-                )?;
-                for value in values {
-                    self.check_json(value, depth + 1)?;
+        enum Frame<'a> {
+            Visit(&'a serde_json::Value, usize),
+            Array(std::slice::Iter<'a, serde_json::Value>, usize),
+            Object(serde_json::map::Iter<'a>, usize),
+        }
+
+        let mut frames = vec![Frame::Visit(value, depth)];
+        while let Some(frame) = frames.pop() {
+            match frame {
+                Frame::Visit(value, depth) => match value {
+                    serde_json::Value::Null => self.admit(JsonMeasurement::Null { depth }, 1, 0)?,
+                    serde_json::Value::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0)?,
+                    serde_json::Value::Number(value) => {
+                        let mut writer = JsonLengthWriter::default();
+                        serde_json::to_writer(&mut writer, value).expect("JSON Number serialization cannot fail");
+                        self.admit_number(depth, writer.len)?;
+                    }
+                    serde_json::Value::String(value) => self.admit_string(depth, value.len())?,
+                    serde_json::Value::Array(values) => {
+                        self.admit(
+                            JsonMeasurement::Array {
+                                depth,
+                                items: values.len(),
+                            },
+                            values.len().saturating_add(2),
+                            2,
+                        )?;
+                        frames.push(Frame::Array(values.iter(), depth + 1));
+                    }
+                    serde_json::Value::Object(values) => {
+                        self.admit(
+                            JsonMeasurement::Object {
+                                depth,
+                                entries: values.len(),
+                            },
+                            values.len().saturating_mul(2).saturating_add(2),
+                            2,
+                        )?;
+                        frames.push(Frame::Object(values.iter(), depth + 1));
+                    }
+                },
+                Frame::Array(mut values, depth) => {
+                    if let Some(value) = values.next() {
+                        frames.push(Frame::Array(values, depth));
+                        frames.push(Frame::Visit(value, depth));
+                    }
                 }
-                Ok(())
-            }
-            serde_json::Value::Object(values) => {
-                self.admit(
-                    JsonMeasurement::Object {
-                        depth,
-                        entries: values.len(),
-                    },
-                    values.len().saturating_mul(2).saturating_add(2),
-                    2,
-                )?;
-                for (key, value) in values {
-                    self.check_point(JsonMeasurement::Key { bytes: key.len() })?;
-                    self.check_json(value, depth + 1)?;
+                Frame::Object(mut values, depth) => {
+                    if let Some((key, value)) = values.next() {
+                        self.check_point(JsonMeasurement::Key { bytes: key.len() })?;
+                        frames.push(Frame::Object(values, depth));
+                        frames.push(Frame::Visit(value, depth));
+                    }
                 }
-                Ok(())
             }
         }
+        Ok(())
     }
 
     fn admit_string(&mut self, depth: usize, bytes: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
