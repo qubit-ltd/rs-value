@@ -15,6 +15,8 @@ use serde::Serialize;
 /// Internal classification used by Wire V1 preflight measurement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::value_wire) enum WirePreflightStrategy {
+    /// Frozen type tag text for an unset payload.
+    UnsetText,
     /// Boolean node.
     Boolean,
     /// Borrowed text node.

@@ -22,6 +22,7 @@ use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 
 use super::internal::WireDataTypeV1;
+use super::internal::WirePreflightStrategy;
 use crate::MultiValues;
 use crate::Value;
 use crate::ValueContainer;
@@ -34,6 +35,41 @@ use self::internal::wire_scalar_measurement::decimal_len;
 use self::internal::wire_scalar_measurement::json_float32_len;
 use self::internal::wire_scalar_measurement::json_float64_len;
 use self::internal::wire_scalar_measurement::unsigned_decimal_len;
+
+macro_rules! define_value_ref_preflight_strategy {
+    (
+        $($arg:expr),*;
+        $(
+            (
+                [$($cfg:meta),*],
+                $variant:ident,
+                $type:ty,
+                $_data_type:expr,
+                $_materialization:ident,
+                $_json_class:ident,
+                $_number_projection:ident,
+                $_value_doc:literal,
+                $_multi_doc:literal,
+                [$($scalar_attr:meta),*],
+                [$($collection_attr:meta),*],
+                $_tag:literal,
+                $_wire_preflight:ident
+            )
+        ),+ $(,)?
+    ) => {
+        fn value_ref_preflight_strategy(value: ValueRef<'_>) -> WirePreflightStrategy {
+            match value {
+                ValueRef::Unset(_) => WirePreflightStrategy::UnsetText,
+                $(
+                    $(#[$cfg])*
+                    ValueRef::$variant(_) => WireDataTypeV1::$variant.preflight_strategy(),
+                )+
+            }
+        }
+    };
+}
+
+for_each_value_type!(define_value_ref_preflight_strategy);
 
 /// Performs conservative resource checks before Wire V1 sorting and formatting.
 ///
@@ -181,13 +217,13 @@ impl ValueWireEncodePreflight {
     where
         F: FnOnce(&mut Self) -> Result<(), MeasuredBudgetError<JsonResource, usize>>,
     {
-        let snapshot = (self.nodes, self.payload_bytes, self.output_bytes);
-        match check(self) {
-            Ok(()) => Ok(()),
-            Err(error) => {
-                (self.nodes, self.payload_bytes, self.output_bytes) = snapshot;
-                Err(error)
+        let mut candidate = self.clone();
+        match check(&mut candidate) {
+            Ok(()) => {
+                *self = candidate;
+                Ok(())
             }
+            Err(error) => Err(error),
         }
     }
 
@@ -204,74 +240,127 @@ impl ValueWireEncodePreflight {
         value: ValueRef<'_>,
         depth: usize,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        match value {
-            ValueRef::Unset(data_type) => {
-                let wire_type = WireDataTypeV1::from(data_type);
-                let _ = wire_type.preflight_strategy();
-                let tag = wire_type.tag();
-                self.admit_string(depth, tag.len())
-            }
-            ValueRef::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0),
-            ValueRef::Char(value) => self.admit_string(depth, value.len_utf8()),
-            ValueRef::String(value) => self.admit_string(depth, value.len()),
-            ValueRef::Int8(value) => self.admit_number(depth, decimal_len(value as i128)),
-            ValueRef::Int16(value) => self.admit_number(depth, decimal_len(value as i128)),
-            ValueRef::Int32(value) => self.admit_number(depth, decimal_len(value as i128)),
-            ValueRef::Int64(value) => self.admit_number(depth, decimal_len(value as i128)),
-            ValueRef::Int128(value) => self.admit_string(depth, decimal_len(value)),
-            ValueRef::UInt8(value) => self.admit_number(depth, unsigned_decimal_len(value as u128)),
-            ValueRef::UInt16(value) => {
-                self.admit_number(depth, unsigned_decimal_len(value as u128))
-            }
-            ValueRef::UInt32(value) => {
-                self.admit_number(depth, unsigned_decimal_len(value as u128))
-            }
-            ValueRef::UInt64(value) => {
-                self.admit_number(depth, unsigned_decimal_len(value as u128))
-            }
-            ValueRef::UInt128(value) => self.admit_string(depth, unsigned_decimal_len(value)),
-            ValueRef::Float32(value) => {
-                if value.is_finite() {
-                    self.admit_number(depth, json_float32_len(value))
-                } else {
-                    self.admit_number(depth, 1)
+        match value_ref_preflight_strategy(value) {
+            WirePreflightStrategy::Boolean => match value {
+                ValueRef::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0),
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
+            WirePreflightStrategy::BorrowedText => match value {
+                ValueRef::Char(value) => self.admit_string(depth, value.len_utf8()),
+                ValueRef::String(value) => self.admit_string(depth, value.len()),
+                #[cfg(feature = "url")]
+                ValueRef::Url(value) => self.admit_string(depth, value.as_str().len()),
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
+            WirePreflightStrategy::JsonInteger => match value {
+                ValueRef::Int8(value) => self.admit_number(depth, decimal_len(value as i128)),
+                ValueRef::Int16(value) => self.admit_number(depth, decimal_len(value as i128)),
+                ValueRef::Int32(value) => self.admit_number(depth, decimal_len(value as i128)),
+                ValueRef::Int64(value) => self.admit_number(depth, decimal_len(value as i128)),
+                ValueRef::UInt8(value) => {
+                    self.admit_number(depth, unsigned_decimal_len(value as u128))
                 }
-            }
-            ValueRef::Float64(value) => {
-                if value.is_finite() {
-                    self.admit_number(depth, json_float64_len(value))
-                } else {
-                    self.admit_number(depth, 1)
+                ValueRef::UInt16(value) => {
+                    self.admit_number(depth, unsigned_decimal_len(value as u128))
                 }
-            }
-            #[cfg(feature = "big-integer")]
-            ValueRef::BigInteger(value) => self.admit_string(depth, bigint_digits(value)),
-            #[cfg(feature = "big-decimal")]
-            ValueRef::BigDecimal(value) => {
-                let (coefficient, scale) = value.as_bigint_and_scale();
-                drop(coefficient);
-                self.admit_object_with_keys(
+                ValueRef::UInt32(value) => {
+                    self.admit_number(depth, unsigned_decimal_len(value as u128))
+                }
+                ValueRef::UInt64(value) => {
+                    self.admit_number(depth, unsigned_decimal_len(value as u128))
+                }
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
+            WirePreflightStrategy::DecimalText => match value {
+                ValueRef::Int128(value) => self.admit_string(depth, decimal_len(value)),
+                ValueRef::UInt128(value) => self.admit_string(depth, unsigned_decimal_len(value)),
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
+            WirePreflightStrategy::UnsetText => match value {
+                ValueRef::Unset(data_type) => {
+                    let tag = WireDataTypeV1::from(data_type).tag();
+                    self.admit_string(depth, tag.len())
+                }
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
+            WirePreflightStrategy::JsonFloat => match value {
+                ValueRef::Float32(value) => self.admit_number(
                     depth,
-                    [
-                        ("coefficient", 0, true),
-                        ("scale", decimal_len(scale as i128), false),
-                    ],
-                )
+                    if value.is_finite() {
+                        json_float32_len(value)
+                    } else {
+                        1
+                    },
+                ),
+                ValueRef::Float64(value) => self.admit_number(
+                    depth,
+                    if value.is_finite() {
+                        json_float64_len(value)
+                    } else {
+                        1
+                    },
+                ),
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
+            WirePreflightStrategy::BigIntegerText => {
+                #[cfg(feature = "big-integer")]
+                {
+                    match value {
+                        ValueRef::BigInteger(value) => {
+                            self.admit_string(depth, bigint_digits(value))
+                        }
+                        _ => unreachable!("table strategy and ValueRef variant diverged"),
+                    }
+                }
+                #[cfg(not(feature = "big-integer"))]
+                {
+                    unreachable!("big-integer strategy is unavailable without its feature")
+                }
             }
-            ValueRef::Duration(value) => self.admit_duration(depth, *value),
-            #[cfg(feature = "chrono")]
-            ValueRef::Date(_value) => self.admit_string(depth, 0),
-            #[cfg(feature = "chrono")]
-            ValueRef::Time(_value) => self.admit_string(depth, 0),
-            #[cfg(feature = "chrono")]
-            ValueRef::DateTime(_value) => self.admit_string(depth, 0),
-            #[cfg(feature = "chrono")]
-            ValueRef::Instant(_value) => self.admit_string(depth, 0),
-            #[cfg(feature = "url")]
-            ValueRef::Url(value) => self.admit_string(depth, value.as_str().len()),
-            ValueRef::StringMap(value) => self.check_string_map(value, depth),
+            WirePreflightStrategy::DecimalObject => {
+                #[cfg(feature = "big-decimal")]
+                {
+                    match value {
+                        ValueRef::BigDecimal(value) => {
+                            let (coefficient, scale) = value.as_bigint_and_scale();
+                            drop(coefficient);
+                            self.admit_object_with_keys(
+                                depth,
+                                [
+                                    ("coefficient", 0, true),
+                                    ("scale", decimal_len(scale as i128), false),
+                                ],
+                            )
+                        }
+                        _ => unreachable!("table strategy and ValueRef variant diverged"),
+                    }
+                }
+                #[cfg(not(feature = "big-decimal"))]
+                {
+                    unreachable!("big-decimal strategy is unavailable without its feature")
+                }
+            }
+            WirePreflightStrategy::TemporalText => match value {
+                #[cfg(feature = "chrono")]
+                ValueRef::Date(_)
+                | ValueRef::Time(_)
+                | ValueRef::DateTime(_)
+                | ValueRef::Instant(_) => self.admit_string(depth, 0),
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
+            WirePreflightStrategy::DurationObject => match value {
+                ValueRef::Duration(value) => self.admit_duration(depth, *value),
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
+            WirePreflightStrategy::StringMap => match value {
+                ValueRef::StringMap(value) => self.check_string_map(value, depth),
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
             #[cfg(feature = "json")]
-            ValueRef::Json(value) => self.check_json(value, depth),
+            WirePreflightStrategy::JsonTree => match value {
+                ValueRef::Json(value) => self.check_json(value, depth),
+                _ => unreachable!("table strategy and ValueRef variant diverged"),
+            },
         }
     }
 
@@ -524,6 +613,7 @@ mod tests {
     use qubit_budget::MeasuredBudgetError;
     use qubit_budget::json::JsonEncodeLimits;
     use qubit_budget::json::JsonResource;
+    use std::panic::AssertUnwindSafe;
 
     use super::ValueWireEncodePreflight;
     use crate::Value;
@@ -579,5 +669,22 @@ mod tests {
         assert_eq!(checker.nodes, 0);
         assert_eq!(checker.payload_bytes, 0);
         assert_eq!(checker.output_bytes, usize::MAX);
+    }
+
+    #[test]
+    fn test_transaction_does_not_commit_counters_when_check_panics() {
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+            checker.transaction(|candidate| {
+                candidate.nodes = 17;
+                candidate.payload_bytes = 23;
+                panic!("simulated preflight panic");
+            })
+        }));
+
+        assert!(result.is_err());
+        assert_eq!(checker.nodes, 0);
+        assert_eq!(checker.payload_bytes, 0);
+        assert_eq!(checker.output_bytes, 0);
     }
 }
