@@ -235,6 +235,15 @@ syntax and formatting costs. The final `JsonEncodeSession` remains
 authoritative and enforces structural measurements plus actual output bytes
 during encoding.
 
+The three preflight counters have distinct units: `nodes` counts JSON value
+nodes, `payload_bytes` counts decoded string/key/number text (null and boolean
+payloads count as zero), and `output_bytes` counts the lower-bound encoded
+syntax plus text. Strings and keys use UTF-8 bytes; string quotes and the
+minimum object/array punctuation are included in the output lower bound.
+Escaping, canonical key sorting, outer envelope fields, and exact rich-type
+formatting may add bytes later. A successful preflight therefore admits a
+candidate for final encoding but never replaces that final check.
+
 `new_value_limits` is for an outer protocol that owns the output budget.
 `new_u64_limits` adapts a downstream `u64` profile to native `usize`; limits
 larger than `usize::MAX` saturate rather than truncate on narrower targets.
@@ -289,6 +298,16 @@ missing, type mismatch, and invalid conversion remain distinguishable.
 Collection conversion errors retain the failing source index. Natural JSON
 projection limit errors retain the data type, optional collection index, and
 the measured resource facts.
+
+Fallback behavior follows this truth table:
+
+| Source state | Strict `get_or*` | Conversion `to_*_or*` |
+| --- | --- | --- |
+| Unset scalar or collection | Default | Default |
+| Concrete empty collection, first-item read | Error | Error |
+| Policy-missing scalar | Not applicable | Default |
+| Policy-missing collection item, including index 0 | Error | Error |
+| Ordinary conversion or type error | Error | Error |
 
 `ValueMissing` is a private-field fact object, classified by
 `ValueMissingReason`. It records source type, requested target type, optional

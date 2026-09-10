@@ -20,6 +20,30 @@ use super::deserialize_wire;
 /// Use this seed with a decoder that enforces the resource limits appropriate
 /// for the surrounding document. For complete JSON input, prefer the bounded
 /// JSON decode helpers on `ValueWireV1`.
+///
+/// With the `json` feature, a complete envelope can be decoded through the
+/// public `JsonDecoder` entry point:
+///
+/// ```rust
+/// # #[cfg(feature = "json")]
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
+/// use qubit_json::decode::JsonDecoder;
+/// use qubit_value::ValueWireV1Seed;
+///
+/// let limits = JsonDecodeLimits::builder().max_input_bytes(256usize).build();
+/// let session = JsonDecodeSession::from_limits(limits);
+/// let mut decoder = JsonDecoder::new(session);
+/// let value = decoder.decode_seed_utf8(
+///     ValueWireV1Seed::new(),
+///     br#"{"version":1,"value":{"scalar":{"int32":7}}}"#,
+/// )?;
+/// assert_eq!(value.into_container().data_type(), qubit_datatype::DataType::Int32);
+/// # Ok(())
+/// # }
+/// # #[cfg(not(feature = "json"))]
+/// # fn main() {}
+/// ```
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ValueWireV1Seed;
 

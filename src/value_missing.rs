@@ -19,6 +19,31 @@ use crate::ValueMissingReason;
 
 /// Describes the storage state, requested type and source of a missing read.
 ///
+/// The fields are private so callers cannot manufacture an incomplete fact.
+/// Use the constructors for storage states and the accessors for the optional
+/// facts. `source_type` and `target_type` are `None` only when the caller has
+/// no type information (for example, a generic empty iterator); `source_index`
+/// is set only when a collection item caused the failure. A preserved
+/// `conversion_error` is available only when the `converter` feature is on.
+///
+/// Strict fallback is allowed only for an unset value after type admission.
+/// Conversion fallback additionally accepts a policy-classified missing scalar
+/// but never a concrete empty collection or a missing collection item.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_datatype::DataType;
+/// use qubit_value::{Value, ValueMissingReason};
+///
+/// let error = Value::new_unset(DataType::Int32).get::<i32>().unwrap_err();
+/// let missing = error.missing().unwrap();
+/// assert_eq!(missing.reason(), ValueMissingReason::UnsetScalar);
+/// assert_eq!(missing.source_type(), Some(DataType::Int32));
+/// assert_eq!(missing.target_type(), Some(DataType::Int32));
+/// assert!(missing.is_defaultable_for_strict_read());
+/// ```
+///
 /// Strict reads record both source and target. Conversion failures additionally
 /// retain their original error and, for collection items, source index.
 /// Inspect [`Self::reason`] and the accessors instead of matching storage
@@ -101,33 +126,41 @@ impl ValueMissing {
     }
 
     /// Returns the storage or policy reason for this missing result.
+    ///
+    /// This value is always present, including when the source or target type
+    /// is unknown.
     pub const fn reason(&self) -> ValueMissingReason {
         self.reason
     }
 
-    /// Returns the known source type, or `None` for a generic empty iterator.
+    /// Returns the known source type, or `None` when conversion did not retain
+    /// one (for example, a generic empty iterator).
     pub const fn source_type(&self) -> Option<DataType> {
         self.source_type
     }
 
-    /// Returns the requested target type when known.
+    /// Returns the requested target type when known. Strict reads normally
+    /// provide it; a low-level conversion failure may leave it absent.
     pub const fn target_type(&self) -> Option<DataType> {
         self.target_type
     }
 
     /// Returns the original collection item index, or `None` for an outer
-    /// failure.
+    /// failure or a scalar conversion.
     pub const fn source_index(&self) -> Option<usize> {
         self.source_index
     }
 
-    /// Returns the original conversion error, absent for a strict storage read.
+    /// Returns the original conversion error, absent for a strict storage
+    /// read. The error is the source for [`std::error::Error::source`].
     #[cfg(feature = "converter")]
     pub const fn conversion_error(&self) -> Option<&DataConversionError> {
         self.conversion_error.as_ref()
     }
 
     /// Reports whether scalar or collection storage is unset.
+    ///
+    /// This predicate is the condition used by strict fallback helpers.
     pub const fn is_unset(&self) -> bool {
         matches!(
             self.reason,
@@ -158,7 +191,7 @@ impl ValueMissing {
     }
 
     /// Allows strict fallback only for unset storage after the type check
-    /// passed.
+    /// passed. Concrete empty collections and type mismatches return `false`.
     pub const fn is_defaultable_for_strict_read(&self) -> bool {
         self.is_unset()
     }

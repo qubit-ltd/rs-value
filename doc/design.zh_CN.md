@@ -187,6 +187,12 @@ Preflight 不执行序列化、不保留排序 index，也不证明最终编码�
 部分最终语法和格式化成本。最终 `JsonEncodeSession` 才是权威检查，会在编码期间校验结构
 measurement 与实际输出字节。
 
+三个 preflight counter 使用不同单位：`nodes` 统计 JSON value 节点，`payload_bytes` 统计解码后
+字符串、key 和数字文本的字节（null 与 boolean 的 payload 为零），`output_bytes` 统计编码语法和
+文本的输出下界。字符串和 key 使用 UTF-8 字节；字符串引号以及 object/array 的最少标点计入输出
+下界。转义、canonical key 排序、外层 envelope 字段和富类型的精确格式化可能在后续增加字节，
+所以 preflight 通过不能替代最终检查。
+
 `new_value_limits` 适用于由外层协议拥有 output budget 的场景。`new_u64_limits` 把下游的
 `u64` profile 适配为原生 `usize`；在较窄 target 上，大于 `usize::MAX` 的限制会饱和，而不会
 截断。
@@ -241,6 +247,16 @@ feature 的 decoder 会拒绝 payload，而不会强制转换成其他类型。�
 转换失败。调用方应使用 `is_defaultable_for_strict_read()` 或
 `is_defaultable_for_conversion()` 决定是否回退，不能认为所有 missing 都允许默认值。
 集合某项缺失，以及从具体空集合读取首项，都不允许回退。
+
+Fallback 遵循以下真值表：
+
+| 源状态 | 严格 `get_or*` | 转换 `to_*_or*` |
+| --- | --- | --- |
+| 未设置的标量或集合 | 默认值 | 默认值 |
+| 具体空集合读取首项 | 错误 | 错误 |
+| 策略判定为 missing 的标量 | 不适用 | 默认值 |
+| 策略判定为 missing 的集合元素（包括第 0 项） | 错误 | 错误 |
+| 普通转换错误或类型错误 | 错误 | 错误 |
 
 Wire 错误不包含原始输入内容；decode 错误只保留安全的位置和类别信息。`ValueError` 和 Wire
 错误 enum 在需要允许未来增加诊断变体时使用 `non_exhaustive`，下游 match 因此必须有 fallback

@@ -434,36 +434,60 @@ let restored: ValueContainer = decoded.into();
 assert!(restored.is_collection());
 ```
 
-An outer protocol that already owns its version can decode only the typed
-payload while charging the same bounded JSON session.
-
-<!-- example:embedded-payload-budget run -->
-```rust
-use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
-use qubit_json::decode::JsonDecoder;
-use qubit_value::{ValueContainer, ValueWirePayloadV1Seed};
-
-let limits = JsonDecodeLimits::builder()
-    .max_input_bytes(1024usize)
-    .max_depth(8usize)
-    .max_nodes(16usize)
-    .build();
-let session = JsonDecodeSession::from_limits(limits);
-let mut decoder = JsonDecoder::new(session);
-let decoded = decoder.decode_seed_utf8(
-    ValueWirePayloadV1Seed::new(),
-    br#"{"scalar":{"int32":7}}"#,
-)?;
-let restored: ValueContainer = decoded.into();
-assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
-assert!(restored.is_scalar());
-```
-
 For a value embedded in a larger outer object, call `next_value_seed` with the
 same `ValueWireV1Seed` (or `ValueWirePayloadV1Seed` when the outer protocol owns
 the version). The outer object and embedded V1 envelope then share one JSON
 document budget. Reusing the same `JsonDecoder` for later complete documents
 keeps session accounting cumulative, and each call rejects trailing content.
+
+### Embedded payload budget: one outer session
+
+An outer struct can invoke `ValueWirePayloadV1Seed` from a field
+`deserialize_with` function. The derived visitor then charges both fields to
+the same decoder session. Each 32-byte string fits by itself, but the two
+payloads together exceed a 64-byte cumulative payload budget.
+
+<!-- example:embedded-payload-budget run -->
+```rust
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
+use qubit_json::decode::JsonDecoder;
+use qubit_value::{ValueWirePayloadV1, ValueWirePayloadV1Seed};
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::de::DeserializeSeed;
+
+#[derive(Debug, Deserialize)]
+struct Outer {
+    #[serde(deserialize_with = "decode_payload")]
+    first: ValueWirePayloadV1,
+    #[serde(deserialize_with = "decode_payload")]
+    second: ValueWirePayloadV1,
+}
+
+fn decode_payload<'de, D>(deserializer: D) -> Result<ValueWirePayloadV1, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    ValueWirePayloadV1Seed::new().deserialize(deserializer)
+}
+
+let input = br#"{"first":{"scalar":{"string":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},"second":{"scalar":{"string":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}}"#;
+let tight = JsonDecodeLimits::builder()
+    .max_string_bytes(64)
+    .max_payload_bytes(64)
+    .build();
+let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(tight));
+assert!(decoder.decode_utf8::<Outer>(input).is_err());
+
+let wide = JsonDecodeLimits::builder()
+    .max_string_bytes(64)
+    .max_payload_bytes(128)
+    .build();
+let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(wide));
+let outer = decoder.decode_utf8::<Outer>(input)?;
+assert_eq!(outer.first.container().data_type(), qubit_datatype::DataType::String);
+assert_eq!(outer.second.container().data_type(), qubit_datatype::DataType::String);
+```
 
 ### Wire-specific type and input boundaries
 

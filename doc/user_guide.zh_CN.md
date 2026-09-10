@@ -399,35 +399,58 @@ let restored: ValueContainer = decoded.into();
 assert!(restored.is_collection());
 ```
 
-如果外层协议已经拥有版本字段，可以只解码 typed payload，同时让同一个有界 JSON session
-继续计费。
+如果值嵌在更大的外层 object 中，应在同一个 `MapAccess` 上调用
+`next_value_seed`，传入 `ValueWireV1Seed`；如果外层协议已经拥有版本，则传入
+`ValueWirePayloadV1Seed`。这样外层 object 和 V1 envelope 共享同一个 JSON 文档预算。继续使用
+同一个 `JsonDecoder` 解码后续完整文档时，session 会累计记账，每次调用也都会拒绝 trailing content。
+
+### 嵌入 payload 预算：共享一个外层 session
+
+外层 struct 可以在字段的 `deserialize_with` 函数中调用
+`ValueWirePayloadV1Seed`。这样 derive 生成的 visitor 会通过同一个 decoder session 为两个字段
+累计计费。每个 32 字节字符串单独都能通过，但两个 payload 合计会超过 64 字节的 payload 预算。
 
 <!-- example:embedded-payload-budget run -->
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
 use qubit_json::decode::JsonDecoder;
-use qubit_value::{ValueContainer, ValueWirePayloadV1Seed};
+use qubit_value::{ValueWirePayloadV1, ValueWirePayloadV1Seed};
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::de::DeserializeSeed;
 
-let limits = JsonDecodeLimits::builder()
-    .max_input_bytes(1024usize)
-    .max_depth(8usize)
-    .max_nodes(16usize)
+#[derive(Debug, Deserialize)]
+struct Outer {
+    #[serde(deserialize_with = "decode_payload")]
+    first: ValueWirePayloadV1,
+    #[serde(deserialize_with = "decode_payload")]
+    second: ValueWirePayloadV1,
+}
+
+fn decode_payload<'de, D>(deserializer: D) -> Result<ValueWirePayloadV1, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    ValueWirePayloadV1Seed::new().deserialize(deserializer)
+}
+
+let input = br#"{"first":{"scalar":{"string":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},"second":{"scalar":{"string":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}}"#;
+let tight = JsonDecodeLimits::builder()
+    .max_string_bytes(64)
+    .max_payload_bytes(64)
     .build();
-let session = JsonDecodeSession::from_limits(limits);
-let mut decoder = JsonDecoder::new(session);
-let decoded = decoder.decode_seed_utf8(
-    ValueWirePayloadV1Seed::new(),
-    br#"{"scalar":{"int32":7}}"#,
-)?;
-let restored: ValueContainer = decoded.into();
-assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
-assert!(restored.is_scalar());
-```
+let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(tight));
+assert!(decoder.decode_utf8::<Outer>(input).is_err());
 
-如果值嵌在更大的外层 object 中，应在同一个 `MapAccess` 上调用
-`next_value_seed`，传入 `ValueWireV1Seed`；如果外层协议已经拥有版本，则传入
-`ValueWirePayloadV1Seed`。这样外层 object 和 V1 envelope 共享同一个 JSON 文档预算。继续使用
-同一个 `JsonDecoder` 解码后续完整文档时，session 会累计记账，每次调用也都会拒绝 trailing content。
+let wide = JsonDecodeLimits::builder()
+    .max_string_bytes(64)
+    .max_payload_bytes(128)
+    .build();
+let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(wide));
+let outer = decoder.decode_utf8::<Outer>(input)?;
+assert_eq!(outer.first.container().data_type(), qubit_datatype::DataType::String);
+assert_eq!(outer.second.container().data_type(), qubit_datatype::DataType::String);
+```
 
 ### Wire 的类型和输入边界
 

@@ -8,6 +8,10 @@
 //! Classification independent of the source and requested value types.
 
 /// Identifies why a read could not produce a concrete value.
+///
+/// The reason is independent of the source and target types. Inspect the
+/// accompanying [`crate::ValueMissing`] accessors for those types and for a
+/// collection index when one is available.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ValueMissingReason {
