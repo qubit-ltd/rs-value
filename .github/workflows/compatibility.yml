@@ -1,6 +1,9 @@
 name: API and downstream compatibility
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
 
