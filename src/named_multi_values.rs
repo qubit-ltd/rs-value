@@ -67,6 +67,15 @@ use self::internal::NamedMultiValuesWireRef;
 ///   fields
 /// - Outputting named multiple value lists in configurations/logs
 ///
+/// # Deserialization boundaries
+///
+/// [`Deserialize`] validates the V1 wire schema and requires a collection
+/// payload, but it does not create a resource budget by itself. For a complete,
+/// untrusted JSON document, use `NamedMultiValues::decode_json_slice` or
+/// `NamedMultiValues::decode_json_slice_with_limits`. When this type is
+/// embedded in a larger document, deserialize it through a resource-bounded
+/// outer decoder.
+///
 /// # Examples
 ///
 /// ```rust
@@ -435,6 +444,28 @@ impl Serialize for NamedMultiValues {
 
 impl<'de> Deserialize<'de> for NamedMultiValues {
     /// Deserializes a named collection from the V1 wire contract.
+    ///
+    /// This implementation validates the wire schema and collection shape, but
+    /// inherits resource accounting from `deserializer`. Callers handling a
+    /// complete, untrusted JSON document should use the bounded JSON helpers on
+    /// [`NamedMultiValues`] instead of an unbounded Serde entry point.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Serde deserializer that supplies the input and any outer budget.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Source containing one named V1 collection envelope.
+    ///
+    /// # Returns
+    ///
+    /// The decoded name and homogeneous collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `D::Error` for an invalid V1 envelope, an unsupported payload,
+    /// or a payload whose shape is not a collection.
     #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

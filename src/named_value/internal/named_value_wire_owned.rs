@@ -15,6 +15,25 @@ use serde::de::DeserializeSeed;
 use crate::ValueWireV1;
 use crate::ValueWireV1Seed;
 
+/// Decodes the nested V1 envelope with its explicit validation seed.
+///
+/// # Type Parameters
+///
+/// * `D` - Serde deserializer supplied by the enclosing named-value visitor.
+///
+/// # Parameters
+///
+/// * `deserializer` - Source positioned at the nested V1 envelope.
+///
+/// # Returns
+///
+/// A validated V1 wire value whose resource accounting is inherited from the
+/// enclosing deserializer.
+///
+/// # Errors
+///
+/// Returns `D::Error` when the nested V1 envelope is malformed or unsupported.
+#[inline(always)]
 fn deserialize_value_wire<'de, D>(deserializer: D) -> Result<ValueWireV1, D::Error>
 where
     D: Deserializer<'de>,

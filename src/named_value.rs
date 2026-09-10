@@ -67,6 +67,14 @@ use self::internal::NamedValueWireRef;
 /// - Named output of key values in logs/monitoring
 /// - Quick location by name in collections
 ///
+/// # Deserialization boundaries
+///
+/// [`Deserialize`] validates the V1 wire schema and requires a scalar payload,
+/// but it does not create a resource budget by itself. For a complete,
+/// untrusted JSON document, use `NamedValue::decode_json_slice` or
+/// `NamedValue::decode_json_slice_with_limits`. When this type is embedded in a
+/// larger document, deserialize it through a resource-bounded outer decoder.
+///
 /// # Examples
 ///
 /// ```rust
@@ -375,6 +383,28 @@ impl Serialize for NamedValue {
 
 impl<'de> Deserialize<'de> for NamedValue {
     /// Deserializes a named scalar value from the V1 wire contract.
+    ///
+    /// This implementation validates the wire schema and scalar shape, but
+    /// inherits resource accounting from `deserializer`. Callers handling a
+    /// complete, untrusted JSON document should use the bounded JSON helpers on
+    /// [`NamedValue`] instead of an unbounded Serde entry point.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Serde deserializer that supplies the input and any outer budget.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Source containing one named V1 scalar envelope.
+    ///
+    /// # Returns
+    ///
+    /// The decoded name and scalar value.
+    ///
+    /// # Errors
+    ///
+    /// Returns `D::Error` for an invalid V1 envelope, an unsupported payload,
+    /// or a payload whose shape is not scalar.
     #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

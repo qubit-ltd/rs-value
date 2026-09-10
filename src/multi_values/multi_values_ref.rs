@@ -34,6 +34,12 @@ macro_rules! define_view {
 
         impl<'a> MultiValuesRef<'a> {
             /// Returns the element type, including for unset or empty storage.
+            ///
+            /// # Returns
+            ///
+            /// The declared runtime element type.
+            #[must_use = "the declared element type should be inspected"]
+            #[inline(always)]
             pub fn data_type(self) -> DataType {
                 match self {
                     Self::Unset(data_type) => data_type,
@@ -42,6 +48,12 @@ macro_rules! define_view {
             }
 
             /// Returns the number of stored elements; unset storage has length zero.
+            ///
+            /// # Returns
+            ///
+            /// The number of concrete elements, or zero for unset storage.
+            #[must_use]
+            #[inline(always)]
             pub fn len(self) -> usize {
                 match self {
                     Self::Unset(_) => 0,
@@ -50,12 +62,29 @@ macro_rules! define_view {
             }
 
             /// Reports whether no concrete elements are available.
+            ///
+            /// # Returns
+            ///
+            /// `true` for unset or empty storage; otherwise `false`.
+            #[must_use]
+            #[inline(always)]
             pub fn is_empty(self) -> bool { self.len() == 0 }
 
             /// Borrows the indexed element, returning None for unset or out-of-range reads.
             ///
             /// Numeric and boolean payloads are copied. Text and rich payloads
             /// retain the original storage lifetime and are never cloned.
+            ///
+            /// # Parameters
+            ///
+            /// * `index` - Zero-based element position to borrow.
+            ///
+            /// # Returns
+            ///
+            /// `Some` with the indexed element, or `None` when storage is unset
+            /// or `index` is out of bounds.
+            #[must_use]
+            #[inline(always)]
             pub fn get(self, index: usize) -> Option<ValueRef<'a>> {
                 match self {
                     Self::Unset(_) => None,

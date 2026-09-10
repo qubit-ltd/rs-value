@@ -49,6 +49,7 @@ pub struct ValueWirePayloadV1Seed;
 
 impl ValueWirePayloadV1Seed {
     /// Creates a seed for one unversioned V1 payload.
+    #[must_use = "the seed should be passed to a bounded deserializer"]
     #[inline(always)]
     pub const fn new() -> Self {
         Self

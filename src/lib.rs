@@ -46,7 +46,7 @@
 //!   formats are supported as representations, but are outside this byte-level
 //!   stability contract. With the `natural-json` feature, `to_json_value`
 //!   provides a separate natural JSON projection with the same ordering.
-//! - Version one rejects the pre-0.11 externally tagged representation.
+//! - Version one rejects externally tagged representations.
 //! - Non-finite floats may exist in memory, but V1 Serde and natural JSON
 //!   reject them because JSON has no `NaN` or infinity number literals.
 //! - JSON numbers follow `qubit-json`'s explicit range contract: negative

@@ -8,6 +8,13 @@
 
 //! Serde adapters that reject non-finite floating-point values.
 
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
+use serde::de::Error as _;
+use serde::ser::Error as SerializeError;
+
 mod internal;
 
 use self::internal::FiniteFloat;
@@ -15,13 +22,6 @@ use self::internal::FiniteFloat;
 /// Stable Serde error message used to identify non-finite values through
 /// nested serializers.
 pub(crate) const NON_FINITE_FLOAT_MESSAGE: &str = "non-finite floating-point value";
-
-use serde::Deserialize;
-use serde::Deserializer;
-use serde::Serialize;
-use serde::Serializer;
-use serde::de::Error as _;
-use serde::ser::Error as SerializeError;
 
 /// Serializes one finite floating-point value with a caller-provided adapter.
 ///

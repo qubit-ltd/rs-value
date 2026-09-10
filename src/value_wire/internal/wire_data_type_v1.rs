@@ -107,7 +107,13 @@ macro_rules! define_wire_data_type_v1 {
 
         impl WireDataTypeV1 {
             /// Returns the canonical V1 tag used by unset payloads.
+            ///
+            /// # Returns
+            ///
+            /// The lower-case wire tag assigned by the closed value table.
             #[cfg(feature = "json")]
+            #[must_use]
+            #[inline(always)]
             pub(in crate::value_wire) const fn tag(self) -> &'static str {
                 match self {
                     $(Self::$variant => $tag,)+
@@ -115,7 +121,13 @@ macro_rules! define_wire_data_type_v1 {
             }
 
             /// Returns the table-owned preflight strategy for this tag.
+            ///
+            /// # Returns
+            ///
+            /// The scalar measurement strategy associated with this wire tag.
             #[cfg(feature = "json")]
+            #[must_use]
+            #[inline(always)]
             pub(in crate::value_wire) const fn preflight_strategy(self) -> WirePreflightStrategy {
                 match self {
                     $(Self::$variant => wire_preflight_strategy!($wire_preflight),)+
