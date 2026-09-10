@@ -60,7 +60,7 @@ success criteria are:
 
 The core path is:
 
-<!-- example:runtime-config compile -->
+<!-- example:runtime-config run -->
 ```rust
 use std::collections::HashMap;
 use std::time::Duration;
@@ -186,7 +186,7 @@ Rust value. `StringMap` is a native map type and does not require `json`; the
 Use a typed constructor when the Rust type is known. Use `Value::new_unset` when
 the key has a declared type but no value yet.
 
-<!-- example:single-value compile -->
+<!-- example:single-value run -->
 ```rust
 use qubit_datatype::DataType;
 use qubit_value::Value;
@@ -215,7 +215,7 @@ value is unset. A type mismatch is still an error.
 vectors, and borrowed string collections where the corresponding conversion is
 implemented.
 
-<!-- example:multi-values compile -->
+<!-- example:multi-values run -->
 ```rust
 use qubit_value::MultiValues;
 
@@ -250,7 +250,7 @@ With `converter`, `to` applies the shared `qubit-datatype` conversion contract.
 Use `to_with` when the default strict policy is not the policy the application
 wants.
 
-<!-- example:conversion compile -->
+<!-- example:conversion run -->
 ```rust
 use qubit_value::Value;
 
@@ -276,7 +276,7 @@ cannot supply a first-item default.
 
 ### Preserve names without changing value semantics
 
-<!-- example:named-values compile -->
+<!-- example:named-values run -->
 ```rust
 use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
 
@@ -341,7 +341,7 @@ The following example creates an explicitly scalar value, converts it into the
 owned Wire DTO, serializes it, applies input and semantic limits during decode,
 and restores the original container.
 
-<!-- example:wire-round-trip compile -->
+<!-- example:wire-round-trip run -->
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonEncodeLimits};
 use qubit_value::Value;
@@ -389,7 +389,7 @@ different input, output, or value budget.
 Use a borrowed adapter when the source value already lives long enough for the
 serialization call and cloning would be unnecessary.
 
-<!-- example:borrowed-wire compile -->
+<!-- example:borrowed-wire run -->
 ```rust
 use qubit_value::{Value, ValueWireRefV1};
 
@@ -417,7 +417,7 @@ value is nested inside a larger JSON document, use the shared `qubit-budget`
 Serde adapter for the complete outer document so every JSON node is charged in
 one session.
 
-<!-- example:shared-decode-session compile -->
+<!-- example:shared-decode-session run -->
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
 use qubit_json::decode::JsonDecoder;
@@ -432,6 +432,31 @@ let mut decoder = JsonDecoder::new(session);
 let decoded = decoder.decode_seed_utf8(ValueWireV1Seed::new(), input)?;
 let restored: ValueContainer = decoded.into();
 assert!(restored.is_collection());
+```
+
+An outer protocol that already owns its version can decode only the typed
+payload while charging the same bounded JSON session.
+
+<!-- example:embedded-payload-budget run -->
+```rust
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
+use qubit_json::decode::JsonDecoder;
+use qubit_value::{ValueContainer, ValueWirePayloadV1Seed};
+
+let limits = JsonDecodeLimits::builder()
+    .max_input_bytes(1024usize)
+    .max_depth(8usize)
+    .max_nodes(16usize)
+    .build();
+let session = JsonDecodeSession::from_limits(limits);
+let mut decoder = JsonDecoder::new(session);
+let decoded = decoder.decode_seed_utf8(
+    ValueWirePayloadV1Seed::new(),
+    br#"{"scalar":{"int32":7}}"#,
+)?;
+let restored: ValueContainer = decoded.into();
+assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
+assert!(restored.is_scalar());
 ```
 
 For a value embedded in a larger outer object, call `next_value_seed` with the
@@ -490,7 +515,7 @@ With `natural-json`, Natural JSON projects a runtime value into ordinary
 `serde_json::Value`. The following example shows the exact JSON string emitted
 for several common values:
 
-<!-- example:natural-json compile -->
+<!-- example:natural-json run -->
 ```rust
 use std::collections::HashMap;
 
@@ -534,7 +559,7 @@ string-map keys are emitted in dictionary order.
 
 For a single map value, the equivalent construction is:
 
-<!-- example:natural-json-map compile -->
+<!-- example:natural-json-map run -->
 ```rust
 use qubit_value::Value;
 

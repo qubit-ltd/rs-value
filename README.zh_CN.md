@@ -30,7 +30,7 @@
 选择严格读取、显式转换或带类型的默认值。下面的代码假定位于一个返回兼容 `Result` 的函数
 中，因此使用 `?` 传播值读取和转换错误。
 
-<!-- example:quick-start compile -->
+<!-- example:quick-start run -->
 ```rust
 use std::collections::HashMap;
 use std::time::Duration;
@@ -73,7 +73,7 @@ assert_eq!(timeout, Duration::from_secs(30));
 需要显式策略和限制时使用 `to_with`。每次 `to_with` 调用都会创建全新的
 `ConversionSession`，因此彼此独立的读取不会共享累计消耗：
 
-<!-- example:conversion-policy compile -->
+<!-- example:conversion-policy run -->
 ```rust
 use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;

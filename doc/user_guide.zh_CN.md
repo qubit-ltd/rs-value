@@ -54,7 +54,7 @@ registry 或持久化数据库。需要基于 `Value` 实现的现成 key-value 
 
 核心流程如下：
 
-<!-- example:runtime-config compile -->
+<!-- example:runtime-config run -->
 ```rust
 use std::collections::HashMap;
 use std::time::Duration;
@@ -174,7 +174,7 @@ Feature 列表示存储具体 Rust 值时 `qubit-value` 所需的 feature。`Str
 Rust 类型已经确定时使用类型化构造函数；只有声明了类型但尚无值时，使用
 `Value::new_unset`。
 
-<!-- example:single-value compile -->
+<!-- example:single-value run -->
 ```rust
 use qubit_datatype::DataType;
 use qubit_value::Value;
@@ -201,7 +201,7 @@ assert_eq!(value.get_string()?, "8080");
 在对应转换实现存在时，`MultiValues::new`、`set` 和 `add` 支持 vector、数组、切片、借用
 vector 以及借用字符串集合。
 
-<!-- example:multi-values compile -->
+<!-- example:multi-values run -->
 ```rust
 use qubit_value::MultiValues;
 
@@ -231,7 +231,7 @@ assert_eq!(first, 9000);
 启用 `converter` 后，`to` 使用 `qubit-datatype` 的共享转换契约。如果默认的严格策略不适合，
 使用 `to_with` 指定策略。
 
-<!-- example:conversion compile -->
+<!-- example:conversion run -->
 ```rust
 use qubit_value::Value;
 
@@ -254,7 +254,7 @@ assert_eq!(fallback, 8080);
 
 ### 保留名称但不改变值语义
 
-<!-- example:named-values compile -->
+<!-- example:named-values run -->
 ```rust
 use qubit_value::{MultiValues, NamedMultiValues, NamedValue, Value};
 
@@ -314,7 +314,7 @@ V1 是封闭格式。现有 tag、shape 和 payload 表示不能原地扩展；�
 下面的示例创建一个显式标量值，将它转换为拥有所有权的 Wire DTO，序列化为 JSON，在输入和
 语义资源限制下解码，最后恢复原来的 container。
 
-<!-- example:wire-round-trip compile -->
+<!-- example:wire-round-trip run -->
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonEncodeLimits};
 use qubit_value::Value;
@@ -358,7 +358,7 @@ V1 默认定向 profile；应用自行控制输入、输出或 value 预算时�
 
 如果源值在序列化调用期间一直有效，使用借用适配器可以避免不必要的 clone。
 
-<!-- example:borrowed-wire compile -->
+<!-- example:borrowed-wire run -->
 ```rust
 use qubit_value::{Value, ValueWireRefV1};
 
@@ -382,7 +382,7 @@ marker 保留规则。
 `decode_json_slice_with_limits` 用于完整的顶层 Wire 文档。如果值嵌套在更大的 JSON 文档中，
 应使用 `qubit-budget` 的 Serde adapter 处理完整外层文档，让同一个 session 计费所有 JSON 节点。
 
-<!-- example:shared-decode-session compile -->
+<!-- example:shared-decode-session run -->
 ```rust
 use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
 use qubit_json::decode::JsonDecoder;
@@ -397,6 +397,31 @@ let mut decoder = JsonDecoder::new(session);
 let decoded = decoder.decode_seed_utf8(ValueWireV1Seed::new(), input)?;
 let restored: ValueContainer = decoded.into();
 assert!(restored.is_collection());
+```
+
+如果外层协议已经拥有版本字段，可以只解码 typed payload，同时让同一个有界 JSON session
+继续计费。
+
+<!-- example:embedded-payload-budget run -->
+```rust
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
+use qubit_json::decode::JsonDecoder;
+use qubit_value::{ValueContainer, ValueWirePayloadV1Seed};
+
+let limits = JsonDecodeLimits::builder()
+    .max_input_bytes(1024usize)
+    .max_depth(8usize)
+    .max_nodes(16usize)
+    .build();
+let session = JsonDecodeSession::from_limits(limits);
+let mut decoder = JsonDecoder::new(session);
+let decoded = decoder.decode_seed_utf8(
+    ValueWirePayloadV1Seed::new(),
+    br#"{"scalar":{"int32":7}}"#,
+)?;
+let restored: ValueContainer = decoded.into();
+assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
+assert!(restored.is_scalar());
 ```
 
 如果值嵌在更大的外层 object 中，应在同一个 `MapAccess` 上调用
@@ -442,7 +467,7 @@ Wire 的 `JsonEncodeLimits` 或 rs-json 的有界编码器；`ConversionLimits` 
 启用 `natural-json` 后，自然 JSON 将运行时值投影为普通的 `serde_json::Value`。下面的
 示例展示几种常见值实际生成的 JSON 字符串：
 
-<!-- example:natural-json compile -->
+<!-- example:natural-json run -->
 ```rust
 use std::collections::HashMap;
 
@@ -485,7 +510,7 @@ assert_eq!(
 
 对于单个 map 值，也可以这样构造：
 
-<!-- example:natural-json-map compile -->
+<!-- example:natural-json-map run -->
 ```rust
 use qubit_value::Value;
 
