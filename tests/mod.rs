@@ -20,7 +20,13 @@ mod finite_float {
 }
 mod identity;
 mod into_value_default_tests;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(all(
+    feature = "converter",
+    feature = "json",
+    feature = "chrono",
+    feature = "big-number",
+    feature = "url",
+))]
 mod json_tests;
 mod multi_values;
 #[cfg(feature = "all")]
