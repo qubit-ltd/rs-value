@@ -8,6 +8,7 @@
 
 //! Tests for identity and hashing contracts.
 
+#[cfg(feature = "json")]
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hash;

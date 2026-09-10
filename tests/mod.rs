@@ -12,7 +12,6 @@
 mod helpers_tests;
 pub(crate) use helpers_tests::*;
 mod contracts;
-mod doc_examples_tests;
 mod finite_float_tests;
 mod finite_float {
     mod internal {
@@ -21,16 +20,21 @@ mod finite_float {
 }
 mod identity;
 mod into_value_default_tests;
+#[cfg(all(feature = "converter", feature = "json"))]
 mod json_tests;
 mod multi_values;
+#[cfg(feature = "all")]
 mod named_multi_values_tests;
+#[cfg(feature = "all")]
 mod named_multi_values {
     mod internal {
         mod named_multi_values_wire_owned_tests;
         mod named_multi_values_wire_ref_tests;
     }
 }
+#[cfg(feature = "all")]
 mod named_value_tests;
+#[cfg(feature = "all")]
 mod named_value {
     mod internal {
         mod named_value_wire_owned_tests;
@@ -38,16 +42,24 @@ mod named_value {
     }
 }
 mod numeric_comparison_error_tests;
+#[cfg(all(feature = "converter", feature = "json"))]
 mod strict_json_tests;
 mod strict_value_read_tests;
 mod value;
+#[cfg(all(feature = "converter", feature = "json"))]
 mod value_container_tests;
+#[cfg(feature = "converter")]
 mod value_error_tests;
+#[cfg(feature = "converter")]
 mod value_missing_tests;
 mod value_type_table_tests;
+#[cfg(feature = "json")]
 mod value_wire;
+#[cfg(feature = "json")]
 mod value_wire_encode_error_tests;
+#[cfg(feature = "json")]
 mod value_wire_payload_v1_tests;
+#[cfg(feature = "all")]
 mod value_wire_tests;
 mod wide_integer_tests;
 mod wide_integer {
@@ -57,6 +69,7 @@ mod wide_integer {
         mod parsed_integer_tests;
     }
 }
+#[cfg(feature = "all")]
 mod wire {
     mod decimal {
         mod internal {

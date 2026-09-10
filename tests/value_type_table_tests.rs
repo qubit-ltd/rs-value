@@ -10,6 +10,7 @@
 
 use qubit_datatype::DataType;
 use qubit_value::Value;
+#[cfg(feature = "all")]
 use qubit_value::ValueContainer;
 
 /// Constructs a concrete value for one datatype catalog entry.

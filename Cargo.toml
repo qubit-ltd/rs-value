@@ -47,7 +47,6 @@ unexpected_cfgs = { level = "warn", check-cfg = ["cfg(docsrs)"] }
 [[test]]
 name = "integration_tests"
 path = "tests/mod.rs"
-required-features = ["all"]
 
 [[test]]
 name = "core_feature_tests"

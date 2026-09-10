@@ -8,4 +8,5 @@
 
 //! Tests for private value helpers through public behavior.
 
+#[cfg(feature = "redact")]
 mod redacted_json_tests;

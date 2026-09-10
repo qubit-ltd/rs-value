@@ -10,9 +10,13 @@
 //! Covers the four generic entry points `set`/`add`/`get`/`get_first`,
 //! verifying all supported types and three parameter categories。
 
+#[cfg(feature = "chrono")]
 use chrono::DateTime;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
 use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
 use chrono::Utc;
 use qubit_datatype::DataType;
 use qubit_value::IntoValueDefault;
@@ -87,6 +91,8 @@ fn test_generic_set_vec_all_types() {
     mv.set(vec!["a".to_string(), "b".to_string()]);
     assert_eq!(mv.get_strings().unwrap(), &["a", "b"]);
 
+    #[cfg(feature = "chrono")]
+    {
     // date/time
     let d1 = NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
     let d2 = NaiveDate::from_ymd_opt(2020, 1, 2).unwrap();
@@ -117,6 +123,7 @@ fn test_generic_set_vec_all_types() {
     let mut mv = MultiValues::Unset(DataType::Instant);
     mv.set(vec![i1, i2]);
     assert_eq!(mv.get_instants().unwrap().len(), 2);
+    }
 }
 
 // ------------------------------ set: &[T] ------------------------------
