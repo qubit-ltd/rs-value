@@ -163,6 +163,11 @@ Wire DTO 实现了 `Serialize`，但刻意不实现通用的 `Deserialize`：普
 `ValueWireV1Seed::new()` 或 `ValueWirePayloadV1Seed::new()` 传给外层的
 `JsonDecoder::decode_seed_utf8` 或 `next_value_seed`，由外层协议统一持有并共享一个 budget。
 
+`NamedValue` 和 `NamedMultiValues` 为了能嵌入更大的 Serde 文档，实现了通用
+`Deserialize`。该实现会校验 V1 schema 和 payload shape，但资源记账继承调用方提供的
+deserializer。处理完整且不可信的 JSON 输入时，应使用它们有界的 `decode_json_slice` 系列
+入口；作为嵌套值时，则应由有资源限制的外层 decoder 统一解码。
+
 自然 JSON 无法恢复 `DataType`、unset 状态或标量/集合形态。Wire V1 会拒绝非有限浮点、
 不支持的类型和非法 payload，不会猜测输入含义。每个独立 Wire 操作应创建新的有界 session；
 只有多个嵌入值属于同一个外层请求预算时，才应复用 session。
@@ -171,12 +176,6 @@ Wire DTO 实现了 `Serialize`，但刻意不实现通用的 `Deserialize`：普
 缺失元素永远不会回退，包括第零项；显式为空的集合读取首项时也仍然返回错误。
 
 ## 延伸阅读
-
-0.12 将 `ValueMissing` 从 enum 改为保存缺失事实的对象。原先匹配其变体的代码应改用
-`reason()`、`source_type()`、`target_type()` 和 `source_index()`；判断是否回退时，使用
-严格读取或转换读取对应的 defaultability predicate。集合中的某项缺失，以及从具体空集合读取
-首项，仍然返回错误。`conversion_error()` 和 `Error::source` 保留原始转换错误。
-Wire V1、运行时类型 identity 和标量/集合形态保持不变。
 
 - [中文用户手册](doc/user_guide.zh_CN.md)
 - [架构与 Wire 设计](doc/design.zh_CN.md)

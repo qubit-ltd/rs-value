@@ -167,8 +167,8 @@ V1 是封闭契约，以下各项属于兼容性不变量：
 - 浮点数必须有限；
 - 在受支持的 canonical JSON 配置下，字符串 map key 和嵌套 JSON object key 按字典序输出。
 
-0.11 之前的 externally tagged 表示不属于 V1 输入。已有 V1 tag、shape 或 payload 编码不得原地
-改义或扩展；新增运行时类型或不兼容表示时，必须定义新的 Wire 版本和明确的迁移路径。
+Externally tagged 表示不属于 V1 输入。已有 V1 tag、shape 或 payload 编码不得原地改义或
+扩展；新增运行时类型或不兼容表示时，必须定义新的 Wire 版本。
 
 字节稳定性只针对受支持 `serde_json` 配置产生的 canonical JSON。其他 Serde 格式可以承载这些
 DTO，但其字节表示不属于 V1 JSON 稳定性契约。
@@ -297,7 +297,7 @@ preflight 累计行为或 feature gate 发生变化时。
 2. 新增运行时类型时，通过中央 value table 同步更新两个 owned 容器、借用视图、转换行为、
    identity、自然 JSON、Wire 处理、feature 测试和文档。
 3. 维持 `Eq`/`Hash` 一致性。即使具体 hash 输出不稳定，语义相等的变化仍属于可观察 API 变化。
-4. 不得原地修改 V1 tag、shape 或 payload 表示；不兼容协议变更必须引入新版本并记录迁移方式。
+4. 不得原地修改 V1 tag、shape 或 payload 表示；不兼容协议变更必须引入新版本。
 5. 公共 Wire DTO 继续不实现通用 `Deserialize`；新增 decode 路径必须维持有界完整文档或共享
    session 记账。
 6. Preflight 必须保持保守、可累计和单次调用原子性；最终 encoder 继续作为资源准入的事实来源。

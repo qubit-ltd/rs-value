@@ -350,6 +350,10 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::Int32);
 
 解码入口使用 `qubit-budget` 的 JSON adapter。Wire DTO 刻意只实现 `Serialize`，不实现通用的
 `Deserialize`，因为普通 Serde deserializer 无法同时约束不可信输入的原始大小和结构资源。
+`NamedValue` 和 `NamedMultiValues` 是用于嵌入外层文档的包装类型，因此实现了通用
+`Deserialize`；该实现校验 V1 schema 及 scalar/collection shape，但资源记账继承调用方提供的
+deserializer。处理完整且不可信的 JSON 文档时，应使用它们有界的 decode helper；作为嵌套值时，
+则应通过有资源限制的外层 deserializer 解码。
 `ValueWireV1::default_json_decode_limits()` 与 `default_json_encode_limits()` 分别提供
 V1 默认定向 profile；应用自行控制输入、输出或 value 预算时，传入对应的
 `JsonDecodeLimits` 或 `JsonEncodeLimits`。
@@ -466,8 +470,8 @@ assert_eq!(outer.second.container().data_type().as_str(), "string");
   JavaScript 的 `n` 后缀不是合法 JSON。
 - 具体扩展类型只有在接收方启用对应 feature 时才能解码；不支持的 payload 会被拒绝，不会
   被猜测成其他类型。
-- 未知字段、未知类型、错误的 scalar/collection shape、不是数字 `1` 的版本，以及 0.11 之前
-  的外部标签文档都会被拒绝。
+- 未知字段、未知类型、错误的 scalar/collection shape、不是数字 `1` 的版本，以及外部标签
+  文档都会被拒绝。
 
 ## 自然 JSON
 
@@ -565,22 +569,6 @@ assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
 有敏感字段，应使用显式的 `redact` 视图；普通 `Debug` 格式化不会自动脱敏。
 
 ## 排障
-
-### 从 0.11 迁移缺失值处理
-
-`ValueError::Missing` 现在携带私有字段的 `ValueMissing` 事实对象，`ValueMissing` 不再是
-enum。调用方按下表迁移：
-
-| 原用法 | 新用法 | 行为 |
-| --- | --- | --- |
-| 匹配 `ValueMissing` 变体 | 检查 `reason()` 或 `is_unset()` / `is_empty_collection()` | 存储状态与转换来源分别保留 |
-| 对所有 missing 使用默认值 | 使用 `is_defaultable_for_strict_read()` 或 `is_defaultable_for_conversion()` | 空集合首项和集合某项缺失继续报错 |
-| 把转换 missing 压成文本 | 保留错误，检查 `conversion_error()` / `Error::source` | 保留原始转换类别和资源事实 |
-
-`source_type()` 和 `target_type()` 描述存储类型与请求类型，`source_index()` 标识失败的集合
-元素。无法得知源类型时保留 `None`，例如泛型转换接收空迭代器的情况。unset 转换可能同时满足
-`is_unset()` 和 `is_conversion()`，因为二者回答不同问题。这次 API 迁移不改变 Wire V1
-或相等/hash 语义。
 
 ### `get<T>()` 返回类型不匹配
 

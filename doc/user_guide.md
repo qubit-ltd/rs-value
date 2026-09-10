@@ -379,6 +379,11 @@ The decode helpers accept a complete top-level Wire document and use the
 `qubit-budget` JSON adapter. The Wire DTOs intentionally implement `Serialize`
 only; they do not implement generic `Deserialize`, because a general Serde
 deserializer cannot enforce raw-input and structural limits.
+`NamedValue` and `NamedMultiValues` are embedding wrappers and do implement
+generic `Deserialize`; they validate the V1 schema and scalar/collection shape
+but inherit resource accounting from the supplied deserializer. Use their
+bounded decode helpers for complete, untrusted JSON documents, or decode them
+through a resource-bounded outer deserializer when nested.
 `ValueWireV1::default_json_decode_limits()` and
 `default_json_encode_limits()` provide the directional V1 profiles. Pass a
 `JsonDecodeLimits` or `JsonEncodeLimits` value when the application owns a
@@ -508,7 +513,7 @@ assert_eq!(outer.second.container().data_type().as_str(), "string");
 - A concrete rich type can be decoded only by a build with its corresponding
   feature. Unsupported feature-gated payloads are rejected rather than guessed.
 - Unknown fields, unknown types, wrong scalar/collection shapes, non-numeric
-  versions, and pre-0.11 externally tagged documents are rejected.
+  versions, and externally tagged documents are rejected.
 
 ## Natural JSON
 
@@ -620,24 +625,6 @@ the explicit `redact` view when the application has sensitive fields; ordinary
 `Debug` formatting is not implicitly redacted.
 
 ## Troubleshooting
-
-### Migrate missing-value handling from 0.11
-
-`ValueError::Missing` now carries a `ValueMissing` fact object with private
-fields, rather than a `ValueMissing` enum. Migrate consumers as follows:
-
-| Previous usage | Replacement | Behavior |
-| --- | --- | --- |
-| Match a `ValueMissing` variant | Inspect `reason()` or `is_unset()` / `is_empty_collection()` | Storage state stays separate from conversion provenance |
-| Treat every missing error as a default | Use `is_defaultable_for_strict_read()` or `is_defaultable_for_conversion()` | Empty first-item reads and missing collection items propagate errors |
-| Flatten a conversion-missing error into text | Retain the error and inspect `conversion_error()` / `Error::source` | Original conversion category and resource facts remain available |
-
-`source_type()` and `target_type()` describe the stored and requested types;
-`source_index()` identifies a failing collection item. Unknown source types
-remain `None`, for example with a generic empty conversion iterator. An unset
-conversion may satisfy both `is_unset()` and `is_conversion()`; these predicates
-answer different questions. Wire V1 and equality/hash semantics do not change
-with this API migration.
 
 ### `get<T>()` returns a type mismatch
 

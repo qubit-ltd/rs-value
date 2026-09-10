@@ -208,10 +208,9 @@ V1 is a closed contract. The following are compatibility invariants:
 - string-map keys and nested JSON object keys are emitted in lexicographic
   order under the supported canonical JSON configuration.
 
-The pre-0.11 externally tagged representation is not V1 input. Existing V1
-tags, shapes, or payload encodings must not be repurposed or extended in place.
-A new runtime type or incompatible representation requires a new Wire version
-and an explicit migration path.
+Externally tagged representations are not V1 input. Existing V1 tags, shapes,
+or payload encodings must not be repurposed or extended in place. A new runtime
+type or incompatible representation requires a new Wire version.
 
 The byte-stability statement applies to canonical JSON emitted with the
 supported `serde_json` configuration. Other Serde formats may carry the DTOs,
@@ -371,7 +370,7 @@ Maintainers should apply the following rules to future changes:
 3. Preserve `Eq`/`Hash` consistency. Treat changes to semantic equality as
    observable API changes even though concrete hash output is not stable.
 4. Do not change V1 tags, shapes, or payload representations in place. Introduce
-   a new version and document migration for incompatible protocol changes.
+   a new version for incompatible protocol changes.
 5. Keep generic `Deserialize` off the public Wire DTOs. New decode paths must
    preserve bounded complete-document or shared-session accounting.
 6. Keep preflight conservative, cumulative, and per-call atomic. The final

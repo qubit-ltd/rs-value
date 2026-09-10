@@ -193,6 +193,12 @@ embedded value, pass `ValueWireV1Seed::new()` or `ValueWirePayloadV1Seed::new()`
 to the surrounding `JsonDecoder::decode_seed_utf8` or `next_value_seed` call so
 the outer protocol owns one shared budget.
 
+`NamedValue` and `NamedMultiValues` do implement generic `Deserialize` so they
+can be embedded in larger Serde documents. That implementation validates the
+V1 schema and payload shape but inherits resource accounting from the supplied
+deserializer. Use their bounded `decode_json_slice` helpers for complete,
+untrusted JSON input, or a resource-bounded outer decoder when they are nested.
+
 Natural JSON cannot reconstruct `DataType`, unset state, or scalar-versus-
 collection shape. Wire V1 rejects non-finite floats and unsupported or malformed
 payloads instead of guessing. Use a fresh bounded session for each independent
@@ -204,14 +210,6 @@ A missing item inside a concrete collection never does, including item zero;
 an explicitly empty collection also remains an error for first-item reads.
 
 ## Learn more
-
-Version 0.12 replaces the `ValueMissing` enum with a fact object. Inspect
-`reason()`, `source_type()`, `target_type()`, and `source_index()` instead of
-matching its old variants; use the strict/conversion defaultability predicates
-when deciding whether to fall back. Missing collection items and first-item
-reads from concrete empty collections remain errors. Original conversion errors
-remain available through `conversion_error()` and `Error::source`. Wire V1,
-runtime type identity, and scalar/collection shape remain unchanged.
 
 - [English user guide](doc/user_guide.md)
 - [Architecture and Wire design](doc/design.md)
