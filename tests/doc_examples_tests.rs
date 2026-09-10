@@ -60,10 +60,7 @@ fn diagnostic(file: &str, id: &str, message: &str) -> String {
 }
 
 /// Extracts fenced Rust fragments carrying an explicit compile or run marker.
-fn extract_examples(
-    file: &str,
-    document: &str,
-) -> Result<BTreeMap<String, MarkdownExample>, String> {
+fn extract_examples(file: &str, document: &str) -> Result<BTreeMap<String, MarkdownExample>, String> {
     let lines: Vec<&str> = document.lines().collect();
     let mut examples = BTreeMap::new();
     let mut index = 0;
@@ -84,10 +81,7 @@ fn extract_examples(
         let fields: Vec<&str> = marker.split_whitespace().collect();
         let mode = fields.get(1).and_then(|value| ExampleMode::parse(value));
         if fields.len() != 2 || mode.is_none() || fields[0].is_empty() {
-            let id = fields
-                .first()
-                .copied()
-                .filter(|id| *id != "compile" && *id != "run");
+            let id = fields.first().copied().filter(|id| *id != "compile" && *id != "run");
             return Err(diagnostic(
                 file,
                 id.unwrap_or("<missing>"),
@@ -314,20 +308,14 @@ edition = "2024"
 qubit-value = {{ path = {root:?} }}
 {datatype_patch}"#,
     );
-    fs::write(workspace.join("Cargo.toml"), manifest).map_err(|error| {
-        diagnostic(
-            file,
-            &example.id,
-            &format!("write fixture manifest: {error}"),
-        )
-    })?;
+    fs::write(workspace.join("Cargo.toml"), manifest)
+        .map_err(|error| diagnostic(file, &example.id, &format!("write fixture manifest: {error}")))?;
     let source = format!(
         "fn main() -> Result<(), Box<dyn std::error::Error>> {{\n{}\n    Ok(())\n}}\n",
         example.source
     );
-    fs::write(workspace.join("src/main.rs"), source).map_err(|error| {
-        diagnostic(file, &example.id, &format!("write fixture source: {error}"))
-    })?;
+    fs::write(workspace.join("src/main.rs"), source)
+        .map_err(|error| diagnostic(file, &example.id, &format!("write fixture source: {error}")))?;
     let phase = match example.mode {
         ExampleMode::Compile => "compile",
         ExampleMode::Run => "build",
@@ -359,9 +347,7 @@ qubit-value = {{ path = {root:?} }}
     if result.is_ok() && example.mode == ExampleMode::Run {
         let executable = target.join("build").join("debug").join(&package_name);
         let mut command = Command::new(&executable);
-        command
-            .env_remove("RUSTFLAGS")
-            .env_remove("CARGO_ENCODED_RUSTFLAGS");
+        command.env_remove("RUSTFLAGS").env_remove("CARGO_ENCODED_RUSTFLAGS");
         result = run_process(
             command,
             file,
@@ -410,10 +396,7 @@ fn test_extract_rejects_unknown_mode() {
     let error = extract_examples("unknown-mode.md", document).unwrap_err();
     assert!(error.contains("unknown-mode.md"), "{error}");
     assert!(error.contains("value"), "{error}");
-    assert!(
-        error.contains("compile") && error.contains("run"),
-        "{error}"
-    );
+    assert!(error.contains("compile") && error.contains("run"), "{error}");
 }
 
 #[test]
@@ -424,8 +407,7 @@ fn test_bilingual_example_ids_must_match() {
     )
     .unwrap();
     let chinese = BTreeMap::new();
-    let error =
-        ensure_matching_ids("README.md", &english, "README.zh_CN.md", &chinese).unwrap_err();
+    let error = ensure_matching_ids("README.md", &english, "README.zh_CN.md", &chinese).unwrap_err();
     assert!(error.contains("README.md"), "{error}");
     assert!(error.contains("README.zh_CN.md"), "{error}");
     assert!(error.contains("english-only"), "{error}");
@@ -545,18 +527,13 @@ fn test_bilingual_markdown_examples_compile_and_run_from_source() {
     let target = fixture_target(root);
     fs::create_dir_all(&target).expect("create Markdown example target");
     for (english_file, chinese_file, expected_ids) in pairs {
-        let english_document =
-            fs::read_to_string(root.join(english_file)).expect("read English document");
-        let chinese_document =
-            fs::read_to_string(root.join(chinese_file)).expect("read Chinese document");
+        let english_document = fs::read_to_string(root.join(english_file)).expect("read English document");
+        let chinese_document = fs::read_to_string(root.join(chinese_file)).expect("read Chinese document");
         let english = extract_examples(english_file, &english_document).unwrap();
         let chinese = extract_examples(chinese_file, &chinese_document).unwrap();
         ensure_matching_ids(english_file, &english, chinese_file, &chinese).unwrap();
         let actual_ids: Vec<&str> = english.keys().map(String::as_str).collect();
-        assert_eq!(
-            actual_ids, expected_ids,
-            "{english_file}: compile example IDs"
-        );
+        assert_eq!(actual_ids, expected_ids, "{english_file}: compile example IDs");
         for (file, document, examples) in [
             (english_file, &english_document, &english),
             (chinese_file, &chinese_document, &chinese),
@@ -565,9 +542,7 @@ fn test_bilingual_markdown_examples_compile_and_run_from_source() {
             for example in examples.values() {
                 for profile in [FeatureProfile::Default, FeatureProfile::All] {
                     compile_example(root, &target, file, dependencies, example, profile)
-                        .unwrap_or_else(|error| {
-                            panic!("{} [{}]: {error}", profile.as_str(), example.id)
-                        });
+                        .unwrap_or_else(|error| panic!("{} [{}]: {error}", profile.as_str(), example.id));
                 }
             }
         }
