@@ -15,6 +15,8 @@ mod scalar_wire_ref;
 mod wire_data_type_v1;
 mod wire_envelope_owned;
 mod wire_envelope_ref;
+#[cfg(feature = "json")]
+mod wire_preflight_strategy;
 mod wire_shape_owned;
 mod wire_shape_ref;
 
@@ -23,9 +25,9 @@ pub(in crate::value_wire) use collection_wire_ref::CollectionWireRef;
 pub(in crate::value_wire) use scalar_wire_owned::ScalarWireOwned;
 pub(in crate::value_wire) use scalar_wire_ref::ScalarWireRef;
 pub(in crate::value_wire) use wire_data_type_v1::WireDataTypeV1;
-#[cfg(feature = "json")]
-pub(in crate::value_wire) use wire_data_type_v1::WirePreflightStrategy;
 pub(in crate::value_wire) use wire_envelope_owned::WireEnvelopeOwned;
 pub(in crate::value_wire) use wire_envelope_ref::WireEnvelopeRef;
+#[cfg(feature = "json")]
+pub(in crate::value_wire) use wire_preflight_strategy::WirePreflightStrategy;
 pub(in crate::value_wire) use wire_shape_owned::WireShapeOwned;
 pub(in crate::value_wire) use wire_shape_ref::WireShapeRef;
