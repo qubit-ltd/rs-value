@@ -2,6 +2,7 @@
   "threshold_exempt_files": {
     "qubit-value": [
       "src/identity/json_identity.rs",
+      "src/json/projection_budget.rs",
       "src/multi_values/multi_values.rs",
       "src/named_multi_values.rs",
       "src/named_value.rs",

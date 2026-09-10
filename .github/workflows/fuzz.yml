@@ -8,14 +8,13 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.repository }}-${{ github.workflow }}-${{ matrix.target }}
-  cancel-in-progress: true
-
 jobs:
   fuzz:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: ${{ github.repository }}-${{ github.workflow }}-${{ matrix.target }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
