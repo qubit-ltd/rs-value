@@ -11,6 +11,8 @@
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::Observation;
+use qubit_budget::QuantityConversionError;
+use qubit_budget::QuantityMeasurement;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonEncodeLimits as JsonEncodeLimitsU64;
 use qubit_budget::json::JsonMeasurement;
@@ -21,6 +23,14 @@ use crate::MultiValues;
 use crate::Value;
 use crate::ValueContainer;
 use crate::ValueRef;
+
+mod internal;
+
+use self::internal::json_length_writer::JsonLengthWriter;
+use self::internal::wire_scalar_measurement::decimal_len;
+use self::internal::wire_scalar_measurement::json_float32_len;
+use self::internal::wire_scalar_measurement::json_float64_len;
+use self::internal::wire_scalar_measurement::unsigned_decimal_len;
 
 /// Performs conservative resource checks before Wire V1 sorting and formatting.
 ///
@@ -128,7 +138,10 @@ impl ValueWireEncodePreflight {
     ///
     /// Returns the first exceeded JSON resource limit. If checking fails, the
     /// accumulated state is restored to its value before this call.
-    pub fn check_value(&mut self, value: &Value) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    pub fn check_value(
+        &mut self,
+        value: &Value,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.transaction(|checker| checker.check_value_at(value, 1))
     }
 
@@ -136,7 +149,10 @@ impl ValueWireEncodePreflight {
     ///
     /// Returns the first exceeded JSON resource limit. If checking fails, the
     /// accumulated state is restored to its value before this call.
-    pub fn check_values(&mut self, values: &MultiValues) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    pub fn check_values(
+        &mut self,
+        values: &MultiValues,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.transaction(|checker| checker.check_values_at(values, 1))
     }
 
@@ -144,7 +160,10 @@ impl ValueWireEncodePreflight {
     ///
     /// Returns the first exceeded JSON resource limit. If checking fails, the
     /// accumulated state is restored to its value before this call.
-    pub fn check_container(&mut self, value: &ValueContainer) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    pub fn check_container(
+        &mut self,
+        value: &ValueContainer,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.transaction(|checker| match value {
             ValueContainer::Scalar(value) => checker.check_value_at(value, 1),
             ValueContainer::Collection(values) => checker.check_values_at(values, 1),
@@ -169,41 +188,72 @@ impl ValueWireEncodePreflight {
         }
     }
 
-    fn check_value_at(&mut self, value: &Value, depth: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        match value.view() {
-            ValueRef::Unset(_) => self.admit(JsonMeasurement::Null { depth }, 1, 1),
-            ValueRef::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 1),
+    fn check_value_at(
+        &mut self,
+        value: &Value,
+        depth: usize,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        self.check_view_at(value.view(), depth)
+    }
+
+    fn check_view_at(
+        &mut self,
+        value: ValueRef<'_>,
+        depth: usize,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        match value {
+            ValueRef::Unset(data_type) => self.admit_string(depth, data_type.as_str().len()),
+            ValueRef::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0),
             ValueRef::Char(value) => self.admit_string(depth, value.len_utf8()),
             ValueRef::String(value) => self.admit_string(depth, value.len()),
-            ValueRef::Int8(value) => self.admit_number(depth, digits_i128(value as i128)),
-            ValueRef::Int16(value) => self.admit_number(depth, digits_i128(value as i128)),
-            ValueRef::Int32(value) => self.admit_number(depth, digits_i128(value as i128)),
-            ValueRef::Int64(value) => self.admit_number(depth, digits_i128(value as i128)),
-            ValueRef::Int128(value) => self.admit_number(depth, digits_i128(value)),
-            ValueRef::UInt8(value) => self.admit_number(depth, digits_u128(value as u128)),
-            ValueRef::UInt16(value) => self.admit_number(depth, digits_u128(value as u128)),
-            ValueRef::UInt32(value) => self.admit_number(depth, digits_u128(value as u128)),
-            ValueRef::UInt64(value) => self.admit_number(depth, digits_u128(value as u128)),
-            ValueRef::UInt128(value) => self.admit_number(depth, digits_u128(value)),
-            ValueRef::Float32(value) => self.admit_number(depth, value.to_string().len()),
-            ValueRef::Float64(value) => self.admit_number(depth, value.to_string().len()),
+            ValueRef::Int8(value) => self.admit_number(depth, decimal_len(value as i128)),
+            ValueRef::Int16(value) => self.admit_number(depth, decimal_len(value as i128)),
+            ValueRef::Int32(value) => self.admit_number(depth, decimal_len(value as i128)),
+            ValueRef::Int64(value) => self.admit_number(depth, decimal_len(value as i128)),
+            ValueRef::Int128(value) => self.admit_string(depth, decimal_len(value)),
+            ValueRef::UInt8(value) => self.admit_number(depth, unsigned_decimal_len(value as u128)),
+            ValueRef::UInt16(value) => {
+                self.admit_number(depth, unsigned_decimal_len(value as u128))
+            }
+            ValueRef::UInt32(value) => {
+                self.admit_number(depth, unsigned_decimal_len(value as u128))
+            }
+            ValueRef::UInt64(value) => {
+                self.admit_number(depth, unsigned_decimal_len(value as u128))
+            }
+            ValueRef::UInt128(value) => self.admit_string(depth, unsigned_decimal_len(value)),
+            ValueRef::Float32(value) => {
+                if value.is_finite() {
+                    self.admit_number(depth, json_float32_len(value))
+                } else {
+                    self.admit_number(depth, 1)
+                }
+            }
+            ValueRef::Float64(value) => {
+                if value.is_finite() {
+                    self.admit_number(depth, json_float64_len(value))
+                } else {
+                    self.admit_number(depth, 1)
+                }
+            }
             #[cfg(feature = "big-integer")]
-            ValueRef::BigInteger(value) => self.admit_number(depth, bigint_digits(value)),
+            ValueRef::BigInteger(value) => self.admit_string(depth, bigint_digits(value)),
             #[cfg(feature = "big-decimal")]
             ValueRef::BigDecimal(value) => {
                 let (coefficient, scale) = value.as_bigint_and_scale();
-                self.admit_string(depth, bigint_digits(&coefficient))?;
-                self.admit_number(depth, digits_i128(scale as i128))
+                drop(coefficient);
+                self.admit_string(depth, 0)?;
+                self.admit_number(depth, decimal_len(scale as i128))
             }
             ValueRef::Duration(_value) => self.admit_object(depth, 2, 8),
             #[cfg(feature = "chrono")]
-            ValueRef::Date(value) => self.admit_string(depth, value.to_string().len()),
+            ValueRef::Date(_value) => self.admit_string(depth, 0),
             #[cfg(feature = "chrono")]
-            ValueRef::Time(value) => self.admit_string(depth, value.to_string().len()),
+            ValueRef::Time(_value) => self.admit_string(depth, 0),
             #[cfg(feature = "chrono")]
-            ValueRef::DateTime(value) => self.admit_string(depth, value.to_string().len()),
+            ValueRef::DateTime(_value) => self.admit_string(depth, 0),
             #[cfg(feature = "chrono")]
-            ValueRef::Instant(value) => self.admit_string(depth, value.to_rfc3339().len()),
+            ValueRef::Instant(_value) => self.admit_string(depth, 0),
             #[cfg(feature = "url")]
             ValueRef::Url(value) => self.admit_string(depth, value.as_str().len()),
             ValueRef::StringMap(value) => self.check_string_map(value, depth),
@@ -225,44 +275,10 @@ impl ValueWireEncodePreflight {
             values.len().saturating_add(2),
             2,
         )?;
-        match values.view() {
-            crate::MultiValuesRef::Bool(items) => {
-                for _ in items {
-                    self.admit(JsonMeasurement::Boolean { depth: depth + 1 }, 1, 1)?;
-                }
-            }
-            crate::MultiValuesRef::Char(items) => {
-                for item in items {
-                    self.admit_string(depth + 1, item.len_utf8())?;
-                }
-            }
-            crate::MultiValuesRef::String(items) => {
-                for item in items {
-                    self.admit_string(depth + 1, item.len())?;
-                }
-            }
-            crate::MultiValuesRef::StringMap(items) => {
-                for item in items {
-                    self.check_string_map(item, depth + 1)?;
-                }
-            }
-            #[cfg(feature = "json")]
-            crate::MultiValuesRef::Json(items) => {
-                for item in items {
-                    self.check_json(item, depth + 1)?;
-                }
-            }
-            _ => {
-                for _ in 0..values.len() {
-                    self.admit(
-                        JsonMeasurement::Number {
-                            depth: depth + 1,
-                            bytes: 1,
-                        },
-                        1,
-                        1,
-                    )?;
-                }
+        let view = values.view();
+        for index in 0..view.len() {
+            if let Some(value) = view.get(index) {
+                self.check_view_at(value, depth + 1)?;
             }
         }
         Ok(())
@@ -295,9 +311,14 @@ impl ValueWireEncodePreflight {
         depth: usize,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         match value {
-            serde_json::Value::Null => self.admit(JsonMeasurement::Null { depth }, 1, 1),
-            serde_json::Value::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 1),
-            serde_json::Value::Number(value) => self.admit_number(depth, value.to_string().len()),
+            serde_json::Value::Null => self.admit(JsonMeasurement::Null { depth }, 1, 0),
+            serde_json::Value::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0),
+            serde_json::Value::Number(value) => {
+                let mut writer = JsonLengthWriter::default();
+                serde_json::to_writer(&mut writer, value)
+                    .expect("JSON Number serialization cannot fail");
+                self.admit_number(depth, writer.len)
+            }
             serde_json::Value::String(value) => self.admit_string(depth, value.len()),
             serde_json::Value::Array(values) => {
                 self.admit(
@@ -331,11 +352,23 @@ impl ValueWireEncodePreflight {
         }
     }
 
-    fn admit_string(&mut self, depth: usize, bytes: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        self.admit(JsonMeasurement::String { depth, bytes }, bytes.saturating_add(2), 1)
+    fn admit_string(
+        &mut self,
+        depth: usize,
+        bytes: usize,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        self.admit(
+            JsonMeasurement::String { depth, bytes },
+            bytes.saturating_add(2),
+            1,
+        )
     }
 
-    fn admit_number(&mut self, depth: usize, bytes: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    fn admit_number(
+        &mut self,
+        depth: usize,
+        bytes: usize,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.admit(JsonMeasurement::Number { depth, bytes }, bytes, 1)
     }
 
@@ -358,16 +391,20 @@ impl ValueWireEncodePreflight {
         self.nodes = self
             .nodes
             .checked_add(1)
-            .ok_or_else(|| self.lower_bound_error(JsonResource::Nodes, usize::MAX, 0))?;
+            .ok_or_else(|| self.quantity_error())?;
         self.payload_bytes = self
             .payload_bytes
             .checked_add(payload)
-            .ok_or_else(|| self.lower_bound_error(JsonResource::PayloadBytes, usize::MAX, 0))?;
+            .ok_or_else(|| self.quantity_error())?;
         self.output_bytes = self
             .output_bytes
             .checked_add(output)
-            .ok_or_else(|| self.lower_bound_error(JsonResource::OutputBytes, usize::MAX, 0))?;
-        self.check_cumulative(JsonResource::Nodes, self.nodes, self.limits.value_limits().max_nodes())?;
+            .ok_or_else(|| self.quantity_error())?;
+        self.check_cumulative(
+            JsonResource::Nodes,
+            self.nodes,
+            self.limits.value_limits().max_nodes(),
+        )?;
         self.check_cumulative(
             JsonResource::PayloadBytes,
             self.payload_bytes,
@@ -380,7 +417,10 @@ impl ValueWireEncodePreflight {
         )
     }
 
-    fn check_point(&self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    fn check_point(
+        &self,
+        measurement: JsonMeasurement,
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.limits.value_limits().check_point(measurement)
     }
 
@@ -391,7 +431,9 @@ impl ValueWireEncodePreflight {
         maximum: Option<usize>,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         match maximum {
-            Some(maximum) if observed > maximum => Err(self.lower_bound_error(resource, observed, maximum)),
+            Some(maximum) if observed > maximum => {
+                Err(self.lower_bound_error(resource, observed, maximum))
+            }
             _ => Ok(()),
         }
     }
@@ -408,13 +450,13 @@ impl ValueWireEncodePreflight {
             maximum,
         })
     }
-}
 
-fn digits_i128(value: i128) -> usize {
-    value.to_string().len()
-}
-fn digits_u128(value: u128) -> usize {
-    value.to_string().len()
+    fn quantity_error(&self) -> MeasuredBudgetError<JsonResource, usize> {
+        MeasuredBudgetError::quantity(
+            JsonResource::OutputBytes,
+            QuantityConversionError::new(QuantityMeasurement::Usize(usize::MAX), "usize"),
+        )
+    }
 }
 
 #[cfg(any(feature = "big-integer", feature = "big-decimal"))]
@@ -422,34 +464,24 @@ fn bigint_digits(value: &num_bigint::BigInt) -> usize {
     if value.sign() == num_bigint::Sign::NoSign {
         1
     } else {
-        ((value.bits().saturating_sub(1)) / 4 + 1) as usize + usize::from(value.sign() == num_bigint::Sign::Minus)
+        ((value.bits().saturating_sub(1)) / 4 + 1) as usize
+            + usize::from(value.sign() == num_bigint::Sign::Minus)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use qubit_budget::BudgetError;
     use qubit_budget::MeasuredBudgetError;
-    use qubit_budget::Observation;
     use qubit_budget::json::JsonEncodeLimits;
-    use qubit_budget::json::JsonResource;
 
     use super::ValueWireEncodePreflight;
     use crate::Value;
 
-    /// Verifies a counter-overflow error retains the exhausted resource and
-    /// conservative lower bound.
-    fn assert_overflow(error: MeasuredBudgetError<JsonResource, usize>, expected_resource: JsonResource) {
+    /// Verifies a counter overflow is reported as a quantity error.
+    fn assert_overflow(error: MeasuredBudgetError<JsonResource, usize>) {
         assert!(
-            matches!(
-                error,
-                MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
-                    resource,
-                    observed: Observation::AtLeast(usize::MAX),
-                    maximum: 0,
-                }) if resource == expected_resource
-            ),
-            "expected {expected_resource:?} overflow, got {error:?}",
+            matches!(error, MeasuredBudgetError::Quantity { .. }),
+            "expected a quantity overflow, got {error:?}",
         );
     }
 
@@ -462,7 +494,7 @@ mod tests {
             .check_value(&Value::Bool(true))
             .expect_err("the node counter cannot exceed usize::MAX");
 
-        assert_overflow(error, JsonResource::Nodes);
+        assert_overflow(error);
         assert_eq!(checker.nodes, usize::MAX);
         assert_eq!(checker.payload_bytes, 0);
         assert_eq!(checker.output_bytes, 0);
@@ -477,7 +509,7 @@ mod tests {
             .check_value(&Value::Bool(true))
             .expect_err("the payload counter cannot exceed usize::MAX");
 
-        assert_overflow(error, JsonResource::PayloadBytes);
+        assert_overflow(error);
         assert_eq!(checker.nodes, 0);
         assert_eq!(checker.payload_bytes, usize::MAX);
         assert_eq!(checker.output_bytes, 0);
@@ -492,7 +524,7 @@ mod tests {
             .check_value(&Value::Bool(true))
             .expect_err("the output counter cannot exceed usize::MAX");
 
-        assert_overflow(error, JsonResource::OutputBytes);
+        assert_overflow(error);
         assert_eq!(checker.nodes, 0);
         assert_eq!(checker.payload_bytes, 0);
         assert_eq!(checker.output_bytes, usize::MAX);
