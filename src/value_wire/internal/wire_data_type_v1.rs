@@ -13,6 +13,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 /// Internal classification used by Wire V1 preflight measurement.
+#[cfg(feature = "json")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::value_wire) enum WirePreflightStrategy {
     /// Frozen type tag text for an unset payload.
@@ -41,6 +42,7 @@ pub(in crate::value_wire) enum WirePreflightStrategy {
     JsonTree,
 }
 
+#[cfg(feature = "json")]
 macro_rules! wire_preflight_strategy {
     (boolean) => {
         WirePreflightStrategy::Boolean
@@ -132,6 +134,7 @@ macro_rules! define_wire_data_type_v1 {
 
         impl WireDataTypeV1 {
             /// Returns the canonical V1 tag used by unset payloads.
+            #[cfg(feature = "json")]
             pub(in crate::value_wire) const fn tag(self) -> &'static str {
                 match self {
                     $(Self::$variant => $tag,)+
@@ -139,6 +142,7 @@ macro_rules! define_wire_data_type_v1 {
             }
 
             /// Returns the table-owned preflight strategy for this tag.
+            #[cfg(feature = "json")]
             pub(in crate::value_wire) const fn preflight_strategy(self) -> WirePreflightStrategy {
                 match self {
                     $(Self::$variant => wire_preflight_strategy!($wire_preflight),)+

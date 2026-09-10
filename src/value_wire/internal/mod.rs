@@ -23,6 +23,7 @@ pub(in crate::value_wire) use collection_wire_ref::CollectionWireRef;
 pub(in crate::value_wire) use scalar_wire_owned::ScalarWireOwned;
 pub(in crate::value_wire) use scalar_wire_ref::ScalarWireRef;
 pub(in crate::value_wire) use wire_data_type_v1::WireDataTypeV1;
+#[cfg(feature = "json")]
 pub(in crate::value_wire) use wire_data_type_v1::WirePreflightStrategy;
 pub(in crate::value_wire) use wire_envelope_owned::WireEnvelopeOwned;
 pub(in crate::value_wire) use wire_envelope_ref::WireEnvelopeRef;
