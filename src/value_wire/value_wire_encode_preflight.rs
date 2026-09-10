@@ -177,10 +177,7 @@ impl ValueWireEncodePreflight {
     ///
     /// Returns the first exceeded JSON resource limit. If checking fails, the
     /// accumulated state is restored to its value before this call.
-    pub fn check_value(
-        &mut self,
-        value: &Value,
-    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    pub fn check_value(&mut self, value: &Value) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.transaction(|checker| checker.check_value_at(value, 1))
     }
 
@@ -188,10 +185,7 @@ impl ValueWireEncodePreflight {
     ///
     /// Returns the first exceeded JSON resource limit. If checking fails, the
     /// accumulated state is restored to its value before this call.
-    pub fn check_values(
-        &mut self,
-        values: &MultiValues,
-    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    pub fn check_values(&mut self, values: &MultiValues) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.transaction(|checker| checker.check_values_at(values, 1))
     }
 
@@ -199,10 +193,7 @@ impl ValueWireEncodePreflight {
     ///
     /// Returns the first exceeded JSON resource limit. If checking fails, the
     /// accumulated state is restored to its value before this call.
-    pub fn check_container(
-        &mut self,
-        value: &ValueContainer,
-    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    pub fn check_container(&mut self, value: &ValueContainer) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.transaction(|checker| match value {
             ValueContainer::Scalar(value) => checker.check_value_at(value, 1),
             ValueContainer::Collection(values) => checker.check_values_at(values, 1),
@@ -227,11 +218,7 @@ impl ValueWireEncodePreflight {
         }
     }
 
-    fn check_value_at(
-        &mut self,
-        value: &Value,
-        depth: usize,
-    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    fn check_value_at(&mut self, value: &Value, depth: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.check_view_at(value.view(), depth)
     }
 
@@ -257,18 +244,10 @@ impl ValueWireEncodePreflight {
                 ValueRef::Int16(value) => self.admit_number(depth, decimal_len(value as i128)),
                 ValueRef::Int32(value) => self.admit_number(depth, decimal_len(value as i128)),
                 ValueRef::Int64(value) => self.admit_number(depth, decimal_len(value as i128)),
-                ValueRef::UInt8(value) => {
-                    self.admit_number(depth, unsigned_decimal_len(value as u128))
-                }
-                ValueRef::UInt16(value) => {
-                    self.admit_number(depth, unsigned_decimal_len(value as u128))
-                }
-                ValueRef::UInt32(value) => {
-                    self.admit_number(depth, unsigned_decimal_len(value as u128))
-                }
-                ValueRef::UInt64(value) => {
-                    self.admit_number(depth, unsigned_decimal_len(value as u128))
-                }
+                ValueRef::UInt8(value) => self.admit_number(depth, unsigned_decimal_len(value as u128)),
+                ValueRef::UInt16(value) => self.admit_number(depth, unsigned_decimal_len(value as u128)),
+                ValueRef::UInt32(value) => self.admit_number(depth, unsigned_decimal_len(value as u128)),
+                ValueRef::UInt64(value) => self.admit_number(depth, unsigned_decimal_len(value as u128)),
                 _ => unreachable!("table strategy and ValueRef variant diverged"),
             },
             WirePreflightStrategy::DecimalText => match value {
@@ -284,31 +263,19 @@ impl ValueWireEncodePreflight {
                 _ => unreachable!("table strategy and ValueRef variant diverged"),
             },
             WirePreflightStrategy::JsonFloat => match value {
-                ValueRef::Float32(value) => self.admit_number(
-                    depth,
-                    if value.is_finite() {
-                        json_float32_len(value)
-                    } else {
-                        1
-                    },
-                ),
-                ValueRef::Float64(value) => self.admit_number(
-                    depth,
-                    if value.is_finite() {
-                        json_float64_len(value)
-                    } else {
-                        1
-                    },
-                ),
+                ValueRef::Float32(value) => {
+                    self.admit_number(depth, if value.is_finite() { json_float32_len(value) } else { 1 })
+                }
+                ValueRef::Float64(value) => {
+                    self.admit_number(depth, if value.is_finite() { json_float64_len(value) } else { 1 })
+                }
                 _ => unreachable!("table strategy and ValueRef variant diverged"),
             },
             WirePreflightStrategy::BigIntegerText => {
                 #[cfg(feature = "big-integer")]
                 {
                     match value {
-                        ValueRef::BigInteger(value) => {
-                            self.admit_string(depth, bigint_digits(value))
-                        }
+                        ValueRef::BigInteger(value) => self.admit_string(depth, bigint_digits(value)),
                         _ => unreachable!("table strategy and ValueRef variant diverged"),
                     }
                 }
@@ -326,10 +293,7 @@ impl ValueWireEncodePreflight {
                             drop(coefficient);
                             self.admit_object_with_keys(
                                 depth,
-                                [
-                                    ("coefficient", 0, true),
-                                    ("scale", decimal_len(scale as i128), false),
-                                ],
+                                [("coefficient", 0, true), ("scale", decimal_len(scale as i128), false)],
                             )
                         }
                         _ => unreachable!("table strategy and ValueRef variant diverged"),
@@ -342,10 +306,9 @@ impl ValueWireEncodePreflight {
             }
             WirePreflightStrategy::TemporalText => match value {
                 #[cfg(feature = "chrono")]
-                ValueRef::Date(_)
-                | ValueRef::Time(_)
-                | ValueRef::DateTime(_)
-                | ValueRef::Instant(_) => self.admit_string(depth, 0),
+                ValueRef::Date(_) | ValueRef::Time(_) | ValueRef::DateTime(_) | ValueRef::Instant(_) => {
+                    self.admit_string(depth, 0)
+                }
                 _ => unreachable!("table strategy and ValueRef variant diverged"),
             },
             WirePreflightStrategy::DurationObject => match value {
@@ -417,8 +380,7 @@ impl ValueWireEncodePreflight {
             serde_json::Value::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0),
             serde_json::Value::Number(value) => {
                 let mut writer = JsonLengthWriter::default();
-                serde_json::to_writer(&mut writer, value)
-                    .expect("JSON Number serialization cannot fail");
+                serde_json::to_writer(&mut writer, value).expect("JSON Number serialization cannot fail");
                 self.admit_number(depth, writer.len)
             }
             serde_json::Value::String(value) => self.admit_string(depth, value.len()),
@@ -454,23 +416,11 @@ impl ValueWireEncodePreflight {
         }
     }
 
-    fn admit_string(
-        &mut self,
-        depth: usize,
-        bytes: usize,
-    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        self.admit(
-            JsonMeasurement::String { depth, bytes },
-            bytes.saturating_add(2),
-            1,
-        )
+    fn admit_string(&mut self, depth: usize, bytes: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        self.admit(JsonMeasurement::String { depth, bytes }, bytes.saturating_add(2), 1)
     }
 
-    fn admit_number(
-        &mut self,
-        depth: usize,
-        bytes: usize,
-    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    fn admit_number(&mut self, depth: usize, bytes: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.admit(JsonMeasurement::Number { depth, bytes }, bytes, 1)
     }
 
@@ -483,11 +433,7 @@ impl ValueWireEncodePreflight {
             depth,
             [
                 ("secs", unsigned_decimal_len(value.as_secs() as u128), false),
-                (
-                    "nanos",
-                    unsigned_decimal_len(value.subsec_nanos() as u128),
-                    false,
-                ),
+                ("nanos", unsigned_decimal_len(value.subsec_nanos() as u128), false),
             ],
         )
     }
@@ -539,11 +485,7 @@ impl ValueWireEncodePreflight {
             .output_bytes
             .checked_add(output)
             .ok_or_else(|| self.quantity_error(JsonResource::OutputBytes))?;
-        self.check_cumulative(
-            JsonResource::Nodes,
-            self.nodes,
-            self.limits.value_limits().max_nodes(),
-        )?;
+        self.check_cumulative(JsonResource::Nodes, self.nodes, self.limits.value_limits().max_nodes())?;
         self.check_cumulative(
             JsonResource::PayloadBytes,
             self.payload_bytes,
@@ -556,10 +498,7 @@ impl ValueWireEncodePreflight {
         )
     }
 
-    fn check_point(
-        &self,
-        measurement: JsonMeasurement,
-    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    fn check_point(&self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.limits.value_limits().check_point(measurement)
     }
 
@@ -570,9 +509,7 @@ impl ValueWireEncodePreflight {
         maximum: Option<usize>,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         match maximum {
-            Some(maximum) if observed > maximum => {
-                Err(self.lower_bound_error(resource, observed, maximum))
-            }
+            Some(maximum) if observed > maximum => Err(self.lower_bound_error(resource, observed, maximum)),
             _ => Ok(()),
         }
     }
@@ -603,17 +540,17 @@ fn bigint_digits(value: &num_bigint::BigInt) -> usize {
     if value.sign() == num_bigint::Sign::NoSign {
         1
     } else {
-        ((value.bits().saturating_sub(1)) / 4 + 1) as usize
-            + usize::from(value.sign() == num_bigint::Sign::Minus)
+        ((value.bits().saturating_sub(1)) / 4 + 1) as usize + usize::from(value.sign() == num_bigint::Sign::Minus)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::panic::AssertUnwindSafe;
+
     use qubit_budget::MeasuredBudgetError;
     use qubit_budget::json::JsonEncodeLimits;
     use qubit_budget::json::JsonResource;
-    use std::panic::AssertUnwindSafe;
 
     use super::ValueWireEncodePreflight;
     use crate::Value;

@@ -69,11 +69,7 @@ fn value_from_bytes(data: &[u8]) -> ValueContainer {
                 .collect(),
         )),
         _ => ValueContainer::Collection(MultiValues::Int64(
-            input
-                .iter()
-                .take(MAX_ITEMS)
-                .map(|byte| i64::from(*byte))
-                .collect(),
+            input.iter().take(MAX_ITEMS).map(|byte| i64::from(*byte)).collect(),
         )),
     }
 }

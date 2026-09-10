@@ -23,11 +23,7 @@ pub(crate) fn decimal_len(value: i128) -> usize {
 
 /// Returns the exact UTF-8 length of an unsigned integer's decimal form.
 pub(crate) fn unsigned_decimal_len(value: u128) -> usize {
-    if value < 10 {
-        1
-    } else {
-        value.ilog10() as usize + 1
-    }
+    if value < 10 { 1 } else { value.ilog10() as usize + 1 }
 }
 
 /// Counts a finite f32 using serde_json's compact formatter.
