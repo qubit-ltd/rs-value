@@ -30,7 +30,8 @@ macro_rules! define_scalar_wire_owned {
                 $_multi_doc:literal,
                 [$($scalar_attr:meta),*],
                 [$($collection_attr:meta),*],
-                $tag:literal
+                $tag:literal,
+                $_wire_preflight:ident
             )
         ),+ $(,)?
     ) => {

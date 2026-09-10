@@ -12,6 +12,69 @@ use qubit_datatype::DataType;
 use serde::Deserialize;
 use serde::Serialize;
 
+/// Internal classification used by Wire V1 preflight measurement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::value_wire) enum WirePreflightStrategy {
+    /// Boolean node.
+    Boolean,
+    /// Borrowed text node.
+    BorrowedText,
+    /// JSON integer node.
+    JsonInteger,
+    /// Decimal integer encoded as text.
+    DecimalText,
+    /// JSON floating point node.
+    JsonFloat,
+    /// Arbitrary precision integer text.
+    BigIntegerText,
+    /// Arbitrary precision decimal object.
+    DecimalObject,
+    /// Temporal text node.
+    TemporalText,
+    /// Duration object.
+    DurationObject,
+    /// String map object.
+    StringMap,
+    /// Nested JSON tree.
+    JsonTree,
+}
+
+macro_rules! wire_preflight_strategy {
+    (boolean) => {
+        WirePreflightStrategy::Boolean
+    };
+    (borrowed_text) => {
+        WirePreflightStrategy::BorrowedText
+    };
+    (json_integer) => {
+        WirePreflightStrategy::JsonInteger
+    };
+    (decimal_text) => {
+        WirePreflightStrategy::DecimalText
+    };
+    (json_float) => {
+        WirePreflightStrategy::JsonFloat
+    };
+    (big_integer_text) => {
+        WirePreflightStrategy::BigIntegerText
+    };
+    (decimal_object) => {
+        WirePreflightStrategy::DecimalObject
+    };
+    (temporal_text) => {
+        WirePreflightStrategy::TemporalText
+    };
+    (duration_object) => {
+        WirePreflightStrategy::DurationObject
+    };
+    (string_map) => {
+        WirePreflightStrategy::StringMap
+    };
+    (json_tree) => {
+        WirePreflightStrategy::JsonTree
+    };
+}
+
 /// Defines the complete V1 data type tag set and runtime mappings.
 macro_rules! define_wire_data_type_v1 {
     (
@@ -29,7 +92,8 @@ macro_rules! define_wire_data_type_v1 {
                 $_multi_doc:literal,
                 [$($scalar_attr:meta),*],
                 [$($collection_attr:meta),*],
-                $tag:literal
+                $tag:literal,
+                $wire_preflight:ident
             )
         ),+ $(,)?
     ) => {
@@ -60,6 +124,22 @@ macro_rules! define_wire_data_type_v1 {
             fn from(data_type: WireDataTypeV1) -> Self {
                 match data_type {
                     $(WireDataTypeV1::$variant => Self::$variant,)+
+                }
+            }
+        }
+
+        impl WireDataTypeV1 {
+            /// Returns the canonical V1 tag used by unset payloads.
+            pub(in crate::value_wire) const fn tag(self) -> &'static str {
+                match self {
+                    $(Self::$variant => $tag,)+
+                }
+            }
+
+            /// Returns the table-owned preflight strategy for this tag.
+            pub(in crate::value_wire) const fn preflight_strategy(self) -> WirePreflightStrategy {
+                match self {
+                    $(Self::$variant => wire_preflight_strategy!($wire_preflight),)+
                 }
             }
         }

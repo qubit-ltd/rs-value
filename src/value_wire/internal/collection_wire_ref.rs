@@ -31,7 +31,8 @@ macro_rules! define_collection_wire_ref {
                 $_multi_doc:literal,
                 [$($scalar_attr:meta),*],
                 [$($collection_attr:meta),*],
-                $tag:literal
+                $tag:literal,
+                $_wire_preflight:ident
             )
         ),+ $(,)?
     ) => {

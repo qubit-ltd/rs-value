@@ -8,6 +8,8 @@
 
 //! Conservative preparation checks for bounded V1 JSON encoding.
 
+use std::time::Duration;
+
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::Observation;
@@ -19,6 +21,7 @@ use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 
+use super::internal::WireDataTypeV1;
 use crate::MultiValues;
 use crate::Value;
 use crate::ValueContainer;
@@ -202,7 +205,12 @@ impl ValueWireEncodePreflight {
         depth: usize,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         match value {
-            ValueRef::Unset(data_type) => self.admit_string(depth, data_type.as_str().len()),
+            ValueRef::Unset(data_type) => {
+                let wire_type = WireDataTypeV1::from(data_type);
+                let _ = wire_type.preflight_strategy();
+                let tag = wire_type.tag();
+                self.admit_string(depth, tag.len())
+            }
             ValueRef::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0),
             ValueRef::Char(value) => self.admit_string(depth, value.len_utf8()),
             ValueRef::String(value) => self.admit_string(depth, value.len()),
@@ -242,10 +250,15 @@ impl ValueWireEncodePreflight {
             ValueRef::BigDecimal(value) => {
                 let (coefficient, scale) = value.as_bigint_and_scale();
                 drop(coefficient);
-                self.admit_string(depth, 0)?;
-                self.admit_number(depth, decimal_len(scale as i128))
+                self.admit_object_with_keys(
+                    depth,
+                    [
+                        ("coefficient", 0, true),
+                        ("scale", decimal_len(scale as i128), false),
+                    ],
+                )
             }
-            ValueRef::Duration(_value) => self.admit_object(depth, 2, 8),
+            ValueRef::Duration(value) => self.admit_duration(depth, *value),
             #[cfg(feature = "chrono")]
             ValueRef::Date(_value) => self.admit_string(depth, 0),
             #[cfg(feature = "chrono")]
@@ -372,13 +385,50 @@ impl ValueWireEncodePreflight {
         self.admit(JsonMeasurement::Number { depth, bytes }, bytes, 1)
     }
 
-    fn admit_object(
+    fn admit_duration(
         &mut self,
         depth: usize,
-        entries: usize,
-        payload: usize,
+        value: Duration,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        self.admit(JsonMeasurement::Object { depth, entries }, payload, 1)
+        self.admit_object_with_keys(
+            depth,
+            [
+                ("secs", unsigned_decimal_len(value.as_secs() as u128), false),
+                (
+                    "nanos",
+                    unsigned_decimal_len(value.subsec_nanos() as u128),
+                    false,
+                ),
+            ],
+        )
+    }
+
+    fn admit_object_with_keys<const N: usize>(
+        &mut self,
+        depth: usize,
+        fields: [(&str, usize, bool); N],
+    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        let output = fields
+            .iter()
+            .try_fold(2_usize, |total, (key, _, _)| {
+                total
+                    .checked_add(key.len())
+                    .and_then(|total| total.checked_add(3))
+                    .ok_or(())
+            })
+            .ok()
+            .and_then(|total| total.checked_add(N.saturating_sub(1)))
+            .ok_or_else(|| self.quantity_error(JsonResource::OutputBytes))?;
+        self.admit(JsonMeasurement::Object { depth, entries: N }, output, 0)?;
+        for (key, value, is_string) in fields {
+            self.check_point(JsonMeasurement::Key { bytes: key.len() })?;
+            if is_string {
+                self.admit_string(depth + 1, value)?;
+            } else {
+                self.admit_number(depth + 1, value)?;
+            }
+        }
+        Ok(())
     }
 
     fn admit(
@@ -391,15 +441,15 @@ impl ValueWireEncodePreflight {
         self.nodes = self
             .nodes
             .checked_add(1)
-            .ok_or_else(|| self.quantity_error())?;
+            .ok_or_else(|| self.quantity_error(JsonResource::Nodes))?;
         self.payload_bytes = self
             .payload_bytes
             .checked_add(payload)
-            .ok_or_else(|| self.quantity_error())?;
+            .ok_or_else(|| self.quantity_error(JsonResource::PayloadBytes))?;
         self.output_bytes = self
             .output_bytes
             .checked_add(output)
-            .ok_or_else(|| self.quantity_error())?;
+            .ok_or_else(|| self.quantity_error(JsonResource::OutputBytes))?;
         self.check_cumulative(
             JsonResource::Nodes,
             self.nodes,
@@ -451,9 +501,9 @@ impl ValueWireEncodePreflight {
         })
     }
 
-    fn quantity_error(&self) -> MeasuredBudgetError<JsonResource, usize> {
+    fn quantity_error(&self, resource: JsonResource) -> MeasuredBudgetError<JsonResource, usize> {
         MeasuredBudgetError::quantity(
-            JsonResource::OutputBytes,
+            resource,
             QuantityConversionError::new(QuantityMeasurement::Usize(usize::MAX), "usize"),
         )
     }
@@ -473,6 +523,7 @@ fn bigint_digits(value: &num_bigint::BigInt) -> usize {
 mod tests {
     use qubit_budget::MeasuredBudgetError;
     use qubit_budget::json::JsonEncodeLimits;
+    use qubit_budget::json::JsonResource;
 
     use super::ValueWireEncodePreflight;
     use crate::Value;
@@ -506,7 +557,7 @@ mod tests {
         checker.payload_bytes = usize::MAX;
 
         let error = checker
-            .check_value(&Value::Bool(true))
+            .check_value(&Value::String("x".to_owned()))
             .expect_err("the payload counter cannot exceed usize::MAX");
 
         assert_overflow(error);
