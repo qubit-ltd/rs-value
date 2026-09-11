@@ -3,7 +3,7 @@
 [中文版](design.zh_CN.md) · [README](../README.md) · [User guide](user_guide.md) · [API documentation](https://docs.rs/qubit-value)
 
 This document records the architectural boundaries and compatibility rules for
-`qubit-value` 0.12. It is aimed at maintainers of this crate and authors of
+`qubit-value` 0.11. It is aimed at maintainers of this crate and authors of
 protocols or downstream crates that build on its value model.
 
 <a id="scope"></a>

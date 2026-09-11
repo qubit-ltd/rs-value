@@ -8,7 +8,7 @@
 类型只能在运行时确定，但调用方仍需要明确类型、受控转换和可预期错误时，可以使用
 `qubit-value`。
 
-本手册适用于 `qubit-value` 0.12，介绍的是值容器层本身，不会把它扩展成配置服务、schema
+本手册适用于 `qubit-value` 0.11，介绍的是值容器层本身，不会把它扩展成配置服务、schema
 registry 或持久化数据库。需要基于 `Value` 实现的现成 key-value 容器时，请参阅文末的
 [`rs-config`](https://github.com/qubit-ltd/rs-config) 和
 [`rs-metadata`](https://github.com/qubit-ltd/rs-metadata)。
@@ -104,8 +104,8 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.12", features = ["all"] }
-qubit-datatype = { version = "0.12", default-features = false }
+qubit-value = { version = "0.11", features = ["all"] }
+qubit-datatype = { version = "0.13", default-features = false }
 qubit-budget = { version = "0.5", features = ["json"] }
 qubit-json = "0.9"
 serde = { version = "1.0", features = ["derive"] }

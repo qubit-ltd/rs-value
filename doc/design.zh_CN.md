@@ -2,7 +2,7 @@
 
 [English version](design.md) · [README](../README.zh_CN.md) · [用户手册](user_guide.zh_CN.md) · [API 文档](https://docs.rs/qubit-value)
 
-本文记录 `qubit-value` 0.12 的架构边界与兼容性规则，面向本 crate 的维护者，以及基于这套
+本文记录 `qubit-value` 0.11 的架构边界与兼容性规则，面向本 crate 的维护者，以及基于这套
 值模型设计协议或下游 crate 的开发者。
 
 <a id="scope"></a>
