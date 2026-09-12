@@ -104,7 +104,7 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.11", features = ["all"] }
+qubit-value = { version = "0.12", features = ["all"] }
 qubit-datatype = { version = "0.13", default-features = false }
 qubit-budget = { version = "0.5", features = ["json"] }
 qubit-json = "0.9"
