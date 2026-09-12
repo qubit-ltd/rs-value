@@ -92,7 +92,7 @@ assert_eq!((first, second), (8080, 8081));
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.11", features = ["converter"] }
+qubit-value = { version = "0.12", features = ["converter"] }
 qubit-datatype = { version = "0.13", default-features = false }
 ```
 

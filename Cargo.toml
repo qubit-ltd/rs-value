@@ -1,6 +1,6 @@
 [package]
 name = "qubit-value"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2024"
 rust-version = "1.94"
 autotests = false
@@ -18,11 +18,10 @@ include = [
     "/LICENSE",
     "/README.md",
     "/README.zh_CN.md",
-    "/benches/**",
-    "/doc/**/design*.md",
-    "/doc/**/user_guide*.md",
     "/src/**",
+    "/doc/**",
     "/tests/**",
+    "/benches/**",
     "/.github/workflows/ci.yml",
     "/.github/workflows/fuzz.yml",
 ]
