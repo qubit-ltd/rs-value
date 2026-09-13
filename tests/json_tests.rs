@@ -488,6 +488,30 @@ fn test_natural_json_projection_boundary_matrix() {
     );
 }
 
+/// Big-integer projection applies numeric limits with the crate's public type.
+#[test]
+fn test_natural_json_checks_big_integer_limits() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::NumericConversionLimits;
+
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::builder()
+        .numeric_limits(NumericConversionLimits::builder().max_big_integer_digits(10).build())
+        .build();
+    let value = Value::BigInteger(BigInt::from(-1_234_567_890_i64));
+
+    assert_eq!(
+        value.to_json_value_with(&policy, &limits).unwrap(),
+        json!("-1234567890")
+    );
+
+    let limits = ConversionLimits::builder()
+        .numeric_limits(NumericConversionLimits::builder().max_big_integer_digits(9).build())
+        .build();
+    assert!(value.to_json_value_with(&policy, &limits).is_err());
+}
+
 /// Nested keys and string values consume the same operation-wide output budget.
 #[test]
 fn test_natural_json_keys_and_values_share_output_budget() {

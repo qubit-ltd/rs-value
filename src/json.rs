@@ -40,6 +40,21 @@ use prepared_projection::PreparedProjection;
 use prepared_scalar::PreparedScalar;
 use projection_budget::ProjectionBudget;
 
+/// Converts the public big-integer type to the version used by JSON budgeting.
+///
+/// The conversion preserves the sign and base-2<sup>32</sup> limbs exactly, so
+/// numeric limits are evaluated against the original value.
+#[cfg(feature = "big-integer")]
+fn big_integer_for_budget(value: &num_bigint::BigInt) -> num_bigint_budget::BigInt {
+    let (sign, digits) = value.to_u32_digits();
+    let sign = match sign {
+        num_bigint::Sign::Minus => num_bigint_budget::Sign::Minus,
+        num_bigint::Sign::NoSign => num_bigint_budget::Sign::NoSign,
+        num_bigint::Sign::Plus => num_bigint_budget::Sign::Plus,
+    };
+    num_bigint_budget::BigInt::new(sign, digits)
+}
+
 /// Checks source big-number limits before decimal formatting can allocate.
 macro_rules! check_projection_number {
     (BigInteger, $value:expr, $budget:expr) => {
@@ -47,7 +62,7 @@ macro_rules! check_projection_number {
             .limits
             .numeric()
             .big_integer()
-            .check($value)
+            .check(&big_integer_for_budget($value))
             .map_err(|error| $budget.error(error))?
     };
     (BigDecimal, $value:expr, $budget:expr) => {
