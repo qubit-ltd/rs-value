@@ -1,6 +1,6 @@
 [package]
 name = "qubit-value"
-version = "0.12.1"
+version = "0.12.2"
 edition = "2024"
 rust-version = "1.94"
 autotests = false
@@ -89,7 +89,6 @@ default = []
 chrono = ["dep:chrono", "qubit-datatype/chrono"]
 big-integer = [
     "dep:num-bigint",
-    "dep:num-bigint-budget",
     "qubit-datatype/big-integer",
 ]
 big-decimal = [
@@ -130,7 +129,6 @@ serde_json = { version = "1.0", features = ["float_roundtrip"], optional = true 
 chrono = { version = "0.4", default-features = false, features = ["std", "serde"], optional = true }
 url = { version = "2.5", features = ["serde"], optional = true }
 num-bigint = { version = "0.4", optional = true }
-num-bigint-budget = { package = "num-bigint", version = "0.5", optional = true }
 bigdecimal = { version = "0.4", optional = true }
 
 qubit-datatype = { version = "0.14", default-features = false }
