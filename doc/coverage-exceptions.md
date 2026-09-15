@@ -1,6 +1,6 @@
 # Coverage threshold exceptions
 
-The crate enforces the shared `rs-ci` thresholds: functions at least 95%,
+The crate enforces the shared `rs-infra-coverage` thresholds: functions at least 95%,
 lines above 90%, and regions above 85%. The audit in this file was generated
 from `cargo-llvm-cov 0.8.6`, Rust 1.94.0, with `./coverage.sh json` and all
 features enabled on 2026-09-10. The raw report is `target/llvm-cov/coverage.json`
@@ -38,5 +38,5 @@ make the suite less representative.
 Re-run the audit with:
 
 ```text
-COVERAGE_OPEN_HTML=0 ./coverage.sh json
+./coverage.sh
 ```
