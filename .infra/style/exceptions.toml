@@ -1,0 +1,16 @@
+format = 1
+
+[[exceptions]]
+rule = "public-type-layout"
+path = "src/multi_values/multi_values.rs"
+reason = "This module intentionally groups multiple public types for dispatch."
+
+[[exceptions]]
+rule = "public-type-layout"
+path = "src/value/value.rs"
+reason = "This module intentionally groups multiple public types for dispatch."
+
+[[exceptions]]
+rule = "public-type-layout"
+path = "src/value_wire/value_wire_decode_error.rs"
+reason = "This module intentionally groups multiple public types for dispatch."

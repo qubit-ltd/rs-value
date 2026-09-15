@@ -1,6 +1,6 @@
 # 覆盖率阈值例外
 
-crate 使用共享 `rs-ci` 阈值：函数覆盖率至少 95%，行覆盖率高于 90%，区域覆盖率高于
+crate 使用共享 `rs-infra-coverage` 阈值：函数覆盖率至少 95%，行覆盖率高于 90%，区域覆盖率高于
 85%。本文件的审计结果使用 `cargo-llvm-cov 0.8.6`、Rust 1.94.0，在 2026-09-10 执行
 `./coverage.sh json` 并启用全部 feature 生成。原始报告位于
 `target/llvm-cov/coverage.json`，不提交到仓库。
@@ -33,5 +33,5 @@ crate 使用共享 `rs-ci` 阈值：函数覆盖率至少 95%，行覆盖率高�
 重新执行审计：
 
 ```text
-COVERAGE_OPEN_HTML=0 ./coverage.sh json
+./coverage.sh
 ```

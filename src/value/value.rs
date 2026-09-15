@@ -8,7 +8,6 @@
 //! # Single Value Container
 //!
 //! Provides type-safe storage and access functionality for single values.
-// qubit-style: allow multiple-public-types
 
 use std::cmp::Ordering;
 use std::collections::HashMap;

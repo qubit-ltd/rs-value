@@ -8,10 +8,8 @@
 //! # Multiple Values Container
 //!
 //! Provides type-safe storage and access functionality for multiple values.
-// qubit-style: allow source-test-pair
 // Tests are intentionally distributed across behavior-specific files under
 // tests/multi_values/ rather than collected in multi_values_tests.rs.
-// qubit-style: allow multiple-public-types
 use std::collections::HashMap;
 use std::fmt;
 #[cfg(feature = "json")]

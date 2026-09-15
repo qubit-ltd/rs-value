@@ -7,7 +7,6 @@
 // =============================================================================
 
 //! Error reported while decoding bounded JSON wire input.
-// qubit-style: allow multiple-public-types
 
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;

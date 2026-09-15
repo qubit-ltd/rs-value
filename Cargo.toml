@@ -26,7 +26,7 @@ include = [
     "/.github/workflows/fuzz.yml",
 ]
 
-[package.metadata.rs-ci]
+[package.metadata.rs-infra]
 package-include-extra = [
     "/.github/workflows/ci.yml",
     "/.github/workflows/fuzz.yml",
