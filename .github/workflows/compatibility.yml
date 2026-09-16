@@ -16,8 +16,8 @@ concurrency:
 
 env:
   RUST_TOOLCHAIN: "1.94.0"
-  QUBIT_CONFIG_REVISION: 1fc50b2c77c3b28d5a027d7a7d4bbc39aa31d2b8
-  QUBIT_METADATA_REVISION: bf42d78009a876e147a48d9b7b73db255814b30f
+  QUBIT_CONFIG_REVISION: ac4f54d43e79cd3e85120809aefddd2c6b39ce04
+  QUBIT_METADATA_REVISION: c8eb2b159142f61417f3950e4d2e6021aeb9e927
 
 jobs:
   rs-config:
@@ -43,6 +43,17 @@ jobs:
 
       - name: Install Rust
         run: rustup toolchain install "${RUST_TOOLCHAIN}" --profile minimal
+
+      - name: Prepare rs-value checkout dependency
+        working-directory: workspace/rs-config
+        env:
+          EXPECTED_RS_VALUE_ROOT: ${{ github.workspace }}/workspace/rs-value
+        run: |
+          set -euo pipefail
+          mkdir -p .cargo
+          test ! -e .cargo/config.toml
+          printf '[patch.crates-io]\nqubit-value = { path = "%s" }\n' "$EXPECTED_RS_VALUE_ROOT" > .cargo/config.toml
+          cargo +${RUST_TOOLCHAIN} update --package qubit-value
 
       - name: Verify rs-value checkout dependency
         working-directory: workspace/rs-config
@@ -93,6 +104,17 @@ jobs:
 
       - name: Install Rust
         run: rustup toolchain install "${RUST_TOOLCHAIN}" --profile minimal
+
+      - name: Prepare rs-value checkout dependency
+        working-directory: workspace/rs-metadata
+        env:
+          EXPECTED_RS_VALUE_ROOT: ${{ github.workspace }}/workspace/rs-value
+        run: |
+          set -euo pipefail
+          mkdir -p .cargo
+          test ! -e .cargo/config.toml
+          printf '[patch.crates-io]\nqubit-value = { path = "%s" }\n' "$EXPECTED_RS_VALUE_ROOT" > .cargo/config.toml
+          cargo +${RUST_TOOLCHAIN} update --package qubit-value
 
       - name: Verify rs-value checkout dependency
         working-directory: workspace/rs-metadata
