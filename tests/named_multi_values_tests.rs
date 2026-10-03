@@ -16,6 +16,7 @@ use chrono::NaiveTime;
 use chrono::Utc;
 use qubit_budget::BudgetError;
 use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
@@ -24,6 +25,7 @@ use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueError;
 use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireEncodeError;
 
 /// Rejects schema fields outside the stable named-collection wrapper contract.
 #[test]
@@ -82,6 +84,24 @@ fn test_named_multi_values_default_encoding_round_trips() {
         NamedMultiValues::decode_json_slice(&encoded).expect("default limits should decode named values"),
         named
     );
+}
+
+#[test]
+fn test_named_multi_values_writer_matches_vec_and_rejects_output_limit() {
+    let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![42, 43]));
+    let mut output = Vec::new();
+    named.to_json_writer(&mut output).expect("write named collection");
+    assert_eq!(output, named.to_json_vec().expect("encode named collection"));
+
+    let mut constrained = Vec::new();
+    let error = named
+        .to_json_writer_with_limits(
+            &mut constrained,
+            JsonEncodeLimits::builder().max_output_bytes(1).build(),
+        )
+        .expect_err("output budget should reject named collection");
+    assert!(matches!(error, ValueWireEncodeError::Budget(_)));
+    assert!(constrained.is_empty());
 }
 
 #[test]
