@@ -6,8 +6,11 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+#[cfg(feature = "converter")]
 use qubit_datatype::ConversionLimits;
+#[cfg(feature = "converter")]
 use qubit_datatype::ConversionPolicy;
+#[cfg(feature = "converter")]
 use qubit_datatype::ConversionSession;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
@@ -62,6 +65,7 @@ fn test_multi_values_core_unset_preserves_declared_type() {
 
 /// Checks eager and lazy fallbacks with strict reads, conversions, explicit
 /// policy, and a caller-owned conversion session.
+#[cfg(feature = "converter")]
 #[test]
 fn test_multi_values_default_and_session_conversion_paths() {
     let unset = MultiValues::Unset(DataType::Int32);

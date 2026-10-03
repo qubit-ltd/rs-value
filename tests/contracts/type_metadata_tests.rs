@@ -11,6 +11,7 @@
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::Value;
+#[cfg(feature = "all")]
 use qubit_value::ValueContainer;
 
 #[test]
@@ -74,7 +75,8 @@ fn test_all_type_table_rows_construct_value_containers_from_owned_and_borrowed_i
             let borrowed_slice = ValueContainer::from([value.clone()].as_slice());
             let borrowed_vec = ValueContainer::from(&vec![value.clone()]);
             let array = ValueContainer::from([value.clone()]);
-            let borrowed_array = ValueContainer::from(&[value.clone()]);
+            let array_value = [value.clone()];
+            let borrowed_array = ValueContainer::from(&array_value);
 
             assert_eq!(scalar.data_type(), $data_type);
             for container in [owned, borrowed_slice, borrowed_vec, array, borrowed_array] {
