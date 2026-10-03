@@ -13,6 +13,7 @@ use std::hash::Hash;
 
 use qubit_datatype::CollectionConversionPolicy;
 use qubit_datatype::ConversionLimits;
+#[cfg(feature = "all")]
 use qubit_datatype::ConversionOperationLimits;
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataType;
