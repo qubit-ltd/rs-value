@@ -13,6 +13,7 @@ use std::hash::Hash;
 
 use qubit_datatype::CollectionConversionPolicy;
 use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionOperationLimits;
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
@@ -478,4 +479,130 @@ fn test_value_container_conversion_covers_scalar_and_collection_dispatch() {
             .unwrap(),
         vec![43, 44]
     );
+}
+
+/// Covers borrowed access and the public conversion/session paths on both
+/// explicit shapes.
+#[test]
+fn test_value_container_borrowed_and_session_conversion_paths() {
+    use qubit_datatype::ConversionSession;
+
+    let scalar = ValueContainer::from("42");
+    let collection = ValueContainer::from(vec!["43", "44"]);
+
+    assert_eq!(scalar.get_first_ref::<String>().expect("scalar first item"), "42");
+    assert_eq!(scalar.get_slice::<String>().expect("scalar slice"), &[String::from("42")]);
+    assert_eq!(collection.get_first_ref::<String>().expect("collection first item"), "43");
+    assert_eq!(collection.get_slice::<String>().expect("collection slice"), &[String::from("43"), String::from("44")]);
+
+    assert_eq!(scalar.to_first::<i32>().expect("convert scalar"), 42);
+    assert_eq!(collection.to_first::<i32>().expect("convert collection first item"), 43);
+    assert_eq!(scalar.to_list::<i32>().expect("convert scalar to list"), vec![42]);
+    assert_eq!(collection.to_list::<i32>().expect("convert collection to list"), vec![43, 44]);
+
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::default();
+    let mut session = ConversionSession::new(&policy, &limits);
+    assert_eq!(scalar.to_first_in::<i32>(&mut session).expect("session scalar conversion"), 42);
+    assert_eq!(scalar.to_list_in::<i32>(&mut session).expect("session scalar list conversion"), vec![42]);
+    assert_eq!(collection.to_first_in::<i32>(&mut session).expect("session collection conversion"), 43);
+    assert_eq!(collection.to_list_in::<i32>(&mut session).expect("session collection list conversion"), vec![43, 44]);
+
+    assert_eq!(scalar.to_json_value().expect("project scalar"), json!("42"));
+    assert_eq!(collection.to_json_value().expect("project collection"), json!(["43", "44"]));
+    assert_eq!(
+        scalar.to_json_value_with(&policy, &limits).expect("project scalar with policy"),
+        json!("42")
+    );
+    assert_eq!(
+        collection.to_json_value_with(&policy, &limits).expect("project collection with policy"),
+        json!(["43", "44"])
+    );
+}
+
+/// Exercises both shape branches of container metadata and consuming
+/// accessors, including containers built from the two explicit core types.
+#[test]
+fn test_value_container_state_accessors_cover_scalar_collection_and_unset() {
+    let scalar = ValueContainer::from(Value::Int32(42));
+    let collection = ValueContainer::from(MultiValues::String(vec![String::from("item")]));
+    let unset_scalar = ValueContainer::new_unset_scalar(DataType::Bool);
+    let unset_collection = ValueContainer::new_unset_collection(DataType::String);
+    let empty = ValueContainer::from(Vec::<i32>::new());
+
+    assert!(scalar.is_scalar());
+    assert!(!scalar.is_collection());
+    assert_eq!(scalar.as_scalar(), Some(&Value::Int32(42)));
+    assert_eq!(scalar.as_collection(), None);
+    assert_eq!(scalar.data_type(), DataType::Int32);
+    assert_eq!(scalar.len(), 1);
+    assert!(!scalar.is_empty());
+    assert!(!scalar.is_unset());
+
+    assert!(collection.is_collection());
+    assert!(!collection.is_scalar());
+    assert_eq!(collection.as_scalar(), None);
+    assert_eq!(collection.as_collection(), Some(&MultiValues::String(vec![String::from("item")])));
+    assert_eq!(collection.data_type(), DataType::String);
+    assert_eq!(collection.len(), 1);
+    assert!(!collection.is_empty());
+    assert!(!collection.is_unset());
+
+    assert!(unset_scalar.is_scalar());
+    assert!(unset_scalar.is_unset());
+    assert!(unset_scalar.is_empty());
+    assert!(unset_collection.is_collection());
+    assert!(unset_collection.is_unset());
+    assert!(unset_collection.is_empty());
+    assert!(empty.is_collection());
+    assert!(empty.is_empty());
+    assert!(!empty.is_unset());
+
+    assert_eq!(scalar.into_scalar(), Ok(Value::Int32(42)));
+    assert_eq!(
+        ValueContainer::from(vec![1_i32]).into_scalar(),
+        Err(ValueContainer::from(vec![1_i32]))
+    );
+    assert_eq!(
+        collection.into_collection(),
+        Ok(MultiValues::String(vec![String::from("item")]))
+    );
+    assert_eq!(
+        ValueContainer::from(Value::Bool(true)).into_collection(),
+        Err(ValueContainer::from(Value::Bool(true)))
+    );
+}
+
+/// Routes richer scalar and nested JSON projection through the container
+/// budget boundary and checks a precise resource rejection.
+#[cfg(feature = "all")]
+#[test]
+fn test_value_container_json_projection_uses_structured_budgets() {
+    use std::collections::HashMap;
+    use std::time::Duration;
+
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::default();
+    let decimal = ValueContainer::from("123.45".parse::<bigdecimal::BigDecimal>().expect("valid decimal"));
+    assert_eq!(decimal.to_json_value_with(&policy, &limits).expect("project decimal"), json!("123.45"));
+
+    let duration = ValueContainer::from(Duration::from_millis(1500));
+    assert_eq!(duration.to_json_value_with(&policy, &limits).expect("project duration"), json!("1500ms"));
+
+    let nested = ValueContainer::from(Value::Json(json!({"items": ["a", "b"], "enabled": true})));
+    assert_eq!(
+        nested.to_json_value_with(&policy, &limits).expect("project nested JSON"),
+        json!({"items": ["a", "b"], "enabled": true})
+    );
+
+    let map = ValueContainer::from(HashMap::from([(String::from("key"), String::from("value"))]));
+    assert_eq!(map.to_json_value().expect("project string map"), json!({"key": "value"}));
+
+    let constrained = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(2).build())
+        .build();
+    assert!(matches!(
+        nested.to_json_value_with(&policy, &constrained),
+        Err(ValueError::JsonProjectionLimit { .. })
+    ));
 }

@@ -7,6 +7,9 @@
 // =============================================================================
 
 use qubit_datatype::DataType;
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionPolicy;
+use qubit_datatype::ConversionSession;
 use qubit_value::MultiValues;
 use qubit_value::ValueError;
 use qubit_value::ValueWireEncodeError;
@@ -55,6 +58,42 @@ fn test_multi_values_core_unset_preserves_declared_type() {
     assert!(values.is_unset());
     assert_eq!(values.data_type(), DataType::Int32);
     assert_eq!(values.len(), 0);
+}
+
+/// Checks eager and lazy fallbacks with strict reads, conversions, explicit
+/// policy, and a caller-owned conversion session.
+#[test]
+fn test_multi_values_default_and_session_conversion_paths() {
+    let unset = MultiValues::Unset(DataType::Int32);
+    let values = MultiValues::String(vec![String::from("42"), String::from("43")]);
+    let empty = MultiValues::Int32(Vec::new());
+
+    assert_eq!(unset.get_or::<i32>(vec![1, 2]), Ok(vec![1, 2]));
+    assert_eq!(unset.get_or_else::<i32, _>(|| vec![3]), Ok(vec![3]));
+    assert_eq!(unset.get_first_or::<i32>(4), Ok(4));
+    assert_eq!(unset.get_first_or_else::<i32, _>(|| 5), Ok(5));
+    assert_eq!(values.get::<String>(), Ok(vec![String::from("42"), String::from("43")]));
+    assert_eq!(values.get_first::<String>(), Ok(String::from("42")));
+
+    assert_eq!(unset.to_first_or::<i32>(6), Ok(6));
+    assert_eq!(unset.to_first_or_else::<i32, _>(|| 7), Ok(7));
+    assert_eq!(unset.to_list_or::<i32>(vec![8]), Ok(vec![8]));
+    assert_eq!(unset.to_list_or_else::<i32, _>(|| vec![9]), Ok(vec![9]));
+    assert!(empty.to_first_or::<i32>(10).is_err());
+    assert_eq!(empty.to_list_or::<i32>(vec![11]), Ok(Vec::new()));
+
+    let policy = ConversionPolicy::default();
+    let limits = ConversionLimits::default();
+    assert_eq!(values.to_first_with::<i32>(&policy, &limits), Ok(42));
+    assert_eq!(values.to_list_with::<i32>(&policy, &limits), Ok(vec![42, 43]));
+    assert_eq!(unset.to_first_or_with::<i32>(12, &policy, &limits), Ok(12));
+    assert_eq!(unset.to_first_or_else_with::<i32, _>(|| 13, &policy, &limits), Ok(13));
+    assert_eq!(unset.to_list_or_with::<i32>(vec![14], &policy, &limits), Ok(vec![14]));
+    assert_eq!(unset.to_list_or_else_with::<i32, _>(|| vec![15], &policy, &limits), Ok(vec![15]));
+
+    let mut session = ConversionSession::new(&policy, &limits);
+    assert_eq!(values.to_first_in::<i32>(&mut session), Ok(42));
+    assert_eq!(values.to_list_in::<i32>(&mut session), Ok(vec![42, 43]));
 }
 
 #[test]
