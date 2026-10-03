@@ -491,31 +491,70 @@ fn test_value_container_borrowed_and_session_conversion_paths() {
     let collection = ValueContainer::from(vec!["43", "44"]);
 
     assert_eq!(scalar.get_first_ref::<String>().expect("scalar first item"), "42");
-    assert_eq!(scalar.get_slice::<String>().expect("scalar slice"), &[String::from("42")]);
-    assert_eq!(collection.get_first_ref::<String>().expect("collection first item"), "43");
-    assert_eq!(collection.get_slice::<String>().expect("collection slice"), &[String::from("43"), String::from("44")]);
+    assert_eq!(
+        scalar.get_slice::<String>().expect("scalar slice"),
+        &[String::from("42")]
+    );
+    assert_eq!(
+        collection.get_first_ref::<String>().expect("collection first item"),
+        "43"
+    );
+    assert_eq!(
+        collection.get_slice::<String>().expect("collection slice"),
+        &[String::from("43"), String::from("44")]
+    );
 
     assert_eq!(scalar.to_first::<i32>().expect("convert scalar"), 42);
     assert_eq!(collection.to_first::<i32>().expect("convert collection first item"), 43);
     assert_eq!(scalar.to_list::<i32>().expect("convert scalar to list"), vec![42]);
-    assert_eq!(collection.to_list::<i32>().expect("convert collection to list"), vec![43, 44]);
+    assert_eq!(
+        collection.to_list::<i32>().expect("convert collection to list"),
+        vec![43, 44]
+    );
 
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::default();
     let mut session = ConversionSession::new(&policy, &limits);
-    assert_eq!(scalar.to_first_in::<i32>(&mut session).expect("session scalar conversion"), 42);
-    assert_eq!(scalar.to_list_in::<i32>(&mut session).expect("session scalar list conversion"), vec![42]);
-    assert_eq!(collection.to_first_in::<i32>(&mut session).expect("session collection conversion"), 43);
-    assert_eq!(collection.to_list_in::<i32>(&mut session).expect("session collection list conversion"), vec![43, 44]);
+    assert_eq!(
+        scalar
+            .to_first_in::<i32>(&mut session)
+            .expect("session scalar conversion"),
+        42
+    );
+    assert_eq!(
+        scalar
+            .to_list_in::<i32>(&mut session)
+            .expect("session scalar list conversion"),
+        vec![42]
+    );
+    assert_eq!(
+        collection
+            .to_first_in::<i32>(&mut session)
+            .expect("session collection conversion"),
+        43
+    );
+    assert_eq!(
+        collection
+            .to_list_in::<i32>(&mut session)
+            .expect("session collection list conversion"),
+        vec![43, 44]
+    );
 
     assert_eq!(scalar.to_json_value().expect("project scalar"), json!("42"));
-    assert_eq!(collection.to_json_value().expect("project collection"), json!(["43", "44"]));
     assert_eq!(
-        scalar.to_json_value_with(&policy, &limits).expect("project scalar with policy"),
+        collection.to_json_value().expect("project collection"),
+        json!(["43", "44"])
+    );
+    assert_eq!(
+        scalar
+            .to_json_value_with(&policy, &limits)
+            .expect("project scalar with policy"),
         json!("42")
     );
     assert_eq!(
-        collection.to_json_value_with(&policy, &limits).expect("project collection with policy"),
+        collection
+            .to_json_value_with(&policy, &limits)
+            .expect("project collection with policy"),
         json!(["43", "44"])
     );
 }
@@ -542,7 +581,10 @@ fn test_value_container_state_accessors_cover_scalar_collection_and_unset() {
     assert!(collection.is_collection());
     assert!(!collection.is_scalar());
     assert_eq!(collection.as_scalar(), None);
-    assert_eq!(collection.as_collection(), Some(&MultiValues::String(vec![String::from("item")])));
+    assert_eq!(
+        collection.as_collection(),
+        Some(&MultiValues::String(vec![String::from("item")]))
+    );
     assert_eq!(collection.data_type(), DataType::String);
     assert_eq!(collection.len(), 1);
     assert!(!collection.is_empty());
@@ -584,19 +626,30 @@ fn test_value_container_json_projection_uses_structured_budgets() {
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::default();
     let decimal = ValueContainer::from("123.45".parse::<bigdecimal::BigDecimal>().expect("valid decimal"));
-    assert_eq!(decimal.to_json_value_with(&policy, &limits).expect("project decimal"), json!("123.45"));
+    assert_eq!(
+        decimal.to_json_value_with(&policy, &limits).expect("project decimal"),
+        json!("123.45")
+    );
 
     let duration = ValueContainer::from(Duration::from_millis(1500));
-    assert_eq!(duration.to_json_value_with(&policy, &limits).expect("project duration"), json!("1500ms"));
+    assert_eq!(
+        duration.to_json_value_with(&policy, &limits).expect("project duration"),
+        json!("1500ms")
+    );
 
     let nested = ValueContainer::from(Value::Json(json!({"items": ["a", "b"], "enabled": true})));
     assert_eq!(
-        nested.to_json_value_with(&policy, &limits).expect("project nested JSON"),
+        nested
+            .to_json_value_with(&policy, &limits)
+            .expect("project nested JSON"),
         json!({"items": ["a", "b"], "enabled": true})
     );
 
     let map = ValueContainer::from(HashMap::from([(String::from("key"), String::from("value"))]));
-    assert_eq!(map.to_json_value().expect("project string map"), json!({"key": "value"}));
+    assert_eq!(
+        map.to_json_value().expect("project string map"),
+        json!({"key": "value"})
+    );
 
     let constrained = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_output_bytes(2).build())

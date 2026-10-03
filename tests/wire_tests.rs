@@ -31,8 +31,8 @@ fn test_wire_payload_adapters_cover_every_value_type() {
     use qubit_value::MultiValues;
     use qubit_value::NamedMultiValues;
     use qubit_value::NamedValue;
-    use qubit_value::ValueWirePayloadV1;
     use qubit_value::ValueContainer;
+    use qubit_value::ValueWirePayloadV1;
 
     let date = NaiveDate::from_ymd_opt(2025, 1, 2).expect("valid date");
     let time = NaiveTime::from_hms_opt(3, 4, 5).expect("valid time");
@@ -77,7 +77,6 @@ fn test_wire_payload_adapters_cover_every_value_type() {
         let named_bytes = serde_json::to_vec(&named).expect("named value should serialize");
         let decoded_named = serde_json::from_slice::<NamedValue>(&named_bytes).expect("named value should decode");
         assert_eq!(decoded_named, named);
-
     }
 
     macro_rules! assert_collection_round_trip {
@@ -86,7 +85,10 @@ fn test_wire_payload_adapters_cover_every_value_type() {
             let payload = ValueWirePayloadV1::try_from(ValueContainer::Collection(values.clone()))
                 .expect("supported collection should encode");
             let bytes = payload.to_json_vec().expect("supported collection should serialize");
-            assert_eq!(ValueWirePayloadV1::decode_json_slice(&bytes).expect("collection should decode"), payload);
+            assert_eq!(
+                ValueWirePayloadV1::decode_json_slice(&bytes).expect("collection should decode"),
+                payload
+            );
 
             let named = NamedMultiValues::new("field", values);
             let bytes = serde_json::to_vec(&named).expect("named collection should serialize");
@@ -112,15 +114,23 @@ fn test_wire_payload_adapters_cover_every_value_type() {
     assert_collection_round_trip!(MultiValues::Float32(vec![1.25, 2.5]));
     assert_collection_round_trip!(MultiValues::Float64(vec![1.25, 2.5]));
     assert_collection_round_trip!(MultiValues::BigInteger(vec![BigInt::from(123), BigInt::from(456)]));
-    assert_collection_round_trip!(MultiValues::BigDecimal(vec![BigDecimal::from(123), BigDecimal::from(456)]));
+    assert_collection_round_trip!(MultiValues::BigDecimal(vec![
+        BigDecimal::from(123),
+        BigDecimal::from(456)
+    ]));
     assert_collection_round_trip!(MultiValues::String(vec![String::from("a"), String::from("b")]));
     assert_collection_round_trip!(MultiValues::Date(vec![date]));
     assert_collection_round_trip!(MultiValues::Time(vec![time]));
     assert_collection_round_trip!(MultiValues::DateTime(vec![datetime]));
     assert_collection_round_trip!(MultiValues::Instant(vec![instant]));
     assert_collection_round_trip!(MultiValues::Duration(vec![Duration::from_secs(1)]));
-    assert_collection_round_trip!(MultiValues::Url(vec![url::Url::parse("https://example.com").expect("valid URL")]));
-    assert_collection_round_trip!(MultiValues::StringMap(vec![HashMap::from([(String::from("key"), String::from("value"))])]));
+    assert_collection_round_trip!(MultiValues::Url(vec![
+        url::Url::parse("https://example.com").expect("valid URL")
+    ]));
+    assert_collection_round_trip!(MultiValues::StringMap(vec![HashMap::from([(
+        String::from("key"),
+        String::from("value")
+    )])]));
     assert_collection_round_trip!(MultiValues::Json(vec![serde_json::json!({"a": 1})]));
 }
 
