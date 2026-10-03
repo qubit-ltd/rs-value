@@ -6,10 +6,10 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_datatype::DataType;
 use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::ConversionSession;
+use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::ValueError;
 use qubit_value::ValueWireEncodeError;
@@ -89,7 +89,10 @@ fn test_multi_values_default_and_session_conversion_paths() {
     assert_eq!(unset.to_first_or_with::<i32>(12, &policy, &limits), Ok(12));
     assert_eq!(unset.to_first_or_else_with::<i32, _>(|| 13, &policy, &limits), Ok(13));
     assert_eq!(unset.to_list_or_with::<i32>(vec![14], &policy, &limits), Ok(vec![14]));
-    assert_eq!(unset.to_list_or_else_with::<i32, _>(|| vec![15], &policy, &limits), Ok(vec![15]));
+    assert_eq!(
+        unset.to_list_or_else_with::<i32, _>(|| vec![15], &policy, &limits),
+        Ok(vec![15])
+    );
 
     let mut session = ConversionSession::new(&policy, &limits);
     assert_eq!(values.to_first_in::<i32>(&mut session), Ok(42));

@@ -100,7 +100,10 @@ fn test_value_default_adapters_cover_strict_and_conversion_paths() {
 
     assert_eq!(unset.get_or::<i32>(7), Ok(7));
     assert_eq!(unset.get_or_else::<i32, _>(|| 8), Ok(8));
-    assert_eq!(concrete.get_or_else::<String, _>(|| String::from("fallback")), Ok(String::from("42")));
+    assert_eq!(
+        concrete.get_or_else::<String, _>(|| String::from("fallback")),
+        Ok(String::from("42"))
+    );
     assert_eq!(unset.to_or::<i32>(9), Ok(9));
     assert_eq!(unset.to_or_else::<i32, _>(|| 10), Ok(10));
     assert_eq!(concrete.to_or::<i32>(11), Ok(42));
@@ -108,22 +111,10 @@ fn test_value_default_adapters_cover_strict_and_conversion_paths() {
 
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::default();
-    assert_eq!(
-        unset.to_or_with::<i32>(13, &policy, &limits),
-        Ok(13)
-    );
-    assert_eq!(
-        unset.to_or_else_with::<i32, _>(|| 14, &policy, &limits),
-        Ok(14)
-    );
-    assert_eq!(
-        concrete.to_or_with::<i32>(15, &policy, &limits),
-        Ok(42)
-    );
-    assert_eq!(
-        concrete.to_or_else_with::<i32, _>(|| 16, &policy, &limits),
-        Ok(42)
-    );
+    assert_eq!(unset.to_or_with::<i32>(13, &policy, &limits), Ok(13));
+    assert_eq!(unset.to_or_else_with::<i32, _>(|| 14, &policy, &limits), Ok(14));
+    assert_eq!(concrete.to_or_with::<i32>(15, &policy, &limits), Ok(42));
+    assert_eq!(concrete.to_or_else_with::<i32, _>(|| 16, &policy, &limits), Ok(42));
 
     let invalid = Value::String("not an integer".to_owned());
     assert!(matches!(
