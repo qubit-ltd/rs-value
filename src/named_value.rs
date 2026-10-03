@@ -235,7 +235,7 @@ impl NamedValue {
     /// Returns [`ValueWireEncodeError`] for resource, serialization, or writer
     /// failures.
     #[cfg(feature = "json")]
-    #[inline(always)]
+    #[inline]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
@@ -348,7 +348,7 @@ impl NamedValue {
     /// # Parameters
     ///
     /// * `value` - New value to store under the existing name.
-    #[inline(always)]
+    #[inline]
     pub fn set_value(&mut self, value: Value) {
         self.value = value;
     }
@@ -358,7 +358,7 @@ impl NamedValue {
     /// # Returns
     ///
     /// The `(name, value)` pair without cloning either component.
-    #[inline(always)]
+    #[inline]
     #[must_use = "consuming NamedValue without using its parts loses both fields"]
     pub fn into_parts(self) -> (String, Value) {
         (self.name, self.value)
