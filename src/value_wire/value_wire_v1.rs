@@ -86,7 +86,7 @@ impl ValueWireV1 {
     /// Decode limits suitable for one standalone V1 envelope.
     #[cfg(feature = "json")]
     #[must_use = "the V1 JSON profile should be applied to a budget"]
-    #[inline(always)]
+    #[inline]
     pub fn default_json_decode_limits() -> JsonDecodeLimits {
         super::default_json_decode_limits()
     }
@@ -127,7 +127,7 @@ impl ValueWireV1 {
     /// document, or [`ValueWireDecodeError::InvalidJson`] when valid JSON
     /// cannot be decoded as a V1 wire value.
     #[cfg(feature = "json")]
-    #[inline(always)]
+    #[inline]
     pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, Self::default_json_decode_limits())
     }
@@ -173,7 +173,7 @@ impl ValueWireV1 {
     /// Returns [`ValueWireEncodeError::Budget`] when the document exceeds the
     /// default JSON resource profile.
     #[cfg(feature = "json")]
-    #[inline(always)]
+    #[inline]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(Self::default_json_encode_limits())
     }
@@ -263,7 +263,7 @@ impl ValueWireV1 {
     ///
     /// A shared reference to the preserved runtime container.
     #[must_use = "the borrowed value container should be used"]
-    #[inline(always)]
+    #[inline]
     pub const fn container(&self) -> &ValueContainer {
         self.value.container()
     }
@@ -300,7 +300,7 @@ impl TryFrom<MultiValues> for ValueWireV1 {
 impl TryFrom<ValueContainer> for ValueWireV1 {
     type Error = ValueWireEncodeError;
     /// Wraps an explicit runtime shape in a V1 DTO.
-    #[inline(always)]
+    #[inline]
     fn try_from(value: ValueContainer) -> Result<Self, Self::Error> {
         ValueWirePayloadV1::try_from(value).map(Self::new)
     }

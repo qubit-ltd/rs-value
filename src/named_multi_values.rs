@@ -206,7 +206,7 @@ impl NamedMultiValues {
     ///
     /// Returns [`ValueWireEncodeError`] for resource or serialization failures.
     #[cfg(feature = "json")]
-    #[inline(always)]
+    #[inline]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(ValueWireV1::default_json_encode_limits())
     }
@@ -253,7 +253,7 @@ impl NamedMultiValues {
     /// Returns [`ValueWireEncodeError`] for resource, serialization, or writer
     /// failures.
     #[cfg(feature = "json")]
-    #[inline(always)]
+    #[inline]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
@@ -366,7 +366,7 @@ impl NamedMultiValues {
     /// # Parameters
     ///
     /// * `values` - New collection to store under the existing name.
-    #[inline(always)]
+    #[inline]
     pub fn set_values(&mut self, values: MultiValues) {
         self.value = values;
     }
@@ -392,7 +392,7 @@ impl NamedMultiValues {
     ///
     /// A named clone of the first item, or a named typed unset value.
     #[must_use = "the projected named value should be used"]
-    #[inline(always)]
+    #[inline]
     pub fn first_named_value(&self) -> NamedValue {
         NamedValue::new(self.name.as_str(), self.value.first_value())
     }

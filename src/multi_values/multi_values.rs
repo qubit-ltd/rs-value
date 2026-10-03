@@ -440,7 +440,7 @@ impl MultiValues {
     ///
     /// Returns a list conversion error containing the zero-based source index
     /// when an item cannot be represented as JSON.
-    #[inline(always)]
+    #[inline]
     pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
         self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
@@ -1080,14 +1080,14 @@ impl MultiValues {
     /// # Returns
     ///
     /// `true` for concrete collections with a numeric element type.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub fn is_numeric(&self) -> bool {
         !self.is_unset() && self.data_type().is_numeric()
     }
 
     /// Removes the concrete vector while preserving its declared data type.
-    #[inline(always)]
+    #[inline]
     pub fn unset(&mut self) {
         *self = MultiValues::new_unset(self.data_type());
     }
@@ -1107,7 +1107,7 @@ impl MultiValues {
     /// assert_eq!(values.len(), 0);
     /// assert_eq!(values.data_type(), DataType::Int32);
     /// ```
-    #[inline(always)]
+    #[inline]
     pub fn clear(&mut self) {
         for_each_value_type!(multi_values_clear_match, self)
     }
@@ -1132,7 +1132,7 @@ impl MultiValues {
     /// assert!(values.is_unset());
     /// assert_eq!(values.data_type(), DataType::String);
     /// ```
-    #[inline(always)]
+    #[inline]
     pub fn set_type(&mut self, data_type: DataType) {
         if self.data_type() != data_type {
             *self = MultiValues::new_unset(data_type);

@@ -910,14 +910,14 @@ impl Value {
     /// # Returns
     ///
     /// `true` for concrete numeric variants; otherwise `false`.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub fn is_numeric(&self) -> bool {
         !self.is_unset() && self.data_type().is_numeric()
     }
 
     /// Removes the concrete value while preserving its declared data type.
-    #[inline(always)]
+    #[inline]
     pub fn unset(&mut self) {
         *self = Value::new_unset(self.data_type());
     }
@@ -942,7 +942,7 @@ impl Value {
     /// assert!(value.is_unset());
     /// assert_eq!(value.data_type(), DataType::String);
     /// ```
-    #[inline(always)]
+    #[inline]
     pub fn set_type(&mut self, data_type: DataType) {
         if self.data_type() != data_type {
             *self = Value::new_unset(data_type);
@@ -1070,7 +1070,7 @@ impl Value {
     /// # Returns
     ///
     /// A `Value::Json` wrapping the given JSON value.
-    #[inline(always)]
+    #[inline]
     #[cfg(feature = "json")]
     pub fn from_json_value(json: serde_json::Value) -> Self {
         Value::Json(json)
@@ -1431,7 +1431,7 @@ impl Value {
     /// data type differs.
     #[cfg(feature = "big-integer")]
     #[must_use = "the strict value read result should be handled"]
-    #[inline(always)]
+    #[inline]
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         match &self.repr {
             ValueRepr::BigInteger(v) => Ok(v),
@@ -1462,7 +1462,7 @@ impl Value {
     /// data type differs.
     #[cfg(feature = "big-decimal")]
     #[must_use = "the strict value read result should be handled"]
-    #[inline(always)]
+    #[inline]
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         match &self.repr {
             ValueRepr::BigDecimal(v) => Ok(v),
@@ -1493,7 +1493,7 @@ impl Value {
     /// type differs.
     #[cfg(feature = "url")]
     #[must_use = "the strict value read result should be handled"]
-    #[inline(always)]
+    #[inline]
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match &self.repr {
             ValueRepr::Url(v) => Ok(v.as_ref()),

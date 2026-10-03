@@ -114,7 +114,7 @@ impl ValueWirePayloadV1 {
     /// Encode limits suitable for one standalone unversioned V1 payload.
     #[cfg(feature = "json")]
     #[must_use = "the V1 JSON profile should be applied to an encode session"]
-    #[inline(always)]
+    #[inline]
     pub fn default_json_encode_limits() -> JsonEncodeLimits {
         super::default_json_encode_limits()
     }
@@ -138,7 +138,7 @@ impl ValueWirePayloadV1 {
     /// Returns a limit error when the input or decoded structure is too large,
     /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
     #[cfg(feature = "json")]
-    #[inline(always)]
+    #[inline]
     pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, Self::default_json_decode_limits())
     }
@@ -288,7 +288,7 @@ impl TryFrom<Value> for ValueWirePayloadV1 {
     type Error = ValueWireEncodeError;
 
     /// Validates a scalar for use in a V1 payload.
-    #[inline(always)]
+    #[inline]
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         Self::try_new(value.into())
     }
@@ -308,7 +308,7 @@ impl TryFrom<ValueContainer> for ValueWirePayloadV1 {
     type Error = ValueWireEncodeError;
 
     /// Validates an explicitly shaped value for use in a V1 payload.
-    #[inline(always)]
+    #[inline]
     fn try_from(value: ValueContainer) -> Result<Self, Self::Error> {
         Self::try_new(value)
     }
@@ -316,7 +316,7 @@ impl TryFrom<ValueContainer> for ValueWirePayloadV1 {
 
 impl From<ValueWirePayloadV1> for ValueContainer {
     /// Extracts the shaped runtime value from a V1 payload.
-    #[inline(always)]
+    #[inline]
     fn from(value: ValueWirePayloadV1) -> Self {
         value.into_container()
     }

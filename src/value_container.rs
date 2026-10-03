@@ -223,14 +223,14 @@ impl<'a, 'b, const N: usize> From<&'a [&'b str; N]> for ValueContainer {
 }
 
 impl From<Value> for ValueContainer {
-    #[inline(always)]
+    #[inline]
     fn from(value: Value) -> Self {
         Self::Scalar(value)
     }
 }
 
 impl From<MultiValues> for ValueContainer {
-    #[inline(always)]
+    #[inline]
     fn from(values: MultiValues) -> Self {
         Self::Collection(values)
     }
@@ -273,7 +273,7 @@ impl ValueContainer {
     /// # Returns
     ///
     /// A scalar `ValueContainer` with explicit unset storage.
-    #[inline(always)]
+    #[inline]
     pub const fn new_unset_scalar(data_type: DataType) -> Self {
         Self::Scalar(Value::new_unset(data_type))
     }
@@ -287,7 +287,7 @@ impl ValueContainer {
     /// # Returns
     ///
     /// A collection `ValueContainer` with explicit unset storage.
-    #[inline(always)]
+    #[inline]
     pub const fn new_unset_collection(data_type: DataType) -> Self {
         Self::Collection(MultiValues::new_unset(data_type))
     }
@@ -312,7 +312,7 @@ impl ValueContainer {
     /// # Returns
     ///
     /// `true` for [`ValueContainer::Scalar`].
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn is_scalar(&self) -> bool {
         matches!(self, Self::Scalar(_))
@@ -324,7 +324,7 @@ impl ValueContainer {
     ///
     /// `Some` for scalar storage, or `None` for collection storage.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn as_scalar(&self) -> Option<&Value> {
         match self {
             Self::Scalar(value) => Some(value),
@@ -354,7 +354,7 @@ impl ValueContainer {
     /// # Returns
     ///
     /// `true` for [`ValueContainer::Collection`].
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn is_collection(&self) -> bool {
         matches!(self, Self::Collection(_))
@@ -366,7 +366,7 @@ impl ValueContainer {
     ///
     /// `Some` for collection storage, or `None` for scalar storage.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn as_collection(&self) -> Option<&MultiValues> {
         match self {
             Self::Scalar(_) => None,
@@ -426,7 +426,7 @@ impl ValueContainer {
     /// # Returns
     ///
     /// `true` for unset storage or a concrete empty collection.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -799,7 +799,7 @@ impl ValueContainer {
     /// # Errors
     ///
     /// Returns the same structured projection error as the contained value.
-    #[inline(always)]
+    #[inline]
     pub fn to_json_value_with(
         &self,
         policy: &ConversionPolicy,
