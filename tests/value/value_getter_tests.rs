@@ -252,6 +252,13 @@ fn test_value_big_integer_borrowed_getter_reports_storage_errors() {
             actual: DataType::Int32,
         })
     ));
+    assert!(matches!(
+        Value::Unset(DataType::String).get_biginteger_ref(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::BigInteger,
+            actual: DataType::String,
+        })
+    ));
 }
 
 #[cfg(feature = "big-decimal")]
@@ -268,6 +275,13 @@ fn test_value_big_decimal_borrowed_getter_reports_storage_errors() {
             actual: DataType::Int32,
         })
     ));
+    assert!(matches!(
+        Value::Unset(DataType::String).get_bigdecimal_ref(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::BigDecimal,
+            actual: DataType::String,
+        })
+    ));
 }
 
 #[cfg(feature = "url")]
@@ -282,6 +296,13 @@ fn test_value_url_borrowed_getter_reports_storage_errors() {
         Err(ValueError::TypeMismatch {
             expected: DataType::Url,
             actual: DataType::Int32,
+        })
+    ));
+    assert!(matches!(
+        Value::Unset(DataType::String).get_url_ref(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::Url,
+            actual: DataType::String,
         })
     ));
 }
