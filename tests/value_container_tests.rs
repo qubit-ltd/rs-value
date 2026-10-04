@@ -529,6 +529,12 @@ fn test_value_container_borrowed_and_session_conversion_paths() {
         vec![42]
     );
     assert_eq!(
+        ValueContainer::from(42_i32)
+            .to_list_in::<i64>(&mut session)
+            .expect("session numeric scalar list conversion"),
+        vec![42]
+    );
+    assert_eq!(
         collection
             .to_first_in::<i32>(&mut session)
             .expect("session collection conversion"),

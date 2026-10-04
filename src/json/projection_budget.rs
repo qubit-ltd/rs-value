@@ -225,3 +225,35 @@ impl<'a> ProjectionBudget<'a> {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fmt;
+
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::DataType;
+
+    use super::ProjectionBudget;
+    use crate::ValueError;
+
+    struct FailingDisplay;
+
+    impl fmt::Display for FailingDisplay {
+        fn fmt(&self, _formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            Err(fmt::Error)
+        }
+    }
+
+    #[test]
+    fn test_projection_budget_reports_display_failure() {
+        let policy = ConversionPolicy::default();
+        let limits = ConversionLimits::default();
+        let mut budget = ProjectionBudget::new(DataType::String, &policy, &limits);
+
+        let error = budget
+            .display(&FailingDisplay, 0, false)
+            .expect_err("formatting failure must become a conversion error");
+        assert!(matches!(error, ValueError::Conversion(_)));
+    }
+}

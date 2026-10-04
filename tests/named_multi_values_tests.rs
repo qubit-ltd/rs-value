@@ -35,6 +35,19 @@ fn test_named_multi_values_rejects_unknown_fields() {
     assert!(serde_json::from_str::<NamedMultiValues>(input).is_err());
 }
 
+#[test]
+fn test_named_multi_values_rejects_scalar_wire_payload() {
+    let input = r#"{"name":"ports","value":{"version":1,"value":{"scalar":{"int32":42}}}}"#;
+
+    let error =
+        serde_json::from_str::<NamedMultiValues>(input).expect_err("a named collection must reject a scalar payload");
+    assert!(
+        error
+            .to_string()
+            .contains("named multi-values wire payload must contain a collection")
+    );
+}
+
 /// Serializes named collections through the same V1 envelope as direct values.
 #[test]
 fn test_named_multi_values_serializes_with_v1_wire_contract() {

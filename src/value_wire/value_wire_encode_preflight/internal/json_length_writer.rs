@@ -31,3 +31,29 @@ impl Write for JsonLengthWriter {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write;
+
+    use super::JsonLengthWriter;
+
+    #[test]
+    fn test_json_length_writer_flush_preserves_count() {
+        let mut writer = JsonLengthWriter::default();
+        writer.write_all(b"value").expect("count bytes");
+        writer.flush().expect("flush counting sink");
+
+        assert_eq!(writer.len, 5);
+    }
+
+    #[test]
+    fn test_json_length_writer_rejects_counter_overflow() {
+        let mut writer = JsonLengthWriter { len: usize::MAX };
+        let error = writer.write(b"x").expect_err("byte count must not wrap");
+
+        assert_eq!(error.kind(), std::io::ErrorKind::Other);
+        assert_eq!(error.to_string(), "JSON length overflow");
+        assert_eq!(writer.len, usize::MAX);
+    }
+}

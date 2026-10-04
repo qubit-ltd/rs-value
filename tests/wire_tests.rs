@@ -13,6 +13,26 @@ use qubit_value::ValueContainer;
 use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWireV1;
 
+#[cfg(feature = "all")]
+#[test]
+fn test_wire_string_map_rejects_sequence_shape() {
+    let input = r#"{"scalar":{"stringmap":[]}}"#;
+
+    let error =
+        ValueWirePayloadV1::decode_json_slice(input.as_bytes()).expect_err("a string map must reject a sequence");
+    assert!(matches!(error, qubit_value::ValueWireDecodeError::InvalidJson(_)));
+}
+
+#[cfg(feature = "all")]
+#[test]
+fn test_wire_instant_rejects_invalid_timestamp() {
+    let input = r#"{"scalar":{"instant":"not-an-instant"}}"#;
+
+    let error =
+        ValueWirePayloadV1::decode_json_slice(input.as_bytes()).expect_err("an instant must use RFC 3339 syntax");
+    assert!(matches!(error, qubit_value::ValueWireDecodeError::InvalidJson(_)));
+}
+
 /// Checks every feature enabled V1 payload adapter through the public wire
 /// entry point, including the scalar and collection representations.
 #[cfg(feature = "all")]

@@ -33,6 +33,18 @@ fn test_named_value_rejects_unknown_fields() {
     assert!(serde_json::from_str::<NamedValue>(input).is_err());
 }
 
+#[test]
+fn test_named_value_rejects_collection_wire_payload() {
+    let input = r#"{"name":"port","value":{"version":1,"value":{"collection":{"int32":[42]}}}}"#;
+
+    let error = serde_json::from_str::<NamedValue>(input).expect_err("a named scalar must reject a collection payload");
+    assert!(
+        error
+            .to_string()
+            .contains("named value wire payload must contain a scalar")
+    );
+}
+
 /// Serializes named values through the same V1 envelope as direct values.
 #[test]
 fn test_named_value_serializes_with_v1_wire_contract() {
