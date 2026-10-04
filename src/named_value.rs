@@ -149,7 +149,7 @@ impl NamedValue {
     ///
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
-    #[inline(always)]
+    #[inline]
     pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, ValueWireV1::default_json_decode_limits())
     }
@@ -189,7 +189,7 @@ impl NamedValue {
     ///
     /// Returns [`ValueWireEncodeError`] for resource or serialization failures.
     #[cfg(feature = "json")]
-    #[inline(always)]
+    #[inline]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(ValueWireV1::default_json_encode_limits())
     }
@@ -337,7 +337,7 @@ impl NamedValue {
     /// # Returns
     ///
     /// An exclusive reference to the contained [`Value`].
-    #[inline(always)]
+    #[inline]
     #[must_use = "the mutable value reference should be used"]
     pub fn value_mut(&mut self) -> &mut Value {
         &mut self.value

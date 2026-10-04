@@ -299,7 +299,7 @@ impl ValueContainer {
     /// The scalar or collection element type, including the declared type of
     /// unset storage.
     #[must_use = "the runtime data type should be used"]
-    #[inline(always)]
+    #[inline]
     pub fn data_type(&self) -> DataType {
         match self {
             Self::Scalar(value) => value.data_type(),
@@ -411,7 +411,7 @@ impl ValueContainer {
     /// # Returns
     ///
     /// The number of concrete values represented by this container.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {

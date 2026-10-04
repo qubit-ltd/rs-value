@@ -355,7 +355,7 @@ impl NamedMultiValues {
     /// # Returns
     ///
     /// An exclusive reference to the contained [`MultiValues`].
-    #[inline(always)]
+    #[inline]
     #[must_use = "the mutable values reference should be used"]
     pub fn values_mut(&mut self) -> &mut MultiValues {
         &mut self.value

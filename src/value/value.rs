@@ -965,7 +965,7 @@ impl Value {
     ///
     /// Returns a structured conversion error for values JSON cannot represent,
     /// including non-finite floating-point values and inexact durations.
-    #[inline(always)]
+    #[inline]
     pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
         self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
@@ -1554,7 +1554,7 @@ impl Value {
     /// type differs.
     #[cfg(feature = "json")]
     #[must_use = "the strict value read result should be handled"]
-    #[inline(always)]
+    #[inline]
     pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
         match &self.repr {
             ValueRepr::Json(v) => Ok(v),
@@ -1654,7 +1654,7 @@ impl Value {
     /// # Returns
     ///
     /// `true` only for concrete `Float32` or `Float64` NaN values.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub fn is_nan(&self) -> bool {
         self.as_number_ref().is_some_and(|value| value.is_nan())
