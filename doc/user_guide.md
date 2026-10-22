@@ -115,8 +115,8 @@ additional crates support the Wire and embedded-document sections.
 [dependencies]
 qubit-value = { version = "0.12", features = ["all"] }
 qubit-datatype = { version = "0.14", default-features = false, features = ["converter"] }
-qubit-budget = { version = "0.7", features = ["json"] }
-qubit-json = "0.10"
+qubit-budget = { version = "0.8", features = ["json"] }
+qubit-json = "0.11"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```

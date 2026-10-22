@@ -123,8 +123,8 @@ all = [
 [dependencies]
 serde = { version = "^1.0", features = ["derive"] }
 thiserror = "^2.0"
-qubit-budget = { version = "0.7", features = ["json"], optional = true }
-qubit-json = { version = "0.10", optional = true }
+qubit-budget = { version = "0.8", features = ["json"], optional = true }
+qubit-json = { version = "0.11", optional = true }
 serde_json = { version = "^1.0", features = ["float_roundtrip"], optional = true }
 chrono = { version = "^0.4", default-features = false, features = ["std", "serde"], optional = true }
 url = { version = "^2.5", features = ["serde"], optional = true }
@@ -137,7 +137,7 @@ qubit-redact = { version = "0.9", default-features = false, optional = true }
 [dev-dependencies]
 criterion = { version = "^0.8", default-features = false }
 chrono = { version = "0.4", default-features = false, features = ["std"] }
-qubit-budget = { version = "0.7", features = ["json"] }
+qubit-budget = { version = "0.8", features = ["json"] }
 serde_json = "1.0"
 
 [[bench]]
