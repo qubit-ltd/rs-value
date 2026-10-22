@@ -17,6 +17,8 @@ use qubit_json::decode::JsonDecodeErrorSource;
 use qubit_json::decode::JsonSyntaxError;
 use serde_json::Error as JsonError;
 use serde_json::error::Category;
+use std::io;
+use std::sync::Arc;
 use thiserror::Error;
 
 /// Error produced by a bounded [`crate::ValueWireV1`] JSON decoder.
@@ -36,6 +38,16 @@ use thiserror::Error;
 #[must_use]
 #[derive(Debug, Error)]
 pub enum ValueWireDecodeError {
+    /// Reading the JSON wire input failed.
+    #[error("failed to read V1 JSON wire input: {kind:?}")]
+    Read {
+        /// Stable standard I/O failure category.
+        kind: io::ErrorKind,
+        /// Original error retained for detailed diagnostics.
+        #[source]
+        source: Option<Arc<io::Error>>,
+    },
+
     /// The JSON document exceeded one configured resource budget.
     #[error("V1 JSON wire resource budget exceeded: {0}")]
     Budget(
@@ -108,6 +120,7 @@ impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
         let line = error.line().unwrap_or(0);
         let column = error.column().unwrap_or(0);
         match error.into_source() {
+            JsonDecodeErrorSource::Read { kind, source, .. } => Self::Read { kind, source },
             JsonDecodeErrorSource::Budget { source, .. } => match source {
                 MeasuredBudgetError::Budget(error) => Self::Budget(error),
                 MeasuredBudgetError::Quantity { resource, source } => Self::Quantity { resource, source },
