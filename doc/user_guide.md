@@ -9,7 +9,7 @@ fields, or other values whose concrete type is known at runtime. It explains
 how to keep those values type-safe without forcing every caller to create a
 different ad-hoc enum.
 
-The guide covers `qubit-value` 0.11. It focuses on the value layer. It does not
+The guide covers `qubit-value` 0.13. It focuses on the value layer. It does not
 turn `qubit-value` into a configuration service, schema registry, or persistent
 database. For ready-made key-value containers built directly on `Value`, see
 [`rs-config`](https://github.com/qubit-ltd/rs-config) and
@@ -113,10 +113,10 @@ additional crates support the Wire and embedded-document sections.
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.12", features = ["all"] }
-qubit-datatype = { version = "0.14", default-features = false, features = ["converter"] }
-qubit-budget = { version = "0.8", features = ["json"] }
-qubit-json = "0.11"
+qubit-value = { version = "0.13", features = ["all"] }
+qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
+qubit-budget = { version = "0.9.1", features = ["json"] }
+qubit-json = "0.12"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```

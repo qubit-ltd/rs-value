@@ -92,8 +92,8 @@ assert_eq!((first, second), (8080, 8081));
 
 ```toml
 [dependencies]
-qubit-value = { version = "0.12", features = ["converter"] }
-qubit-datatype = { version = "0.14", default-features = false, features = ["converter"] }
+qubit-value = { version = "0.13", features = ["converter"] }
+qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
 ```
 
 快速开始使用了 `Value::to`，因此这里启用 `converter`。默认 feature 集为空，请只启用实际
