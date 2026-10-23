@@ -149,12 +149,24 @@ impl DataConversionTarget for Port {
 #[cfg(feature = "converter")]
 #[test]
 fn test_converter_feature_accepts_target_side_extension() {
-    assert_eq!(Value::from("8080").to::<Port>().unwrap(), Port(8080));
     assert_eq!(
-        MultiValues::from(vec!["8080", "8081"]).to_list::<Port>().unwrap(),
+        Value::from("8080")
+            .to::<Port>()
+            .expect("convert scalar to downstream target"),
+        Port(8080)
+    );
+    assert_eq!(
+        MultiValues::from(vec!["8080", "8081"])
+            .to_list::<Port>()
+            .expect("convert collection to downstream targets"),
         vec![Port(8080), Port(8081)]
     );
-    assert_eq!(ValueContainer::from("8082").to_first::<Port>().unwrap(), Port(8082));
+    assert_eq!(
+        ValueContainer::from("8082")
+            .to_first::<Port>()
+            .expect("convert container to downstream target"),
+        Port(8082)
+    );
 }
 
 #[cfg(feature = "chrono")]

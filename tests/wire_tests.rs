@@ -8,6 +8,31 @@
 
 //! Tests the public wire facade.
 
+#[cfg(feature = "all")]
+use std::collections::HashMap;
+#[cfg(feature = "all")]
+use std::time::Duration;
+
+#[cfg(feature = "all")]
+use bigdecimal::BigDecimal;
+#[cfg(feature = "all")]
+use chrono::DateTime;
+#[cfg(feature = "all")]
+use chrono::NaiveDate;
+#[cfg(feature = "all")]
+use chrono::NaiveDateTime;
+#[cfg(feature = "all")]
+use chrono::NaiveTime;
+#[cfg(feature = "all")]
+use chrono::Utc;
+#[cfg(feature = "all")]
+use num_bigint::BigInt;
+#[cfg(feature = "all")]
+use qubit_value::MultiValues;
+#[cfg(feature = "all")]
+use qubit_value::NamedMultiValues;
+#[cfg(feature = "all")]
+use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWirePayloadV1;
@@ -38,22 +63,6 @@ fn test_wire_instant_rejects_invalid_timestamp() {
 #[cfg(feature = "all")]
 #[test]
 fn test_wire_payload_adapters_cover_every_value_type() {
-    use std::collections::HashMap;
-    use std::time::Duration;
-
-    use bigdecimal::BigDecimal;
-    use chrono::DateTime;
-    use chrono::NaiveDate;
-    use chrono::NaiveDateTime;
-    use chrono::NaiveTime;
-    use chrono::Utc;
-    use num_bigint::BigInt;
-    use qubit_value::MultiValues;
-    use qubit_value::NamedMultiValues;
-    use qubit_value::NamedValue;
-    use qubit_value::ValueContainer;
-    use qubit_value::ValueWirePayloadV1;
-
     let date = NaiveDate::from_ymd_opt(2025, 1, 2).expect("valid date");
     let time = NaiveTime::from_hms_opt(3, 4, 5).expect("valid time");
     let datetime = NaiveDateTime::new(date, time);
@@ -158,7 +167,8 @@ fn test_wire_payload_adapters_cover_every_value_type() {
 #[test]
 fn test_wire_round_trips_scalar_value() {
     let wire = ValueWireV1::try_from(Value::Int32(7)).expect("construct V1 wire");
-    let decoded = crate::decode_value_wire_value(serde_json::to_value(wire).unwrap()).unwrap();
+    let decoded = crate::decode_value_wire_value(serde_json::to_value(wire).expect("wire value should serialize"))
+        .expect("wire value should decode");
     assert_eq!(
         decoded,
         ValueWireV1::try_from(Value::Int32(7)).expect("construct V1 wire")

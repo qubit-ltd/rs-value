@@ -118,6 +118,7 @@ fn test_value_is_nan_classifies_only_nan_floats() {
 }
 
 /// Exercises the lower-level numeric projection for every numeric variant.
+#[cfg(feature = "big-number")]
 #[test]
 fn test_value_numeric_cmp_covers_every_numeric_variant() {
     let values = vec![

@@ -27,19 +27,24 @@ fn test_unset_is_distinct_from_concrete_empty_values_without_optional_features()
     let empty_values = MultiValues::Int32(Vec::new());
     assert!(unset_values.is_unset());
     assert!(!empty_values.is_unset());
-    assert!(empty_values.get_int32s().unwrap().is_empty());
+    assert!(
+        empty_values
+            .get_int32s()
+            .expect("concrete empty values are readable")
+            .is_empty()
+    );
 }
 
 #[test]
 fn test_generic_mutation_is_available_without_optional_features() {
     let mut value = Value::Unset(DataType::Int32);
     value.set(42_i32);
-    assert_eq!(value.get::<i32>().unwrap(), 42);
+    assert_eq!(value.get::<i32>().expect("value has type i32"), 42);
 
     let mut values = MultiValues::Unset(DataType::Int32);
     values.set([1_i32, 2]);
-    values.add(&[3_i32, 4][..]).unwrap();
-    assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3, 4]);
+    values.add(&[3_i32, 4][..]).expect("appended values have type i32");
+    assert_eq!(values.get_int32s().expect("values have type i32"), &[1, 2, 3, 4]);
 
     assert!(matches!(
         values.add(true),
@@ -221,9 +226,15 @@ fn test_numeric_classification_depends_on_concrete_state() {
 fn test_named_wrappers_retain_generic_core_access() {
     let mut named = NamedValue::new("port", Value::Int32(8080));
     named.value_mut().set(9090_i32);
-    assert_eq!(named.value().get_int32().unwrap(), 9090);
+    assert_eq!(named.value().get_int32().expect("named value has type i32"), 9090);
 
     let mut named_values = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080]));
-    named_values.values_mut().add(9090_i32).unwrap();
-    assert_eq!(named_values.values().get_int32s().unwrap(), &[8080, 9090]);
+    named_values
+        .values_mut()
+        .add(9090_i32)
+        .expect("appended value has type i32");
+    assert_eq!(
+        named_values.values().get_int32s().expect("named values have type i32"),
+        &[8080, 9090]
+    );
 }

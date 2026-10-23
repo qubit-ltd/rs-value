@@ -8,10 +8,29 @@
 
 //! Tests runtime value type lookup.
 
+#[cfg(feature = "all")]
+use std::collections::HashMap;
+#[cfg(feature = "all")]
+use std::time::Duration;
+
+#[cfg(feature = "all")]
+use bigdecimal::BigDecimal;
+#[cfg(feature = "all")]
+use chrono::DateTime;
+#[cfg(feature = "all")]
+use chrono::NaiveDate;
+#[cfg(feature = "all")]
+use chrono::NaiveTime;
+#[cfg(feature = "all")]
+use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::Value;
 #[cfg(feature = "all")]
 use qubit_value::ValueContainer;
+#[cfg(feature = "all")]
+use serde_json::Value as JsonValue;
+#[cfg(feature = "all")]
+use url::Url;
 
 /// Constructs a concrete value for one datatype catalog entry.
 ///
@@ -40,27 +59,23 @@ fn value_for_data_type(data_type: DataType) -> Value {
         DataType::Float32 => Value::Float32(0.0),
         DataType::Float64 => Value::Float64(0.0),
         DataType::String => Value::String(String::new()),
-        DataType::Date => {
-            Value::Date(chrono::NaiveDate::from_ymd_opt(1970, 1, 1).expect("contract test date should be valid"))
-        }
-        DataType::Time => {
-            Value::Time(chrono::NaiveTime::from_hms_opt(0, 0, 0).expect("contract test time should be valid"))
-        }
+        DataType::Date => Value::Date(NaiveDate::from_ymd_opt(1970, 1, 1).expect("contract test date should be valid")),
+        DataType::Time => Value::Time(NaiveTime::from_hms_opt(0, 0, 0).expect("contract test time should be valid")),
         DataType::DateTime => Value::DateTime(
-            chrono::NaiveDate::from_ymd_opt(1970, 1, 1)
+            NaiveDate::from_ymd_opt(1970, 1, 1)
                 .expect("contract test date should be valid")
                 .and_hms_opt(0, 0, 0)
                 .expect("contract test datetime should be valid"),
         ),
         DataType::Instant => {
-            Value::Instant(chrono::DateTime::from_timestamp(0, 0).expect("contract test instant should be valid"))
+            Value::Instant(DateTime::from_timestamp(0, 0).expect("contract test instant should be valid"))
         }
-        DataType::BigInteger => Value::BigInteger(num_bigint::BigInt::from(0)),
-        DataType::BigDecimal => Value::BigDecimal(bigdecimal::BigDecimal::from(0)),
-        DataType::Duration => Value::Duration(std::time::Duration::ZERO),
-        DataType::Url => Value::new(url::Url::parse("https://example.com").expect("contract test URL should be valid")),
-        DataType::StringMap => Value::StringMap(std::collections::HashMap::new()),
-        DataType::Json => Value::Json(serde_json::Value::Null),
+        DataType::BigInteger => Value::BigInteger(BigInt::from(0)),
+        DataType::BigDecimal => Value::BigDecimal(BigDecimal::from(0)),
+        DataType::Duration => Value::Duration(Duration::ZERO),
+        DataType::Url => Value::new(Url::parse("https://example.com").expect("contract test URL should be valid")),
+        DataType::StringMap => Value::StringMap(HashMap::new()),
+        DataType::Json => Value::Json(JsonValue::Null),
     }
 }
 

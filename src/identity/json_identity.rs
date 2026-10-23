@@ -7,6 +7,7 @@
 // =============================================================================
 //! Structural equality and hashing for JSON payloads.
 
+use std::collections::hash_map::DefaultHasher;
 use std::hash::BuildHasher;
 use std::hash::BuildHasherDefault;
 use std::hash::Hash;
@@ -17,14 +18,15 @@ use qubit_budget::ResourceQuantity;
 use qubit_budget::json::JsonValueBudget;
 use qubit_budget::json::JsonValueTransaction;
 use qubit_json::value::traverse::JsonTreeReader;
+use serde_json::Value;
 
 use super::hash_destination::HashDestination;
-use super::hash_frame::HashFrame;
-use super::json_equality_frame::JsonEqualityFrame;
-use super::object_hash::ObjectHash;
+use super::internal::hash_frame::HashFrame;
+use super::internal::json_equality_frame::JsonEqualityFrame;
+use super::internal::object_hash::ObjectHash;
 
 /// Stable standard hasher used for each order-independent object entry.
-type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHasher>;
+type IdentityHasher = BuildHasherDefault<DefaultHasher>;
 
 /// Compares two JSON trees using structural JSON semantics without recursion.
 ///
@@ -39,22 +41,22 @@ type IdentityHasher = BuildHasherDefault<std::collections::hash_map::DefaultHash
 /// significant and array element order is significant.
 #[must_use]
 #[inline(always)]
-pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bool {
+pub(crate) fn json_eq(left: &Value, right: &Value) -> bool {
     let mut frames = Vec::new();
     let mut next = Some((left, right));
     while let Some((left, right)) = next.take() {
         match (left, right) {
-            (serde_json::Value::Null, serde_json::Value::Null) => {}
-            (serde_json::Value::Bool(left), serde_json::Value::Bool(right)) if left == right => {}
-            (serde_json::Value::Number(left), serde_json::Value::Number(right)) if left == right => {}
-            (serde_json::Value::String(left), serde_json::Value::String(right)) if left == right => {}
-            (serde_json::Value::Array(left), serde_json::Value::Array(right)) if left.len() == right.len() => {
+            (Value::Null, Value::Null) => {}
+            (Value::Bool(left), Value::Bool(right)) if left == right => {}
+            (Value::Number(left), Value::Number(right)) if left == right => {}
+            (Value::String(left), Value::String(right)) if left == right => {}
+            (Value::Array(left), Value::Array(right)) if left.len() == right.len() => {
                 frames.push(JsonEqualityFrame::Array {
                     left: left.iter(),
                     right: right.iter(),
                 });
             }
-            (serde_json::Value::Object(left), serde_json::Value::Object(right)) if left.len() == right.len() => {
+            (Value::Object(left), Value::Object(right)) if left.len() == right.len() => {
                 frames.push(JsonEqualityFrame::Object {
                     left: left.iter(),
                     right,
@@ -94,7 +96,7 @@ pub(crate) fn json_eq(left: &serde_json::Value, right: &serde_json::Value) -> bo
 ///
 /// * `value` - JSON tree to hash.
 /// * `state` - Destination hasher.
-pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
+pub(crate) fn hash_json<H: Hasher>(value: &Value, state: &mut H) {
     hash_json_iterative(value, state);
 }
 
@@ -124,7 +126,7 @@ pub(crate) fn hash_json<H: Hasher>(value: &serde_json::Value, state: &mut H) {
 /// after preflight, the staged budget is also discarded.
 #[allow(dead_code)]
 pub(crate) fn hash_json_with_budget<H, R, Q>(
-    value: &serde_json::Value,
+    value: &Value,
     state: &mut H,
     budget: &mut JsonValueBudget<R, Q>,
 ) -> Result<(), MeasuredBudgetError<R, Q>>
@@ -163,7 +165,7 @@ where
 /// Returns [`MeasuredBudgetError`] for the first resource measurement or
 /// configured limit that cannot be satisfied.
 pub(crate) fn preflight_json<R, Q>(
-    value: &serde_json::Value,
+    value: &Value,
     transaction: &mut JsonValueTransaction<'_, R, Q>,
 ) -> Result<(), MeasuredBudgetError<R, Q>>
 where
@@ -187,7 +189,7 @@ where
 ///
 /// * `value` - JSON tree to traverse without recursion.
 /// * `state` - Destination hasher.
-fn hash_json_iterative<H>(value: &serde_json::Value, state: &mut H)
+fn hash_json_iterative<H>(value: &Value, state: &mut H)
 where
     H: Hasher,
 {
@@ -202,20 +204,20 @@ where
                     .last_mut()
                     .expect("a JSON node must have a hash destination");
                 match value {
-                    serde_json::Value::Null => destination.hash(&0_u8),
-                    serde_json::Value::Bool(value) => {
+                    Value::Null => destination.hash(&0_u8),
+                    Value::Bool(value) => {
                         destination.hash(&1_u8);
                         destination.hash(value);
                     }
-                    serde_json::Value::Number(value) => {
+                    Value::Number(value) => {
                         destination.hash(&2_u8);
                         destination.hash(value);
                     }
-                    serde_json::Value::String(value) => {
+                    Value::String(value) => {
                         destination.hash(&3_u8);
                         destination.hash(value);
                     }
-                    serde_json::Value::Array(values) => {
+                    Value::Array(values) => {
                         destination.hash(&4_u8);
                         let child_depth = depth.saturating_add(1);
                         frames.push(HashFrame::VisitArray {
@@ -225,7 +227,7 @@ where
                         });
                         frames.push(HashFrame::HashArrayLength(values.len()));
                     }
-                    serde_json::Value::Object(values) => {
+                    Value::Object(values) => {
                         destination.hash(&5_u8);
                         destination.hash(&values.len());
                         objects.push(ObjectHash::default());

@@ -8,8 +8,12 @@
 
 //! Conservative preparation checks for bounded V1 JSON encoding.
 
+use std::collections::HashMap;
+use std::slice::Iter;
 use std::time::Duration;
 
+use num_bigint::BigInt;
+use num_bigint::Sign;
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::Observation;
@@ -20,6 +24,9 @@ use qubit_budget::json::JsonEncodeLimits as JsonEncodeLimitsU64;
 use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
+use serde_json::Value as JsonValue;
+use serde_json::map::Iter as JsonObjectIter;
+use serde_json::to_writer;
 
 use super::internal::WireDataTypeV1;
 use super::internal::WirePreflightStrategy;
@@ -57,6 +64,7 @@ macro_rules! define_value_ref_preflight_strategy {
             )
         ),+ $(,)?
     ) => {
+        /// Selects the conservative measurement strategy for a borrowed value.
         fn value_ref_preflight_strategy(value: ValueRef<'_>) -> WirePreflightStrategy {
             match value {
                 ValueRef::Unset(_) => WirePreflightStrategy::UnsetText,
@@ -177,6 +185,11 @@ impl ValueWireEncodePreflight {
     ///
     /// Returns the first exceeded JSON resource limit. If checking fails, the
     /// accumulated state is restored to its value before this call.
+    ///
+    /// # Errors
+    ///
+    /// Returns a measured budget error when a per-value or cumulative resource
+    /// limit is exceeded, or when a cumulative counter overflows.
     pub fn check_value(&mut self, value: &Value) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.transaction(|checker| checker.check_value_at(value, 1))
     }
@@ -185,6 +198,11 @@ impl ValueWireEncodePreflight {
     ///
     /// Returns the first exceeded JSON resource limit. If checking fails, the
     /// accumulated state is restored to its value before this call.
+    ///
+    /// # Errors
+    ///
+    /// Returns a measured budget error when a per-value or cumulative resource
+    /// limit is exceeded, or when a cumulative counter overflows.
     pub fn check_values(&mut self, values: &MultiValues) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.transaction(|checker| checker.check_values_at(values, 1))
     }
@@ -193,6 +211,11 @@ impl ValueWireEncodePreflight {
     ///
     /// Returns the first exceeded JSON resource limit. If checking fails, the
     /// accumulated state is restored to its value before this call.
+    ///
+    /// # Errors
+    ///
+    /// Returns a measured budget error when a per-value or cumulative resource
+    /// limit is exceeded, or when a cumulative counter overflows.
     pub fn check_container(&mut self, value: &ValueContainer) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.transaction(|checker| match value {
             ValueContainer::Scalar(value) => checker.check_value_at(value, 1),
@@ -218,10 +241,13 @@ impl ValueWireEncodePreflight {
         }
     }
 
+    /// Checks a value at its supplied nesting depth and records its
+    /// measurements.
     fn check_value_at(&mut self, value: &Value, depth: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.check_view_at(value.view(), depth)
     }
 
+    /// Dispatches a borrowed value to the measurement strategy for its variant.
     fn check_view_at(
         &mut self,
         value: ValueRef<'_>,
@@ -327,6 +353,8 @@ impl ValueWireEncodePreflight {
         }
     }
 
+    /// Accounts for a homogeneous collection and checks each item one level
+    /// deeper.
     fn check_values_at(
         &mut self,
         values: &MultiValues,
@@ -349,9 +377,11 @@ impl ValueWireEncodePreflight {
         Ok(())
     }
 
+    /// Accounts for a string map and checks each key and value against its
+    /// limits.
     fn check_string_map(
         &mut self,
-        map: &std::collections::HashMap<String, String>,
+        map: &HashMap<String, String>,
         depth: usize,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.admit(
@@ -369,31 +399,31 @@ impl ValueWireEncodePreflight {
         Ok(())
     }
 
+    /// Iteratively accounts for a JSON tree without recursively walking nested
+    /// values.
     #[cfg(feature = "json")]
-    fn check_json(
-        &mut self,
-        value: &serde_json::Value,
-        depth: usize,
-    ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+    fn check_json(&mut self, value: &JsonValue, depth: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        /// Represents a pending JSON node or the remaining children of a
+        /// container.
         enum Frame<'a> {
-            Visit(&'a serde_json::Value, usize),
-            Array(std::slice::Iter<'a, serde_json::Value>, usize),
-            Object(serde_json::map::Iter<'a>, usize),
+            Visit(&'a JsonValue, usize),
+            Array(Iter<'a, JsonValue>, usize),
+            Object(JsonObjectIter<'a>, usize),
         }
 
         let mut frames = vec![Frame::Visit(value, depth)];
         while let Some(frame) = frames.pop() {
             match frame {
                 Frame::Visit(value, depth) => match value {
-                    serde_json::Value::Null => self.admit(JsonMeasurement::Null { depth }, 1, 0)?,
-                    serde_json::Value::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0)?,
-                    serde_json::Value::Number(value) => {
+                    JsonValue::Null => self.admit(JsonMeasurement::Null { depth }, 1, 0)?,
+                    JsonValue::Bool(_) => self.admit(JsonMeasurement::Boolean { depth }, 1, 0)?,
+                    JsonValue::Number(value) => {
                         let mut writer = JsonLengthWriter::default();
-                        serde_json::to_writer(&mut writer, value).expect("JSON Number serialization cannot fail");
+                        to_writer(&mut writer, value).expect("JSON Number serialization cannot fail");
                         self.admit_number(depth, writer.len)?;
                     }
-                    serde_json::Value::String(value) => self.admit_string(depth, value.len())?,
-                    serde_json::Value::Array(values) => {
+                    JsonValue::String(value) => self.admit_string(depth, value.len())?,
+                    JsonValue::Array(values) => {
                         self.admit(
                             JsonMeasurement::Array {
                                 depth,
@@ -404,7 +434,7 @@ impl ValueWireEncodePreflight {
                         )?;
                         frames.push(Frame::Array(values.iter(), depth + 1));
                     }
-                    serde_json::Value::Object(values) => {
+                    JsonValue::Object(values) => {
                         self.admit(
                             JsonMeasurement::Object {
                                 depth,
@@ -434,14 +464,17 @@ impl ValueWireEncodePreflight {
         Ok(())
     }
 
+    /// Accounts for a JSON string, including its quotes in the output estimate.
     fn admit_string(&mut self, depth: usize, bytes: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.admit(JsonMeasurement::String { depth, bytes }, bytes.saturating_add(2), 1)
     }
 
+    /// Accounts for a JSON number using its conservative encoded byte length.
     fn admit_number(&mut self, depth: usize, bytes: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.admit(JsonMeasurement::Number { depth, bytes }, bytes, 1)
     }
 
+    /// Accounts for the object representation of a duration.
     fn admit_duration(
         &mut self,
         depth: usize,
@@ -456,6 +489,7 @@ impl ValueWireEncodePreflight {
         )
     }
 
+    /// Accounts for a fixed-key object and each field's scalar value.
     fn admit_object_with_keys<const N: usize>(
         &mut self,
         depth: usize,
@@ -484,6 +518,8 @@ impl ValueWireEncodePreflight {
         Ok(())
     }
 
+    /// Checks one measurement and adds its node, payload, and output lower
+    /// bounds.
     fn admit(
         &mut self,
         measurement: JsonMeasurement,
@@ -516,10 +552,13 @@ impl ValueWireEncodePreflight {
         )
     }
 
+    /// Applies the configured per-value limits to one measurement.
     fn check_point(&self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.limits.value_limits().check_point(measurement)
     }
 
+    /// Rejects a cumulative counter that exceeds its optional configured
+    /// maximum.
     fn check_cumulative(
         &self,
         resource: JsonResource,
@@ -532,6 +571,7 @@ impl ValueWireEncodePreflight {
         }
     }
 
+    /// Builds a budget error that reports the observed value as a lower bound.
     fn lower_bound_error(
         &self,
         resource: JsonResource,
@@ -545,6 +585,7 @@ impl ValueWireEncodePreflight {
         })
     }
 
+    /// Builds a quantity error for arithmetic that cannot fit in `usize`.
     fn quantity_error(&self, resource: JsonResource) -> MeasuredBudgetError<JsonResource, usize> {
         MeasuredBudgetError::quantity(
             resource,
@@ -553,12 +594,14 @@ impl ValueWireEncodePreflight {
     }
 }
 
+/// Estimates the decimal digit count, including a sign when the value is
+/// negative.
 #[cfg(any(feature = "big-integer", feature = "big-decimal"))]
-fn bigint_digits(value: &num_bigint::BigInt) -> usize {
-    if value.sign() == num_bigint::Sign::NoSign {
+fn bigint_digits(value: &BigInt) -> usize {
+    if value.sign() == Sign::NoSign {
         1
     } else {
-        ((value.bits().saturating_sub(1)) / 4 + 1) as usize + usize::from(value.sign() == num_bigint::Sign::Minus)
+        ((value.bits().saturating_sub(1)) / 4 + 1) as usize + usize::from(value.sign() == Sign::Minus)
     }
 }
 

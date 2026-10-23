@@ -994,10 +994,9 @@ fn test_to_f64_from_bigdecimal_out_of_range() {
 }
 
 // ============================================================================
-// f32 conversion — integer to_f32() failure path
+// f32 conversion — integer success paths
 // ============================================================================
-// 注意：对于常规整数值，to_f32() 通常返回 Some，以下测试验证成功路径
-// 同时通过调用确保 ok_or_else 的闭包代码被编译器保留
+// 常规整数值的 to_f32() 转换成功；这些测试补充各整数类型的边界输入。
 
 #[test]
 fn test_to_f32_from_int8_success() {

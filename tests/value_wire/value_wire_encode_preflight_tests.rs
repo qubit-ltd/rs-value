@@ -38,7 +38,7 @@ fn test_preflight_accepts_encoded_uint128_with_small_number_limit() {
         .into_builder()
         .max_number_bytes(2)
         .build();
-    let wire = ValueWireV1::try_from(value.clone()).unwrap();
+    let wire = ValueWireV1::try_from(value.clone()).expect("the unsigned integer must have a V1 wire value");
     assert!(wire.to_json_vec_with_limits(limits).is_ok());
     assert!(ValueWireEncodePreflight::new(limits).check_value(&value).is_ok());
 }
@@ -50,7 +50,7 @@ fn test_preflight_accepts_scientific_float_with_small_number_limit() {
         .into_builder()
         .max_number_bytes(10)
         .build();
-    let wire = ValueWireV1::try_from(value.clone()).unwrap();
+    let wire = ValueWireV1::try_from(value.clone()).expect("the finite float must have a V1 wire value");
     assert!(wire.to_json_vec_with_limits(limits).is_ok());
     assert!(ValueWireEncodePreflight::new(limits).check_value(&value).is_ok());
 }
@@ -75,7 +75,7 @@ fn test_preflight_counts_duration_payload_nodes_and_keys() {
 
 #[test]
 fn test_preflight_counts_big_decimal_payload_nodes() {
-    let value = Value::BigDecimal("12.5".parse::<BigDecimal>().unwrap());
+    let value = Value::BigDecimal("12.5".parse::<BigDecimal>().expect("the decimal literal must parse"));
     let limits = ValueWireV1::default_json_encode_limits()
         .into_builder()
         .max_nodes(3)

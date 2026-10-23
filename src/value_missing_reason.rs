@@ -12,6 +12,17 @@
 /// The reason is independent of the source and target types. Inspect the
 /// accompanying [`crate::ValueMissing`] accessors for those types and for a
 /// collection index when one is available.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::{Value, ValueMissingReason};
+///
+/// let error = Value::new_unset(qubit_datatype::DataType::Int32)
+///     .get::<i32>()
+///     .unwrap_err();
+/// assert_eq!(error.missing().unwrap().reason(), ValueMissingReason::UnsetScalar);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ValueMissingReason {

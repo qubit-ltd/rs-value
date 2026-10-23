@@ -15,6 +15,7 @@ mod canonical_json;
 mod canonical_string_map;
 mod duration_payload;
 mod strict_string_map;
+mod strict_string_map_visitor;
 
 #[cfg(feature = "big-decimal")]
 pub(in crate::wire) use big_decimal_payload::BigDecimalPayload;

@@ -17,6 +17,9 @@ use qubit_value::MultiValues;
 use qubit_value::ValueError;
 use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWireV1;
+use serde_json::to_string;
+
+use crate::decode_value_wire_str;
 
 #[test]
 fn test_multi_values_len_and_is_empty_distinguish_unset_from_concrete_empty_values() {
@@ -119,8 +122,8 @@ fn test_multi_values_wire_rejects_non_finite_floats() {
         MultiValues::Float64(vec![1.0, 2.5]),
     ] {
         let wire = ValueWireV1::try_from(finite.clone()).expect("finite collection should fit the V1 wire contract");
-        let json = serde_json::to_string(&wire).expect("serialize V1 wire");
-        let decoded = crate::decode_value_wire_str(&json).expect("deserialize V1 wire");
+        let json = to_string(&wire).expect("serialize V1 wire");
+        let decoded = decode_value_wire_str(&json).expect("deserialize V1 wire");
         assert_eq!(decoded.into_container(), finite.into());
     }
 

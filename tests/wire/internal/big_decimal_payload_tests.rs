@@ -8,8 +8,18 @@
 
 //! Big-decimal V1 payload behavior.
 
+use serde_json::json;
+
 #[cfg(feature = "big-decimal")]
 #[test]
 fn test_big_decimal_wire_rejects_excessive_scale() {
-    assert!(crate::decode_value_wire_value(serde_json::json!({"version": 1, "value": {"scalar": {"bigdecimal": {"coefficient": "1", "scale": 150001}}}})).is_err());
+    let input = json!({
+        "version": 1,
+        "value": {"scalar": {"bigdecimal": {"coefficient": "1", "scale": 150001}}},
+    });
+
+    assert!(
+        crate::decode_value_wire_value(input).is_err(),
+        "the decoder should reject a big-decimal payload with an excessive scale",
+    );
 }

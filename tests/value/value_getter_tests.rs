@@ -6,10 +6,33 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+use std::collections::HashMap;
+use std::time::Duration;
+
+#[cfg(feature = "big-decimal")]
+use bigdecimal::BigDecimal;
+#[cfg(feature = "chrono")]
+use chrono::DateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
+use chrono::Utc;
+#[cfg(feature = "big-integer")]
+use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::Value;
 use qubit_value::ValueError;
 use qubit_value::ValueMissing;
+#[cfg(feature = "json")]
+use serde_json::Value as JsonValue;
+#[cfg(feature = "json")]
+use serde_json::json;
+#[cfg(feature = "url")]
+use url::Url;
 
 #[test]
 fn test_value_getter_is_strict_and_default_is_empty_only() {
@@ -157,9 +180,9 @@ fn test_value_scalar_getters_cover_all_builtin_types() {
         DataType::Bool
     );
     assert_scalar_getter_contract!(
-        Value::Duration(std::time::Duration::from_secs(3)),
+        Value::Duration(Duration::from_secs(3)),
         get_duration,
-        std::time::Duration::from_secs(3),
+        Duration::from_secs(3),
         DataType::Duration,
         DataType::String
     );
@@ -168,12 +191,6 @@ fn test_value_scalar_getters_cover_all_builtin_types() {
 #[cfg(feature = "chrono")]
 #[test]
 fn test_value_chrono_getters_cover_unset_and_values() {
-    use chrono::DateTime;
-    use chrono::NaiveDate;
-    use chrono::NaiveDateTime;
-    use chrono::NaiveTime;
-    use chrono::Utc;
-
     assert_eq!(
         Value::Date(NaiveDate::from_ymd_opt(2025, 1, 2).unwrap())
             .get_date()
@@ -198,15 +215,15 @@ fn test_value_chrono_getters_cover_unset_and_values() {
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_value_big_integer_getters_cover_owned_and_borrowed_access() {
-    let value = Value::BigInteger(num_bigint::BigInt::from(123));
-    assert_eq!(value.get_biginteger().unwrap(), num_bigint::BigInt::from(123));
-    assert_eq!(value.get_biginteger_ref().unwrap(), &num_bigint::BigInt::from(123));
+    let value = Value::BigInteger(BigInt::from(123));
+    assert_eq!(value.get_biginteger().unwrap(), BigInt::from(123));
+    assert_eq!(value.get_biginteger_ref().unwrap(), &BigInt::from(123));
 }
 
 #[cfg(feature = "big-decimal")]
 #[test]
 fn test_value_big_decimal_getters_cover_owned_and_borrowed_access() {
-    let decimal = "123.45".parse::<bigdecimal::BigDecimal>().unwrap();
+    let decimal = "123.45".parse::<BigDecimal>().unwrap();
     let value = Value::BigDecimal(decimal.clone());
     assert_eq!(value.get_bigdecimal().unwrap(), decimal);
     assert_eq!(value.get_bigdecimal_ref().unwrap(), &decimal);
@@ -215,7 +232,7 @@ fn test_value_big_decimal_getters_cover_owned_and_borrowed_access() {
 #[cfg(feature = "url")]
 #[test]
 fn test_value_url_getters_cover_owned_and_borrowed_access() {
-    let url = url::Url::parse("https://example.com/path").unwrap();
+    let url = Url::parse("https://example.com/path").unwrap();
     let value = Value::Url(url.clone());
     assert_eq!(value.get_url().unwrap(), url);
     assert_eq!(value.get_url_ref().unwrap(), &url);
@@ -223,7 +240,7 @@ fn test_value_url_getters_cover_owned_and_borrowed_access() {
 
 #[test]
 fn test_value_map_getters_cover_owned_and_borrowed_access() {
-    let map = std::collections::HashMap::from([("key".to_string(), "value".to_string())]);
+    let map = HashMap::from([("key".to_string(), "value".to_string())]);
     let value = Value::StringMap(map.clone());
     assert_eq!(value.get_string_map().unwrap(), map);
     assert_eq!(value.get_string_map_ref().unwrap(), &map);
@@ -232,7 +249,7 @@ fn test_value_map_getters_cover_owned_and_borrowed_access() {
 #[cfg(feature = "json")]
 #[test]
 fn test_value_json_getters_cover_owned_and_borrowed_access() {
-    let json = serde_json::json!({"key": 1});
+    let json = json!({"key": 1});
     let value = Value::Json(json.clone());
     assert_eq!(value.get_json().unwrap(), json);
     assert_eq!(value.get_json_ref().unwrap(), &json);
@@ -341,22 +358,22 @@ fn test_value_json_borrowed_getter_reports_storage_errors() {
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_value_json_accessors_cover_serialization_and_deserialization() {
-    let value = Value::from_serializable(&serde_json::json!({"answer": 42})).expect("serialize JSON value");
-    let decoded: std::collections::HashMap<String, i32> = value.deserialize_json().expect("deserialize JSON value");
+    let value = Value::from_serializable(&json!({"answer": 42})).expect("serialize JSON value");
+    let decoded: HashMap<String, i32> = value.deserialize_json().expect("deserialize JSON value");
     assert_eq!(decoded.get("answer"), Some(&42));
     assert!(matches!(
-        Value::Unset(DataType::Json).deserialize_json::<serde_json::Value>(),
+        Value::Unset(DataType::Json).deserialize_json::<JsonValue>(),
         Err(ValueError::Missing(ref missing)) if *missing == ValueMissing::unset_scalar(DataType::Json, DataType::Json)
     ));
     assert!(matches!(
-        Value::Int32(1).deserialize_json::<serde_json::Value>(),
+        Value::Int32(1).deserialize_json::<JsonValue>(),
         Err(ValueError::TypeMismatch {
             expected: DataType::Json,
             actual: DataType::Int32,
         })
     ));
     assert!(matches!(
-        Value::Json(serde_json::json!("not an integer")).deserialize_json::<i32>(),
+        Value::Json(json!("not an integer")).deserialize_json::<i32>(),
         Err(ValueError::Conversion(_))
     ));
 }

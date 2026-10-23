@@ -9,12 +9,19 @@
 //! Big-integer decimal parsing behavior.
 
 #[cfg(feature = "big-integer")]
+use num_bigint::BigInt;
+#[cfg(feature = "big-integer")]
+use qubit_value::MultiValues;
+#[cfg(feature = "big-integer")]
+use qubit_value::Value;
+#[cfg(feature = "big-integer")]
+use serde_json::json;
+
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_decodes_canonical_string() {
-    use qubit_value::Value;
-
     assert_eq!(
-        crate::decode_value_wire_value(serde_json::json!({"version": 1, "value": {"scalar": {"biginteger": "42"}}}))
+        crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"biginteger": "42"}}}))
             .unwrap()
             .into_container(),
         Value::BigInteger(42.into()).into()
@@ -25,11 +32,8 @@ fn test_big_integer_wire_decodes_canonical_string() {
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_decodes_extreme_collection() {
-    use num_bigint::BigInt;
-    use qubit_value::MultiValues;
-
     let values = vec![BigInt::from(-1), BigInt::from(0), BigInt::from(1)];
-    let decoded = crate::decode_value_wire_value(serde_json::json!({
+    let decoded = crate::decode_value_wire_value(json!({
         "version": 1,
         "value": {"collection": {"biginteger": ["-1", "0", "1"]}},
     }))
@@ -43,7 +47,7 @@ fn test_big_integer_wire_decodes_extreme_collection() {
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_rejects_noncanonical_collection_item() {
-    let error = crate::decode_value_wire_value(serde_json::json!({
+    let error = crate::decode_value_wire_value(json!({
         "version": 1,
         "value": {"collection": {"biginteger": ["1", "02"]}},
     }))

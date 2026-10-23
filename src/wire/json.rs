@@ -77,6 +77,7 @@ where
 /// # Returns
 ///
 /// An owned JSON tree with lexicographically ordered object keys.
+#[must_use]
 #[cfg(feature = "converter")]
 pub(crate) fn canonicalize_json_value(value: &Value) -> Value {
     match value {

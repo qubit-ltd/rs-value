@@ -8,6 +8,9 @@
 
 //! Error reported while decoding bounded JSON wire input.
 
+use std::io;
+use std::sync::Arc;
+
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::QuantityConversionError;
@@ -17,8 +20,6 @@ use qubit_json::decode::JsonDecodeErrorSource;
 use qubit_json::decode::JsonSyntaxError;
 use serde_json::Error as JsonError;
 use serde_json::error::Category;
-use std::io;
-use std::sync::Arc;
 use thiserror::Error;
 
 /// Error produced by a bounded [`crate::ValueWireV1`] JSON decoder.
@@ -115,6 +116,19 @@ impl ValueWireDecodeError {
 }
 
 impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
+    /// Converts bounded decoder failures into the corresponding wire error.
+    ///
+    /// Decoder resource violations retain their structured details, syntax
+    /// failures retain their source location, and other malformed inputs are
+    /// represented by a privacy-safe deserialization error.
+    ///
+    /// # Parameters
+    ///
+    /// * `error` - Failure returned by the bounded JSON decoder.
+    ///
+    /// # Returns
+    ///
+    /// The corresponding value-wire decoding error.
     #[inline]
     fn from(error: JsonDecodeError<JsonResource>) -> Self {
         let line = error.line().unwrap_or(0);
@@ -135,6 +149,17 @@ impl From<JsonDecodeError<JsonResource, usize>> for ValueWireDecodeError {
 }
 
 impl From<JsonError> for ValueWireDecodeError {
+    /// Converts a Serde JSON error while preserving its category and location.
+    ///
+    /// The formatted diagnostic does not retain the input contents.
+    ///
+    /// # Parameters
+    ///
+    /// * `error` - Serde JSON decoding failure.
+    ///
+    /// # Returns
+    ///
+    /// An invalid-JSON wire error with a privacy-safe diagnostic.
     #[inline]
     fn from(error: JsonError) -> Self {
         let category = error.classify();

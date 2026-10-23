@@ -22,14 +22,17 @@ const MAX_ITEMS: usize = 32;
 const MAX_DEPTH: usize = 8;
 const MAX_OUTPUT_BYTES: usize = 4 * 1024 * 1024;
 
+/// Limits the fuzz input slice to the target's maximum processing size.
 fn bounded_input(data: &[u8]) -> &[u8] {
     &data[..data.len().min(MAX_INPUT_BYTES)]
 }
 
+/// Converts a bounded input suffix into valid UTF-8 text.
 fn text(data: &[u8]) -> String {
     String::from_utf8_lossy(data.get(1..data.len().min(65)).unwrap_or_default()).into_owned()
 }
 
+/// Builds a JSON value whose nesting depth is selected by the input.
 fn nested_json(data: &[u8]) -> serde_json::Value {
     let depth = usize::from(data.first().copied().unwrap_or_default() % (MAX_DEPTH as u8 + 1));
     let leaf = serde_json::json!({
@@ -39,6 +42,7 @@ fn nested_json(data: &[u8]) -> serde_json::Value {
     (0..depth).fold(leaf, |value, _| serde_json::json!([value]))
 }
 
+/// Maps fuzz bytes to a bounded runtime value container.
 fn value_from_bytes(data: &[u8]) -> ValueContainer {
     let input = bounded_input(data);
     let tag = input.first().copied().unwrap_or_default() % 8;
@@ -64,7 +68,8 @@ fn value_from_bytes(data: &[u8]) -> ValueContainer {
     }
 }
 
-fn limits(data: &[u8]) -> JsonEncodeLimits {
+/// Creates JSON encoding limits varied by the bounded fuzz input.
+fn encode_limits(data: &[u8]) -> JsonEncodeLimits {
     let input = bounded_input(data);
     let value_limit = 512 + usize::from(input.get(3).copied().unwrap_or_default()) * 32;
     JsonEncodeLimits::builder()
@@ -82,14 +87,14 @@ fn limits(data: &[u8]) -> JsonEncodeLimits {
 
 fuzz_target!(|data: &[u8]| {
     let value = value_from_bytes(data);
-    let limits = limits(data);
+    let encode_limits = encode_limits(data);
     let wire = match ValueWireV1::try_from(value.clone()) {
         Ok(wire) => wire,
         Err(_) => return,
     };
 
-    if wire.to_json_vec_with_limits(limits.clone()).is_ok() {
-        ValueWireEncodePreflight::new(limits)
+    if wire.to_json_vec_with_limits(encode_limits.clone()).is_ok() {
+        ValueWireEncodePreflight::new(encode_limits)
             .check_container(&value)
             .expect("successful bounded encoding must pass preflight");
     }

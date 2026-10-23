@@ -59,7 +59,6 @@ where
     ///
     /// `Some(hash)` for an object-entry destination and `None` for the caller's
     /// root destination.
-    #[must_use]
     #[inline(always)]
     pub(super) fn finish_object_entry(self) -> Option<u64> {
         match self {

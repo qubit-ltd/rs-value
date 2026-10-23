@@ -70,7 +70,6 @@ impl ValueMissing {
     /// # Returns
     ///
     /// A descriptor classified as [`ValueMissingReason::UnsetScalar`].
-    #[must_use = "the unset scalar descriptor should be inspected or returned"]
     #[inline(always)]
     pub const fn unset_scalar(source: DataType, target: DataType) -> Self {
         Self::storage(ValueMissingReason::UnsetScalar, source, target)
@@ -86,7 +85,6 @@ impl ValueMissing {
     /// # Returns
     ///
     /// A descriptor classified as [`ValueMissingReason::UnsetCollection`].
-    #[must_use = "the unset collection descriptor should be inspected or returned"]
     #[inline(always)]
     pub const fn unset_collection(source: DataType, target: DataType) -> Self {
         Self::storage(ValueMissingReason::UnsetCollection, source, target)
@@ -103,34 +101,9 @@ impl ValueMissing {
     /// # Returns
     ///
     /// A descriptor classified as [`ValueMissingReason::EmptyCollection`].
-    #[must_use = "the empty collection descriptor should be inspected or returned"]
     #[inline(always)]
     pub const fn empty_collection(source: DataType, target: DataType) -> Self {
         Self::storage(ValueMissingReason::EmptyCollection, source, target)
-    }
-
-    /// Records a known storage state without inventing a conversion source.
-    ///
-    /// # Parameters
-    ///
-    /// * `reason` - Storage-state classification for the missing read.
-    /// * `source` - Runtime type recorded by the source container.
-    /// * `target` - Type requested by the read operation.
-    ///
-    /// # Returns
-    ///
-    /// A descriptor with known source and target types and no item index.
-    #[must_use = "the storage descriptor should be retained"]
-    #[inline(always)]
-    const fn storage(reason: ValueMissingReason, source: DataType, target: DataType) -> Self {
-        Self {
-            reason,
-            source_type: Some(source),
-            target_type: Some(target),
-            source_index: None,
-            #[cfg(feature = "converter")]
-            conversion_error: None,
-        }
     }
 
     /// Preserves an already classified missing conversion and its original
@@ -145,7 +118,6 @@ impl ValueMissing {
     ///
     /// A descriptor retaining the conversion error and collection position.
     #[cfg(feature = "converter")]
-    #[must_use = "the conversion descriptor should be retained"]
     #[inline]
     pub(crate) fn from_conversion(error: DataConversionError, source_index: Option<usize>) -> Self {
         Self {
@@ -158,6 +130,29 @@ impl ValueMissing {
             target_type: Some(error.to_type()),
             source_index,
             conversion_error: Some(error),
+        }
+    }
+
+    /// Records a known storage state without inventing a conversion source.
+    ///
+    /// # Parameters
+    ///
+    /// * `reason` - Storage-state classification for the missing read.
+    /// * `source` - Runtime type recorded by the source container.
+    /// * `target` - Type requested by the read operation.
+    ///
+    /// # Returns
+    ///
+    /// A descriptor with known source and target types and no item index.
+    #[inline(always)]
+    const fn storage(reason: ValueMissingReason, source: DataType, target: DataType) -> Self {
+        Self {
+            reason,
+            source_type: Some(source),
+            target_type: Some(target),
+            source_index: None,
+            #[cfg(feature = "converter")]
+            conversion_error: None,
         }
     }
 
@@ -174,7 +169,6 @@ impl ValueMissing {
     ///
     /// This descriptor with its source type and reason replaced.
     #[cfg(feature = "converter")]
-    #[must_use = "the enriched descriptor should replace the original"]
     #[inline(always)]
     pub(crate) fn with_storage(mut self, source: DataType, reason: ValueMissingReason) -> Self {
         self.source_type = Some(source);
@@ -190,7 +184,6 @@ impl ValueMissing {
     /// This descriptor with index zero recorded when it represents an
     /// unindexed conversion failure; all other descriptors are unchanged.
     #[cfg(feature = "converter")]
-    #[must_use = "the indexed descriptor should replace the original"]
     #[inline]
     pub(crate) fn with_first_index(mut self) -> Self {
         if self.reason == ValueMissingReason::Conversion && self.source_index.is_none() {
@@ -219,7 +212,6 @@ impl ValueMissing {
     /// # Returns
     ///
     /// `Some` with the stored source type when known; otherwise `None`.
-    #[must_use]
     #[inline(always)]
     pub const fn source_type(&self) -> Option<DataType> {
         self.source_type
@@ -231,7 +223,6 @@ impl ValueMissing {
     /// # Returns
     ///
     /// `Some` with the requested type when known; otherwise `None`.
-    #[must_use]
     #[inline(always)]
     pub const fn target_type(&self) -> Option<DataType> {
         self.target_type
@@ -244,7 +235,6 @@ impl ValueMissing {
     ///
     /// `Some` with the zero-based source index for an item failure; otherwise
     /// `None`.
-    #[must_use]
     #[inline(always)]
     pub const fn source_index(&self) -> Option<usize> {
         self.source_index
@@ -258,7 +248,6 @@ impl ValueMissing {
     /// `Some` with the preserved conversion error for conversion failures;
     /// otherwise `None`.
     #[cfg(feature = "converter")]
-    #[must_use]
     #[inline(always)]
     pub const fn conversion_error(&self) -> Option<&DataConversionError> {
         self.conversion_error.as_ref()

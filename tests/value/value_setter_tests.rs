@@ -15,8 +15,8 @@ fn test_value_setter_replaces_value_and_runtime_type() {
     let (): () = value.set("ten");
 
     assert_eq!(value.data_type(), DataType::String);
-    assert_eq!(value.get_string().unwrap(), "ten");
+    assert_eq!(value.get_string().expect("read set string"), "ten");
 
     value.set("eleven".to_string());
-    assert_eq!(value.get::<String>().unwrap(), "eleven");
+    assert_eq!(value.get::<String>().expect("read replaced string"), "eleven");
 }

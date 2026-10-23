@@ -9,9 +9,11 @@
 //! Tests for public bounded wire-decoding types.
 
 mod value_wire_decode_error_tests;
+mod value_wire_encode_error_tests;
 #[cfg(feature = "all")]
 mod value_wire_encode_preflight_tests;
 mod value_wire_payload_ref_v1_tests;
+mod value_wire_payload_v1_tests;
 mod value_wire_ref_v1_tests;
 mod value_wire_seed_tests;
 mod value_wire_v1_tests;

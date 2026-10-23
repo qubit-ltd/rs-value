@@ -32,7 +32,24 @@ where
     T: FromStr + fmt::Display,
     T::Err: fmt::Display,
 {
-    /// Deserializes one canonical integer string.
+    /// Deserializes one canonical integer string into the wrapped value.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Deserializer providing the input and its error type.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Source of the canonical integer string.
+    ///
+    /// # Returns
+    ///
+    /// A wrapper containing the parsed integer.
+    ///
+    /// # Errors
+    ///
+    /// Returns `D::Error` when the input is invalid or is not in canonical
+    /// decimal form.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

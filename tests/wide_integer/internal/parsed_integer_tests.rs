@@ -8,12 +8,14 @@
 
 //! Wide-integer wire parsing behavior.
 
+use qubit_value::MultiValues;
+use qubit_value::Value;
+use serde_json::json;
+
 #[test]
 fn test_wide_integer_wire_parses_canonical_string() {
-    use qubit_value::Value;
-
     assert_eq!(
-        crate::decode_value_wire_value(serde_json::json!({"version": 1, "value": {"scalar": {"uint128": "1"}}}))
+        crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"uint128": "1"}}}))
             .unwrap()
             .into_container(),
         Value::UInt128(1).into(),
@@ -23,9 +25,7 @@ fn test_wide_integer_wire_parses_canonical_string() {
 /// Verifies collection parsing preserves order and rejects non-canonical text.
 #[test]
 fn test_wide_integer_wire_parses_collection_and_rejects_noncanonical_item() {
-    use qubit_value::MultiValues;
-
-    let decoded = crate::decode_value_wire_value(serde_json::json!({
+    let decoded = crate::decode_value_wire_value(json!({
         "version": 1,
         "value": {"collection": {"int128": ["-2", "0", "3"]}},
     }))
@@ -33,7 +33,7 @@ fn test_wide_integer_wire_parses_collection_and_rejects_noncanonical_item() {
     .into_container();
     assert_eq!(decoded, MultiValues::Int128(vec![-2, 0, 3]).into());
 
-    let error = crate::decode_value_wire_value(serde_json::json!({
+    let error = crate::decode_value_wire_value(json!({
         "version": 1,
         "value": {"collection": {"int128": ["-2", "03"]}},
     }))

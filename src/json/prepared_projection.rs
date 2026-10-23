@@ -26,6 +26,11 @@ pub(super) enum PreparedProjection<'a> {
 impl PreparedProjection<'_> {
     /// Materializes an already admitted complete value, preserving null and
     /// array shapes.
+    ///
+    /// # Returns
+    ///
+    /// The complete JSON value represented by this prepared projection.
+    #[must_use]
     pub(super) fn materialize(self) -> JsonValue {
         match self {
             Self::Scalar(value) => value.materialize(),

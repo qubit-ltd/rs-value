@@ -13,13 +13,9 @@ mod float_identity;
 #[cfg(feature = "json")]
 mod hash_destination;
 #[cfg(feature = "json")]
-mod hash_frame;
-#[cfg(feature = "json")]
-mod json_equality_frame;
+mod internal;
 #[cfg(feature = "json")]
 mod json_identity;
-#[cfg(feature = "json")]
-mod object_hash;
 mod string_map_hash;
 
 #[cfg(feature = "big-decimal")]

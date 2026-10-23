@@ -27,6 +27,7 @@ use serde::Serialize;
 use serde::Serializer;
 use serde::ser::SerializeStruct;
 
+/// Mimics a raw JSON payload with invalid text to exercise syntax validation.
 struct InvalidRawValue;
 
 impl Serialize for InvalidRawValue {
@@ -41,6 +42,7 @@ impl Serialize for InvalidRawValue {
     }
 }
 
+/// Rejects every write to exercise encoder I/O error conversion.
 struct RejectingWriter;
 
 impl Write for RejectingWriter {

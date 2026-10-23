@@ -179,7 +179,6 @@ for_each_value_type!(impl_multi_values_constructors);
 
 impl MultiValues {
     /// Strictly borrows the first stored item without allocating.
-    #[must_use = "the borrowed first-value result should be handled"]
     #[inline(always)]
     pub fn get_first_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
     where
@@ -189,7 +188,6 @@ impl MultiValues {
     }
 
     /// Strictly borrows the complete collection without allocating.
-    #[must_use = "the borrowed collection result should be handled"]
     #[inline(always)]
     pub fn get_slice<'a, T>(&'a self) -> ValueResult<&'a [T]>
     where
@@ -281,7 +279,6 @@ impl MultiValues {
     /// # Returns
     ///
     /// A non-owning homogeneous view that hides private storage details.
-    #[must_use = "the borrowed collection view should be used"]
     #[inline(always)]
     pub fn view(&self) -> MultiValuesRef<'_> {
         for_each_value_type!(owned_view_match, self)
@@ -312,7 +309,6 @@ macro_rules! impl_get_multi_values {
         #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs. A concrete empty vector returns"]
         #[doc = "an empty slice."]
-        #[must_use = "the strict collection read result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match &self.repr {
@@ -338,7 +334,6 @@ macro_rules! impl_get_multi_values {
         #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs. A concrete empty vector returns"]
         #[doc = "an empty slice."]
-        #[must_use = "the strict collection read result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<&[$type]> {
             match &self.repr {
@@ -374,7 +369,6 @@ macro_rules! impl_get_first_value {
         #[doc = "Returns [`ValueError::Missing`] when the requested type matches"]
         #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs."]
-        #[must_use = "the strict first-value result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<$type> {
             match &self.repr {
@@ -402,7 +396,6 @@ macro_rules! impl_get_first_value {
         #[doc = "Returns [`ValueError::Missing`] when the requested type matches"]
         #[doc = "but no value is stored, or [`ValueError::TypeMismatch`] when"]
         #[doc = "the stored data type differs."]
-        #[must_use = "the strict first-value result should be handled"]
         #[inline(always)]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match &self.repr {
@@ -656,7 +649,6 @@ impl MultiValues {
     /// let nums = multi.get::<i32>().unwrap();
     /// assert_eq!(nums, vec![1, 2, 3]);
     /// ```
-    #[must_use = "the strict collection read result should be handled"]
     #[inline(always)]
     pub fn get<T>(&self) -> ValueResult<Vec<T>>
     where
@@ -686,7 +678,6 @@ impl MultiValues {
     ///
     /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
     /// `T`.
-    #[must_use = "the strict collection read result should be handled"]
     #[inline(always)]
     pub fn get_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
     where
@@ -722,7 +713,6 @@ impl MultiValues {
     ///
     /// Returns [`ValueError::TypeMismatch`] for an incompatible concrete
     /// collection without invoking the callback.
-    #[must_use = "the strict collection read result should be handled"]
     #[inline(always)]
     pub fn get_or_else<T, F>(&self, default: F) -> ValueResult<Vec<T>>
     where
@@ -777,7 +767,6 @@ impl MultiValues {
     /// let first: String = multi.get_first().unwrap();
     /// assert_eq!(first, "hello");
     /// ```
-    #[must_use = "the strict first-value result should be handled"]
     #[inline(always)]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
@@ -808,7 +797,6 @@ impl MultiValues {
     ///
     /// Returns [`ValueError::Missing`] for a concrete empty collection or
     /// [`ValueError::TypeMismatch`] when the stored type differs from `T`.
-    #[must_use = "the strict first-value result should be handled"]
     #[inline(always)]
     pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
@@ -841,7 +829,6 @@ impl MultiValues {
     ///
     /// Preserves empty-collection and type-mismatch errors without invoking
     /// the callback.
-    #[must_use = "the strict first-value result should be handled"]
     #[inline(always)]
     pub fn get_first_or_else<T, F>(&self, default: F) -> ValueResult<T>
     where
@@ -1147,7 +1134,6 @@ impl MultiValues {
     /// # Returns
     ///
     /// A cloned first item, or a typed unset value when no item exists.
-    #[must_use = "the projected first value should be used"]
     #[inline(always)]
     pub fn first_value(&self) -> Value {
         for_each_value_type!(multi_values_first_value_match, self)

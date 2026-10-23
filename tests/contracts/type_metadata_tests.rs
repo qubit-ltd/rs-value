@@ -45,10 +45,22 @@ fn test_all_core_types_have_scalar_and_collection_constructors() {
         MultiValues::StringMap(vec![std::collections::HashMap::new()]).data_type(),
     ];
 
-    assert!(scalars.contains(&DataType::Bool));
-    assert!(scalars.contains(&DataType::StringMap));
-    assert!(collections.contains(&DataType::Bool));
-    assert!(collections.contains(&DataType::StringMap));
+    assert!(
+        scalars.contains(&DataType::Bool),
+        "the scalar bool constructor should report DataType::Bool"
+    );
+    assert!(
+        scalars.contains(&DataType::StringMap),
+        "the scalar string-map constructor should report DataType::StringMap"
+    );
+    assert!(
+        collections.contains(&DataType::Bool),
+        "the collection bool constructor should report DataType::Bool"
+    );
+    assert!(
+        collections.contains(&DataType::StringMap),
+        "the collection string-map constructor should report DataType::StringMap"
+    );
 }
 
 /// Exercises every type-table row through the public scalar and collection

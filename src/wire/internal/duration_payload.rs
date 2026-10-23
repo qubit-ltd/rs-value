@@ -38,6 +38,20 @@ impl TryFrom<DurationPayload> for Duration {
     type Error = &'static str;
 
     /// Restores a duration after validating its nanosecond component.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: The serialized seconds and fractional nanoseconds.
+    ///
+    /// # Returns
+    ///
+    /// The duration represented by `value` when its nanosecond component is
+    /// valid.
+    ///
+    /// # Errors
+    ///
+    /// Returns a static error message when `value.nanos` is at least one
+    /// billion.
     fn try_from(value: DurationPayload) -> Result<Self, Self::Error> {
         if value.nanos >= 1_000_000_000 {
             return Err("duration nanoseconds must be less than 1000000000");

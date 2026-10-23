@@ -201,7 +201,7 @@ fn test_nmv_len_and_is_empty_and_clear() {
     assert_ne!(nmv.values().len(), 0);
     nmv.values_mut().clear();
     assert_eq!(nmv.values().len(), 0);
-    assert_eq!(nmv.values().len(), 0);
+    assert!(nmv.values().is_empty());
 }
 
 #[test]

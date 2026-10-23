@@ -139,7 +139,7 @@ macro_rules! impl_value_constructors {
             ///
             /// An unset scalar retaining `data_type`.
             #[allow(non_snake_case)]
-            #[inline(always)]
+        #[inline(always)]
             pub const fn Unset(data_type: DataType) -> Self {
                 Self::new_unset(data_type)
             }
@@ -153,7 +153,7 @@ macro_rules! impl_value_constructors {
             /// # Returns
             ///
             /// An unset scalar retaining `data_type`.
-            #[inline(always)]
+        #[inline(always)]
             pub const fn new_unset(data_type: DataType) -> Self {
                 Self { repr: ValueRepr::Unset(data_type) }
             }
@@ -195,7 +195,6 @@ for_each_value_type!(impl_value_constructors);
 
 impl Value {
     /// Strictly borrows a stored scalar without allocating.
-    #[must_use = "the borrowed strict value result should be handled"]
     #[inline(always)]
     pub fn get_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
     where
@@ -440,7 +439,6 @@ impl Value {
     /// let b: bool = flag.get().unwrap();
     /// assert_eq!(b, true);
     /// ```
-    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get<T>(&self) -> ValueResult<T>
     where
@@ -470,7 +468,6 @@ impl Value {
     ///
     /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
     /// `T`.
-    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
@@ -503,7 +500,6 @@ impl Value {
     ///
     /// Returns [`ValueError::TypeMismatch`] when the stored type differs from
     /// `T`; the callback is not invoked in that case.
-    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get_or_else<T, F>(&self, default: F) -> ValueResult<T>
     where
@@ -1006,8 +1002,7 @@ macro_rules! impl_get_value {
         #[doc = "Returns [`ValueError::Missing`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
-        #[must_use = "the strict value read result should be handled"]
-        #[inline(always)]
+            #[inline(always)]
         pub fn $method(&self) -> ValueResult<$type> {
             match &self.repr {
                 ValueRepr::$variant(v) => Ok(*v),
@@ -1036,8 +1031,7 @@ macro_rules! impl_get_value {
         #[doc = "Returns [`ValueError::Missing`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
-        #[must_use = "the strict value read result should be handled"]
-        #[inline(always)]
+            #[inline(always)]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match &self.repr {
                 ValueRepr::$variant(v) => {
@@ -1430,7 +1424,6 @@ impl Value {
     /// `DataType::BigInteger`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
     #[cfg(feature = "big-integer")]
-    #[must_use = "the strict value read result should be handled"]
     #[inline]
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         match &self.repr {
@@ -1461,7 +1454,6 @@ impl Value {
     /// `DataType::BigDecimal`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
     #[cfg(feature = "big-decimal")]
-    #[must_use = "the strict value read result should be handled"]
     #[inline]
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         match &self.repr {
@@ -1492,7 +1484,6 @@ impl Value {
     /// `DataType::Url`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
     #[cfg(feature = "url")]
-    #[must_use = "the strict value read result should be handled"]
     #[inline]
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         match &self.repr {
@@ -1522,7 +1513,6 @@ impl Value {
     /// Returns [`ValueError::Missing`] when the value is unset with
     /// `DataType::StringMap`, or [`ValueError::TypeMismatch`] when the stored
     /// data type differs.
-    #[must_use = "the strict value read result should be handled"]
     #[inline(always)]
     pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
         match &self.repr {
@@ -1553,7 +1543,6 @@ impl Value {
     /// `DataType::Json`, or [`ValueError::TypeMismatch`] when the stored data
     /// type differs.
     #[cfg(feature = "json")]
-    #[must_use = "the strict value read result should be handled"]
     #[inline]
     pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
         match &self.repr {

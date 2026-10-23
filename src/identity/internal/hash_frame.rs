@@ -15,7 +15,7 @@ use serde_json::map::Iter;
 /// # Type Parameters
 ///
 /// * `'a` - Lifetime of JSON values and object iterators retained by frames.
-pub(super) enum HashFrame<'a> {
+pub(in crate::identity) enum HashFrame<'a> {
     /// Visits one JSON node at its root-inclusive depth.
     Visit(
         /// JSON value whose structural tag and contents are hashed next.

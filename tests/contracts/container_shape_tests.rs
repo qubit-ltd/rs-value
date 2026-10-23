@@ -11,6 +11,7 @@
 use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
+use qubit_value::ValueError;
 
 #[test]
 fn test_adding_same_type_scalars_promotes_to_an_ordered_collection() {
@@ -25,10 +26,9 @@ fn test_adding_same_type_scalars_promotes_to_an_ordered_collection() {
 fn test_adding_different_types_rejects_without_changing_shape() {
     let mut container = ValueContainer::Scalar(Value::Int32(7));
 
-    assert!(
-        container
-            .add(ValueContainer::Scalar(Value::String("8".to_owned())))
-            .is_err()
-    );
+    assert!(matches!(
+        container.add(ValueContainer::Scalar(Value::String("8".to_owned()))),
+        Err(ValueError::TypeMismatch { .. })
+    ));
     assert_eq!(container, ValueContainer::Scalar(Value::Int32(7)));
 }

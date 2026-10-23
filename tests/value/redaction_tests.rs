@@ -191,7 +191,7 @@ fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
     let output = redacted_text(&value, &policy);
 
     assert!(!output.contains("secret-token"));
-    assert!(!output.contains("secret-token"));
+    assert!(output.contains("MASK"));
 }
 
 #[test]
@@ -236,7 +236,7 @@ fn test_named_value_one_less_wrapper_node_truncates() {
     let output = redacted_text(&value, &policy);
 
     assert!(!output.contains("secret-token"), "{output}");
-    assert!(!output.contains("secret-token"), "{output}");
+    assert!(output.contains("<truncated>"), "{output}");
 }
 
 #[test]

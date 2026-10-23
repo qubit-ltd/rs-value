@@ -6,6 +6,23 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+use std::collections::HashMap;
+use std::time::Duration;
+
+#[cfg(feature = "big-decimal")]
+use bigdecimal::BigDecimal;
+#[cfg(feature = "chrono")]
+use chrono::DateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
+use chrono::Utc;
+#[cfg(feature = "big-integer")]
+use num_bigint::BigInt;
 use qubit_datatype::DataConversionError;
 use qubit_datatype::DataType;
 use qubit_datatype::InvalidValueReason;
@@ -13,6 +30,10 @@ use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueError;
 use qubit_value::ValueMissingReason;
+#[cfg(feature = "json")]
+use serde_json::Value as JsonValue;
+#[cfg(feature = "url")]
+use url::Url;
 
 #[test]
 fn test_multi_values_converters_convert_first_list_and_value() {
@@ -86,29 +107,29 @@ fn test_multi_values_converters_cover_every_runtime_variant() {
         vec!["a".to_string(), "b".to_string()]
     );
     assert_multi_values_identity_conversion!(
-        MultiValues::Duration(vec![std::time::Duration::from_secs(1)]),
-        std::time::Duration,
-        std::time::Duration::from_secs(1),
-        vec![std::time::Duration::from_secs(1)]
+        MultiValues::Duration(vec![Duration::from_secs(1)]),
+        Duration,
+        Duration::from_secs(1),
+        vec![Duration::from_secs(1)]
     );
 
     #[cfg(feature = "chrono")]
     {
-        let date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
-        assert_multi_values_identity_conversion!(MultiValues::Date(vec![date]), chrono::NaiveDate, date, vec![date]);
-        let time = chrono::NaiveTime::from_hms_opt(1, 2, 3).unwrap();
-        assert_multi_values_identity_conversion!(MultiValues::Time(vec![time]), chrono::NaiveTime, time, vec![time]);
+        let date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        assert_multi_values_identity_conversion!(MultiValues::Date(vec![date]), NaiveDate, date, vec![date]);
+        let time = NaiveTime::from_hms_opt(1, 2, 3).unwrap();
+        assert_multi_values_identity_conversion!(MultiValues::Time(vec![time]), NaiveTime, time, vec![time]);
         let datetime = date.and_time(time);
         assert_multi_values_identity_conversion!(
             MultiValues::DateTime(vec![datetime]),
-            chrono::NaiveDateTime,
+            NaiveDateTime,
             datetime,
             vec![datetime]
         );
-        let instant = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(datetime, chrono::Utc);
+        let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
         assert_multi_values_identity_conversion!(
             MultiValues::Instant(vec![instant]),
-            chrono::DateTime<chrono::Utc>,
+            DateTime<Utc>,
             instant,
             vec![instant]
         );
@@ -116,38 +137,38 @@ fn test_multi_values_converters_cover_every_runtime_variant() {
 
     #[cfg(feature = "big-integer")]
     {
-        let value = num_bigint::BigInt::from(123);
+        let value = BigInt::from(123);
         assert_multi_values_identity_conversion!(
             MultiValues::BigInteger(vec![value.clone()]),
-            num_bigint::BigInt,
+            BigInt,
             value.clone(),
             vec![value]
         );
     }
     #[cfg(feature = "big-decimal")]
     {
-        let value = "1.25".parse::<bigdecimal::BigDecimal>().unwrap();
+        let value = "1.25".parse::<BigDecimal>().unwrap();
         assert_multi_values_identity_conversion!(
             MultiValues::BigDecimal(vec![value.clone()]),
-            bigdecimal::BigDecimal,
+            BigDecimal,
             value.clone(),
             vec![value]
         );
     }
     #[cfg(feature = "url")]
     {
-        let value = url::Url::parse("https://example.com").unwrap();
+        let value = Url::parse("https://example.com").unwrap();
         assert_multi_values_identity_conversion!(
             MultiValues::Url(vec![value.clone()]),
-            url::Url,
+            Url,
             value.clone(),
             vec![value]
         );
     }
-    let map = std::collections::HashMap::from([("key".to_string(), "value".to_string())]);
+    let map = HashMap::from([("key".to_string(), "value".to_string())]);
     assert_multi_values_identity_conversion!(
         MultiValues::StringMap(vec![map.clone()]),
-        std::collections::HashMap<String, String>,
+        HashMap<String, String>,
         map.clone(),
         vec![map]
     );
@@ -156,7 +177,7 @@ fn test_multi_values_converters_cover_every_runtime_variant() {
         let value = serde_json::json!({"key": 1});
         assert_multi_values_identity_conversion!(
             MultiValues::Json(vec![value.clone()]),
-            serde_json::Value,
+            JsonValue,
             value.clone(),
             vec![value]
         );

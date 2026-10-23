@@ -288,6 +288,12 @@ impl TryFrom<Value> for ValueWirePayloadV1 {
     type Error = ValueWireEncodeError;
 
     /// Validates a scalar for use in a V1 payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite
+    /// float, or [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a
+    /// decimal whose exponent is outside V1's supported range.
     #[inline]
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         Self::try_new(value.into())
@@ -298,6 +304,12 @@ impl TryFrom<MultiValues> for ValueWirePayloadV1 {
     type Error = ValueWireEncodeError;
 
     /// Validates a collection for use in a V1 payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite
+    /// float element, or [`ValueWireEncodeError::BigDecimalScaleTooLarge`]
+    /// for an element whose decimal exponent is outside V1's supported range.
     #[inline(always)]
     fn try_from(value: MultiValues) -> Result<Self, Self::Error> {
         Self::try_new(value.into())
@@ -308,6 +320,12 @@ impl TryFrom<ValueContainer> for ValueWirePayloadV1 {
     type Error = ValueWireEncodeError;
 
     /// Validates an explicitly shaped value for use in a V1 payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite
+    /// float, or [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a
+    /// decimal whose exponent is outside V1's supported range.
     #[inline]
     fn try_from(value: ValueContainer) -> Result<Self, Self::Error> {
         Self::try_new(value)

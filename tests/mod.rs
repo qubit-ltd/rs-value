@@ -10,7 +10,14 @@
 //! Provides integration tests for the value processing framework.
 
 mod helpers_tests;
-pub(crate) use helpers_tests::*;
+#[cfg(feature = "all")]
+pub(crate) use helpers_tests::decode_value_wire_payload_str;
+#[cfg(feature = "all")]
+pub(crate) use helpers_tests::decode_value_wire_payload_value;
+#[cfg(feature = "all")]
+pub(crate) use helpers_tests::decode_value_wire_slice;
+pub(crate) use helpers_tests::decode_value_wire_str;
+pub(crate) use helpers_tests::decode_value_wire_value;
 mod contracts;
 mod finite_float_tests;
 mod finite_float {
@@ -61,10 +68,6 @@ mod value_missing_tests;
 mod value_type_table_tests;
 #[cfg(feature = "json")]
 mod value_wire;
-#[cfg(feature = "json")]
-mod value_wire_encode_error_tests;
-#[cfg(feature = "json")]
-mod value_wire_payload_v1_tests;
 #[cfg(feature = "all")]
 mod value_wire_tests;
 mod wide_integer_tests;

@@ -153,6 +153,11 @@ macro_rules! prepare_scalar_match {
 }
 
 /// Admits one scalar before allocating a cached rich rendering.
+///
+/// # Errors
+///
+/// Returns an error when conversion fails or a configured resource limit is
+/// exceeded.
 fn prepare_scalar<'a>(
     view: ValueRef<'a>,
     budget: &mut ProjectionBudget<'_>,
@@ -173,6 +178,15 @@ macro_rules! collection_cache_match {
 }
 
 /// Admits the full collection before materializing any final JSON output.
+///
+/// # Errors
+///
+/// Returns an error when preparing an element fails or a configured resource
+/// limit is exceeded.
+///
+/// # Panics
+///
+/// Panics if an index below the collection's reported length cannot be read.
 fn prepare_collection<'a>(
     view: MultiValuesRef<'a>,
     budget: &mut ProjectionBudget<'_>,
@@ -208,6 +222,10 @@ fn prepare_collection<'a>(
 
 /// Traverses nested JSON iteratively, charging keys and leaf text before
 /// cloning.
+///
+/// # Errors
+///
+/// Returns an error when a configured resource limit is exceeded.
 fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>) -> ValueResult<()> {
     let mut frames = Vec::<JsonChildren<'_>>::new();
     let mut next = Some((None, value, depth));
@@ -249,6 +267,11 @@ fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>
 /// Projects a scalar after complete bounded preparation.
 ///
 /// Returns conversion or resource errors before final JSON allocation.
+///
+/// # Errors
+///
+/// Returns an error when conversion fails or a configured resource limit is
+/// exceeded.
 pub(crate) fn value_to_json_value_with(
     value: &Value,
     policy: &ConversionPolicy,
@@ -260,6 +283,11 @@ pub(crate) fn value_to_json_value_with(
 
 /// Projects a collection after complete bounded preparation, preserving its
 /// shape.
+///
+/// # Errors
+///
+/// Returns an error when conversion fails or a configured resource limit is
+/// exceeded.
 pub(crate) fn multi_values_to_json_value_with(
     values: &MultiValues,
     policy: &ConversionPolicy,
@@ -270,6 +298,11 @@ pub(crate) fn multi_values_to_json_value_with(
 }
 
 /// Projects scalar or collection storage without conflating cardinalities.
+///
+/// # Errors
+///
+/// Returns an error when conversion fails or a configured resource limit is
+/// exceeded.
 pub(crate) fn value_container_to_json_value_with(
     container: &ValueContainer,
     policy: &ConversionPolicy,

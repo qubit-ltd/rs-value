@@ -9,14 +9,11 @@
 //! Strict string-map payload for canonical wire adapters.
 
 use std::collections::HashMap;
-use std::fmt;
-use std::marker::PhantomData;
 
 use serde::Deserialize;
 use serde::Deserializer;
-use serde::de;
-use serde::de::MapAccess;
-use serde::de::Visitor;
+
+use super::strict_string_map_visitor::StrictStringMapVisitor;
 
 /// Owned string map decoded with duplicate-key validation.
 ///
@@ -48,34 +45,6 @@ where
     where
         D: Deserializer<'de>,
     {
-        struct StrictStringMapVisitor<V>(PhantomData<V>);
-
-        impl<'de, V> Visitor<'de> for StrictStringMapVisitor<V>
-        where
-            V: Deserialize<'de>,
-        {
-            type Value = StrictStringMap<V>;
-
-            /// Describes the expected input shape.
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a map with unique string keys")
-            }
-
-            /// Decodes all entries and rejects repeated keys.
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: MapAccess<'de>,
-            {
-                let mut values = HashMap::new();
-                while let Some((key, value)) = map.next_entry::<String, V>()? {
-                    if values.insert(key.clone(), value).is_some() {
-                        return Err(de::Error::custom(format!("duplicate map key '{key}'")));
-                    }
-                }
-                Ok(StrictStringMap(values))
-            }
-        }
-
-        deserializer.deserialize_map(StrictStringMapVisitor(PhantomData))
+        deserializer.deserialize_map(StrictStringMapVisitor::new()).map(Self)
     }
 }

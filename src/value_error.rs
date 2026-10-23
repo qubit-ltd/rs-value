@@ -162,7 +162,6 @@ impl ValueError {
     /// # Returns
     ///
     /// `Some(reason)` for [`Self::Missing`] and `None` for every other variant.
-    #[must_use]
     #[inline(always)]
     pub const fn missing(&self) -> Option<&ValueMissing> {
         match self {

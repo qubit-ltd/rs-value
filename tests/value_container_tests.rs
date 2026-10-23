@@ -8,14 +8,18 @@
 
 //! Tests for the explicit scalar-or-collection value container.
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;
+#[cfg(feature = "all")]
+use std::time::Duration;
 
 use qubit_datatype::CollectionConversionPolicy;
 use qubit_datatype::ConversionLimits;
 #[cfg(feature = "all")]
 use qubit_datatype::ConversionOperationLimits;
 use qubit_datatype::ConversionPolicy;
+use qubit_datatype::ConversionSession;
 use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
 use qubit_redact::Redact;
@@ -143,10 +147,7 @@ fn test_public_value_wrappers_render_after_input_admission() {
         .into_string();
     assert!(output.contains("value"), "{output}");
 
-    let map = Value::StringMap(std::collections::HashMap::from([(
-        "field".to_owned(),
-        "value".to_owned(),
-    )]));
+    let map = Value::StringMap(HashMap::from([("field".to_owned(), "value".to_owned())]));
     let output = Redactor::standard()
         .redact_text(&map)
         .into_complete_text()
@@ -486,8 +487,6 @@ fn test_value_container_conversion_covers_scalar_and_collection_dispatch() {
 /// explicit shapes.
 #[test]
 fn test_value_container_borrowed_and_session_conversion_paths() {
-    use qubit_datatype::ConversionSession;
-
     let scalar = ValueContainer::from("42");
     let collection = ValueContainer::from(vec!["43", "44"]);
 
@@ -627,9 +626,6 @@ fn test_value_container_state_accessors_cover_scalar_collection_and_unset() {
 #[cfg(feature = "all")]
 #[test]
 fn test_value_container_json_projection_uses_structured_budgets() {
-    use std::collections::HashMap;
-    use std::time::Duration;
-
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::default();
     let decimal = ValueContainer::from("123.45".parse::<bigdecimal::BigDecimal>().expect("valid decimal"));

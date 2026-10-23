@@ -9,11 +9,13 @@
 
 use qubit_value::NamedValue;
 use qubit_value::Value;
+use serde_json::from_value;
+use serde_json::json;
 
 /// Deserializes a named scalar from the V1 envelope.
 #[test]
 fn test_named_value_wire_owned_deserializes_v1_envelope() {
-    let decoded: NamedValue = serde_json::from_value(serde_json::json!({
+    let decoded: NamedValue = from_value(json!({
         "name": "port",
         "value": {"version": 1, "value": {"scalar": {"int32": 42}}},
     }))

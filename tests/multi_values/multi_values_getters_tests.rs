@@ -6,9 +6,28 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+use std::collections::HashMap;
+use std::time::Duration;
+
+#[cfg(feature = "big-decimal")]
+use bigdecimal::BigDecimal;
+#[cfg(feature = "chrono")]
+use chrono::DateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
+use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
+use chrono::Utc;
+#[cfg(feature = "big-integer")]
+use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::ValueError;
+#[cfg(feature = "json")]
+use serde_json::json;
+#[cfg(feature = "url")]
+use url::Url;
 
 #[test]
 fn test_multi_values_getters_return_slices_without_copying() {
@@ -59,20 +78,20 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
     let values = MultiValues::String(vec!["a".to_string(), "b".to_string()]);
     assert_eq!(values.get_strings().unwrap(), &["a", "b"]);
     assert_eq!(values.get_first_string().unwrap(), "a");
-    let values = MultiValues::Duration(vec![std::time::Duration::from_secs(1)]);
+    let values = MultiValues::Duration(vec![Duration::from_secs(1)]);
     assert_eq!(values.get_durations().unwrap().len(), 1);
-    assert_eq!(values.get_first_duration().unwrap(), std::time::Duration::from_secs(1));
-    let map = std::collections::HashMap::from([("key".to_string(), "value".to_string())]);
+    assert_eq!(values.get_first_duration().unwrap(), Duration::from_secs(1));
+    let map = HashMap::from([("key".to_string(), "value".to_string())]);
     let values = MultiValues::StringMap(vec![map.clone()]);
     assert_eq!(values.get_string_maps().unwrap(), std::slice::from_ref(&map));
     assert_eq!(values.get_first_string_map().unwrap(), map);
 
     #[cfg(feature = "chrono")]
     {
-        let date = chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
-        let time = chrono::NaiveTime::from_hms_opt(1, 2, 3).unwrap();
+        let date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let time = NaiveTime::from_hms_opt(1, 2, 3).unwrap();
         let datetime = date.and_time(time);
-        let instant = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(datetime, chrono::Utc);
+        let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
         let values = MultiValues::Date(vec![date]);
         assert_eq!(values.get_dates().unwrap(), &[date]);
         assert_eq!(values.get_first_date().unwrap(), date);
@@ -89,28 +108,28 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
 
     #[cfg(feature = "big-integer")]
     {
-        let value = num_bigint::BigInt::from(7);
+        let value = BigInt::from(7);
         let values = MultiValues::BigInteger(vec![value.clone()]);
         assert_eq!(values.get_bigintegers().unwrap(), std::slice::from_ref(&value));
         assert_eq!(values.get_first_biginteger().unwrap(), value);
     }
     #[cfg(feature = "big-decimal")]
     {
-        let value = "7.5".parse::<bigdecimal::BigDecimal>().unwrap();
+        let value = "7.5".parse::<BigDecimal>().unwrap();
         let values = MultiValues::BigDecimal(vec![value.clone()]);
         assert_eq!(values.get_bigdecimals().unwrap(), std::slice::from_ref(&value));
         assert_eq!(values.get_first_bigdecimal().unwrap(), value);
     }
     #[cfg(feature = "url")]
     {
-        let value = url::Url::parse("https://example.com").unwrap();
+        let value = Url::parse("https://example.com").unwrap();
         let values = MultiValues::Url(vec![value.clone()]);
         assert_eq!(values.get_urls().unwrap(), std::slice::from_ref(&value));
         assert_eq!(values.get_first_url().unwrap(), value);
     }
     #[cfg(feature = "json")]
     {
-        let value = serde_json::json!({"key": 1});
+        let value = json!({"key": 1});
         let values = MultiValues::Json(vec![value.clone()]);
         assert_eq!(values.get_jsons().unwrap(), std::slice::from_ref(&value));
         assert_eq!(values.get_first_json().unwrap(), value);

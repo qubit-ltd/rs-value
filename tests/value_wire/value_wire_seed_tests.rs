@@ -12,11 +12,12 @@ use qubit_value::ValueContainer;
 use qubit_value::ValueWirePayloadV1Seed;
 use qubit_value::ValueWireV1Seed;
 use serde::de::DeserializeSeed;
+use serde_json::Deserializer;
 
 #[test]
 fn test_value_wire_payload_v1_seed_decodes_scalar_shape() {
     let input = r#"{"scalar":{"int32":7}}"#;
-    let mut deserializer = serde_json::Deserializer::from_str(input);
+    let mut deserializer = Deserializer::from_str(input);
     let payload = ValueWirePayloadV1Seed
         .deserialize(&mut deserializer)
         .expect("the valid scalar V1 payload should decode");
@@ -27,7 +28,7 @@ fn test_value_wire_payload_v1_seed_decodes_scalar_shape() {
 #[test]
 fn test_value_wire_payload_v1_seed_decodes_collection_shape() {
     let input = r#"{"collection":{"int32":[7,8]}}"#;
-    let mut deserializer = serde_json::Deserializer::from_str(input);
+    let mut deserializer = Deserializer::from_str(input);
     let payload = ValueWirePayloadV1Seed::new()
         .deserialize(&mut deserializer)
         .expect("the valid collection V1 payload should decode");
@@ -38,7 +39,7 @@ fn test_value_wire_payload_v1_seed_decodes_collection_shape() {
 #[test]
 fn test_value_wire_payload_v1_seed_rejects_an_unknown_shape_tag() {
     let input = r#"{"unknown":{"int32":7}}"#;
-    let mut deserializer = serde_json::Deserializer::from_str(input);
+    let mut deserializer = Deserializer::from_str(input);
 
     let error = ValueWirePayloadV1Seed::new()
         .deserialize(&mut deserializer)
@@ -53,7 +54,7 @@ fn test_value_wire_payload_v1_seed_rejects_an_unknown_shape_tag() {
 #[test]
 fn test_value_wire_v1_seed_preserves_the_golden_envelope() {
     let input = r#"{"version":1,"value":{"scalar":{"string":"ready"}}}"#;
-    let mut deserializer = serde_json::Deserializer::from_str(input);
+    let mut deserializer = Deserializer::from_str(input);
 
     let wire = ValueWireV1Seed
         .deserialize(&mut deserializer)
@@ -65,7 +66,7 @@ fn test_value_wire_v1_seed_preserves_the_golden_envelope() {
 #[test]
 fn test_value_wire_v1_seed_rejects_an_unsupported_version_precisely() {
     let input = r#"{"version":2,"value":{"scalar":{"int32":7}}}"#;
-    let mut deserializer = serde_json::Deserializer::from_str(input);
+    let mut deserializer = Deserializer::from_str(input);
 
     let error = ValueWireV1Seed::new()
         .deserialize(&mut deserializer)

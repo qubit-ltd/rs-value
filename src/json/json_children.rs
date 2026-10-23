@@ -31,6 +31,7 @@ pub(super) enum JsonChildren<'a> {
 
 impl<'a> JsonChildren<'a> {
     /// Returns the next optional object key, value, and child depth.
+    #[inline]
     pub(super) fn next(&mut self) -> Option<(Option<&'a str>, &'a Value, usize)> {
         match self {
             Self::Array(values, depth) => values.next().map(|value| (None, value, *depth)),

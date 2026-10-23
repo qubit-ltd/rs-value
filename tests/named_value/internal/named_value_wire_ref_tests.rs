@@ -9,6 +9,7 @@
 
 use qubit_value::NamedValue;
 use qubit_value::Value;
+use serde_json::json;
 
 /// Serializes a named scalar through the V1 envelope.
 #[test]
@@ -17,7 +18,7 @@ fn test_named_value_wire_ref_serializes_v1_envelope() {
 
     assert_eq!(
         serde_json::to_value(named).expect("named value should serialize"),
-        serde_json::json!({
+        json!({
             "name": "port",
             "value": {"version": 1, "value": {"scalar": {"int32": 42}}},
         }),

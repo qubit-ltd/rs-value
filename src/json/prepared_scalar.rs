@@ -65,6 +65,7 @@ macro_rules! borrowed_match {
 impl PreparedScalar<'_> {
     /// Produces the final JSON scalar; cached text and numbers are moved, not
     /// re-rendered.
+    #[must_use]
     pub(super) fn materialize(self) -> JsonValue {
         match self {
             Self::Borrowed(value) => for_each_value_type!(borrowed_match, value),

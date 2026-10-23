@@ -121,17 +121,6 @@ impl<'a> ValueWirePayloadRefV1<'a> {
         Ok(Self { shape: value.into() })
     }
 
-    /// Returns the borrowed internal shape used by V1 serialization.
-    ///
-    /// # Returns
-    ///
-    /// A copyable borrowed view of the validated scalar-or-collection shape.
-    #[must_use]
-    #[inline(always)]
-    pub(in crate::value_wire) fn shape(&self) -> WireShapeRef<'a> {
-        self.shape
-    }
-
     /// Encodes the borrowed V1 payload into a compact JSON vector.
     ///
     /// # Returns
@@ -227,6 +216,17 @@ impl<'a> ValueWirePayloadRefV1<'a> {
         JsonEncoder::new(session)
             .write_buffered(writer, self)
             .map_err(ValueWireEncodeError::from)
+    }
+
+    /// Returns the borrowed internal shape used by V1 serialization.
+    ///
+    /// # Returns
+    ///
+    /// A copyable borrowed view of the validated scalar-or-collection shape.
+    #[must_use]
+    #[inline(always)]
+    pub(in crate::value_wire) fn shape(&self) -> WireShapeRef<'a> {
+        self.shape
     }
 }
 

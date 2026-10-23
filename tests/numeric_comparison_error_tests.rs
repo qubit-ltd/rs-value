@@ -11,7 +11,7 @@ use qubit_value::NumericComparisonError;
 
 /// Verifies comparison errors retain operand-side type context.
 #[test]
-fn test_numeric_comparison_error_display_and_equality() {
+fn test_numeric_comparison_error_display() {
     let cases = [
         (
             NumericComparisonError::LeftMissing {

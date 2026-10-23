@@ -19,6 +19,18 @@ macro_rules! define_view {
         ///
         /// The lifetime is that of the source storage; copying this view does
         /// not clone strings, maps, JSON, or other rich payloads.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use qubit_datatype::DataType;
+        /// use qubit_value::MultiValues;
+        ///
+        /// let values = MultiValues::Int32(vec![1, 2, 3]);
+        /// let view = values.view();
+        /// assert_eq!(view.data_type(), DataType::Int32);
+        /// assert_eq!(view.len(), 3);
+        /// ```
         #[must_use]
         #[non_exhaustive]
         #[derive(Debug, Clone, Copy)]
@@ -38,7 +50,6 @@ macro_rules! define_view {
             /// # Returns
             ///
             /// The declared runtime element type.
-            #[must_use = "the declared element type should be inspected"]
             #[inline(always)]
             pub fn data_type(self) -> DataType {
                 match self {
@@ -83,7 +94,6 @@ macro_rules! define_view {
             ///
             /// `Some` with the indexed element, or `None` when storage is unset
             /// or `index` is out of bounds.
-            #[must_use]
             #[inline(always)]
             pub fn get(self, index: usize) -> Option<ValueRef<'a>> {
                 match self {
