@@ -25,7 +25,11 @@ use serde_json::json;
 #[test]
 fn test_big_integer_wire_rejects_noncanonical_string() {
     assert!(
-        crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"biginteger": "042"}}})).is_err(),
+        crate::decode_value_wire_value(json!({
+            "version": 1,
+            "value": {"scalar": {"biginteger": "042"}},
+        }))
+        .is_err(),
         "non-canonical big integer text must be rejected"
     );
 }
@@ -59,7 +63,10 @@ fn test_big_integer_wire_rejects_invalid_decimal_text() {
 fn test_big_integer_wire_parses_owned_extreme_string() {
     let text = format!("-{}", "9".repeat(256));
     let expected = text.parse::<BigInt>().expect("test integer must parse");
-    let input = json!({"version": 1, "value": {"scalar": {"biginteger": text}}});
+    let input = json!({
+        "version": 1,
+        "value": {"scalar": {"biginteger": text}},
+    });
     let wire = ValueWireV1Seed::new()
         .deserialize(input.into_deserializer())
         .expect("owned extreme integer string must decode");
@@ -71,7 +78,10 @@ fn test_big_integer_wire_parses_owned_extreme_string() {
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_rejects_owned_noncanonical_string_precisely() {
-    let input = json!({"version": 1, "value": {"scalar": {"biginteger": "+1"}}});
+    let input = json!({
+        "version": 1,
+        "value": {"scalar": {"biginteger": "+1"}},
+    });
     let error = ValueWireV1Seed::new()
         .deserialize(input.into_deserializer())
         .expect_err("owned non-canonical integer string must be rejected");

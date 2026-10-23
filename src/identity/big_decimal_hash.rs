@@ -18,14 +18,14 @@ use num_bigint::Sign;
 /// The work and temporary allocation are proportional to the stored
 /// coefficient digit count and do not depend on the absolute scale.
 ///
+/// # Type Parameters
+///
+/// * `H` - Hasher receiving the normalized decimal identity.
+///
 /// # Parameters
 ///
 /// * `value` - Decimal whose representation is normalized for hashing.
 /// * `state` - Destination hasher.
-///
-/// # Type Parameters
-///
-/// * `H` - Hasher receiving the normalized decimal identity.
 pub(crate) fn hash_big_decimal<H: Hasher>(value: &BigDecimal, state: &mut H) {
     let (coefficient, scale) = value.as_bigint_and_scale();
     if coefficient.sign() == Sign::NoSign {

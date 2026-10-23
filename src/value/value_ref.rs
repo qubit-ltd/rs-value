@@ -17,6 +17,16 @@ macro_rules! define_view {
         ///
         /// The lifetime is that of the source storage; copying this view does
         /// not clone strings, maps, JSON, or other rich payloads.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use qubit_value::{Value, ValueRef};
+        ///
+        /// let value = Value::from(42_i32);
+        /// let view: ValueRef<'_> = value.view();
+        /// assert!(matches!(view, ValueRef::Int32(42)));
+        /// ```
         #[must_use]
         #[non_exhaustive]
         #[derive(Debug, Clone, Copy)]

@@ -13,18 +13,30 @@ use std::time::Duration;
 use serde::Deserialize;
 use serde::Serialize;
 
-/// Stable wire representation of a duration.
+/// Encodes a [`Duration`] as whole seconds and a fractional nanosecond count.
+///
+/// The nanosecond component is less than one billion, matching the invariant
+/// required by [`Duration::new`].
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(in crate::wire) struct DurationPayload {
-    /// Whole seconds.
+    /// Number of complete seconds in the represented duration.
     pub(in crate::wire) secs: u64,
-    /// Fractional nanoseconds, always less than one second.
+    /// Fractional nanoseconds within the final second, from zero to
+    /// 999,999,999.
     pub(in crate::wire) nanos: u32,
 }
 
 impl From<&Duration> for DurationPayload {
-    /// Creates a stable payload from a runtime duration.
+    /// Splits a runtime duration into its seconds and fractional nanoseconds.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: The duration whose components are encoded.
+    ///
+    /// # Returns
+    ///
+    /// A payload with the seconds and subsecond nanoseconds from `value`.
     #[inline]
     fn from(value: &Duration) -> Self {
         Self {

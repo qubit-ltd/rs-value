@@ -26,8 +26,11 @@ fn test_value_wire_decode_error_preserves_budget_source() {
         maximum: 8,
     });
 
-    assert!(error.to_string().contains("InputBytes"));
-    assert!(error.source().is_some());
+    assert!(
+        error.to_string().contains("InputBytes"),
+        "budget errors should identify the limited resource"
+    );
+    assert!(error.source().is_some(), "budget errors should preserve their source");
 }
 
 #[test]
@@ -36,15 +39,25 @@ fn test_value_wire_decode_error_preserves_json_source() {
         serde_json::from_slice::<u64>(br#""TOP_SECRET""#).expect_err("a JSON string cannot deserialize into u64");
     let error = ValueWireDecodeError::from(source);
 
-    assert!(matches!(&error, ValueWireDecodeError::InvalidJson(_)));
+    assert!(
+        matches!(&error, ValueWireDecodeError::InvalidJson(_)),
+        "Serde failures should map to the invalid-JSON variant"
+    );
     assert!(
         error
             .to_string()
-            .starts_with("failed to decode V1 JSON wire input: JSON deserialization failed")
+            .starts_with("failed to decode V1 JSON wire input: JSON deserialization failed"),
+        "Serde failures should retain the safe deserialization summary"
     );
     let source = error.source().expect("JSON errors expose safe metadata");
-    assert!(source.to_string().starts_with("JSON deserialization failed"));
-    assert!(!source.to_string().contains("TOP_SECRET"));
+    assert!(
+        source.to_string().starts_with("JSON deserialization failed"),
+        "the source should expose safe JSON metadata"
+    );
+    assert!(
+        !source.to_string().contains("TOP_SECRET"),
+        "JSON diagnostics should not retain input contents"
+    );
 }
 
 #[test]
@@ -52,7 +65,10 @@ fn test_value_wire_decode_error_maps_strict_deserialize_metadata() {
     let error =
         ValueWireV1::decode_json_slice(br#"{"version":1,"value":false}"#).expect_err("a boolean is not a V1 payload");
 
-    assert!(matches!(&error, ValueWireDecodeError::InvalidJson(_)));
+    assert!(
+        matches!(&error, ValueWireDecodeError::InvalidJson(_)),
+        "strict deserialization failures should map to invalid JSON"
+    );
     let source = error.source().expect("JSON errors expose safe metadata");
     assert!(
         source.to_string().contains("JSON deserialization failed"),
@@ -65,7 +81,7 @@ fn test_value_wire_decode_error_reports_unsupported_version() {
     let error = ValueWireDecodeError::UnsupportedVersion { expected: 1, actual: 2 };
 
     assert_eq!(error.to_string(), "unsupported qubit-value wire version 2; expected 1");
-    assert!(error.source().is_none());
+    assert!(error.source().is_none(), "unsupported versions have no source error");
 }
 
 #[test]
@@ -76,13 +92,23 @@ fn test_value_wire_decode_error_preserves_quantity_failure() {
         source,
     };
 
-    assert!(matches!(
-        &error,
-        ValueWireDecodeError::Quantity {
-            resource: JsonResource::StringBytes,
-            source: actual,
-        } if *actual == source
-    ));
-    assert!(error.to_string().contains("StringBytes"));
-    assert_eq!(error.source().map(ToString::to_string), Some(source.to_string()));
+    assert!(
+        matches!(
+            &error,
+            ValueWireDecodeError::Quantity {
+                resource: JsonResource::StringBytes,
+                source: actual,
+            } if *actual == source
+        ),
+        "quantity errors should preserve the resource and conversion source"
+    );
+    assert!(
+        error.to_string().contains("StringBytes"),
+        "quantity errors should identify the measured resource"
+    );
+    assert_eq!(
+        error.source().map(ToString::to_string),
+        Some(source.to_string()),
+        "quantity errors should expose the original conversion error"
+    );
 }

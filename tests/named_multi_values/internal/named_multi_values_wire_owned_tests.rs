@@ -9,11 +9,13 @@
 
 use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
+use serde_json::from_value;
+use serde_json::json;
 
 /// Deserializes a named collection from the V1 envelope.
 #[test]
 fn test_named_multi_values_wire_owned_deserializes_v1_envelope() {
-    let decoded: NamedMultiValues = serde_json::from_value(serde_json::json!({
+    let decoded: NamedMultiValues = from_value(json!({
         "name": "ports",
         "value": {"version": 1, "value": {"collection": {"int32": [42]}}},
     }))

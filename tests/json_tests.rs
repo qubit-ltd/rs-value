@@ -45,6 +45,8 @@ use serde_json::from_str;
 use serde_json::json;
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde_json::to_string;
+#[cfg(all(feature = "converter", feature = "json"))]
+use url::Url;
 
 /// Projection budgets cover the whole collection, including cheap scalar paths.
 #[test]
@@ -160,9 +162,6 @@ fn test_natural_json_bounds_duration_and_wide_number_text() {
             .is_err()
     );
 }
-#[cfg(all(feature = "converter", feature = "json"))]
-use url::Url;
-
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_natural_json_projects_scalar() {

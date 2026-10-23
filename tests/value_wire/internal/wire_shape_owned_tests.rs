@@ -8,10 +8,14 @@
 
 //! Owned V1 shape behavior.
 
+use serde_json::json;
+
+use crate::decode_value_wire_value;
+
 #[test]
 fn test_owned_wire_shape_rejects_unknown_tag() {
     assert!(
-        crate::decode_value_wire_value(serde_json::json!({
+        decode_value_wire_value(json!({
             "version": 1,
             "value": {"scalar": {"unknown": 1}},
         }))

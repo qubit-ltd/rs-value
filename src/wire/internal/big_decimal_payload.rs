@@ -34,6 +34,19 @@ impl TryFrom<&BigDecimal> for BigDecimalPayload {
     ///
     /// Returns an error if the decimal scale exceeds the V1 absolute scale
     /// limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Decimal value whose exact coefficient and scale are encoded.
+    ///
+    /// # Returns
+    ///
+    /// The payload containing the coefficient and scale.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the decimal scale exceeds the V1 absolute scale
+    /// limit.
     #[inline]
     fn try_from(value: &BigDecimal) -> Result<Self, Self::Error> {
         let (coefficient, scale) = value.as_bigint_and_scale();
@@ -55,6 +68,19 @@ impl TryFrom<BigDecimalPayload> for BigDecimal {
     /// Returns an error if the scale exceeds the V1 absolute scale limit, if
     /// the coefficient is not a valid integer, or if its spelling is not
     /// canonical.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Payload to validate and restore as a decimal.
+    ///
+    /// # Returns
+    ///
+    /// The decimal represented by the payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the scale is out of range, the coefficient is not
+    /// an integer, or the coefficient spelling is not canonical.
     fn try_from(value: BigDecimalPayload) -> Result<Self, Self::Error> {
         if !is_valid_big_decimal_scale(value.scale) {
             return Err("decimal scale exceeds the V1 maximum absolute scale");

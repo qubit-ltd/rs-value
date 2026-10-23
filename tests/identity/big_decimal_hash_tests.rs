@@ -25,8 +25,12 @@ fn test_big_decimal_hash_normalizes_equivalent_encodings() {
     let mut right_hasher = DefaultHasher::new();
     left.hash(&mut left_hasher);
     right.hash(&mut right_hasher);
-    assert_eq!(left, right);
-    assert_eq!(left_hasher.finish(), right_hasher.finish());
+    assert_eq!(left, right, "equivalent decimal encodings must compare equal");
+    assert_eq!(
+        left_hasher.finish(),
+        right_hasher.finish(),
+        "equivalent decimal encodings must hash identically"
+    );
 }
 
 /// Verifies zero values with extreme scales retain one identity.
@@ -40,8 +44,12 @@ fn test_big_decimal_hash_normalizes_zero_extreme_scales() {
     left.hash(&mut left_hasher);
     right.hash(&mut right_hasher);
 
-    assert_eq!(left, right);
-    assert_eq!(left_hasher.finish(), right_hasher.finish());
+    assert_eq!(left, right, "zero values with extreme scales must compare equal");
+    assert_eq!(
+        left_hasher.finish(),
+        right_hasher.finish(),
+        "zero values with extreme scales must hash identically"
+    );
 }
 
 /// Verifies distinct decimal identities do not collapse to one hash value.
@@ -55,6 +63,10 @@ fn test_big_decimal_hash_distinguishes_distinct_values() {
     left.hash(&mut left_hasher);
     right.hash(&mut right_hasher);
 
-    assert_ne!(left, right);
-    assert_ne!(left_hasher.finish(), right_hasher.finish());
+    assert_ne!(left, right, "distinct decimal values must compare unequal");
+    assert_ne!(
+        left_hasher.finish(),
+        right_hasher.finish(),
+        "distinct decimal values must not collapse to one hash"
+    );
 }

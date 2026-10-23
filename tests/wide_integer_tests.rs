@@ -13,8 +13,8 @@ use qubit_value::ValueWireV1;
 
 #[test]
 fn test_wide_integer_wire_uses_canonical_string() {
-    assert_eq!(
-        serde_json::to_value(ValueWireV1::try_from(Value::Int128(-1)).unwrap()).unwrap()["value"]["scalar"]["int128"],
-        "-1"
-    );
+    let wire_value = ValueWireV1::try_from(Value::Int128(-1)).unwrap();
+    let json_value = serde_json::to_value(wire_value).unwrap();
+
+    assert_eq!(json_value["value"]["scalar"]["int128"], "-1");
 }

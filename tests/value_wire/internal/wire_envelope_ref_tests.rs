@@ -15,7 +15,8 @@ use serde_json::to_value;
 #[test]
 fn test_borrowed_wire_envelope_has_version_one() {
     assert_eq!(
-        to_value(ValueWireRefV1::try_from(&Value::Int32(1)).unwrap()).unwrap()["version"],
+        to_value(ValueWireRefV1::try_from(&Value::Int32(1)).expect("construct borrowed wire envelope"),)
+            .expect("serialize borrowed wire envelope")["version"],
         1
     );
 }

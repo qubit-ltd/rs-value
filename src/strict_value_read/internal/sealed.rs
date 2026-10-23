@@ -16,7 +16,9 @@ use crate::ValueError;
 ///
 /// The blanket implementation admits exactly the target types supported by
 /// strict scalar and collection conversions.
-pub trait Sealed {}
+pub trait Sealed {
+    // empty
+}
 
 impl<T> Sealed for T
 where

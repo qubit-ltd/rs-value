@@ -42,5 +42,6 @@ pub(crate) fn decode_value_wire_payload_str(input: &str) -> Result<ValueWirePayl
 
 #[cfg(feature = "all")]
 pub(crate) fn decode_value_wire_payload_value(input: Value) -> Result<ValueWirePayloadV1, Error> {
-    decode_value_wire_payload_str(&serde_json::to_string(&input).expect("test JSON value should serialize"))
+    let input = serde_json::to_string(&input).expect("test JSON value should serialize");
+    decode_value_wire_payload_str(&input)
 }

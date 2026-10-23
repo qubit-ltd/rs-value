@@ -102,6 +102,19 @@ pub enum ValueWireEncodeError {
 
 #[cfg(feature = "json")]
 impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
+    /// Converts bounded JSON encoder failures into wire encoding errors.
+    ///
+    /// Resource-budget failures retain their budget details, invalid raw JSON
+    /// retains its syntax error, and serialization or writer failures retain
+    /// their corresponding source errors.
+    ///
+    /// # Parameters
+    ///
+    /// * `error` - Failure reported by the bounded JSON encoder.
+    ///
+    /// # Returns
+    ///
+    /// The wire encoding error corresponding to the encoder failure.
     #[inline]
     fn from(error: JsonEncodeError<JsonResource>) -> Self {
         match error.into_source() {
@@ -118,6 +131,18 @@ impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
 
 #[cfg(feature = "json")]
 impl From<MeasuredBudgetError<JsonResource, usize>> for ValueWireEncodeError {
+    /// Converts a measured budget failure into its corresponding wire error.
+    ///
+    /// Budget violations retain their budget details, while quantity
+    /// conversion failures retain the affected resource and source error.
+    ///
+    /// # Parameters
+    ///
+    /// * `error` - Measured failure reported by the budget layer.
+    ///
+    /// # Returns
+    ///
+    /// The wire encoding error corresponding to the measured failure.
     #[inline]
     fn from(error: MeasuredBudgetError<JsonResource, usize>) -> Self {
         match error {

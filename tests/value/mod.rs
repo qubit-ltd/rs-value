@@ -9,8 +9,6 @@
 //!
 //! Integration tests for `value` module.
 
-#[cfg(feature = "json")]
-mod internal;
 #[cfg(all(feature = "redact", feature = "json"))]
 mod redaction_tests;
 #[cfg(feature = "all")]

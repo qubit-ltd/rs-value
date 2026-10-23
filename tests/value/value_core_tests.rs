@@ -26,6 +26,7 @@ fn test_value_creation() {
     assert!(!v.is_unset());
     assert_eq!(v.get_int32().unwrap(), 42);
 }
+
 #[test]
 fn test_value_empty() {
     let v = Value::Unset(DataType::String);
@@ -33,6 +34,7 @@ fn test_value_empty() {
     assert!(v.is_unset());
     assert!(matches!(v.get_string(), Err(ValueError::Missing(_))));
 }
+
 #[test]
 fn test_value_unset() {
     let mut v = Value::Int32(42);
@@ -40,6 +42,7 @@ fn test_value_unset() {
     assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::Int32);
 }
+
 #[test]
 fn test_value_set_type() {
     let mut v = Value::Int32(42);
@@ -47,6 +50,7 @@ fn test_value_set_type() {
     assert!(v.is_unset());
     assert_eq!(v.data_type(), DataType::String);
 }
+
 #[test]
 fn test_value_set_retypes_existing_value() {
     let mut v = Value::Int32(42);
@@ -58,12 +62,14 @@ fn test_value_set_retypes_existing_value() {
     assert_eq!(v.data_type(), DataType::Bool);
     assert!(v.get_bool().unwrap());
 }
+
 #[test]
 fn test_value_string_types() {
     let v = Value::String("hello".to_string());
     assert_eq!(v.get_string().unwrap(), "hello");
     assert_eq!(v.data_type(), DataType::String);
 }
+
 #[test]
 fn test_value_numeric_types() {
     let v1 = Value::Int8(127);
@@ -105,12 +111,14 @@ fn test_value_wire_rejects_non_finite_floats() {
         ));
     }
 }
+
 #[test]
 fn test_value_new_unset_preserves_declared_type() {
     let v = Value::new_unset(DataType::String);
     assert_eq!(v.data_type(), DataType::String);
     assert!(v.is_unset());
 }
+
 #[test]
 fn test_value_new() {
     // Test generic new() method
@@ -123,6 +131,7 @@ fn test_value_new() {
     let v = Value::new("hello".to_string());
     assert_eq!(v.get_string().unwrap(), "hello");
 }
+
 #[test]
 fn test_value_new_str() {
     // Test creation with &str
@@ -132,6 +141,7 @@ fn test_value_new_str() {
     let s: String = v.get().unwrap();
     assert_eq!(s, "hello");
 }
+
 #[test]
 fn test_value_new_various_types() {
     // Test new() support for various types
@@ -152,6 +162,7 @@ fn test_value_new_various_types() {
     assert_eq!(Value::new("hello".to_string()).get_string().unwrap(), "hello");
     assert_eq!(Value::new("world").get_string().unwrap(), "world");
 }
+
 #[test]
 fn test_value_ref_types() {
     // Test generic methods for &str type
@@ -163,6 +174,7 @@ fn test_value_ref_types() {
     let value = Value::new("world");
     assert_eq!(value.get_string().unwrap(), "world");
 }
+
 #[test]
 fn test_value_datetime_types() {
     use chrono::DateTime;
@@ -201,6 +213,7 @@ fn test_value_datetime_types() {
     assert_eq!(value.get_instant().unwrap(), instant);
     assert_eq!(value.data_type(), DataType::Instant);
 }
+
 #[test]
 fn test_value_set_type_same_type() {
     // Test setting same type does not clear value
@@ -208,6 +221,7 @@ fn test_value_set_type_same_type() {
     value.set_type(DataType::Int32);
     assert_eq!(value.get_int32().unwrap(), 42);
 }
+
 #[test]
 fn test_set_on_non_empty_for_coverage() {
     let mut v = Value::Int32(42);
@@ -224,6 +238,7 @@ fn test_set_on_non_empty_for_coverage() {
     v.set("world".to_string());
     assert_eq!(v.get_string().unwrap(), "world");
 }
+
 #[test]
 fn test_data_type_coverage_all_variants() {
     // Test data_type() method coverage for all data type variants
@@ -300,6 +315,7 @@ fn test_data_type_coverage_all_variants() {
         DataType::BigDecimal
     );
 }
+
 #[test]
 fn test_is_unset_distinguishes_empty_inner_values() {
     use chrono::DateTime;

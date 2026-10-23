@@ -266,7 +266,6 @@ impl ValueContainer {
     }
 
     /// Strictly borrows the scalar or first collection item without allocating.
-    #[must_use = "the borrowed first-value result should be handled"]
     #[inline(always)]
     pub fn get_first_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
     where
@@ -279,7 +278,6 @@ impl ValueContainer {
     }
 
     /// Strictly borrows a scalar as a one-item slice or a complete collection.
-    #[must_use = "the borrowed collection result should be handled"]
     #[inline(always)]
     pub fn get_slice<'a, T>(&'a self) -> ValueResult<&'a [T]>
     where
@@ -323,7 +321,6 @@ impl ValueContainer {
     /// # Returns
     ///
     /// `Some` for scalar storage, or `None` for collection storage.
-    #[must_use]
     #[inline]
     pub const fn as_scalar(&self) -> Option<&Value> {
         match self {
@@ -365,7 +362,6 @@ impl ValueContainer {
     /// # Returns
     ///
     /// `Some` for collection storage, or `None` for scalar storage.
-    #[must_use]
     #[inline]
     pub const fn as_collection(&self) -> Option<&MultiValues> {
         match self {
@@ -446,7 +442,6 @@ impl ValueContainer {
     ///
     /// Returns [`ValueError::Missing`] for unset or empty matching storage and
     /// [`ValueError::TypeMismatch`] when the stored data type differs.
-    #[must_use = "the strict first-value result should be handled"]
     #[inline(always)]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
@@ -472,7 +467,6 @@ impl ValueContainer {
     ///
     /// Returns [`ValueError::Missing`] for unset matching storage and
     /// [`ValueError::TypeMismatch`] when the stored data type differs.
-    #[must_use = "the strict collection read result should be handled"]
     #[inline(always)]
     pub fn get_list<T>(&self) -> ValueResult<Vec<T>>
     where

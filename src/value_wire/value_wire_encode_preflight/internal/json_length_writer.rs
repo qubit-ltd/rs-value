@@ -11,7 +11,10 @@
 use std::io;
 use std::io::Write;
 
-/// `Write` implementation that retains only the number of bytes written.
+/// Counts bytes written through `Write` without retaining their contents.
+///
+/// The counter uses checked arithmetic; writes that would overflow return an
+/// error and leave the previous count unchanged.
 #[derive(Debug, Default)]
 pub(crate) struct JsonLengthWriter {
     /// Number of bytes accepted by this sink.
@@ -19,6 +22,10 @@ pub(crate) struct JsonLengthWriter {
 }
 
 impl Write for JsonLengthWriter {
+    /// Adds the input length to the byte count without storing the input.
+    ///
+    /// Returns an error if the updated count would exceed `usize::MAX`; in
+    /// that case, the existing count is preserved.
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         self.len = self
             .len
@@ -27,6 +34,7 @@ impl Write for JsonLengthWriter {
         Ok(bytes.len())
     }
 
+    /// Completes a no-op flush because this sink retains no buffered data.
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }

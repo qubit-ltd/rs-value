@@ -75,6 +75,7 @@ where
 /// # Errors
 ///
 /// Returns `S::Error` when serialization fails.
+#[inline]
 pub(super) fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
 where
     T: fmt::Display,
@@ -101,6 +102,7 @@ where
 /// # Errors
 ///
 /// Returns `D::Error` for malformed or non-canonical input.
+#[inline]
 pub(super) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
 where
     T: FromStr + fmt::Display,
@@ -129,6 +131,7 @@ where
 /// # Errors
 ///
 /// Returns `S::Error` when sequence serialization fails.
+#[inline]
 pub(super) fn serialize_vec<T, S>(values: &[T], serializer: S) -> Result<S::Ok, S::Error>
 where
     T: fmt::Display,
@@ -155,6 +158,7 @@ where
 /// # Errors
 ///
 /// Returns `D::Error` for malformed or non-canonical input.
+#[inline]
 pub(super) fn deserialize_vec<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
 where
     T: FromStr + fmt::Display,

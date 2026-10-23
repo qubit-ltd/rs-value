@@ -39,15 +39,6 @@ use qubit_redact::RedactionPolicy;
 use qubit_redact::Redactor;
 #[cfg(feature = "redact")]
 use qubit_redact::Sensitivity;
-
-#[cfg(feature = "redact")]
-fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
-    Redactor::new(policy.clone())
-        .redact_text(value)
-        .into_complete_text()
-        .expect("test output must be complete")
-        .into_string()
-}
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -98,6 +89,15 @@ use qubit_value::ValueWirePayloadV1;
 ))]
 #[cfg(feature = "url")]
 use url::Url;
+
+#[cfg(feature = "redact")]
+fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
+    Redactor::new(policy.clone())
+        .redact_text(value)
+        .into_complete_text()
+        .expect("test output must be complete")
+        .into_string()
+}
 
 #[cfg(any(
     feature = "converter",

@@ -28,9 +28,13 @@ pub(in crate::wire) struct StrictStringMap<V>(
 impl<V> StrictStringMap<V> {
     /// Returns the validated map.
     ///
+    /// # Parameters
+    ///
+    /// * `self` - The owned wrapper containing entries accepted by Serde.
+    ///
     /// # Returns
     ///
-    /// The owned map after duplicate-key validation succeeds.
+    /// The owned map after duplicate-key validation has succeeded.
     pub(in crate::wire) fn into_inner(self) -> HashMap<String, V> {
         self.0
     }
@@ -41,6 +45,23 @@ where
     V: Deserialize<'de>,
 {
     /// Deserializes a string map while rejecting duplicate keys.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Deserializer providing the map representation.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Source of the string-map representation.
+    ///
+    /// # Returns
+    ///
+    /// A wrapper containing the decoded map when all keys are unique.
+    ///
+    /// # Errors
+    ///
+    /// Returns the deserializer error if a key or value cannot be decoded, or
+    /// if the input contains a duplicate key.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

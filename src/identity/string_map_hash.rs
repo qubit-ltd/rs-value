@@ -14,10 +14,13 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hash;
 use std::hash::Hasher;
 
-/// Stable standard hasher used for each order-independent map entry.
+/// Standard-library hasher used for each order-independent map entry.
 type IdentityHasher = BuildHasherDefault<DefaultHasher>;
 
 /// Hashes a string map independently of its iteration order.
+///
+/// The map length and commutative aggregates of entry hashes are written to
+/// `state`, so changing the iteration order does not change the resulting hash.
 ///
 /// # Type Parameters
 ///

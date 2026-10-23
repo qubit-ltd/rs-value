@@ -12,7 +12,10 @@ use serde::Serialize;
 
 use crate::ValueWireRefV1;
 
-/// Borrowed wire representation of a named scalar value.
+/// Borrows a named scalar value for serialization without cloning its data.
+///
+/// The name and independently versioned scalar payload remain borrowed for
+/// `'a`, the lifetime of the source [`super::NamedValue`].
 ///
 /// # Type Parameters
 ///

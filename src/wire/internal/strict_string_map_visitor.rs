@@ -26,6 +26,8 @@ pub(super) struct StrictStringMapVisitor<V>(PhantomData<V>);
 
 impl<V> StrictStringMapVisitor<V> {
     /// Creates a visitor for values of type `V`.
+    #[must_use]
+    #[inline]
     pub(super) fn new() -> Self {
         Self(PhantomData)
     }

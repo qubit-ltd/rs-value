@@ -50,6 +50,7 @@ macro_rules! define_view {
             /// # Returns
             ///
             /// The declared runtime element type.
+            #[must_use = "the declared type determines how unset storage is interpreted"]
             #[inline(always)]
             pub fn data_type(self) -> DataType {
                 match self {

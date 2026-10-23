@@ -63,7 +63,7 @@ fn measured_preflight_bytes(value: &Value) -> usize {
 }
 
 #[test]
-fn preflight_does_not_copy_big_decimal_coefficient() {
+fn test_preflight_does_not_copy_big_decimal_coefficient() {
     let small = Value::BigDecimal(BigDecimal::new(BigInt::from(123_i32), 2));
     let coefficient = "9".repeat(128 * 1024);
     let large = Value::BigDecimal(BigDecimal::new(

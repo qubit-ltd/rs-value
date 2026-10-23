@@ -8,7 +8,7 @@
 //! # MultiValues Generic Coverage Tests
 //!
 //! Covers the four generic entry points `set`/`add`/`get`/`get_first`,
-//! verifying all supported types and three parameter categories。
+//! verifying all supported types and three parameter categories.
 
 #[cfg(feature = "chrono")]
 use chrono::DateTime;

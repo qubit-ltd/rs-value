@@ -52,7 +52,10 @@ fn test_value_get_ref_matches_owned_strict_reads() {
     assert_eq!(value.get_ref::<str>().expect("string should borrow"), "borrowed");
     assert!(matches!(
         Value::new_unset(DataType::Int32).get_ref::<i32>(),
-        Err(ValueError::Missing(ref missing)) if *missing == ValueMissing::unset_scalar(DataType::Int32, DataType::Int32)
+        Err(
+            ValueError::Missing(ref missing)
+            if *missing == ValueMissing::unset_scalar(DataType::Int32, DataType::Int32),
+        )
     ));
 }
 
@@ -76,14 +79,26 @@ fn test_value_view_preserves_scalar_and_collection_semantics() {
     assert!(matches!(Value::UInt32(3).view(), ValueRef::UInt32(3)));
     assert!(matches!(Value::UInt64(4).view(), ValueRef::UInt64(4)));
     assert!(matches!(Value::UInt128(5).view(), ValueRef::UInt128(5)));
-    assert!(matches!(Value::Float32(1.5).view(), ValueRef::Float32(value) if value == 1.5));
-    assert!(matches!(Value::Float64(2.5).view(), ValueRef::Float64(value) if value == 2.5));
+    assert!(matches!(
+        Value::Float32(1.5).view(),
+        ValueRef::Float32(value) if value == 1.5
+    ));
+    assert!(matches!(
+        Value::Float64(2.5).view(),
+        ValueRef::Float64(value) if value == 2.5
+    ));
     assert!(matches!(
         Value::String("text".to_owned()).view(),
         ValueRef::String("text")
     ));
-    assert!(matches!(Value::Duration(duration).view(), ValueRef::Duration(value) if value == &duration));
-    assert!(matches!(Value::StringMap(map.clone()).view(), ValueRef::StringMap(value) if value == &map));
+    assert!(matches!(
+        Value::Duration(duration).view(),
+        ValueRef::Duration(value) if value == &duration
+    ));
+    assert!(matches!(
+        Value::StringMap(map.clone()).view(),
+        ValueRef::StringMap(value) if value == &map
+    ));
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]

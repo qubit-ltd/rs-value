@@ -13,7 +13,11 @@ use serde_json::json;
 #[test]
 fn test_owned_wire_envelope_requires_version_one() {
     assert!(
-        crate::decode_value_wire_value(json!({"version": 2, "value": {"scalar": {"int32": 1}}})).is_err(),
+        crate::decode_value_wire_value(json!({
+            "version": 2,
+            "value": {"scalar": {"int32": 1}},
+        }))
+        .is_err(),
         "a V1 decoder should reject an envelope with version 2",
     );
 }

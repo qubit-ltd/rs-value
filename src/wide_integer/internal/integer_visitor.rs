@@ -35,11 +35,36 @@ where
     type Value = T;
 
     /// Describes the canonical input accepted by this visitor.
+    ///
+    /// # Parameters
+    ///
+    /// * `formatter` - Formatter that receives the expected input description.
+    ///
+    /// # Returns
+    ///
+    /// Returns the result of writing the description to `formatter`.
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a base-10 128-bit integer string")
     }
 
     /// Parses one borrowed canonical integer string.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `E` - Deserialization error type used to report invalid input.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Borrowed canonical decimal text to parse.
+    ///
+    /// # Returns
+    ///
+    /// Returns the parsed integer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `value` is invalid or is not in canonical decimal
+    /// form.
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
     where
         E: de::Error,
@@ -48,6 +73,23 @@ where
     }
 
     /// Parses one owned canonical integer string.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `E` - Deserialization error type used to report invalid input.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Owned canonical decimal text to parse.
+    ///
+    /// # Returns
+    ///
+    /// Returns the parsed integer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `value` is invalid or is not in canonical decimal
+    /// form.
     fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
     where
         E: de::Error,

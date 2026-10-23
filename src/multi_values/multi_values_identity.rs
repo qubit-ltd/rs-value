@@ -138,6 +138,11 @@ macro_rules! budgeted_payload_match {
 /// This helper currently returns no error for non-JSON payloads; JSON elements
 /// are preflighted by
 /// [`MultiValues::hash_with_json_budget`](crate::MultiValues::hash_with_json_budget).
+///
+/// # Panics
+///
+/// Panics if `repr` contains JSON values. The caller must handle JSON payloads
+/// through [`MultiValues::hash_with_json_budget`](crate::MultiValues::hash_with_json_budget).
 #[cfg(feature = "json")]
 pub(crate) fn hash_multi_values_payload_with_json_budget<H, R, Q>(
     repr: &MultiValuesRepr,

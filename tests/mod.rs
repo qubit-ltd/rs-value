@@ -20,11 +20,6 @@ pub(crate) use helpers_tests::decode_value_wire_str;
 pub(crate) use helpers_tests::decode_value_wire_value;
 mod contracts;
 mod finite_float_tests;
-mod finite_float {
-    mod internal {
-        mod finite_float_tests;
-    }
-}
 mod identity;
 mod into_value_default_tests;
 #[cfg(all(

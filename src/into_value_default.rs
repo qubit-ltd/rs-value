@@ -55,6 +55,7 @@ pub trait IntoValueDefault<T> {
 }
 
 impl<T> IntoValueDefault<T> for T {
+    /// Returns the owned value unchanged as the default.
     #[inline(always)]
     fn into_value_default(self) -> T {
         self
@@ -62,6 +63,7 @@ impl<T> IntoValueDefault<T> for T {
 }
 
 impl IntoValueDefault<String> for &str {
+    /// Copies the borrowed string into an owned default string.
     #[inline]
     fn into_value_default(self) -> String {
         self.to_string()
@@ -69,6 +71,7 @@ impl IntoValueDefault<String> for &str {
 }
 
 impl IntoValueDefault<String> for &String {
+    /// Clones the borrowed string into an owned default string.
     #[inline]
     fn into_value_default(self) -> String {
         self.clone()
@@ -79,6 +82,7 @@ impl<T> IntoValueDefault<Vec<T>> for &[T]
 where
     T: Clone,
 {
+    /// Clones the borrowed slice elements into an owned default vector.
     #[inline]
     fn into_value_default(self) -> Vec<T> {
         self.to_vec()
@@ -89,6 +93,7 @@ impl<T> IntoValueDefault<Vec<T>> for &Vec<T>
 where
     T: Clone,
 {
+    /// Clones the borrowed vector elements into an owned default vector.
     #[inline]
     fn into_value_default(self) -> Vec<T> {
         self.clone()
@@ -96,6 +101,7 @@ where
 }
 
 impl<T, const N: usize> IntoValueDefault<Vec<T>> for [T; N] {
+    /// Moves the array elements into an owned default vector.
     #[inline]
     fn into_value_default(self) -> Vec<T> {
         Vec::from(self)
@@ -106,6 +112,7 @@ impl<T, const N: usize> IntoValueDefault<Vec<T>> for &[T; N]
 where
     T: Clone,
 {
+    /// Clones the borrowed array elements into an owned default vector.
     #[inline]
     fn into_value_default(self) -> Vec<T> {
         self.to_vec()
@@ -113,6 +120,7 @@ where
 }
 
 impl IntoValueDefault<Vec<String>> for Vec<&str> {
+    /// Copies each borrowed string into an owned default vector.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self)
@@ -120,6 +128,7 @@ impl IntoValueDefault<Vec<String>> for Vec<&str> {
 }
 
 impl IntoValueDefault<Vec<String>> for &[&str] {
+    /// Copies each borrowed slice string into an owned default vector.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self.iter().copied())
@@ -127,6 +136,7 @@ impl IntoValueDefault<Vec<String>> for &[&str] {
 }
 
 impl IntoValueDefault<Vec<String>> for &Vec<&str> {
+    /// Copies each borrowed vector string into an owned default vector.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self.iter().copied())
@@ -134,6 +144,7 @@ impl IntoValueDefault<Vec<String>> for &Vec<&str> {
 }
 
 impl<const N: usize> IntoValueDefault<Vec<String>> for [&str; N] {
+    /// Copies each borrowed array string into an owned default vector.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self)
@@ -141,6 +152,7 @@ impl<const N: usize> IntoValueDefault<Vec<String>> for [&str; N] {
 }
 
 impl<const N: usize> IntoValueDefault<Vec<String>> for &[&str; N] {
+    /// Copies each borrowed array string into an owned default vector.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self.iter().copied())

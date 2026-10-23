@@ -73,7 +73,10 @@ fn value_for_data_type(data_type: DataType) -> Value {
         DataType::BigInteger => Value::BigInteger(BigInt::from(0)),
         DataType::BigDecimal => Value::BigDecimal(BigDecimal::from(0)),
         DataType::Duration => Value::Duration(Duration::ZERO),
-        DataType::Url => Value::new(Url::parse("https://example.com").expect("contract test URL should be valid")),
+        DataType::Url => {
+            let url = Url::parse("https://example.com").expect("contract test URL should be valid");
+            Value::new(url)
+        }
         DataType::StringMap => Value::StringMap(HashMap::new()),
         DataType::Json => Value::Json(JsonValue::Null),
     }

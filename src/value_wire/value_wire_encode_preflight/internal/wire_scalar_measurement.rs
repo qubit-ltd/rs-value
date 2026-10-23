@@ -8,9 +8,17 @@
 
 //! Length measurements for scalar Wire V1 representations.
 
+#[cfg(feature = "json")]
+use serde_json::ser::CompactFormatter;
+#[cfg(feature = "json")]
+use serde_json::ser::Formatter;
+
 use super::json_length_writer::JsonLengthWriter;
 
-/// Returns the exact UTF-8 length of an integer's decimal representation.
+/// Returns the UTF-8 byte length of an integer's base-10 representation,
+/// including its minus sign when the value is negative.
+#[must_use]
+#[inline]
 pub(crate) fn decimal_len(value: i128) -> usize {
     let magnitude = value.unsigned_abs();
     let digits = if magnitude < 10 {
@@ -21,17 +29,22 @@ pub(crate) fn decimal_len(value: i128) -> usize {
     digits + usize::from(value < 0)
 }
 
-/// Returns the exact UTF-8 length of an unsigned integer's decimal form.
+/// Returns the UTF-8 byte length of an unsigned integer's base-10
+/// representation.
+#[must_use]
+#[inline]
 pub(crate) fn unsigned_decimal_len(value: u128) -> usize {
     if value < 10 { 1 } else { value.ilog10() as usize + 1 }
 }
 
-/// Counts a finite f32 using serde_json's compact formatter.
+/// Returns the byte length serde_json's compact formatter writes for a finite
+/// `f32`.
+///
+/// The caller must handle non-finite values separately because JSON has no
+/// numeric representation for them.
+#[must_use]
 #[cfg(feature = "json")]
 pub(crate) fn json_float32_len(value: f32) -> usize {
-    use serde_json::ser::CompactFormatter;
-    use serde_json::ser::Formatter;
-
     debug_assert!(value.is_finite());
     let mut writer = JsonLengthWriter::default();
     CompactFormatter
@@ -40,12 +53,14 @@ pub(crate) fn json_float32_len(value: f32) -> usize {
     writer.len
 }
 
-/// Counts a finite f64 using serde_json's compact formatter.
+/// Returns the byte length serde_json's compact formatter writes for a finite
+/// `f64`.
+///
+/// The caller must handle non-finite values separately because JSON has no
+/// numeric representation for them.
+#[must_use]
 #[cfg(feature = "json")]
 pub(crate) fn json_float64_len(value: f64) -> usize {
-    use serde_json::ser::CompactFormatter;
-    use serde_json::ser::Formatter;
-
     debug_assert!(value.is_finite());
     let mut writer = JsonLengthWriter::default();
     CompactFormatter

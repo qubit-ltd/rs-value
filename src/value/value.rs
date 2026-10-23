@@ -139,7 +139,7 @@ macro_rules! impl_value_constructors {
             ///
             /// An unset scalar retaining `data_type`.
             #[allow(non_snake_case)]
-        #[inline(always)]
+            #[inline(always)]
             pub const fn Unset(data_type: DataType) -> Self {
                 Self::new_unset(data_type)
             }
@@ -153,7 +153,7 @@ macro_rules! impl_value_constructors {
             /// # Returns
             ///
             /// An unset scalar retaining `data_type`.
-        #[inline(always)]
+            #[inline(always)]
             pub const fn new_unset(data_type: DataType) -> Self {
                 Self { repr: ValueRepr::Unset(data_type) }
             }
@@ -195,6 +195,22 @@ for_each_value_type!(impl_value_constructors);
 
 impl Value {
     /// Strictly borrows a stored scalar without allocating.
+    ///
+    /// The requested type must implement a reference conversion from `Value`;
+    /// this method does not perform cross-type conversion.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Expected scalar payload type.
+    ///
+    /// # Returns
+    ///
+    /// A shared reference to the stored payload when its type matches `T`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::Missing`] when the value is unset for `T`, or
+    /// [`ValueError::TypeMismatch`] when its concrete type differs.
     #[inline(always)]
     pub fn get_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
     where
@@ -282,7 +298,6 @@ impl Value {
     /// # Returns
     ///
     /// A non-owning view that hides private storage representation details.
-    #[must_use = "the borrowed value view should be used"]
     #[inline(always)]
     pub fn view(&self) -> ValueRef<'_> {
         for_each_value_type!(owned_view_match, self)
@@ -1002,7 +1017,7 @@ macro_rules! impl_get_value {
         #[doc = "Returns [`ValueError::Missing`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
-            #[inline(always)]
+        #[inline(always)]
         pub fn $method(&self) -> ValueResult<$type> {
             match &self.repr {
                 ValueRepr::$variant(v) => Ok(*v),
@@ -1031,7 +1046,7 @@ macro_rules! impl_get_value {
         #[doc = "Returns [`ValueError::Missing`] when the value is unset with"]
         #[doc = "the requested type, or [`ValueError::TypeMismatch`] when the"]
         #[doc = "stored data type differs."]
-            #[inline(always)]
+        #[inline(always)]
         pub fn $method(&self) -> ValueResult<$ret_type> {
             match &self.repr {
                 ValueRepr::$variant(v) => {
@@ -1086,10 +1101,9 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueError::Conversion`] with
-    /// A non-finite reason is returned when any nested float is non-finite, an
-    /// out-of-range reason when an integer exceeds the strict JSON range, or a
-    /// serialization reason for every other unsupported Serde representation.
+    /// Returns [`ValueError::Conversion`] when serialization encounters a
+    /// non-finite nested float, an integer outside the strict JSON range, or
+    /// another unsupported Serde representation.
     #[cfg(all(feature = "converter", feature = "json"))]
     pub fn from_serializable<T: ?Sized + Serialize>(value: &T) -> ValueResult<Self> {
         let json = JsonValueEncoder::new().encode(value).map_err(|error| {
@@ -1734,7 +1748,6 @@ impl Value {
     ///
     /// A borrowed numeric representation for every concrete numeric variant,
     /// or `None` for unset and non-numeric variants.
-    #[must_use]
     fn as_number_ref(&self) -> Option<NumberRef<'_>> {
         for_each_value_type!(value_number_ref_match, self)
     }

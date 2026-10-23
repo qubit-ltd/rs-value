@@ -119,7 +119,8 @@ pub(crate) fn default_json_encode_limits() -> JsonEncodeLimits {
 /// # Parameters
 ///
 /// * `input` - Complete UTF-8 JSON document to decode.
-/// * `budget` - Budget charged for the complete envelope and its payload.
+/// * `session` - Caller-owned decode session charged for the complete envelope
+///   and its payload.
 ///
 /// # Returns
 ///
