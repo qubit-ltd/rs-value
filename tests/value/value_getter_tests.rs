@@ -27,7 +27,7 @@ use qubit_datatype::DataType;
 use qubit_value::Value;
 use qubit_value::ValueError;
 use qubit_value::ValueMissing;
-#[cfg(feature = "json")]
+#[cfg(all(feature = "converter", feature = "json"))]
 use serde_json::Value as JsonValue;
 #[cfg(feature = "json")]
 use serde_json::json;

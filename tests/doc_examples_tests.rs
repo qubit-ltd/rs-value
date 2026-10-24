@@ -294,6 +294,18 @@ fn compile_example(
     } else {
         String::new()
     };
+    let json_patch = root.parent().expect("crate parent").join("rs-json");
+    let json_patch = if json_patch.join("Cargo.toml").is_file() {
+        format!("qubit-json = {{ path = {:?} }}\n", json_patch)
+    } else {
+        String::new()
+    };
+    let budget_patch = root.parent().expect("crate parent").join("rs-budget");
+    let budget_patch = if budget_patch.join("Cargo.toml").is_file() {
+        format!("qubit-budget = {{ path = {:?} }}\n", budget_patch)
+    } else {
+        String::new()
+    };
     let package_name = fixture_package_name(file, dependencies, example);
     let manifest = format!(
         r#"[package]
@@ -306,7 +318,7 @@ edition = "2024"
 {dependencies}
 [patch.crates-io]
 qubit-value = {{ path = {root:?} }}
-{datatype_patch}"#,
+{datatype_patch}{json_patch}{budget_patch}"#,
     );
     fs::write(workspace.join("Cargo.toml"), manifest)
         .map_err(|error| diagnostic(file, &example.id, &format!("write fixture manifest: {error}")))?;

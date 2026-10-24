@@ -11,8 +11,6 @@
 
 mod helpers_tests;
 #[cfg(feature = "all")]
-pub(crate) use helpers_tests::decode_value_wire_payload_str;
-#[cfg(feature = "all")]
 pub(crate) use helpers_tests::decode_value_wire_payload_value;
 #[cfg(feature = "all")]
 pub(crate) use helpers_tests::decode_value_wire_slice;

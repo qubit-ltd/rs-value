@@ -8,6 +8,7 @@
 
 //! Tests for the explicit scalar-or-collection value container.
 
+#[cfg(any(feature = "redact", feature = "all"))]
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;

@@ -39,6 +39,18 @@ fn test_documented_installation_compiles_downstream() {
         // Published source packages resolve the documented datatype from the registry.
         String::new()
     };
+    let json = root.parent().expect("crate parent").join("rs-json");
+    let json_patch = if json.join("Cargo.toml").is_file() {
+        format!("qubit-json = {{ path = {json:?} }}\n")
+    } else {
+        String::new()
+    };
+    let budget = root.parent().expect("crate parent").join("rs-budget");
+    let budget_patch = if budget.join("Cargo.toml").is_file() {
+        format!("qubit-budget = {{ path = {budget:?} }}\n")
+    } else {
+        String::new()
+    };
     for (index, file) in [
         "README.md",
         "README.zh_CN.md",
@@ -68,11 +80,13 @@ edition = "2024"
 {}
 [patch.crates-io]
 qubit-value = {{ path = {:?} }}
-{}
+{}{}{}
 "#,
             dependencies(&document),
             root,
-            datatype_patch
+            datatype_patch,
+            json_patch,
+            budget_patch
         );
         fs::write(workspace.join("Cargo.toml"), manifest).expect("write literal dependency fixture");
         let output = Command::new(env!("CARGO"))
