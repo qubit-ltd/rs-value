@@ -220,7 +220,7 @@ fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
 #[test]
 fn test_named_value_exact_wrapper_node_budget_is_complete() {
     let value = NamedValue::new("token", Value::String("secret-token".to_owned()));
-    let policy = sensitive_policy_with_nodes("token", 5);
+    let policy = sensitive_policy_with_nodes("token", 3);
 
     let output = redacted_text(&value, &policy);
 
@@ -231,12 +231,13 @@ fn test_named_value_exact_wrapper_node_budget_is_complete() {
 #[test]
 fn test_named_value_one_less_wrapper_node_truncates() {
     let value = NamedValue::new("token", Value::String("secret-token".to_owned()));
-    let policy = sensitive_policy_with_nodes("token", 4);
+    let policy = sensitive_policy_with_nodes("token", 2);
 
-    let output = redacted_text(&value, &policy);
+    let result = Redactor::new(policy).redact_text(&value);
+    let output = result.text().as_str();
 
     assert!(!output.contains("secret-token"), "{output}");
-    assert!(output.contains("<truncated>"), "{output}");
+    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
 }
 
 #[test]
