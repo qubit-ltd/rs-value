@@ -12,7 +12,7 @@ use serde_json::Value;
 use serde_json::map::Iter as MapIter;
 
 /// Retains only the active iterator for each enclosing container.
-pub(super) enum JsonEqualityFrame<'a> {
+pub(in crate::identity) enum JsonEqualityFrame<'a> {
     /// Remaining paired elements of equal-length arrays.
     Array {
         /// Left array elements not yet compared.

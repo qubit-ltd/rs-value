@@ -9,9 +9,9 @@
 
 /// Hash aggregates for one object currently being visited.
 #[derive(Default)]
-pub(super) struct ObjectHash {
+pub(in crate::identity) struct ObjectHash {
     /// Wrapping sum of the object's entry hashes.
-    pub(super) sum: u64,
+    pub(in crate::identity) sum: u64,
     /// Rotated xor of the object's entry hashes.
-    pub(super) xor: u64,
+    pub(in crate::identity) xor: u64,
 }

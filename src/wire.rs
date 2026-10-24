@@ -8,20 +8,6 @@
 
 //! Canonical Serde payload adapters for value variants.
 
-#[cfg(feature = "chrono")]
-use chrono::DateTime;
-#[cfg(feature = "chrono")]
-use chrono::NaiveDate;
-#[cfg(feature = "chrono")]
-use chrono::NaiveDateTime;
-#[cfg(feature = "chrono")]
-use chrono::NaiveTime;
-#[cfg(feature = "chrono")]
-use chrono::SecondsFormat;
-#[cfg(feature = "chrono")]
-use chrono::Utc;
-#[cfg(feature = "big-integer")]
-use num_bigint::BigInt;
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Deserialize;
 #[cfg(any(feature = "chrono", feature = "url"))]
@@ -29,7 +15,7 @@ use serde::Deserializer;
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Serializer;
 #[cfg(feature = "url")]
-use url::Url;
+use ::url::Url;
 
 pub(crate) use crate::finite_float::float32;
 pub(crate) use crate::finite_float::float32_vec;
@@ -343,38 +329,38 @@ macro_rules! define_chrono_wire {
 define_chrono_wire!(
     date,
     date_vec,
-    NaiveDate,
-    |input| NaiveDate::parse_from_str(input, "%F").map_err(|error| error.to_string()),
-    |value: &NaiveDate| value.format("%F").to_string()
+    chrono::NaiveDate,
+    |input| chrono::NaiveDate::parse_from_str(input, "%F").map_err(|error| error.to_string()),
+    |value: &chrono::NaiveDate| value.format("%F").to_string()
 );
 
 #[cfg(feature = "chrono")]
 define_chrono_wire!(
     time,
     time_vec,
-    NaiveTime,
-    |input| NaiveTime::parse_from_str(input, "%H:%M:%S%.f").map_err(|error| error.to_string()),
-    |value: &NaiveTime| value.format("%H:%M:%S%.f").to_string()
+    chrono::NaiveTime,
+    |input| chrono::NaiveTime::parse_from_str(input, "%H:%M:%S%.f").map_err(|error| error.to_string()),
+    |value: &chrono::NaiveTime| value.format("%H:%M:%S%.f").to_string()
 );
 
 #[cfg(feature = "chrono")]
 define_chrono_wire!(
     datetime,
     datetime_vec,
-    NaiveDateTime,
-    |input| NaiveDateTime::parse_from_str(input, "%Y-%m-%dT%H:%M:%S%.f").map_err(|error| error.to_string()),
-    |value: &NaiveDateTime| value.format("%Y-%m-%dT%H:%M:%S%.f").to_string()
+    chrono::NaiveDateTime,
+    |input| chrono::NaiveDateTime::parse_from_str(input, "%Y-%m-%dT%H:%M:%S%.f").map_err(|error| error.to_string()),
+    |value: &chrono::NaiveDateTime| value.format("%Y-%m-%dT%H:%M:%S%.f").to_string()
 );
 
 #[cfg(feature = "chrono")]
 define_chrono_wire!(
     instant,
     instant_vec,
-    DateTime<Utc>,
-    |input| DateTime::parse_from_rfc3339(input)
-        .map(|value| value.with_timezone(&Utc))
+    chrono::DateTime<chrono::Utc>,
+    |input| chrono::DateTime::parse_from_rfc3339(input)
+        .map(|value| value.with_timezone(&chrono::Utc))
         .map_err(|error| error.to_string()),
-    |value: &DateTime<Utc>| value.to_rfc3339_opts(SecondsFormat::AutoSi, true)
+    |value: &chrono::DateTime<chrono::Utc>| value.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
 );
 
 /// Defines canonical scalar and vector wire adapters for URL values.
@@ -629,7 +615,7 @@ macro_rules! define_decimal_serde {
 }
 
 #[cfg(feature = "big-integer")]
-define_decimal_serde!(big_integer, big_integer_vec, BigInt);
+define_decimal_serde!(big_integer, big_integer_vec, num_bigint::BigInt);
 
 /// Canonical arbitrary-precision decimal scalar payload adapter.
 #[cfg(feature = "big-decimal")]

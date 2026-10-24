@@ -12,7 +12,9 @@ use std::collections::HashMap;
 use std::slice::Iter;
 use std::time::Duration;
 
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 use num_bigint::BigInt;
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 use num_bigint::Sign;
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
