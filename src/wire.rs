@@ -8,14 +8,14 @@
 
 //! Canonical Serde payload adapters for value variants.
 
+#[cfg(feature = "url")]
+use ::url::Url;
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Deserialize;
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Deserializer;
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Serializer;
-#[cfg(feature = "url")]
-use ::url::Url;
 
 pub(crate) use crate::finite_float::float32;
 pub(crate) use crate::finite_float::float32_vec;
