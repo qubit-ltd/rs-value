@@ -123,7 +123,7 @@ all = [
 [dependencies]
 serde = { version = "^1.0", features = ["derive"] }
 thiserror = "^2.0"
-qubit-budget = { path = "../rs-budget", version = "0.9.1", features = ["json"], optional = true }
+qubit-budget = { version = "0.9.1", features = ["json"], optional = true }
 
 qubit-json = { path = "../rs-json", version = "0.12", optional = true }
 
@@ -141,12 +141,11 @@ qubit-redact = { path = "../rs-redact", version = "0.10", default-features = fal
 [dev-dependencies]
 criterion = { version = "^0.8", default-features = false }
 chrono = { version = "0.4", default-features = false, features = ["std"] }
-qubit-budget = { path = "../rs-budget", version = "0.9.1", features = ["json"] }
+qubit-budget = { version = "0.9.1", features = ["json"] }
 
 serde_json = "1.0"
 
 [patch.crates-io]
-qubit-budget = { path = "../rs-budget" }
 
 [[bench]]
 name = "value_container_add_bench"
