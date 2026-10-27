@@ -531,8 +531,9 @@ Big-number coefficient and scale limits are checked before formatting. Bounded
 measurement and preflight add a traversal so final tree allocation occurs only
 after every limit check succeeds. Source strings stay borrowed until the final
 JSON string allocation; rich formatted values are cached and reused, including
-Duration formatting through the shared session. Numeric measurement does not
-allocate an intermediate heap string.
+Duration formatting through the shared session. Measuring integers and Float64
+does not allocate a temporary heap string. Float32 currently creates a temporary
+decimal String to preserve its existing projection semantics.
 
 Projection budget errors use `ValueError::JsonProjectionLimit`, preserving the
 resource, exact budget facts and optional collection index. Ordinary conversion

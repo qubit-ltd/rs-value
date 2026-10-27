@@ -170,10 +170,12 @@ the original integer width, distinguish unset from concrete JSON null, or
 recover a declared type from JSON alone.
 
 Projection preparation borrows source text and admits it before allocating the
-final JSON string. Numeric measurement uses bounded formatting without a heap
-string; formatted rich values are cached for the final projection, so conversion
-is charged once. Preparation failure produces no usable partial result. These
-changes preserve the existing Natural JSON categories and resource limits.
+final JSON string. Measuring integers and Float64 does not allocate a temporary
+heap string. Float32 currently creates a temporary decimal String to preserve
+its existing projection semantics. Formatted rich values are cached for the final
+projection, so conversion is charged once. Preparation failure produces no usable
+partial result. These changes preserve the existing Natural JSON categories and
+resource limits.
 
 Wire JSON uses explicit version, shape, and type tags. The DTOs implement
 `Serialize`, but intentionally do not implement generic `Deserialize`.
