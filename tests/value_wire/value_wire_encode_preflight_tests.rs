@@ -372,9 +372,9 @@ fn test_check_value_reports_each_cumulative_limit_precisely() {
             1,
         ),
         (
-            JsonEncodeLimits::builder().max_payload_bytes(0_usize).build(),
+            JsonEncodeLimits::builder().max_payload_bytes(2_usize).build(),
             JsonResource::PayloadBytes,
-            1,
+            3,
         ),
         (
             JsonEncodeLimits::builder().max_output_bytes(4_usize).build(),
@@ -389,6 +389,99 @@ fn test_check_value_reports_each_cumulative_limit_precisely() {
             .check_value(&Value::String("abc".to_owned()))
             .expect_err("the configured cumulative limit must reject the value");
         assert_lower_bound_limit(error, resource, observed, observed - 1);
+    }
+}
+
+#[test]
+fn test_preflight_accepts_deep_arrays_with_tight_payload() {
+    let mut payload = serde_json::Value::Bool(true);
+    for _ in 0..32 {
+        payload = serde_json::Value::Array(vec![payload]);
+    }
+    let value = Value::Json(payload);
+    let limits = JsonEncodeLimits::builder().max_payload_bytes(32).build();
+    let wire = ValueWireV1::try_from(value.clone()).expect("JSON value should have a Wire V1 representation");
+
+    wire.to_json_vec_with_limits(limits)
+        .expect("the encoded payload fits the configured limit");
+    ValueWireEncodePreflight::new(limits)
+        .check_value(&value)
+        .expect("array punctuation must not consume the payload budget");
+}
+
+#[test]
+fn test_preflight_accepts_deep_arrays_at_exact_output_size() {
+    let mut payload = serde_json::Value::Bool(true);
+    for _ in 0..60 {
+        payload = serde_json::Value::Array(vec![payload]);
+    }
+    let value = Value::Json(payload);
+    let wire = ValueWireV1::try_from(value.clone()).expect("JSON value should have a Wire V1 representation");
+    let encoded = wire
+        .to_json_vec_with_limits(JsonEncodeLimits::new())
+        .expect("unlimited encoding should succeed");
+    let limits = JsonEncodeLimits::builder().max_output_bytes(encoded.len()).build();
+
+    wire.to_json_vec_with_limits(limits)
+        .expect("encoding succeeds at its exact output length");
+    ValueWireEncodePreflight::new(limits)
+        .check_value(&value)
+        .expect("preflight output lower bound must not exceed encoded output");
+}
+
+#[test]
+fn test_empty_strings_do_not_consume_payload_budget() {
+    let limits = JsonEncodeLimits::builder().max_payload_bytes(0_usize).build();
+    let mut checker = ValueWireEncodePreflight::new(limits);
+
+    checker
+        .check_value(&Value::String(String::new()))
+        .expect("an empty string has no payload text bytes");
+    checker
+        .check_values(&MultiValues::String(vec![String::new()]))
+        .expect("an empty string in a collection has no payload text bytes");
+}
+
+#[test]
+fn test_failed_string_check_rolls_back_payload_before_next_check() {
+    let limits = JsonEncodeLimits::builder().max_payload_bytes(3_usize).build();
+    let mut checker = ValueWireEncodePreflight::new(limits);
+
+    checker
+        .check_value(&Value::String("ab".to_owned()))
+        .expect("the first string fits");
+    let error = checker
+        .check_value(&Value::String("cd".to_owned()))
+        .expect_err("the second string exceeds the cumulative payload limit");
+    assert_limit_exceeded(error, JsonResource::PayloadBytes);
+    checker
+        .check_value(&Value::String("x".to_owned()))
+        .expect("failed checks must not consume payload budget");
+}
+
+#[test]
+fn test_preflight_lower_bounds_for_empty_json_containers_and_map_text() {
+    let cases = [
+        Value::Json(serde_json::Value::Array(Vec::new())),
+        Value::Json(serde_json::Value::Object(serde_json::Map::new())),
+        Value::Json(serde_json::json!({ "": "" })),
+        Value::Json(serde_json::json!({ "text": "long value" })),
+        Value::Json(serde_json::json!(12345678901234567890_u64)),
+        Value::UInt128(u128::MAX),
+        Value::StringMap(HashMap::from([(String::new(), String::new())])),
+    ];
+
+    for value in cases {
+        let wire = ValueWireV1::try_from(value.clone()).expect("value should have a Wire V1 representation");
+        let encoded = wire
+            .to_json_vec_with_limits(JsonEncodeLimits::new())
+            .expect("unlimited encoding should succeed");
+        let limits = JsonEncodeLimits::builder().max_output_bytes(encoded.len()).build();
+        wire.to_json_vec_with_limits(limits)
+            .expect("encoding succeeds at its exact output length");
+        ValueWireEncodePreflight::new(limits)
+            .check_value(&value)
+            .expect("preflight lower bound must fit when bounded encoding succeeds");
     }
 }
 
@@ -452,7 +545,7 @@ fn test_check_values_failure_does_not_mutate_accumulated_state() {
 
 #[test]
 fn test_check_container_failure_does_not_mutate_accumulated_state() {
-    let limits = JsonEncodeLimits::builder().max_output_bytes(6_usize).build();
+    let limits = JsonEncodeLimits::builder().max_output_bytes(5_usize).build();
     let mut checker = ValueWireEncodePreflight::new(limits);
 
     checker

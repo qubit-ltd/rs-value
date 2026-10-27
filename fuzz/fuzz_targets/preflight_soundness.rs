@@ -19,7 +19,7 @@ use qubit_value::ValueWireV1;
 
 const MAX_INPUT_BYTES: usize = 4096;
 const MAX_ITEMS: usize = 32;
-const MAX_DEPTH: usize = 8;
+const MAX_DEPTH: usize = 60;
 const MAX_OUTPUT_BYTES: usize = 4 * 1024 * 1024;
 
 /// Limits the fuzz input slice to the target's maximum processing size.
@@ -34,7 +34,7 @@ fn text(data: &[u8]) -> String {
 
 /// Builds a JSON value whose nesting depth is selected by the input.
 fn nested_json(data: &[u8]) -> serde_json::Value {
-    let depth = usize::from(data.first().copied().unwrap_or_default() % (MAX_DEPTH as u8 + 1));
+    let depth = usize::from(data.get(3).copied().unwrap_or_default() % (MAX_DEPTH as u8 + 1));
     let leaf = serde_json::json!({
         "text": text(data),
         "finite": f64::from(data.get(1).copied().unwrap_or_default()) / 10.0,
@@ -71,17 +71,32 @@ fn value_from_bytes(data: &[u8]) -> ValueContainer {
 /// Creates JSON encoding limits varied by the bounded fuzz input.
 fn encode_limits(data: &[u8]) -> JsonEncodeLimits {
     let input = bounded_input(data);
-    let value_limit = 512 + usize::from(input.get(3).copied().unwrap_or_default()) * 32;
+    let tight_limits = input.get(6).copied().unwrap_or_default() & 1 == 1;
+    let value_limit = if tight_limits {
+        usize::from(input.get(7).copied().unwrap_or_default())
+    } else {
+        512 + usize::from(input.get(7).copied().unwrap_or_default()) * 32
+    };
+    let output_limit = if tight_limits {
+        usize::from(input.get(4).copied().unwrap_or_default()) * 2
+    } else {
+        MAX_OUTPUT_BYTES
+    };
+    let payload_limit = if tight_limits {
+        usize::from(input.get(5).copied().unwrap_or_default()) * 2
+    } else {
+        MAX_OUTPUT_BYTES
+    };
     JsonEncodeLimits::builder()
-        .max_output_bytes(MAX_OUTPUT_BYTES)
-        .max_depth(MAX_DEPTH + 2)
+        .max_output_bytes(output_limit)
+        .max_depth(68)
         .max_nodes(4096)
         .max_sequence_items(MAX_ITEMS + 2)
         .max_map_entries(MAX_ITEMS + 2)
         .max_key_bytes(4096)
         .max_string_bytes(value_limit)
         .max_number_bytes(value_limit)
-        .max_payload_bytes(MAX_OUTPUT_BYTES)
+        .max_payload_bytes(payload_limit)
         .build()
 }
 

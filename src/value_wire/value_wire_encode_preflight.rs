@@ -362,14 +362,7 @@ impl ValueWireEncodePreflight {
         values: &MultiValues,
         depth: usize,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        self.admit(
-            JsonMeasurement::Array {
-                depth,
-                items: values.len(),
-            },
-            values.len().saturating_add(2),
-            2,
-        )?;
+        self.admit_array(depth, values.len())?;
         let view = values.view();
         for index in 0..view.len() {
             if let Some(value) = view.get(index) {
@@ -386,14 +379,7 @@ impl ValueWireEncodePreflight {
         map: &HashMap<String, String>,
         depth: usize,
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        self.admit(
-            JsonMeasurement::Object {
-                depth,
-                entries: map.len(),
-            },
-            map.len().saturating_mul(2).saturating_add(2),
-            2,
-        )?;
+        self.admit_object(depth, map.len())?;
         for (key, value) in map {
             self.check_point(JsonMeasurement::Key { bytes: key.len() })?;
             self.admit_string(depth + 1, value.len())?;
@@ -426,25 +412,11 @@ impl ValueWireEncodePreflight {
                     }
                     JsonValue::String(value) => self.admit_string(depth, value.len())?,
                     JsonValue::Array(values) => {
-                        self.admit(
-                            JsonMeasurement::Array {
-                                depth,
-                                items: values.len(),
-                            },
-                            values.len().saturating_add(2),
-                            2,
-                        )?;
+                        self.admit_array(depth, values.len())?;
                         frames.push(Frame::Array(values.iter(), depth + 1));
                     }
                     JsonValue::Object(values) => {
-                        self.admit(
-                            JsonMeasurement::Object {
-                                depth,
-                                entries: values.len(),
-                            },
-                            values.len().saturating_mul(2).saturating_add(2),
-                            2,
-                        )?;
+                        self.admit_object(depth, values.len())?;
                         frames.push(Frame::Object(values.iter(), depth + 1));
                     }
                 },
@@ -468,12 +440,33 @@ impl ValueWireEncodePreflight {
 
     /// Accounts for a JSON string, including its quotes in the output estimate.
     fn admit_string(&mut self, depth: usize, bytes: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        self.admit(JsonMeasurement::String { depth, bytes }, bytes.saturating_add(2), 1)
+        let output = bytes
+            .checked_add(2)
+            .ok_or_else(|| self.quantity_error(JsonResource::OutputBytes))?;
+        self.admit(JsonMeasurement::String { depth, bytes }, output, bytes)
     }
 
     /// Accounts for a JSON number using its conservative encoded byte length.
     fn admit_number(&mut self, depth: usize, bytes: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        self.admit(JsonMeasurement::Number { depth, bytes }, bytes, 1)
+        self.admit(JsonMeasurement::Number { depth, bytes }, bytes, bytes)
+    }
+
+    /// Accounts for array punctuation without charging it to payload bytes.
+    fn admit_array(&mut self, depth: usize, items: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        let output = items
+            .saturating_sub(1)
+            .checked_add(2)
+            .ok_or_else(|| self.quantity_error(JsonResource::OutputBytes))?;
+        self.admit(JsonMeasurement::Array { depth, items }, output, 0)
+    }
+
+    /// Accounts for object punctuation without charging it to payload bytes.
+    fn admit_object(&mut self, depth: usize, entries: usize) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        let output = entries
+            .checked_add(entries.saturating_sub(1))
+            .and_then(|value| value.checked_add(2))
+            .ok_or_else(|| self.quantity_error(JsonResource::OutputBytes))?;
+        self.admit(JsonMeasurement::Object { depth, entries }, output, 0)
     }
 
     /// Accounts for the object representation of a duration.
