@@ -208,7 +208,11 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// rejects the payload, or `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer_with_limits<W>(&self, mut writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(
+        &self,
+        mut writer: W,
+        limits: JsonEncodeLimits,
+    ) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
@@ -247,7 +251,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
 pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "big-decimal")]
     if let ValueRepr::BigDecimal(value) = &value.repr {
-        validate_big_decimal_scale(value.as_bigint_and_exponent().1)?;
+        validate_big_decimal_scale(value.as_bigint_and_scale().1)?;
     }
     let non_finite = matches!(&value.repr, ValueRepr::Float32(value) if !value.is_finite())
         || matches!(&value.repr, ValueRepr::Float64(value) if !value.is_finite());
@@ -277,7 +281,7 @@ pub(in crate::value_wire) fn validate_values(values: &MultiValues) -> Result<(),
     #[cfg(feature = "big-decimal")]
     if let MultiValuesRepr::BigDecimal(values) = &values.repr {
         for value in values {
-            validate_big_decimal_scale(value.as_bigint_and_exponent().1)?;
+            validate_big_decimal_scale(value.as_bigint_and_scale().1)?;
         }
     }
     let non_finite = match &values.repr {
