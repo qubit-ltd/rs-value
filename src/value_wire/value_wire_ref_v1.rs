@@ -202,13 +202,13 @@ impl<'a> ValueWireRefV1<'a> {
     /// rejects the envelope, or `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer_with_limits<W>(&self, writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(&self, mut writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
-            .write_buffered(writer, self)
+            .write_buffered(&mut writer, self)
             .map_err(ValueWireEncodeError::from)
     }
 }

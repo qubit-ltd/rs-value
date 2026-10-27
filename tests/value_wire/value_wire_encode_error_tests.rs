@@ -92,8 +92,9 @@ fn test_value_wire_encode_error_maps_owned_encoder_sources() {
     let invalid_raw: JsonEncodeError<JsonResource> = JsonEncoder::unlimited()
         .to_vec(&InvalidRawValue)
         .expect_err("invalid RawValue text must fail");
+    let mut rejecting = RejectingWriter;
     let writer: JsonEncodeError<JsonResource> = JsonEncoder::unlimited()
-        .write_buffered(RejectingWriter, &true)
+        .write_buffered(&mut rejecting, &true)
         .expect_err("rejecting writer must fail");
 
     assert!(matches!(
