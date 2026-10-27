@@ -202,7 +202,11 @@ impl<'a> ValueWireRefV1<'a> {
     /// rejects the envelope, or `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn to_json_writer_with_limits<W>(&self, mut writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(
+        &self,
+        mut writer: W,
+        limits: JsonEncodeLimits,
+    ) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {

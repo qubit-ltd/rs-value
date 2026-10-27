@@ -281,7 +281,11 @@ impl NamedMultiValues {
     /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits`, the
     /// named collection cannot be serialized, or `writer` rejects output.
     #[cfg(feature = "json")]
-    pub fn to_json_writer_with_limits<W>(&self, mut writer: W, limits: JsonEncodeLimits) -> Result<(), ValueWireEncodeError>
+    pub fn to_json_writer_with_limits<W>(
+        &self,
+        mut writer: W,
+        limits: JsonEncodeLimits,
+    ) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
     {
