@@ -88,6 +88,19 @@ use crate::value_error::ValueResult;
 /// concrete enum representation is private so storage optimizations do not
 /// become part of the public API.
 ///
+/// # Equality and hashing
+///
+/// Equality includes the runtime variant, so values such as `Int32(1)` and
+/// `Int64(1)` are distinct. An unset value's declared type also participates in
+/// its identity. Within each floating-point width, all NaN payloads compare
+/// equal and positive and negative zero compare equal. String maps and JSON
+/// objects compare and hash independently of entry order; JSON arrays preserve
+/// element order. BigDecimal values use numeric equality, and their hashes use
+/// the same normalized numeric identity. Use [`Value::numeric_cmp`] to compare
+/// numeric values across runtime types; `Eq` does not provide cross-type
+/// numeric comparison. Hash output is intended for in-process collections and
+/// is not a persistent fingerprint.
+///
 /// # Examples
 ///
 /// ```
@@ -95,6 +108,17 @@ use crate::value_error::ValueResult;
 ///
 /// let value = Value::from(42_i32);
 /// assert_eq!(value.get_int32().unwrap(), 42);
+/// ```
+///
+/// Equality follows the runtime variant while normalizing NaN and signed zero
+/// within a floating-point width:
+///
+/// ```
+/// use qubit_value::Value;
+///
+/// assert_ne!(Value::Int32(1), Value::Int64(1));
+/// assert_eq!(Value::Float64(f64::NAN), Value::Float64(f64::NAN));
+/// assert_eq!(Value::Float64(0.0), Value::Float64(-0.0));
 /// ```
 #[must_use]
 #[derive(Clone)]

@@ -72,6 +72,18 @@ use crate::value::ValueRepr;
 
 /// Multiple typed runtime values with private storage representation.
 ///
+/// # Equality and hashing
+///
+/// Equality includes the collection variant and preserves element count and
+/// order. An unset collection's declared element type also participates in its
+/// identity. Floating-point elements use the same-width NaN and signed-zero
+/// normalization as [`Value`]. String maps and JSON objects compare and hash
+/// independently of entry order, while JSON arrays preserve element order.
+/// BigDecimal elements use numeric equality with a consistent normalized hash.
+/// Use [`Value::numeric_cmp`] to compare numeric values across runtime types;
+/// `Eq` does not provide cross-type numeric comparison. Hash output is intended
+/// for in-process collections and is not a persistent fingerprint.
+///
 /// # Examples
 ///
 /// ```
@@ -79,6 +91,18 @@ use crate::value::ValueRepr;
 ///
 /// let values = MultiValues::from(vec![1_i32, 2, 3]);
 /// assert_eq!(values.get_int32s().unwrap(), &[1, 2, 3]);
+/// ```
+///
+/// Equality preserves element order and normalizes NaNs within one float width:
+///
+/// ```
+/// use qubit_value::MultiValues;
+///
+/// assert_ne!(MultiValues::Float64(vec![1.0, 2.0]), MultiValues::Float64(vec![2.0, 1.0]));
+/// assert_eq!(
+///     MultiValues::Float64(vec![f64::NAN]),
+///     MultiValues::Float64(vec![f64::NAN]),
+/// );
 /// ```
 #[must_use]
 #[derive(Clone)]
