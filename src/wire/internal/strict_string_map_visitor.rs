@@ -9,6 +9,7 @@
 //! Map visitor that rejects duplicate string keys during deserialization.
 
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -60,8 +61,13 @@ where
     {
         let mut values = HashMap::new();
         while let Some((key, value)) = map.next_entry::<String, V>()? {
-            if values.insert(key.clone(), value).is_some() {
-                return Err(de::Error::custom(format!("duplicate map key '{key}'")));
+            match values.entry(key) {
+                Entry::Vacant(entry) => {
+                    entry.insert(value);
+                }
+                Entry::Occupied(entry) => {
+                    return Err(de::Error::custom(format!("duplicate map key '{}'", entry.key())));
+                }
             }
         }
         Ok(values)
