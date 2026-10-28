@@ -15,8 +15,75 @@ use qubit_budget::Observation;
 use qubit_budget::QuantityConversionError;
 use qubit_budget::QuantityMeasurement;
 use qubit_budget::json::JsonResource;
+use qubit_json::decode::JsonDecoder;
 use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireJsonError;
 use qubit_value::ValueWireV1;
+
+#[test]
+fn test_safe_wire_json_error_preserves_category_and_position() {
+    for input in ["{", "[1,", "not-json"] {
+        let source = serde_json::from_str::<serde_json::Value>(input).unwrap_err();
+        let expected = (source.classify(), source.line(), source.column());
+        let mapped = ValueWireDecodeError::from(source);
+        let ValueWireDecodeError::InvalidJson(safe) = mapped else {
+            panic!("direct Serde errors must use InvalidJson");
+        };
+        assert_eq!((safe.classify(), safe.line(), safe.column()), expected);
+        match expected.0 {
+            serde_json::error::Category::Io => assert!(safe.is_io()),
+            serde_json::error::Category::Syntax => assert!(safe.is_syntax()),
+            serde_json::error::Category::Data => assert!(safe.is_data()),
+            serde_json::error::Category::Eof => assert!(safe.is_eof()),
+        }
+    }
+}
+
+#[test]
+fn test_safe_wire_json_data_error_preserves_facts_without_input() {
+    let source = serde_json::from_str::<u64>("\"TOP_SECRET\"").unwrap_err();
+    let expected = (source.classify(), source.line(), source.column());
+    let mapped = ValueWireDecodeError::from(source);
+    let ValueWireDecodeError::InvalidJson(safe) = &mapped else {
+        panic!("direct Serde errors must use InvalidJson");
+    };
+    assert_eq!((safe.classify(), safe.line(), safe.column()), expected);
+    assert!(safe.is_data());
+
+    assert!(!mapped.to_string().contains("TOP_SECRET"));
+    assert!(!format!("{mapped:?}").contains("TOP_SECRET"));
+    let mut source = mapped.source();
+    while let Some(error) = source {
+        assert!(!error.to_string().contains("TOP_SECRET"));
+        source = error.source();
+    }
+
+    let source = mapped
+        .source()
+        .expect("safe metadata remains in the source chain");
+    assert!(source.downcast_ref::<ValueWireJsonError>().is_some());
+    assert!(
+        source.source().is_none(),
+        "safe metadata has no nested source"
+    );
+}
+
+#[test]
+fn test_wire_json_error_without_upstream_position_uses_zero() {
+    let mut decoder = JsonDecoder::unlimited();
+    let source = decoder
+        .decode_unique_utf8::<u64>(br#""TOP_SECRET""#)
+        .expect_err("a JSON string is not a u64 target");
+    assert!(source.line().is_none() || source.line() == Some(0));
+    assert!(source.column().is_none() || source.column() == Some(0));
+    let error = ValueWireDecodeError::from(source);
+    let ValueWireDecodeError::InvalidJson(safe) = error else {
+        panic!("unique target-deserialization failures must map to InvalidJson");
+    };
+
+    assert!(safe.is_data());
+    assert_eq!((safe.line(), safe.column()), (0, 0));
+}
 
 #[test]
 fn test_value_wire_decode_error_preserves_budget_source() {

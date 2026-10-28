@@ -43,6 +43,8 @@ mod value_wire_decode_error;
 mod value_wire_encode_error;
 #[cfg(feature = "json")]
 mod value_wire_encode_preflight;
+#[cfg(feature = "json")]
+mod value_wire_json_error;
 mod value_wire_payload_ref_v1;
 mod value_wire_payload_v1;
 mod value_wire_payload_v1_seed;
@@ -59,6 +61,8 @@ pub use self::value_wire_decode_error::ValueWireDecodeError;
 pub use self::value_wire_encode_error::ValueWireEncodeError;
 #[cfg(feature = "json")]
 pub use self::value_wire_encode_preflight::ValueWireEncodePreflight;
+#[cfg(feature = "json")]
+pub use self::value_wire_json_error::ValueWireJsonError;
 pub use self::value_wire_payload_ref_v1::ValueWirePayloadRefV1;
 pub use self::value_wire_payload_v1::ValueWirePayloadV1;
 pub use self::value_wire_payload_v1_seed::ValueWirePayloadV1Seed;

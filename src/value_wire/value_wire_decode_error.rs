@@ -22,6 +22,8 @@ use serde_json::Error as JsonError;
 use serde_json::error::Category;
 use thiserror::Error;
 
+use super::value_wire_json_error::ValueWireJsonError;
+
 /// Error produced by a bounded [`crate::ValueWireV1`] JSON decoder.
 ///
 /// # Examples
@@ -89,14 +91,14 @@ pub enum ValueWireDecodeError {
     /// The bounded input is not a valid V1 JSON wire value.
     #[error("failed to decode V1 JSON wire input: {0}")]
     InvalidJson(
-        /// Serde JSON error stripped of input contents but retaining location.
+        /// Safe Serde JSON metadata without the original detailed error.
         #[source]
-        JsonError,
+        ValueWireJsonError,
     ),
 }
 
 impl ValueWireDecodeError {
-    /// Constructs a privacy-safe Serde error from structured decode metadata.
+    /// Constructs privacy-safe Serde metadata from structured decode facts.
     ///
     /// # Parameters
     ///
@@ -108,10 +110,7 @@ impl ValueWireDecodeError {
     ///
     /// An invalid-JSON error that retains diagnostics without input contents.
     fn deserialize(category: Category, line: usize, column: usize) -> Self {
-        let error = <JsonError as serde::de::Error>::custom(format_args!(
-            "JSON deserialization failed ({category:?}) at line {line}, column {column}"
-        ));
-        Self::InvalidJson(error)
+        Self::InvalidJson(ValueWireJsonError::new(category, line, column))
     }
 }
 

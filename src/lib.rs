@@ -148,6 +148,8 @@ pub use self::value_wire::ValueWireDecodeError;
 pub use self::value_wire::ValueWireEncodeError;
 #[cfg(feature = "json")]
 pub use self::value_wire::ValueWireEncodePreflight;
+#[cfg(feature = "json")]
+pub use self::value_wire::ValueWireJsonError;
 pub use self::value_wire::ValueWirePayloadRefV1;
 pub use self::value_wire::ValueWirePayloadV1;
 pub use self::value_wire::ValueWirePayloadV1Seed;
