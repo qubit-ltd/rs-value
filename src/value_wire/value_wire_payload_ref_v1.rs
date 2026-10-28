@@ -61,7 +61,8 @@ pub struct ValueWirePayloadRefV1<'a> {
 }
 
 impl<'a> ValueWirePayloadRefV1<'a> {
-    /// Borrows a scalar after validating V1's finite-float invariant.
+    /// Borrows a scalar after validating the V1 wire representation
+    /// constraints.
     ///
     /// # Parameters
     ///
@@ -73,8 +74,10 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when the scalar contains a non-finite
-    /// float or an out-of-range decimal scale.
+    /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite float,
+    /// [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for an unsupported
+    /// decimal scale, or [`ValueWireEncodeError::InstantYearOutOfRange`] when
+    /// an Instant's UTC year is outside 0 through 9999.
     pub fn from_value(value: &'a Value) -> Result<Self, ValueWireEncodeError> {
         validate_value(value)?;
         Ok(Self {
@@ -82,7 +85,8 @@ impl<'a> ValueWirePayloadRefV1<'a> {
         })
     }
 
-    /// Borrows a collection after validating V1's finite-float invariant.
+    /// Borrows a collection after validating the V1 wire representation
+    /// constraints.
     ///
     /// # Parameters
     ///
@@ -94,8 +98,11 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when an element is a non-finite float
-    /// or has an out-of-range decimal scale.
+    /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite float
+    /// element, [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for an
+    /// unsupported decimal scale, or
+    /// [`ValueWireEncodeError::InstantYearOutOfRange`] when an Instant's
+    /// UTC year is outside 0 through 9999.
     pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
         validate_values(values)?;
         Ok(Self {
@@ -103,7 +110,8 @@ impl<'a> ValueWirePayloadRefV1<'a> {
         })
     }
 
-    /// Borrows an explicit shape after validating V1's finite-float invariant.
+    /// Borrows an explicit shape after validating the V1 wire representation
+    /// constraints.
     ///
     /// # Parameters
     ///
@@ -115,8 +123,10 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when any contained value violates the
-    /// V1 numeric representation constraints.
+    /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite float,
+    /// [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for an unsupported
+    /// decimal scale, or [`ValueWireEncodeError::InstantYearOutOfRange`] when
+    /// an Instant's UTC year is outside 0 through 9999.
     pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
         match value {
             ValueContainer::Scalar(value) => validate_value(value)?,
@@ -250,8 +260,11 @@ impl<'a> ValueWirePayloadRefV1<'a> {
 ///
 /// # Errors
 ///
-/// Returns [`ValueWireEncodeError`] for a non-finite float or an out-of-range
-/// arbitrary-precision decimal scale.
+/// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite float,
+/// [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for an unsupported
+/// arbitrary-precision decimal scale, or
+/// [`ValueWireEncodeError::InstantYearOutOfRange`] for an Instant whose UTC
+/// year is outside 0 through 9999.
 pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "chrono")]
     if let ValueRepr::Instant(value) = &value.repr {
@@ -271,7 +284,7 @@ pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWi
     Ok(())
 }
 
-/// Validates one collection against V1's JSON finite-float invariant.
+/// Validates one collection against the V1 wire representation constraints.
 ///
 /// # Parameters
 ///
@@ -283,8 +296,11 @@ pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWi
 ///
 /// # Errors
 ///
-/// Returns [`ValueWireEncodeError`] for a non-finite float element or an
-/// out-of-range arbitrary-precision decimal scale.
+/// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite float
+/// element, [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for an
+/// unsupported arbitrary-precision decimal scale, or
+/// [`ValueWireEncodeError::InstantYearOutOfRange`] for an Instant whose UTC
+/// year is outside 0 through 9999.
 pub(in crate::value_wire) fn validate_values(values: &MultiValues) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "chrono")]
     if let MultiValuesRepr::Instant(values) = &values.repr {

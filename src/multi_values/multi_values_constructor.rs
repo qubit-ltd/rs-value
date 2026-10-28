@@ -53,6 +53,7 @@ macro_rules! impl_multi_values_from_table {
         $(
             $(#[$cfg])*
             impl From<$type> for MultiValues {
+                /// Creates a one-item collection by taking ownership of `value`.
                 #[inline]
                 fn from(value: $type) -> Self {
                     MultiValues::$variant(vec![value])
@@ -61,6 +62,8 @@ macro_rules! impl_multi_values_from_table {
 
             $(#[$cfg])*
             impl From<Vec<$type>> for MultiValues {
+                /// Takes ownership of the vector and its element storage without cloning elements.
+                /// An empty vector creates a concrete empty collection.
                 #[inline]
                 fn from(values: Vec<$type>) -> Self {
                     MultiValues::$variant(values)
@@ -69,6 +72,8 @@ macro_rules! impl_multi_values_from_table {
 
             $(#[$cfg])*
             impl From<&[$type]> for MultiValues {
+                /// Clones the elements into an owned collection, preserving order.
+                /// An empty slice creates a concrete empty collection.
                 #[inline]
                 fn from(values: &[$type]) -> Self {
                     MultiValues::$variant(values.to_vec())
@@ -77,6 +82,8 @@ macro_rules! impl_multi_values_from_table {
 
             $(#[$cfg])*
             impl From<&Vec<$type>> for MultiValues {
+                /// Clones the elements into an owned collection, preserving order.
+                /// An empty vector creates a concrete empty collection.
                 #[inline]
                 fn from(values: &Vec<$type>) -> Self {
                     MultiValues::$variant(values.clone())
@@ -85,6 +92,8 @@ macro_rules! impl_multi_values_from_table {
 
             $(#[$cfg])*
             impl<const N: usize> From<[$type; N]> for MultiValues {
+                /// Moves the array elements into a newly allocated vector, preserving order.
+                /// An empty array creates a concrete empty collection.
                 #[inline]
                 fn from(values: [$type; N]) -> Self {
                     MultiValues::$variant(Vec::from(values))
@@ -93,6 +102,8 @@ macro_rules! impl_multi_values_from_table {
 
             $(#[$cfg])*
             impl<const N: usize> From<&[$type; N]> for MultiValues {
+                /// Clones the elements into an owned collection, preserving order.
+                /// An empty array creates a concrete empty collection.
                 #[inline]
                 fn from(values: &[$type; N]) -> Self {
                     MultiValues::$variant(values.to_vec())
@@ -105,6 +116,7 @@ macro_rules! impl_multi_values_from_table {
 for_each_value_type!(impl_multi_values_from_table);
 
 impl From<&str> for MultiValues {
+    /// Copies the text into a one-item owned string collection.
     #[inline]
     fn from(value: &str) -> Self {
         MultiValues::String(vec![value.to_string()])
@@ -112,6 +124,8 @@ impl From<&str> for MultiValues {
 }
 
 impl<'a> From<Vec<&'a str>> for MultiValues {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty vector creates a concrete empty collection.
     #[inline]
     fn from(values: Vec<&'a str>) -> Self {
         MultiValues::String(collect_strings(values))
@@ -119,6 +133,8 @@ impl<'a> From<Vec<&'a str>> for MultiValues {
 }
 
 impl<'a, 'b> From<&'a [&'b str]> for MultiValues {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty slice creates a concrete empty collection.
     #[inline]
     fn from(values: &'a [&'b str]) -> Self {
         MultiValues::String(collect_strings(values.iter().copied()))
@@ -126,6 +142,8 @@ impl<'a, 'b> From<&'a [&'b str]> for MultiValues {
 }
 
 impl<'a, 'b> From<&'a Vec<&'b str>> for MultiValues {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty vector creates a concrete empty collection.
     #[inline]
     fn from(values: &'a Vec<&'b str>) -> Self {
         MultiValues::String(collect_strings(values.iter().copied()))
@@ -133,6 +151,8 @@ impl<'a, 'b> From<&'a Vec<&'b str>> for MultiValues {
 }
 
 impl<'a, const N: usize> From<[&'a str; N]> for MultiValues {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty array creates a concrete empty collection.
     #[inline]
     fn from(values: [&'a str; N]) -> Self {
         MultiValues::String(collect_strings(values))
@@ -140,6 +160,8 @@ impl<'a, const N: usize> From<[&'a str; N]> for MultiValues {
 }
 
 impl<'a, 'b, const N: usize> From<&'a [&'b str; N]> for MultiValues {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty array creates a concrete empty collection.
     #[inline]
     fn from(values: &'a [&'b str; N]) -> Self {
         MultiValues::String(collect_strings(values.iter().copied()))

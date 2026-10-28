@@ -203,6 +203,34 @@ for_each_value_type!(impl_multi_values_constructors);
 
 impl MultiValues {
     /// Strictly borrows the first stored item without allocating.
+    ///
+    /// The returned reference is tied to this collection's lifetime. The
+    /// requested type must match the stored element type.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Stored element type to borrow.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the first item.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::Missing`] when no first item is available, or a
+    /// type conversion error when the stored element type does not match `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use qubit_value::{MultiValues, ValueError};
+    ///
+    /// let values = MultiValues::new(vec![String::from("a"), String::from("b")]);
+    /// let first: &String = values.get_first_ref().unwrap();
+    /// assert_eq!(first, "a");
+    /// let empty = MultiValues::new(Vec::<String>::new());
+    /// assert!(matches!(empty.get_first_ref::<String>(), Err(ValueError::Missing(_))));
+    /// ```
     #[inline(always)]
     pub fn get_first_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
     where
@@ -212,6 +240,35 @@ impl MultiValues {
     }
 
     /// Strictly borrows the complete collection without allocating.
+    ///
+    /// The returned slice is tied to this collection's lifetime. The
+    /// requested element type must match the stored type.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Stored element type of the borrowed slice.
+    ///
+    /// # Returns
+    ///
+    /// A slice of all stored items, including an empty slice for an empty
+    /// collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns a type conversion error when the stored element type does not
+    /// match `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use qubit_value::MultiValues;
+    ///
+    /// let values = MultiValues::new(vec![String::from("a"), String::from("b")]);
+    /// let all: &[String] = values.get_slice().unwrap();
+    /// assert_eq!(all.len(), 2);
+    /// let empty = MultiValues::new(Vec::<String>::new());
+    /// assert!(empty.get_slice::<String>().unwrap().is_empty());
+    /// ```
     #[inline(always)]
     pub fn get_slice<'a, T>(&'a self) -> ValueResult<&'a [T]>
     where
@@ -1764,8 +1821,10 @@ impl MultiValues {
     /// # Errors
     ///
     /// Returns the first conversion or budget error encountered while
-    /// converting an element. A policy-missing collection item is reported as
-    /// an indexed list conversion error.
+    /// converting an element. A policy-missing item returns
+    /// [`ValueError::Missing`]; its source index is retained by
+    /// [`crate::ValueMissing::source_index`]. Other element conversion failures
+    /// can return [`ValueError::ListConversion`].
     pub fn to_list_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,

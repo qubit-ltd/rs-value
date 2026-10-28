@@ -84,6 +84,7 @@ macro_rules! impl_value_container_from_table {
         $(
             $(#[$cfg])*
             impl From<$type> for ValueContainer {
+                /// Creates a scalar container by taking ownership of `value`.
                 #[inline(always)]
                 fn from(value: $type) -> Self {
                     Self::Scalar(Value::$variant(value))
@@ -92,6 +93,8 @@ macro_rules! impl_value_container_from_table {
 
             $(#[$cfg])*
             impl From<Vec<$type>> for ValueContainer {
+                /// Takes ownership of the vector and its element storage without cloning elements.
+                /// An empty vector creates a concrete empty collection.
                 #[inline(always)]
                 fn from(values: Vec<$type>) -> Self {
                     Self::Collection(MultiValues::$variant(values))
@@ -100,6 +103,8 @@ macro_rules! impl_value_container_from_table {
 
             $(#[$cfg])*
             impl From<&[$type]> for ValueContainer {
+                /// Clones the elements into an owned collection, preserving order.
+                /// An empty slice creates a concrete empty collection.
                 #[inline]
                 fn from(values: &[$type]) -> Self {
                     Self::Collection(MultiValues::$variant(values.to_vec()))
@@ -108,6 +113,8 @@ macro_rules! impl_value_container_from_table {
 
             $(#[$cfg])*
             impl From<&Vec<$type>> for ValueContainer {
+                /// Clones the elements into an owned collection, preserving order.
+                /// An empty vector creates a concrete empty collection.
                 #[inline]
                 fn from(values: &Vec<$type>) -> Self {
                     Self::Collection(MultiValues::$variant(values.clone()))
@@ -116,6 +123,8 @@ macro_rules! impl_value_container_from_table {
 
             $(#[$cfg])*
             impl<const N: usize> From<[$type; N]> for ValueContainer {
+                /// Moves the array elements into a newly allocated vector, preserving order.
+                /// An empty array creates a concrete empty collection.
                 #[inline]
                 fn from(values: [$type; N]) -> Self {
                     Self::Collection(MultiValues::$variant(Vec::from(values)))
@@ -124,6 +133,8 @@ macro_rules! impl_value_container_from_table {
 
             $(#[$cfg])*
             impl<const N: usize> From<&[$type; N]> for ValueContainer {
+                /// Clones the elements into an owned collection, preserving order.
+                /// An empty array creates a concrete empty collection.
                 #[inline]
                 fn from(values: &[$type; N]) -> Self {
                     Self::Collection(MultiValues::$variant(values.to_vec()))
@@ -181,6 +192,7 @@ macro_rules! value_container_push_match {
 }
 
 impl From<&str> for ValueContainer {
+    /// Copies the text into an owned scalar string.
     #[inline]
     fn from(value: &str) -> Self {
         Self::Scalar(Value::String(value.to_string()))
@@ -188,6 +200,8 @@ impl From<&str> for ValueContainer {
 }
 
 impl<'a> From<Vec<&'a str>> for ValueContainer {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty vector creates a concrete empty collection.
     #[inline]
     fn from(values: Vec<&'a str>) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -195,6 +209,8 @@ impl<'a> From<Vec<&'a str>> for ValueContainer {
 }
 
 impl<'a, 'b> From<&'a [&'b str]> for ValueContainer {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty slice creates a concrete empty collection.
     #[inline]
     fn from(values: &'a [&'b str]) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -202,6 +218,8 @@ impl<'a, 'b> From<&'a [&'b str]> for ValueContainer {
 }
 
 impl<'a, 'b> From<&'a Vec<&'b str>> for ValueContainer {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty vector creates a concrete empty collection.
     #[inline]
     fn from(values: &'a Vec<&'b str>) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -209,6 +227,8 @@ impl<'a, 'b> From<&'a Vec<&'b str>> for ValueContainer {
 }
 
 impl<'a, const N: usize> From<[&'a str; N]> for ValueContainer {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty array creates a concrete empty collection.
     #[inline]
     fn from(values: [&'a str; N]) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -216,6 +236,8 @@ impl<'a, const N: usize> From<[&'a str; N]> for ValueContainer {
 }
 
 impl<'a, 'b, const N: usize> From<&'a [&'b str; N]> for ValueContainer {
+    /// Copies each string into an owned collection, preserving order.
+    /// An empty array creates a concrete empty collection.
     #[inline]
     fn from(values: &'a [&'b str; N]) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -223,6 +245,7 @@ impl<'a, 'b, const N: usize> From<&'a [&'b str; N]> for ValueContainer {
 }
 
 impl From<Value> for ValueContainer {
+    /// Wraps the value as a scalar without cloning it.
     #[inline]
     fn from(value: Value) -> Self {
         Self::Scalar(value)
@@ -230,6 +253,7 @@ impl From<Value> for ValueContainer {
 }
 
 impl From<MultiValues> for ValueContainer {
+    /// Wraps the collection without cloning its elements.
     #[inline]
     fn from(values: MultiValues) -> Self {
         Self::Collection(values)
@@ -266,6 +290,34 @@ impl ValueContainer {
     }
 
     /// Strictly borrows the scalar or first collection item without allocating.
+    ///
+    /// The returned reference is tied to this container's lifetime. The
+    /// requested type must match the scalar or collection element type.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Stored scalar or element type to borrow.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the scalar or the first collection item.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::Missing`] when no item is available, or a type
+    /// conversion error when the stored type does not match `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use qubit_value::{ValueContainer, ValueError};
+    ///
+    /// let values = ValueContainer::from(vec![String::from("a"), String::from("b")]);
+    /// let first: &String = values.get_first_ref().unwrap();
+    /// assert_eq!(first, "a");
+    /// let empty = ValueContainer::from(Vec::<String>::new());
+    /// assert!(matches!(empty.get_first_ref::<String>(), Err(ValueError::Missing(_))));
+    /// ```
     #[inline(always)]
     pub fn get_first_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
     where
@@ -278,6 +330,34 @@ impl ValueContainer {
     }
 
     /// Strictly borrows a scalar as a one-item slice or a complete collection.
+    ///
+    /// The returned slice is tied to this container's lifetime. The requested
+    /// element type must match the stored type.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - Stored element type of the borrowed slice.
+    ///
+    /// # Returns
+    ///
+    /// A one-item slice for a scalar, or all collection items. An empty
+    /// collection returns an empty slice.
+    ///
+    /// # Errors
+    ///
+    /// Returns a type conversion error when the stored type does not match `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use qubit_value::ValueContainer;
+    ///
+    /// let values = ValueContainer::from(vec![String::from("a"), String::from("b")]);
+    /// let all: &[String] = values.get_slice().unwrap();
+    /// assert_eq!(all.len(), 2);
+    /// let empty = ValueContainer::from(Vec::<String>::new());
+    /// assert!(empty.get_slice::<String>().unwrap().is_empty());
+    /// ```
     #[inline(always)]
     pub fn get_slice<'a, T>(&'a self) -> ValueResult<&'a [T]>
     where
