@@ -3,7 +3,7 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Privacy-safe structured metadata for JSON wire decoding failures.
@@ -26,11 +26,7 @@ pub struct ValueWireJsonError {
 impl ValueWireJsonError {
     /// Constructs safe JSON error metadata.
     pub(crate) fn new(category: Category, line: usize, column: usize) -> Self {
-        Self {
-            category,
-            line,
-            column,
-        }
+        Self { category, line, column }
     }
 
     /// Returns the Serde JSON failure category.

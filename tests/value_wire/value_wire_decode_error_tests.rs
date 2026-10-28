@@ -58,14 +58,9 @@ fn test_safe_wire_json_data_error_preserves_facts_without_input() {
         source = error.source();
     }
 
-    let source = mapped
-        .source()
-        .expect("safe metadata remains in the source chain");
+    let source = mapped.source().expect("safe metadata remains in the source chain");
     assert!(source.downcast_ref::<ValueWireJsonError>().is_some());
-    assert!(
-        source.source().is_none(),
-        "safe metadata has no nested source"
-    );
+    assert!(source.source().is_none(), "safe metadata has no nested source");
 }
 
 #[test]
