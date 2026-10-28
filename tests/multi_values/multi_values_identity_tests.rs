@@ -14,14 +14,21 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::time::Duration;
 
+#[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
+#[cfg(feature = "chrono")]
 use chrono::DateTime;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
 use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
 use chrono::Utc;
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 use num_bigint::BigInt;
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonResource;
@@ -29,6 +36,7 @@ use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
+#[cfg(feature = "url")]
 use url::Url;
 
 #[cfg(feature = "json")]
@@ -69,7 +77,6 @@ impl Hasher for PanickingHasher {
 /// # Returns
 ///
 /// The hash produced by [`DefaultHasher`].
-#[cfg(feature = "json")]
 fn hash<T: Hash>(value: &T) -> u64 {
     let mut hasher = DefaultHasher::new();
     value.hash(&mut hasher);
@@ -130,6 +137,7 @@ fn test_multi_values_unordered_payloads_hash_structurally() {
         &MultiValues::StringMap(vec![left_map]),
         &MultiValues::StringMap(vec![right_map]),
     );
+    #[cfg(feature = "json")]
     assert_equal_hash(
         &MultiValues::Json(vec![serde_json::json!({"b": {"y": 2, "x": 1}, "a": 0})]),
         &MultiValues::Json(vec![serde_json::json!({"a": 0, "b": {"x": 1, "y": 2}})]),
@@ -138,6 +146,7 @@ fn test_multi_values_unordered_payloads_hash_structurally() {
 
 /// Verifies equal decimal encodings share identity without scale-sized work.
 #[test]
+#[cfg(feature = "big-decimal")]
 fn test_multi_values_big_decimal_identity_is_canonical() {
     assert_equal_hash(
         &MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(10), 1)]),
@@ -150,46 +159,46 @@ fn test_multi_values_big_decimal_identity_is_canonical() {
 /// Exercises equality and hashing for every multi-value variant.
 #[test]
 fn test_multi_values_identity_covers_every_variant() {
+    let mut values = vec![
+        MultiValues::Unset(DataType::Bool), MultiValues::Bool(vec![true]), MultiValues::Char(vec!['x']),
+        MultiValues::Int8(vec![-1]), MultiValues::Int16(vec![-2]), MultiValues::Int32(vec![-3]),
+        MultiValues::Int64(vec![-4]), MultiValues::Int128(vec![-5]), MultiValues::UInt8(vec![1]),
+        MultiValues::UInt16(vec![2]), MultiValues::UInt32(vec![3]), MultiValues::UInt64(vec![4]),
+        MultiValues::UInt128(vec![5]), MultiValues::Float32(vec![f32::NAN]),
+        MultiValues::Float64(vec![f64::NAN]), MultiValues::String(vec!["text".to_owned()]),
+        MultiValues::StringMap(vec![HashMap::from([("key".to_owned(), "value".to_owned())])]),
+        MultiValues::Duration(vec![Duration::new(8, 9)]),
+    ];
+    #[cfg(feature = "big-integer")]
+    values.push(MultiValues::BigInteger(vec![BigInt::from(6)]));
+    #[cfg(feature = "big-decimal")]
+    values.push(MultiValues::BigDecimal(vec![BigDecimal::from(7)]));
+    #[cfg(feature = "chrono")]
+    {
     let date = NaiveDate::from_ymd_opt(2026, 7, 17).expect("the test fixture date must be valid");
     let time = NaiveTime::from_hms_nano_opt(12, 34, 56, 789).expect("the test fixture time must be valid");
     let datetime = date.and_time(time);
-    let values = vec![
-        MultiValues::Unset(DataType::Bool),
-        MultiValues::Bool(vec![true]),
-        MultiValues::Char(vec!['x']),
-        MultiValues::Int8(vec![-1]),
-        MultiValues::Int16(vec![-2]),
-        MultiValues::Int32(vec![-3]),
-        MultiValues::Int64(vec![-4]),
-        MultiValues::Int128(vec![-5]),
-        MultiValues::UInt8(vec![1]),
-        MultiValues::UInt16(vec![2]),
-        MultiValues::UInt32(vec![3]),
-        MultiValues::UInt64(vec![4]),
-        MultiValues::UInt128(vec![5]),
-        MultiValues::Float32(vec![f32::NAN]),
-        MultiValues::Float64(vec![f64::NAN]),
-        MultiValues::BigInteger(vec![BigInt::from(6)]),
-        MultiValues::BigDecimal(vec![BigDecimal::from(7)]),
-        MultiValues::String(vec!["text".to_owned()]),
+    values.extend([
         MultiValues::Date(vec![date]),
         MultiValues::Time(vec![time]),
         MultiValues::DateTime(vec![datetime]),
         MultiValues::Instant(vec![DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc)]),
-        MultiValues::Duration(vec![Duration::new(8, 9)]),
-        MultiValues::Url(vec![
-            Url::parse("https://example.com/path").expect("the test fixture URL must be valid"),
-        ]),
-        MultiValues::StringMap(vec![HashMap::from([("key".to_owned(), "value".to_owned())])]),
+    ]);
+    }
+    #[cfg(feature = "url")]
+    values.push(MultiValues::Url(vec![Url::parse("https://example.com/path").expect("the test fixture URL must be valid")]));
+    #[cfg(feature = "json")]
+    values.extend([
         MultiValues::Json(vec![serde_json::json!({"items": [null, true, 42]})]),
-    ];
+    ]);
 
     for value in &values {
         assert_eq!(value, value);
         let _ = hash(value);
     }
+    let expected_len = values.len();
     let keys: HashSet<_> = values.into_iter().collect();
-    assert_eq!(keys.len(), 26);
+    assert_eq!(keys.len(), expected_len);
 }
 
 /// Verifies budgeted JSON hashing rolls back when a later element is rejected.
@@ -258,7 +267,7 @@ fn test_multi_values_hash_with_json_budget_panic_rolls_back_and_reuses_budget() 
 }
 
 /// Verifies budgeted hashing preserves special non-JSON identity hashes.
-#[cfg(feature = "json")]
+#[cfg(all(feature = "json", feature = "big-decimal"))]
 #[test]
 fn test_multi_values_hash_with_json_budget_matches_standard_hash_for_special_non_json_values() {
     let float = MultiValues::Float32(vec![-0.0]);

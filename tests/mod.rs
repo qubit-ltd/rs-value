@@ -20,13 +20,7 @@ mod contracts;
 mod finite_float_tests;
 mod identity;
 mod into_value_default_tests;
-#[cfg(all(
-    feature = "converter",
-    feature = "json",
-    feature = "chrono",
-    feature = "big-number",
-    feature = "url",
-))]
+#[cfg(all(feature = "converter", feature = "json"))]
 mod json_tests;
 mod multi_values;
 #[cfg(feature = "all")]
@@ -54,7 +48,6 @@ mod numeric_comparison_error_tests;
 mod strict_json_tests;
 mod strict_value_read_tests;
 mod value;
-#[cfg(all(feature = "converter", feature = "json"))]
 mod value_container_tests;
 #[cfg(feature = "converter")]
 mod value_error_tests;

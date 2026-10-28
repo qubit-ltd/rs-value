@@ -8,18 +8,22 @@
 
 //! Tests for the explicit scalar-or-collection value container.
 
-#[cfg(any(feature = "redact", feature = "all"))]
+#[cfg(any(feature = "redact", all(feature = "json", feature = "big-decimal")))]
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;
-#[cfg(feature = "all")]
+#[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
 use std::time::Duration;
 
+#[cfg(feature = "converter")]
 use qubit_datatype::CollectionConversionPolicy;
+#[cfg(feature = "converter")]
 use qubit_datatype::ConversionLimits;
-#[cfg(feature = "all")]
+#[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
 use qubit_datatype::ConversionOperationLimits;
+#[cfg(feature = "converter")]
 use qubit_datatype::ConversionPolicy;
+#[cfg(all(feature = "converter", feature = "json"))]
 use qubit_datatype::ConversionSession;
 use qubit_datatype::DataType;
 #[cfg(feature = "redact")]
@@ -181,6 +185,7 @@ fn test_runtime_value_wrappers_implement_hash_key_contract() {
 }
 
 #[test]
+#[cfg(all(feature = "converter", feature = "json"))]
 fn test_value_container_preserves_scalar_and_collection_shapes() {
     let scalar = ValueContainer::from(42_i32);
     let collection = ValueContainer::from(vec![42_i32]);
@@ -274,6 +279,7 @@ fn test_value_container_shape_accessors_preserve_values_and_mismatches() {
 }
 
 #[test]
+#[cfg(feature = "converter")]
 fn test_value_container_string_splitting_depends_on_explicit_shape() {
     let policy = ConversionPolicy::builder()
         .collection_policy(
@@ -450,6 +456,7 @@ fn test_value_container_strict_access_mutation_and_state_cover_both_shapes() {
 }
 
 #[test]
+#[cfg(feature = "converter")]
 fn test_value_container_conversion_covers_scalar_and_collection_dispatch() {
     let policy = ConversionPolicy::default();
     let scalar = ValueContainer::from(42_i32);
@@ -487,6 +494,7 @@ fn test_value_container_conversion_covers_scalar_and_collection_dispatch() {
 /// Covers borrowed access and the public conversion/session paths on both
 /// explicit shapes.
 #[test]
+#[cfg(all(feature = "converter", feature = "json"))]
 fn test_value_container_borrowed_and_session_conversion_paths() {
     let scalar = ValueContainer::from("42");
     let collection = ValueContainer::from(vec!["43", "44"]);
@@ -624,7 +632,7 @@ fn test_value_container_state_accessors_cover_scalar_collection_and_unset() {
 
 /// Routes richer scalar and nested JSON projection through the container
 /// budget boundary and checks a precise resource rejection.
-#[cfg(feature = "all")]
+#[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
 #[test]
 fn test_value_container_json_projection_uses_structured_budgets() {
     let policy = ConversionPolicy::default();

@@ -7,12 +7,12 @@
 // =============================================================================
 
 use std::cmp::Ordering;
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 use std::str::FromStr;
 
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_datatype::NumericComparisonPolicy;
@@ -34,7 +34,7 @@ fn test_value_numeric_cmp_compares_across_numeric_variants() {
 }
 
 /// Verifies exact and approximate decimal/float policy behavior.
-#[cfg(feature = "big-number")]
+#[cfg(feature = "big-decimal")]
 #[test]
 fn test_value_numeric_cmp_applies_explicit_policy() {
     let decimal = Value::BigDecimal(BigDecimal::from_str("0.1").unwrap());
@@ -118,7 +118,7 @@ fn test_value_is_nan_classifies_only_nan_floats() {
 }
 
 /// Exercises the lower-level numeric projection for every numeric variant.
-#[cfg(feature = "big-number")]
+#[cfg(all(feature = "big-decimal", feature = "big-integer"))]
 #[test]
 fn test_value_numeric_cmp_covers_every_numeric_variant() {
     let values = vec![

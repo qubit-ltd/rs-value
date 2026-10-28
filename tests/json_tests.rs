@@ -10,20 +10,24 @@
 
 #[cfg(all(feature = "converter", feature = "json"))]
 use std::collections::HashMap;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(all(
+    feature = "converter",
+    feature = "json",
+    any(feature = "chrono", feature = "big-decimal")
+))]
 use std::time::Duration;
 
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
 use bigdecimal::BigDecimal;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(all(feature = "converter", feature = "json", feature = "chrono"))]
 use chrono::DateTime;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(all(feature = "converter", feature = "json", feature = "chrono"))]
 use chrono::NaiveDate;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(all(feature = "converter", feature = "json", feature = "chrono"))]
 use chrono::NaiveTime;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(all(feature = "converter", feature = "json", feature = "chrono"))]
 use chrono::Utc;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(all(feature = "converter", feature = "json", feature = "big-integer"))]
 use num_bigint::BigInt;
 #[cfg(all(feature = "converter", feature = "json"))]
 use qubit_datatype::DataType;
@@ -45,7 +49,7 @@ use serde_json::from_str;
 use serde_json::json;
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde_json::to_string;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(all(feature = "converter", feature = "json", feature = "url"))]
 use url::Url;
 
 /// Projection budgets cover the whole collection, including cheap scalar paths.
@@ -142,6 +146,7 @@ fn test_natural_json_enforces_structure_before_materializing() {
 
 /// Duration formatting shares cumulative output capacity with every list item.
 #[test]
+#[cfg(feature = "big-decimal")]
 fn test_natural_json_bounds_duration_and_wide_number_text() {
     use qubit_datatype::ConversionLimits;
     use qubit_datatype::ConversionOperationLimits;
@@ -170,6 +175,7 @@ fn test_natural_json_projects_scalar() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
+#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal", feature = "url"))]
 fn test_natural_json_projects_every_scalar_variant() {
     macro_rules! assert_scalar {
         ($value:expr, $expected:expr) => {
@@ -324,6 +330,7 @@ fn test_natural_json_canonicalizes_objects_nested_inside_arrays() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
+#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal", feature = "url"))]
 fn test_natural_json_projects_every_collection_variant() {
     macro_rules! assert_collection {
         ($values:expr, $expected:expr) => {
@@ -422,6 +429,7 @@ fn test_natural_json_limit_error_preserves_budget_facts() {
 /// Input, keys, payload, big-number guards and empty/unset shapes remain
 /// distinct.
 #[test]
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 fn test_natural_json_projection_boundary_matrix() {
     use qubit_datatype::ConversionLimits;
     use qubit_datatype::ConversionOperationLimits;
@@ -489,6 +497,7 @@ fn test_natural_json_projection_boundary_matrix() {
 
 /// Big-integer projection applies numeric limits with the crate's public type.
 #[test]
+#[cfg(feature = "big-integer")]
 fn test_natural_json_checks_big_integer_limits() {
     use qubit_datatype::ConversionLimits;
     use qubit_datatype::ConversionPolicy;
