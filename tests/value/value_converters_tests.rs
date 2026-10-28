@@ -1209,8 +1209,8 @@ fn test_as_float64_bigdecimal_conversion_error() {
     assert!(value.to::<f64>().is_conversion_error());
 
     // Very small BigDecimal (negative exponent with huge magnitude) should fail
-    let small_big_decimal = BigDecimal::from_str("-1.0e400").unwrap();
-    let value = Value::BigDecimal(small_big_decimal);
+    let negative_overflow_decimal = BigDecimal::from_str("-1.0e400").unwrap();
+    let value = Value::BigDecimal(negative_overflow_decimal);
     assert!(value.to::<f64>().is_conversion_error());
 
     // Test high precision decimals
@@ -1771,9 +1771,16 @@ fn test_as_float64_bigdecimal_conversion_edge_cases() {
     let value = Value::BigDecimal(tiny_decimal);
     let result = value.to_with::<f64>(&lossy, ConversionLimits::default_ref());
     assert!(result.is_ok());
-    // Very small numbers may convert to 0.0
+    // Very small numbers round to positive zero under lossy conversion.
     let float_result = result.unwrap();
-    assert!(float_result >= 0.0);
+    assert_eq!(float_result.to_bits(), 0.0_f64.to_bits());
+
+    // Exact conversion rejects underflow because it loses precision.
+    assert!(matches!(
+        value.to::<f64>(),
+        Err(ValueError::Conversion(error))
+            if error.reason() == Some(&InvalidValueReason::PrecisionLoss)
+    ));
 
     // Zero value BigDecimal
     let zero_decimal = BigDecimal::from_str("0.0").unwrap();
