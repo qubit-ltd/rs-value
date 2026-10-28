@@ -236,7 +236,10 @@ fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>
         match value {
             JsonValue::Null => budget.admit(JsonMeasurement::Null { depth })?,
             JsonValue::Bool(_) => budget.admit(JsonMeasurement::Boolean { depth })?,
-            JsonValue::Number(value) => budget.display(value, depth, true)?,
+            JsonValue::Number(value) => {
+                budget.display(value, depth, true)?;
+                validate_projected_json_number(value)?;
+            }
             JsonValue::String(value) => budget.text(value, depth, false)?,
             JsonValue::Array(values) => {
                 budget.admit(JsonMeasurement::Array {
@@ -262,6 +265,36 @@ fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>
         }
     }
     Ok(())
+}
+
+/// Checks an already budget-admitted JSON number against the projection range.
+///
+/// # Errors
+///
+/// Returns a conversion error for an out-of-range integer or non-finite float.
+fn validate_projected_json_number(number: &Number) -> ValueResult<()> {
+    if number.as_i64().is_some() || number.as_u64().is_some() {
+        return Ok(());
+    }
+    let text = number.to_string();
+    let fractional = text.bytes().any(|byte| matches!(byte, b'.' | b'e' | b'E'));
+    let reason = if fractional {
+        if text.parse::<f64>().is_ok_and(f64::is_finite) {
+            return Ok(());
+        }
+        InvalidValueReason::NonFinite
+    } else {
+        let fits = if text.starts_with('-') {
+            text.parse::<i64>().is_ok()
+        } else {
+            text.parse::<u64>().is_ok()
+        };
+        if fits {
+            return Ok(());
+        }
+        InvalidValueReason::OutOfRange
+    };
+    Err(DataConversionError::invalid(DataType::Json, DataType::Json, reason).into())
 }
 
 /// Projects a scalar after complete bounded preparation.

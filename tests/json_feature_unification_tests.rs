@@ -12,11 +12,21 @@ use std::collections::HashMap;
 
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
+#[cfg(feature = "converter")]
+use qubit_datatype::ConversionLimits;
+#[cfg(feature = "converter")]
+use qubit_datatype::ConversionOperationLimits;
+#[cfg(feature = "converter")]
+use qubit_datatype::InvalidValueReason;
 use qubit_json::decode::JsonDecoder;
+#[cfg(feature = "converter")]
+use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
+#[cfg(feature = "converter")]
+use qubit_value::ValueError;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWirePayloadV1Seed;
@@ -33,6 +43,110 @@ fn limits() -> JsonDecodeLimits {
         .max_nodes(4096usize)
         .max_number_bytes(128usize)
         .build()
+}
+
+#[cfg(feature = "converter")]
+fn assert_projection_conversion_reason(error: ValueError, expected: InvalidValueReason) {
+    let ValueError::Conversion(source) = error else {
+        panic!("expected conversion error, got {error:?}");
+    };
+    assert_eq!(source.reason(), Some(&expected));
+}
+
+#[cfg(feature = "converter")]
+fn assert_wide_integer_is_rejected(input: &str, expected: InvalidValueReason) {
+    let number: JsonValue = serde_json::from_str(input).expect("valid JSON number fixture");
+    // Without arbitrary_precision serde_json may already have rounded this integer
+    // to f64.
+    if serde_json::to_vec(&number).expect("number must serialize").as_slice() != input.as_bytes() {
+        return;
+    }
+    assert_projection_conversion_reason(
+        Value::Json(number.clone()).to_json_value().unwrap_err(),
+        expected.clone(),
+    );
+    assert_projection_conversion_reason(
+        Value::Json(serde_json::json!({"outer": [number.clone()]}))
+            .to_json_value()
+            .unwrap_err(),
+        expected.clone(),
+    );
+    let values = MultiValues::Json(vec![serde_json::json!(0), number.clone()]);
+    let error = values.to_json_value().unwrap_err();
+    let ValueError::ListConversion(source) = error else {
+        panic!("expected indexed list conversion error, got {error:?}");
+    };
+    assert_eq!(source.source_index(), 1);
+    assert_eq!(source.conversion_error().reason(), Some(&expected));
+    assert_projection_conversion_reason(
+        ValueContainer::from(Value::Json(number)).to_json_value().unwrap_err(),
+        expected,
+    );
+}
+
+#[cfg(feature = "converter")]
+#[test]
+fn test_projection_rejects_unified_wide_json_number() {
+    assert_wide_integer_is_rejected("18446744073709551616", InvalidValueReason::OutOfRange);
+    assert_wide_integer_is_rejected("-9223372036854775809", InvalidValueReason::OutOfRange);
+
+    // Ordinary serde_json builds may reject this token while parsing; the
+    // arbitrary_precision matrix entry must preserve it for projection.
+    if let Ok(non_finite) = serde_json::from_str::<JsonValue>("1e400")
+        && serde_json::to_vec(&non_finite).expect("number must serialize") == b"1e400"
+    {
+        assert_projection_conversion_reason(
+            Value::Json(non_finite.clone()).to_json_value().unwrap_err(),
+            InvalidValueReason::NonFinite,
+        );
+        assert_projection_conversion_reason(
+            Value::Json(serde_json::json!({"outer": [non_finite.clone()]}))
+                .to_json_value()
+                .unwrap_err(),
+            InvalidValueReason::NonFinite,
+        );
+        let values = MultiValues::Json(vec![serde_json::json!(0), non_finite.clone()]);
+        let ValueError::ListConversion(source) = values.to_json_value().unwrap_err() else {
+            panic!("expected indexed list conversion error");
+        };
+        assert_eq!(source.source_index(), 1);
+        assert_eq!(source.conversion_error().reason(), Some(&InvalidValueReason::NonFinite));
+        assert_projection_conversion_reason(
+            ValueContainer::from(Value::Json(non_finite.clone()))
+                .to_json_value()
+                .unwrap_err(),
+            InvalidValueReason::NonFinite,
+        );
+
+        let limits = ConversionLimits::builder()
+            .operation_limits(
+                ConversionOperationLimits::builder()
+                    .max_structured_payload_bytes(0)
+                    .build(),
+            )
+            .build();
+        assert!(matches!(
+            Value::Json(non_finite.clone()).to_json_value_with(&qubit_datatype::ConversionPolicy::default(), &limits,),
+            Err(ValueError::JsonProjectionLimit { .. })
+        ));
+    }
+
+    for input in ["18446744073709551615", "-9223372036854775808"] {
+        let value: JsonValue = serde_json::from_str(input).expect("valid integer boundary");
+        assert_eq!(
+            serde_json::to_vec(&value).expect("number must serialize"),
+            input.as_bytes(),
+            "boundary fixture must stay exact"
+        );
+        assert_eq!(Value::Json(value.clone()).to_json_value().unwrap(), value);
+    }
+    for input in ["1.25e100", "0.125", "-0.0"] {
+        let value: JsonValue = serde_json::from_str(input).expect("valid finite float");
+        assert_eq!(Value::Json(value.clone()).to_json_value().unwrap(), value);
+    }
+
+    let marker = serde_json::json!({"$serde_json::private::Number": "7"});
+    assert_eq!(Value::Json(marker.clone()).to_json_value().unwrap(), marker);
 }
 
 #[test]
