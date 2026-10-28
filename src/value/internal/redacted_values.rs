@@ -18,7 +18,8 @@ use qubit_redact::RedactionWriter;
 ///
 /// * `writer` - Structured writer carrying the active policy and budget.
 /// * `variant` - Type name used to preserve the collection's debug shape.
-/// * `values` - Collection payload whose items are written as unredacted values.
+/// * `values` - Collection payload whose items are written as unredacted
+///   values.
 ///
 /// # Behavior
 ///

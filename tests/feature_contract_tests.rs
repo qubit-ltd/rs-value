@@ -343,10 +343,7 @@ fn test_redact_primitive_collection_obeys_item_budget() {
         .expect("valid policy");
     let result = Redactor::new(policy).redact_text(&MultiValues::Int32(vec![17, 934751]));
 
-    assert_eq!(
-        result.summary().completion(),
-        RedactionCompletion::Truncated
-    );
+    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     assert!(result.text().as_str().contains("17"));
     assert!(!result.text().as_str().contains("934751"));
 }
@@ -363,10 +360,7 @@ fn test_redact_boolean_collection_obeys_item_budget() {
         .expect("valid policy");
     let result = Redactor::new(policy).redact_text(&MultiValues::Bool(vec![true, false]));
 
-    assert_eq!(
-        result.summary().completion(),
-        RedactionCompletion::Truncated
-    );
+    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     assert!(result.text().as_str().contains("true"));
     assert!(!result.text().as_str().contains("false"));
 }
@@ -407,10 +401,7 @@ fn test_redact_primitive_collection_obeys_node_and_depth_limits() {
         .build()
         .expect("valid policy");
     let node_result = Redactor::new(node_policy).redact_text(&values);
-    assert_eq!(
-        node_result.summary().completion(),
-        RedactionCompletion::Truncated
-    );
+    assert_eq!(node_result.summary().completion(), RedactionCompletion::Truncated);
     assert!(!node_result.text().as_str().contains("17"));
     assert!(!node_result.text().as_str().contains("934751"));
 
@@ -422,10 +413,7 @@ fn test_redact_primitive_collection_obeys_node_and_depth_limits() {
         .build()
         .expect("valid policy");
     let depth_result = Redactor::new(depth_policy).redact_text(&values);
-    assert_eq!(
-        depth_result.summary().completion(),
-        RedactionCompletion::Truncated
-    );
+    assert_eq!(depth_result.summary().completion(), RedactionCompletion::Truncated);
     assert!(!depth_result.text().as_str().contains("17"));
     assert!(!depth_result.text().as_str().contains("934751"));
 }

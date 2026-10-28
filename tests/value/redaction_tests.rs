@@ -143,6 +143,12 @@ fn test_multi_values_json_stops_before_unadmitted_items() {
 }
 
 #[test]
+#[cfg(any(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url"
+))]
 fn test_multi_values_typed_collections_obey_item_budget() {
     fn assert_second_item_is_not_admitted<T: Redact>(values: &T, first: &str, second: &str) {
         let policy = RedactionPolicy::builder()
@@ -155,37 +161,42 @@ fn test_multi_values_typed_collections_obey_item_budget() {
         let result = Redactor::new(policy).redact_text(values);
         let output = result.text().as_str();
 
-        assert_eq!(
-            result.summary().completion(),
-            RedactionCompletion::Truncated
-        );
+        assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
         assert!(output.contains(first), "{output}");
         assert!(!output.contains(second), "{output}");
         assert!(output.contains("<truncated>"), "{output}");
     }
 
+    #[cfg(feature = "chrono")]
     let dates = MultiValues::Date(vec![
         chrono::NaiveDate::from_ymd_opt(2026, 1, 2).expect("valid date"),
         chrono::NaiveDate::from_ymd_opt(2037, 11, 29).expect("valid date"),
     ]);
+    #[cfg(feature = "chrono")]
     assert_second_item_is_not_admitted(&dates, "2026", "2037");
 
+    #[cfg(feature = "big-integer")]
     let integers = MultiValues::BigInteger(vec![
         num_bigint::BigInt::from(123456789_i64),
         num_bigint::BigInt::from(987654321_i64),
     ]);
+    #[cfg(feature = "big-integer")]
     assert_second_item_is_not_admitted(&integers, "123456789", "987654321");
 
+    #[cfg(feature = "big-decimal")]
     let decimals = MultiValues::BigDecimal(vec![
         "12345.6789".parse().expect("valid decimal"),
         "98765.4321".parse().expect("valid decimal"),
     ]);
+    #[cfg(feature = "big-decimal")]
     assert_second_item_is_not_admitted(&decimals, "123456789", "987654321");
 
+    #[cfg(feature = "url")]
     let urls = MultiValues::Url(vec![
         url::Url::parse("https://first.example/path").expect("valid URL"),
         url::Url::parse("https://second.example/sentinel").expect("valid URL"),
     ]);
+    #[cfg(feature = "url")]
     assert_second_item_is_not_admitted(&urls, "first.example", "second.example");
 }
 
