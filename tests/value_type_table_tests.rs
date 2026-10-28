@@ -106,6 +106,8 @@ fn test_value_type_table_covers_all_data_types() {
 #[cfg(feature = "all")]
 #[test]
 fn test_value_layout_with_all_features_is_compact() {
-    assert!(std::mem::size_of::<Value>() <= 64);
-    assert!(std::mem::size_of::<ValueContainer>() <= 64);
+    let ordered_json_map_size = std::mem::size_of::<serde_json::Map<String, serde_json::Value>>();
+    let max_size = if ordered_json_map_size > 24 { 80 } else { 64 };
+    assert!(std::mem::size_of::<Value>() <= max_size);
+    assert!(std::mem::size_of::<ValueContainer>() <= max_size);
 }

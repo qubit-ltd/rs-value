@@ -114,6 +114,24 @@
       "commands": ["check", "test", "doc", "clippy"],
       "defaultFeatures": false,
       "features": ["all"]
+    },
+    {
+      "name": "all-json-arbitrary-precision",
+      "commands": ["test"],
+      "defaultFeatures": false,
+      "features": ["all", "serde_json/arbitrary_precision"]
+    },
+    {
+      "name": "all-json-preserve-order",
+      "commands": ["test"],
+      "defaultFeatures": false,
+      "features": ["all", "serde_json/preserve_order"]
+    },
+    {
+      "name": "all-json-unified",
+      "commands": ["test"],
+      "defaultFeatures": false,
+      "features": ["all", "serde_json/arbitrary_precision", "serde_json/preserve_order"]
     }
   ]
 }
