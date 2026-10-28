@@ -189,28 +189,6 @@ fn fixture_package_name(file: &str, dependencies: &str, example: &MarkdownExampl
     format!("documented-markdown-example-{:016x}", hasher.finish())
 }
 
-#[derive(Clone, Copy, Debug)]
-enum FeatureProfile {
-    Default,
-    All,
-}
-
-impl FeatureProfile {
-    fn cargo_args(self) -> &'static [&'static str] {
-        match self {
-            Self::Default => &["--no-default-features"],
-            Self::All => &["--all-features"],
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::Default => "default",
-            Self::All => "all",
-        }
-    }
-}
-
 fn read_diagnostic(path: &Path) -> String {
     fs::read(path)
         .unwrap_or_default()
@@ -280,7 +258,6 @@ fn compile_example(
     file: &str,
     dependencies: &str,
     example: &MarkdownExample,
-    profile: FeatureProfile,
 ) -> Result<(), String> {
     static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
 
@@ -344,7 +321,6 @@ qubit-value = {{ path = {root:?} }}
         .arg(workspace.join("Cargo.toml"))
         .arg("--target-dir")
         .arg(target.join("build"))
-        .args(profile.cargo_args())
         .env_remove("RUSTFLAGS")
         .env_remove("CARGO_ENCODED_RUSTFLAGS");
     let mut result = run_process(
@@ -440,7 +416,6 @@ fn test_compile_diagnostic_identifies_incomplete_example() {
         "incomplete.md",
         dependencies("README.md", &document).unwrap(),
         &example,
-        FeatureProfile::Default,
     )
     .unwrap_err();
     assert!(error.contains("incomplete.md"), "{error}");
@@ -463,7 +438,6 @@ fn test_run_diagnostic_reports_run_phase_and_exit_code() {
         "failing-run.md",
         dependencies("README.md", &document).unwrap(),
         &example,
-        FeatureProfile::Default,
     )
     .unwrap_err();
     assert!(error.contains("failing-run.md"), "{error}");
@@ -486,7 +460,6 @@ fn test_compile_mode_does_not_execute_source() {
         "compile-only.md",
         dependencies("README.md", &document).unwrap(),
         &example,
-        FeatureProfile::Default,
     )
     .unwrap();
 }
@@ -552,10 +525,8 @@ fn test_bilingual_markdown_examples_compile_and_run_from_source() {
         ] {
             let dependencies = dependencies(file, document).unwrap();
             for example in examples.values() {
-                for profile in [FeatureProfile::Default, FeatureProfile::All] {
-                    compile_example(root, &target, file, dependencies, example, profile)
-                        .unwrap_or_else(|error| panic!("{} [{}]: {error}", profile.as_str(), example.id));
-                }
+                compile_example(root, &target, file, dependencies, example)
+                    .unwrap_or_else(|error| panic!("{}: {error}", example.id));
             }
         }
     }
