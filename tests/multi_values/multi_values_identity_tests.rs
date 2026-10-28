@@ -160,12 +160,22 @@ fn test_multi_values_big_decimal_identity_is_canonical() {
 #[test]
 fn test_multi_values_identity_covers_every_variant() {
     let mut values = vec![
-        MultiValues::Unset(DataType::Bool), MultiValues::Bool(vec![true]), MultiValues::Char(vec!['x']),
-        MultiValues::Int8(vec![-1]), MultiValues::Int16(vec![-2]), MultiValues::Int32(vec![-3]),
-        MultiValues::Int64(vec![-4]), MultiValues::Int128(vec![-5]), MultiValues::UInt8(vec![1]),
-        MultiValues::UInt16(vec![2]), MultiValues::UInt32(vec![3]), MultiValues::UInt64(vec![4]),
-        MultiValues::UInt128(vec![5]), MultiValues::Float32(vec![f32::NAN]),
-        MultiValues::Float64(vec![f64::NAN]), MultiValues::String(vec!["text".to_owned()]),
+        MultiValues::Unset(DataType::Bool),
+        MultiValues::Bool(vec![true]),
+        MultiValues::Char(vec!['x']),
+        MultiValues::Int8(vec![-1]),
+        MultiValues::Int16(vec![-2]),
+        MultiValues::Int32(vec![-3]),
+        MultiValues::Int64(vec![-4]),
+        MultiValues::Int128(vec![-5]),
+        MultiValues::UInt8(vec![1]),
+        MultiValues::UInt16(vec![2]),
+        MultiValues::UInt32(vec![3]),
+        MultiValues::UInt64(vec![4]),
+        MultiValues::UInt128(vec![5]),
+        MultiValues::Float32(vec![f32::NAN]),
+        MultiValues::Float64(vec![f64::NAN]),
+        MultiValues::String(vec!["text".to_owned()]),
         MultiValues::StringMap(vec![HashMap::from([("key".to_owned(), "value".to_owned())])]),
         MultiValues::Duration(vec![Duration::new(8, 9)]),
     ];
@@ -175,22 +185,22 @@ fn test_multi_values_identity_covers_every_variant() {
     values.push(MultiValues::BigDecimal(vec![BigDecimal::from(7)]));
     #[cfg(feature = "chrono")]
     {
-    let date = NaiveDate::from_ymd_opt(2026, 7, 17).expect("the test fixture date must be valid");
-    let time = NaiveTime::from_hms_nano_opt(12, 34, 56, 789).expect("the test fixture time must be valid");
-    let datetime = date.and_time(time);
-    values.extend([
-        MultiValues::Date(vec![date]),
-        MultiValues::Time(vec![time]),
-        MultiValues::DateTime(vec![datetime]),
-        MultiValues::Instant(vec![DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc)]),
-    ]);
+        let date = NaiveDate::from_ymd_opt(2026, 7, 17).expect("the test fixture date must be valid");
+        let time = NaiveTime::from_hms_nano_opt(12, 34, 56, 789).expect("the test fixture time must be valid");
+        let datetime = date.and_time(time);
+        values.extend([
+            MultiValues::Date(vec![date]),
+            MultiValues::Time(vec![time]),
+            MultiValues::DateTime(vec![datetime]),
+            MultiValues::Instant(vec![DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc)]),
+        ]);
     }
     #[cfg(feature = "url")]
-    values.push(MultiValues::Url(vec![Url::parse("https://example.com/path").expect("the test fixture URL must be valid")]));
+    values.push(MultiValues::Url(vec![
+        Url::parse("https://example.com/path").expect("the test fixture URL must be valid"),
+    ]));
     #[cfg(feature = "json")]
-    values.extend([
-        MultiValues::Json(vec![serde_json::json!({"items": [null, true, 42]})]),
-    ]);
+    values.extend([MultiValues::Json(vec![serde_json::json!({"items": [null, true, 42]})])]);
 
     for value in &values {
         assert_eq!(value, value);

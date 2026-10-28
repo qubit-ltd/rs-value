@@ -11,6 +11,8 @@
 #[cfg(feature = "json")]
 use std::io::Write;
 
+#[cfg(feature = "chrono")]
+use chrono::Datelike;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonEncodeLimits;
 #[cfg(feature = "json")]
@@ -19,8 +21,6 @@ use qubit_budget::json::JsonEncodeSession;
 use qubit_json::encode::JsonEncoder;
 use serde::Serialize;
 use serde::Serializer;
-#[cfg(feature = "chrono")]
-use chrono::Datelike;
 
 use super::ValueWireEncodeError;
 use super::WireShapeRef;
@@ -29,12 +29,12 @@ use crate::Value;
 use crate::ValueContainer;
 use crate::multi_values::MultiValuesRepr;
 use crate::value::ValueRepr;
-#[cfg(feature = "chrono")]
-use crate::wire::validate_instant_year;
 #[cfg(feature = "big-decimal")]
 use crate::wire::MAX_BIG_DECIMAL_ABSOLUTE_SCALE;
 #[cfg(feature = "big-decimal")]
 use crate::wire::is_valid_big_decimal_scale;
+#[cfg(feature = "chrono")]
+use crate::wire::validate_instant_year;
 
 /// Borrowed unversioned V1 payload for serialization without cloning.
 ///

@@ -86,7 +86,8 @@ impl<'a> ValueWireRefV1<'a> {
     pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_values(values).map(Self::new)
     }
-    /// Borrows an explicit shape after validating V1's representational constraints.
+    /// Borrows an explicit shape after validating V1's representational
+    /// constraints.
     ///
     /// # Parameters
     ///

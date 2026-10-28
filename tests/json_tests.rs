@@ -175,7 +175,12 @@ fn test_natural_json_projects_scalar() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
-#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal", feature = "url"))]
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url"
+))]
 fn test_natural_json_projects_every_scalar_variant() {
     macro_rules! assert_scalar {
         ($value:expr, $expected:expr) => {
@@ -330,7 +335,12 @@ fn test_natural_json_canonicalizes_objects_nested_inside_arrays() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
-#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal", feature = "url"))]
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url"
+))]
 fn test_natural_json_projects_every_collection_variant() {
     macro_rules! assert_collection {
         ($values:expr, $expected:expr) => {

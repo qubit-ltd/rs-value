@@ -89,9 +89,7 @@ fn value_from_bytes(data: &[u8]) -> ValueContainer {
     match tag {
         0 => ValueContainer::Scalar(Value::String(text(input))),
         1 => ValueContainer::Scalar(Value::Int64(number)),
-        2 => ValueContainer::Scalar(Value::UInt128(read_u128(
-            input.get(1..).unwrap_or_default(),
-        ))),
+        2 => ValueContainer::Scalar(Value::UInt128(read_u128(input.get(1..).unwrap_or_default()))),
         3 => ValueContainer::Scalar(Value::Int128(read_i128(input.get(1..).unwrap_or_default()))),
         4 => ValueContainer::Scalar(Value::Float64(float64)),
         5 => ValueContainer::Scalar(Value::Float32(float32)),
@@ -116,12 +114,8 @@ fn value_from_bytes(data: &[u8]) -> ValueContainer {
                 .take(MAX_ITEMS)
                 .map(|chunk| match chunk.first().copied().unwrap_or_default() % 5 {
                     0 => serde_json::Value::Null,
-                    1 => serde_json::Value::Bool(
-                        chunk.get(1).copied().unwrap_or_default() & 1 == 1,
-                    ),
-                    2 => serde_json::Value::from(i64::from(
-                        chunk.get(1).copied().unwrap_or_default(),
-                    )),
+                    1 => serde_json::Value::Bool(chunk.get(1).copied().unwrap_or_default() & 1 == 1),
+                    2 => serde_json::Value::from(i64::from(chunk.get(1).copied().unwrap_or_default())),
                     3 => serde_json::Value::String(text(chunk)),
                     _ => serde_json::json!({"text": text(chunk)}),
                 })
@@ -173,11 +167,7 @@ fn check_successful_encoding(value: &ValueContainer, limits: JsonEncodeLimits) {
 fuzz_target!(|data: &[u8]| {
     let input = bounded_input(data);
     let value = value_from_bytes(input);
-    assert_eq!(
-        value,
-        value_from_bytes(input),
-        "input decoding must be deterministic"
-    );
+    assert_eq!(value, value_from_bytes(input), "input decoding must be deterministic");
     let wide = JsonEncodeLimits::builder()
         .max_output_bytes(MAX_OUTPUT_BYTES)
         .max_depth(MAX_DEPTH + 8)
