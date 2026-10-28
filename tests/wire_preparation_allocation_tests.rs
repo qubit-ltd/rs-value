@@ -17,6 +17,8 @@ use qubit_budget::BudgetError;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_value::MultiValues;
 use qubit_value::Value;
+#[cfg(feature = "url")]
+use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWirePayloadRefV1;
 
@@ -173,4 +175,69 @@ fn test_bounded_collection_entry_accepts_empty_collection() {
         !wire.to_json_vec_with_limits(limits).unwrap().is_empty(),
         "bounded serialization of an empty collection should produce JSON"
     );
+}
+
+#[cfg(feature = "url")]
+fn url_container(length: usize, collection: bool) -> ValueContainer {
+    let url = url::Url::parse(&format!("https://example.com/{}", "x".repeat(length))).unwrap();
+    if collection {
+        ValueContainer::from(vec![url; 32])
+    } else {
+        ValueContainer::from(url)
+    }
+}
+
+#[cfg(feature = "url")]
+#[test]
+fn test_url_success_encoding_allocation_does_not_scale_with_text_length() {
+    for collection in [false, true] {
+        let small = url_container(4096, collection);
+        let large = url_container(131072, collection);
+        let small_wire = ValueWirePayloadRefV1::from_container(&small).unwrap();
+        let large_wire = ValueWirePayloadRefV1::from_container(&large).unwrap();
+        serde_json::to_writer(std::io::sink(), &small_wire).unwrap();
+        serde_json::to_writer(std::io::sink(), &large_wire).unwrap();
+        let (small_result, small_bytes) = measured_allocations(|| serde_json::to_writer(std::io::sink(), &small_wire));
+        let (large_result, large_bytes) = measured_allocations(|| serde_json::to_writer(std::io::sink(), &large_wire));
+        small_result.unwrap();
+        large_result.unwrap();
+        assert!(
+            large_bytes <= small_bytes.saturating_add(4096),
+            "collection={collection}, small={small_bytes}, large={large_bytes}"
+        );
+    }
+}
+
+#[cfg(feature = "url")]
+#[test]
+fn test_url_rejected_encoding_allocation_does_not_scale_with_text_length() {
+    let limits = JsonEncodeLimits::builder().max_string_bytes(64).build();
+    for collection in [false, true] {
+        let small = url_container(4096, collection);
+        let large = url_container(131072, collection);
+        let small_wire = ValueWirePayloadRefV1::from_container(&small).unwrap();
+        let large_wire = ValueWirePayloadRefV1::from_container(&large).unwrap();
+        let _ = small_wire.to_json_vec_with_limits(limits);
+        let _ = large_wire.to_json_vec_with_limits(limits);
+        let (small_result, small_bytes) = measured_allocations(|| small_wire.to_json_vec_with_limits(limits));
+        let (large_result, large_bytes) = measured_allocations(|| large_wire.to_json_vec_with_limits(limits));
+        for result in [small_result, large_result] {
+            assert!(matches!(
+                result,
+                Err(ValueWireEncodeError::Budget(
+                    BudgetError::LimitExceeded {
+                        resource: qubit_budget::json::JsonResource::StringBytes,
+                        ..
+                    } | BudgetError::Insufficient {
+                        resource: qubit_budget::json::JsonResource::StringBytes,
+                        ..
+                    }
+                ))
+            ));
+        }
+        assert!(
+            large_bytes <= small_bytes.saturating_add(4096),
+            "collection={collection}, small={small_bytes}, large={large_bytes}"
+        );
+    }
 }

@@ -14,7 +14,7 @@ use ::url::Url;
 use serde::Deserialize;
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Deserializer;
-#[cfg(any(feature = "chrono", feature = "url"))]
+#[cfg(feature = "chrono")]
 use serde::Serializer;
 
 /// Validates the UTC year accepted by the V1 instant representation.
@@ -111,7 +111,7 @@ pub(crate) const fn is_valid_big_decimal_scale(scale: i64) -> bool {
 /// # Errors
 ///
 /// Returns `S::Error` when the serializer rejects the canonical string.
-#[cfg(any(feature = "chrono", feature = "url"))]
+#[cfg(feature = "chrono")]
 fn serialize_canonical<S, T, F>(value: &T, serializer: S, format: F) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -180,7 +180,7 @@ where
 /// # Errors
 ///
 /// Returns `S::Error` when sequence serialization fails.
-#[cfg(any(feature = "chrono", feature = "url"))]
+#[cfg(feature = "chrono")]
 fn serialize_canonical_vec<S, T, F>(values: &[T], serializer: S, format: F) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -437,7 +437,7 @@ macro_rules! define_url_wire {
             where
                 S: Serializer,
             {
-                super::serialize_canonical(value, serializer, |value: &Url| value.as_str().to_owned())
+                serializer.serialize_str(value.as_str())
             }
 
             /// Deserializes only a canonical normalized URL string.
@@ -498,7 +498,7 @@ macro_rules! define_url_wire {
             where
                 S: Serializer,
             {
-                super::serialize_canonical_vec(values, serializer, |value: &Url| value.as_str().to_owned())
+                serializer.collect_seq(values.iter().map(|value| value.as_str()))
             }
 
             /// Deserializes only canonical normalized URL strings.
