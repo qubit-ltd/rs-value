@@ -80,17 +80,34 @@ where
 #[must_use]
 #[cfg(feature = "converter")]
 pub(crate) fn canonicalize_json_value(value: &Value) -> Value {
-    match value {
-        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => value.clone(),
-        Value::Array(values) => Value::Array(values.iter().map(canonicalize_json_value).collect()),
-        Value::Object(values) => {
-            let mut entries: Vec<_> = values.iter().collect();
-            entries.sort_unstable_by_key(|(left, _)| *left);
-            let mut object = Map::with_capacity(entries.len());
-            for (key, value) in entries {
-                object.insert(key.clone(), canonicalize_json_value(value));
+    let mut pending = vec![(value, false)];
+    let mut completed = Vec::new();
+    while let Some((node, ready)) = pending.pop() {
+        match node {
+            Value::Array(values) if !ready => {
+                pending.push((node, true));
+                pending.extend(values.iter().rev().map(|child| (child, false)));
             }
-            Value::Object(object)
+            Value::Object(values) if !ready => {
+                pending.push((node, true));
+                pending.extend(values.values().rev().map(|child| (child, false)));
+            }
+            Value::Array(values) => {
+                let children = completed.split_off(completed.len() - values.len());
+                completed.push(Value::Array(children));
+            }
+            Value::Object(values) => {
+                let children = completed.split_off(completed.len() - values.len());
+                let mut entries: Vec<_> = values.keys().zip(children).collect();
+                entries.sort_unstable_by_key(|(left, _)| *left);
+                let mut object = Map::with_capacity(entries.len());
+                for (key, child) in entries {
+                    object.insert(key.clone(), child);
+                }
+                completed.push(Value::Object(object));
+            }
+            _ => completed.push(node.clone()),
         }
     }
+    completed.pop().expect("one root is completed")
 }

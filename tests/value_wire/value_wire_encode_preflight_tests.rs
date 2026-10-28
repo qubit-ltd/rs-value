@@ -9,6 +9,8 @@
 //! Contract tests for conservative Wire V1 encoding preflight checks.
 
 use std::collections::HashMap;
+use std::mem::ManuallyDrop;
+use std::process::Command;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
@@ -30,6 +32,9 @@ use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodePreflight;
 use qubit_value::ValueWireV1;
 use url::Url;
+
+#[cfg(feature = "json")]
+const DEEP_PREFLIGHT_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_PREFLIGHT_CHILD";
 
 #[test]
 fn test_preflight_accepts_encoded_uint128_with_small_number_limit() {
@@ -767,12 +772,108 @@ fn test_check_values_covers_empty_and_nested_json() {
 
 #[test]
 fn test_preflight_handles_deep_json_without_recursion() {
-    let mut value = serde_json::Value::Bool(true);
-    for _ in 0..10_000 {
-        value = serde_json::Value::Array(vec![value]);
-    }
+    use crate::deep_json_helpers::run_isolated_test;
 
+    let baseline = run_isolated_test(
+        "value_wire::value_wire_encode_preflight_tests::test_preflight_deep_json_baseline_child",
+        DEEP_PREFLIGHT_CHILD_ENV,
+    );
+    let baseline_log = String::from_utf8_lossy(&baseline.stderr);
+    assert!(baseline_log.contains("checking"), "baseline log: {baseline_log}");
+    assert!(
+        baseline_log.contains("checked"),
+        "preflight did not complete: {baseline_log}"
+    );
+    let baseline_stage = if baseline_log.contains("done") {
+        "done"
+    } else if baseline_log.contains("dropping") {
+        "dropping"
+    } else {
+        "checked"
+    };
+    println!(
+        "RV-007 baseline: rustc={}, os={}, status={:?}, last_stage={baseline_stage}",
+        rustc_version(),
+        std::env::consts::OS,
+        baseline.status,
+    );
+
+    let iterative = run_isolated_test(
+        "value_wire::value_wire_encode_preflight_tests::test_preflight_deep_json_iterative_child",
+        DEEP_PREFLIGHT_CHILD_ENV,
+    );
+    let iterative_log = String::from_utf8_lossy(&iterative.stderr);
+    let iterative_stage = if iterative_log.contains("done") {
+        "done"
+    } else if iterative_log.contains("iterative teardown fixture completed") {
+        "iterative teardown fixture completed"
+    } else if iterative_log.contains("checked") {
+        "checked"
+    } else {
+        "no stage marker"
+    };
+    println!(
+        "RV-007 iterative: rustc={}, os={}, status={:?}, last_stage={iterative_stage}",
+        rustc_version(),
+        std::env::consts::OS,
+        iterative.status,
+    );
+    assert!(
+        iterative.status.success(),
+        "iterative preflight teardown child failed: status={:?}\nstdout:\n{}\nstderr:\n{}",
+        iterative.status,
+        String::from_utf8_lossy(&iterative.stdout),
+        String::from_utf8_lossy(&iterative.stderr),
+    );
+    assert!(
+        String::from_utf8_lossy(&iterative.stderr).contains("done"),
+        "iterative child did not complete all stages: {}",
+        String::from_utf8_lossy(&iterative.stderr),
+    );
+}
+
+#[test]
+#[ignore = "run only through test_preflight_handles_deep_json_without_recursion"]
+fn test_preflight_deep_json_baseline_child() {
+    assert!(std::env::var_os(DEEP_PREFLIGHT_CHILD_ENV).is_some());
+    let value = ManuallyDrop::new(Value::from_json_value(crate::deep_json_helpers::build_deep_json(
+        10_000,
+    )));
+    eprintln!("checking");
     ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_depth(10_001).build())
-        .check_value(&Value::Json(value))
-        .expect("deep JSON values must be checked iteratively");
+        .check_value(&value)
+        .expect("deep JSON preflight should succeed before ordinary drop");
+    eprintln!("checked");
+    let value = ManuallyDrop::into_inner(value);
+    eprintln!("dropping");
+    drop(value);
+    eprintln!("done");
+}
+
+#[test]
+#[ignore = "run only through test_preflight_handles_deep_json_without_recursion"]
+fn test_preflight_deep_json_iterative_child() {
+    assert!(std::env::var_os(DEEP_PREFLIGHT_CHILD_ENV).is_some());
+    let value = ManuallyDrop::new(Value::from_json_value(crate::deep_json_helpers::build_deep_json(
+        10_000,
+    )));
+    eprintln!("checking");
+    let check_succeeded = ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_depth(10_001).build())
+        .check_value(&value)
+        .is_ok();
+    eprintln!("checked");
+    crate::deep_json_helpers::dismantle_json(crate::deep_json_helpers::build_deep_json(10_000));
+    eprintln!("iterative teardown fixture completed");
+    // `Value` has no safe consuming JSON getter. Keep the checked input in
+    // `ManuallyDrop`; the isolated child process reclaims it when it exits.
+    assert!(check_succeeded, "deep JSON preflight rejected the configured budget");
+    eprintln!("done");
+}
+
+fn rustc_version() -> String {
+    Command::new("rustc")
+        .arg("--version")
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+        .unwrap_or_else(|_| "unavailable".to_owned())
 }

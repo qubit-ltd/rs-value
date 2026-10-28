@@ -52,6 +52,137 @@ use serde_json::to_string;
 #[cfg(all(feature = "converter", feature = "json", feature = "url"))]
 use url::Url;
 
+#[cfg(all(feature = "converter", feature = "json"))]
+const DEEP_NATURAL_JSON_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_NATURAL_JSON_CHILD";
+
+/// Checks that natural JSON projection handles deep trees in an isolated
+/// process.
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_natural_json_deep_projection() {
+    use crate::deep_json_helpers::run_isolated_test;
+
+    let output = run_isolated_test(
+        "json_tests::test_natural_json_deep_projection_child",
+        DEEP_NATURAL_JSON_CHILD_ENV,
+    );
+    println!(
+        "RV-006: rustc={}, os={}, status={:?}, last_stage={}, depth=10000, max_depth=10001, max_structured_nodes=20002",
+        rustc_version(),
+        std::env::consts::OS,
+        output.status,
+        last_deep_json_stage(&output.stderr),
+    );
+    assert!(
+        output.status.success(),
+        "deep natural JSON projection child failed at depth=10000, max_depth=10001, max_structured_nodes=20002: status={:?}, last_stage={}\nstdout:\n{}\nstderr:\n{}",
+        output.status,
+        last_deep_json_stage(&output.stderr),
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("done"),
+        "deep natural JSON child did not complete: {}",
+        String::from_utf8_lossy(&output.stderr),
+    );
+}
+
+/// Exercises natural JSON projection and iterative teardown in the child
+/// process.
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+#[ignore = "run only through test_natural_json_deep_projection"]
+fn test_natural_json_deep_projection_child() {
+    use std::mem::ManuallyDrop;
+
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::StructuredConversionLimits;
+
+    assert!(std::env::var_os(DEEP_NATURAL_JSON_CHILD_ENV).is_some());
+    const DEPTH: usize = 10_000;
+    let input = ManuallyDrop::new(Value::from_json_value(crate::deep_json_helpers::build_deep_json(DEPTH)));
+    let limits = ConversionLimits::builder()
+        .structured_limits(
+            StructuredConversionLimits::builder()
+                .max_depth((DEPTH + 1) as u64)
+                .build(),
+        )
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_structured_nodes((2 * DEPTH + 2) as u64)
+                .build(),
+        )
+        .build();
+
+    eprintln!("constructed depth={DEPTH}");
+    eprintln!("projecting");
+    let projected = input
+        .to_json_value_with(&ConversionPolicy::default(), &limits)
+        .expect("natural JSON projection must accept the configured deep input");
+    eprintln!("projected");
+
+    let mut pending = vec![(projected, 0_usize)];
+    let mut deepest_bool = None;
+    let mut projected_depth = 0;
+    let mut projected_nodes = 0;
+    while let Some((value, depth)) = pending.pop() {
+        projected_nodes += 1;
+        match value {
+            JsonValue::Array(values) => {
+                pending.extend(values.into_iter().map(|child| (child, depth + 1)));
+            }
+            JsonValue::Object(values) => {
+                pending.extend(values.into_values().map(|child| (child, depth + 1)));
+            }
+            JsonValue::Bool(value) => {
+                deepest_bool = Some((depth, value));
+                projected_depth = projected_depth.max(depth);
+            }
+            _ => {}
+        }
+    }
+
+    eprintln!("teardown output iteratively; retain input until child exit");
+    // `Value` has no safe consuming JSON getter; keeping it in `ManuallyDrop`
+    // lets the isolated child process reclaim the deep input at exit.
+    assert_eq!(projected_nodes, DEPTH + 1, "projected JSON node count changed");
+    assert_eq!(projected_depth, DEPTH, "projected JSON depth changed");
+    assert_eq!(deepest_bool, Some((DEPTH, true)), "projected JSON leaf changed");
+    eprintln!("done");
+}
+
+#[cfg(all(feature = "converter", feature = "json"))]
+fn last_deep_json_stage(stderr: &[u8]) -> String {
+    String::from_utf8_lossy(stderr)
+        .lines()
+        .rfind(|line| {
+            [
+                "constructed",
+                "projecting",
+                "projected",
+                "teardown output",
+                "teardown input",
+                "done",
+            ]
+            .iter()
+            .any(|stage| line.contains(stage))
+        })
+        .unwrap_or("no stage marker")
+        .to_owned()
+}
+
+#[cfg(all(feature = "converter", feature = "json"))]
+fn rustc_version() -> String {
+    std::process::Command::new("rustc")
+        .arg("--version")
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+        .unwrap_or_else(|_| "unavailable".to_owned())
+}
+
 /// Projection budgets cover the whole collection, including cheap scalar paths.
 #[test]
 fn test_natural_json_enforces_cumulative_projection_limits() {
@@ -331,6 +462,24 @@ fn test_natural_json_canonicalizes_objects_nested_inside_arrays() {
         to_string(&projected).expect("serialize projected array"),
         r#"[{"a":{"c":3,"d":4},"z":1}]"#,
     );
+}
+
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_natural_json_canonicalizes_mixed_empty_and_primitive_values() {
+    let value = Value::Json(
+        from_str(r#"{"z":[{"b":2,"a":1},{}],"a":[{"q":[],"p":{}},true]}"#).expect("parse mixed JSON value"),
+    );
+    let projected = value.to_json_value().expect("project mixed JSON value");
+    assert_eq!(
+        to_string(&projected).expect("serialize projected mixed JSON"),
+        r#"{"a":[{"p":{},"q":[]},true],"z":[{"a":1,"b":2},{}]}"#,
+    );
+
+    let primitive = Value::Json(JsonValue::Bool(true))
+        .to_json_value()
+        .expect("project primitive JSON");
+    assert_eq!(primitive, JsonValue::Bool(true));
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
