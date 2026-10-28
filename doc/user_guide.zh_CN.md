@@ -309,6 +309,16 @@ V1 是封闭格式。现有 tag、shape 和 payload 表示不能原地扩展；�
 新的 wire 版本。在支持的规范化 JSON 配置下，字符串 map key 和嵌套 JSON object key 会按
 字典序输出。
 
+具体 `Instant` payload 的 UTC 年份必须在 0 到 9999 之间，以确保每个编码时间戳都能由 V1
+RFC3339 decoder 读取。负年份和五位数年份现在会返回 `ValueWireEncodeError::InstantYearOutOfRange`；
+这是对过去可编码、却无法解码的值收紧接受范围。此类值应保留在内存中，或在跨越 V1 边界前
+转换为应用显式版本化的表示；普通四位数年份无需迁移。
+
+`ValueWireEncodePreflight` 使用保守下界。它现在将 BigDecimal 系数计入字符串 payload，但估算值
+可能小于精确十进制文本长度。JSON object 会先做自身准入，再创建排序索引，因此因自身结构限额
+被拒绝的 object 不会产生该分配。Preflight 与最终 `JsonEncodeSession` 记账减少了部分可避免工作，
+但不会限制所有编码准备分配。
+
 ### 端到端示例：从 `ValueContainer` 到 JSON 再恢复
 
 下面的示例创建一个显式标量值，将它转换为拥有所有权的 Wire DTO，序列化为 JSON，在输入和
@@ -477,6 +487,9 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
 - `Int128`、`UInt128` 和 `BigInteger` 使用 canonical 十进制字符串，避免 JSON number 丢失精度。
 - `BigDecimal` 使用精确的 coefficient/scale payload，scale 的绝对值不能超过 V1 上限。
 - `Duration` 使用 `{ "secs": ..., "nanos": ... }` payload，且 nanos 小于一秒。
+- 具体 `Instant` payload 的 UTC 年份必须在 0 到 9999 之间。负年份和五位数年份现在返回
+  `InstantYearOutOfRange`。这是对过去可编码、却无法解码的值收紧兼容范围；此类值应保留在内存中，
+  或使用应用显式版本化的格式，普通四位数年份不变。
 - `Float32` 和 `Float64` 可以在内存中保存非有限值，但 V1 会拒绝 NaN 和无穷，因为 JSON 没有
   对应的数字字面量。
 - `Json(null)` 是具体 JSON 值，与 `Unset(Json)` 不同。
@@ -507,6 +520,37 @@ Float32 为保持现有十进制投影语义，目前会先生成临时 String�
 索引；普通转换错误仍保留原有类型。每次调用使用新预算。需要限制最终编码字节时，请使用
 Wire 的 `JsonEncodeLimits` 或 rs-json 的有界编码器；`ConversionLimits` 不是 JSON 编码
 长度上限。
+
+### 有界物化 Serde 数据
+
+`Value::from_serializable` 会校验并物化严格 JSON 值，但不使用有限资源预算。
+`JsonEncodeLimits` 和 `ConversionLimits` 不会限制它生成的中间 JSON tree。需要有界物化序列化
+输入时，可使用调用方持有的 `JsonValueBudget` transaction 进行编码；只有编码成功后才提交，再将
+生成的 JSON 值包装为 `Value`：
+
+<!-- example:bounded-serializable run -->
+```rust
+use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonValueBudget;
+use qubit_budget::json::JsonValueLimits;
+use qubit_json::value::JsonValueEncoder;
+use qubit_value::Value;
+
+let limits = JsonValueLimits::<JsonResource, usize>::builder()
+    .max_depth(8)
+    .max_nodes(64)
+    .max_string_bytes(1024)
+    .max_payload_bytes(4096)
+    .build();
+let mut budget = JsonValueBudget::new(limits);
+let mut transaction = budget.transaction();
+let owner = JsonValueEncoder::new().encode_in_transaction(&vec!["bounded"], &mut transaction)?;
+transaction.commit()?;
+let value = Value::from_json_value(owner.into_value());
+assert_eq!(value.get_json()?.as_array().unwrap().len(), 1);
+```
+
+如果编码失败，应传播错误并丢弃 transaction，不要提交；部分预算状态不会被保留。
 
 启用 `natural-json` 后，自然 JSON 将运行时值投影为普通的 `serde_json::Value`。下面的
 示例展示几种常见值实际生成的 JSON 字符串：

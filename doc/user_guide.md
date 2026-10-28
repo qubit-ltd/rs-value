@@ -335,6 +335,21 @@ extended in place; a future runtime type requires a new wire version. String-map
 keys and nested JSON object keys are emitted in lexicographic order under the
 supported canonical JSON configuration.
 
+Concrete `Instant` values must have a UTC year from 0 through 9999 so that
+every encoded timestamp is readable by the V1 RFC3339 decoder. Encoding a
+negative or five-digit year now returns `ValueWireEncodeError::InstantYearOutOfRange`;
+this tightens acceptance for values that previously encoded but could not be
+decoded. Keep such values in memory or choose an explicitly versioned
+application representation before crossing a V1 boundary; normal four-digit
+years need no migration.
+
+`ValueWireEncodePreflight` uses conservative lower bounds. It now counts a
+BigDecimal coefficient as string payload, but that estimate may be smaller
+than its exact decimal text. JSON object admission also occurs before building
+its sorting index, so an object rejected by its own structural limit avoids
+that allocation. Preflight and final `JsonEncodeSession` accounting reduce
+some avoidable work; they do not bound every encoding preparation allocation.
+
 ### End-to-end: `ValueContainer` to JSON and back
 
 The following example creates an explicitly scalar value, converts it into the
@@ -522,6 +537,11 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
   absolute value exceeds the V1 bound.
 - `Duration` uses a `{ "secs": ..., "nanos": ... }` payload with nanos below
   one second.
+- Concrete `Instant` payloads require UTC years from 0 through 9999. Negative
+  and five-digit years now return `InstantYearOutOfRange`, a compatibility
+  tightening for values that previously encoded but were not decodable. Keep
+  such values in memory or use an explicitly versioned application format;
+  ordinary four-digit years are unchanged.
 - `Float32` and `Float64` may contain non-finite values in memory, but V1
   rejects NaN and infinities because JSON has no such number literals.
 - `Json(null)` is a concrete JSON value and is distinct from `Unset(Json)`.
@@ -560,6 +580,40 @@ resource, exact budget facts and optional collection index. Ordinary conversion
 errors retain their existing types. Each call starts fresh accounting. Use
 Wire `JsonEncodeLimits` or a bounded rs-json encoder to constrain final encoded
 bytes; `ConversionLimits` is not a JSON encoding length limit.
+
+### Bounded materialization from Serde
+
+`Value::from_serializable` validates and materializes a strict JSON value but
+does not use a finite resource budget. `JsonEncodeLimits` and
+`ConversionLimits` do not limit its intermediate JSON tree. When serialized
+input needs bounded materialization, encode it with a caller-owned
+`JsonValueBudget` transaction, commit only after encoding succeeds, and then
+wrap the resulting JSON value:
+
+<!-- example:bounded-serializable run -->
+```rust
+use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonValueBudget;
+use qubit_budget::json::JsonValueLimits;
+use qubit_json::value::JsonValueEncoder;
+use qubit_value::Value;
+
+let limits = JsonValueLimits::<JsonResource, usize>::builder()
+    .max_depth(8)
+    .max_nodes(64)
+    .max_string_bytes(1024)
+    .max_payload_bytes(4096)
+    .build();
+let mut budget = JsonValueBudget::new(limits);
+let mut transaction = budget.transaction();
+let owner = JsonValueEncoder::new().encode_in_transaction(&vec!["bounded"], &mut transaction)?;
+transaction.commit()?;
+let value = Value::from_json_value(owner.into_value());
+assert_eq!(value.get_json()?.as_array().unwrap().len(), 1);
+```
+
+If encoding fails, propagate the error and drop the transaction without
+committing it; no partial budget state is retained.
 
 With `natural-json`, Natural JSON projects a runtime value into ordinary
 `serde_json::Value`. The following example shows the exact JSON string emitted

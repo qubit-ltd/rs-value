@@ -1018,8 +1018,9 @@ impl Value {
     ///
     /// # Errors
     ///
-    /// Returns a structured conversion error when JSON projection or duration
-    /// formatting violates the requested policy or limits.
+    /// Returns [`ValueError::JsonProjectionLimit`] when a projection resource
+    /// limit is exceeded, or a structured conversion error when JSON
+    /// projection or duration formatting violates the requested policy.
     #[inline(always)]
     pub fn to_json_value_with(
         &self,
@@ -1128,6 +1129,13 @@ impl Value {
     /// Returns [`ValueError::Conversion`] when serialization encounters a
     /// non-finite nested float, an integer outside the strict JSON range, or
     /// another unsupported Serde representation.
+    ///
+    /// # Resource limits
+    ///
+    /// This method validates the JSON representation but does not apply a
+    /// finite resource budget. `JsonEncodeLimits` and `ConversionLimits` do
+    /// not constrain this materialization; use `JsonValueEncoder` with a
+    /// caller-owned `JsonValueBudget` when a bounded projection is required.
     #[cfg(all(feature = "converter", feature = "json"))]
     pub fn from_serializable<T: ?Sized + Serialize>(value: &T) -> ValueResult<Self> {
         let json = JsonValueEncoder::new().encode(value).map_err(|error| {

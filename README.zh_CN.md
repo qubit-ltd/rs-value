@@ -157,6 +157,11 @@ key。完整类型表、JSON 数字契约、错误、资源限制和 feature 兼
 带版本的格式；自然 JSON 刻意不包含运行时类型标签。完整的 Wire 工作流、借用 payload、feature
 兼容性和资源限制处理，请参阅用户手册。
 
+Wire V1 只接受 UTC 年份在 0 到 9999 之间的具体 `Instant`；超出范围的值现在会在编码时失败，
+而不会生成 V1 解码器无法读取的文本。它的 preflight 使用保守下界，包括 BigDecimal 系数的
+字符串大小；最终编码仍执行权威限额。这样可以更早拒绝部分超限值，但不会限制所有临时分配。
+年份边界和有界 JSON 物化路径见用户手册。
+
 Wire DTO 实现了 `Serialize`，但刻意不实现通用的 `Deserialize`：普通 Serde deserializer 无法在
 不可信边界上同时约束原始输入大小和结构资源。完整 JSON 文档应使用有界的
 `ValueWireV1::decode_json_slice` 系列入口。嵌入外层协议时，应将

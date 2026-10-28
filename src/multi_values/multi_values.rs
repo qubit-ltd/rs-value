@@ -475,8 +475,12 @@ impl MultiValues {
     ///
     /// # Errors
     ///
-    /// Returns an indexed list conversion error when an item cannot be
-    /// represented under the requested policy and limits.
+    /// Returns [`ValueError::JsonProjectionLimit`] when a projection resource
+    /// limit is exceeded; its collection index is absent for container-wide
+    /// limits and identifies an item for item-specific limits. Returns an
+    /// indexed [`ValueError::ListConversion`] when an item cannot be
+    /// represented under the requested policy, or another structured
+    /// conversion error for unsupported values.
     #[inline(always)]
     pub fn to_json_value_with(
         &self,
@@ -753,8 +757,15 @@ impl MultiValues {
     ///
     /// Reads the first stored value as `T`, performing strict type checking.
     ///
-    /// `get_first<T>()` does not do cross-type conversion. When the `converter`
-    /// feature is enabled, use `to<T>()` for compatible cross-type conversion.
+    /// `get_first<T>()` does not do cross-type conversion.
+    #[cfg_attr(
+        feature = "converter",
+        doc = "When the `converter` feature is enabled, use [`Self::to_first`] for compatible cross-type conversion."
+    )]
+    #[cfg_attr(
+        not(feature = "converter"),
+        doc = "With the `converter` feature enabled, `to_first` provides compatible cross-type conversion."
+    )]
     ///
     /// # Type Parameters
     ///
@@ -1410,7 +1421,7 @@ impl MultiValues {
     }
 
     /// Converts the first stored value to `T`, or returns `default` when the
-    /// container is unset or conversion reports a missing value.
+    /// collection is unset.
     ///
     /// An unset collection can use the default. A concrete empty collection
     /// and a policy-missing collection item (including the first item) remain
@@ -1423,18 +1434,18 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Value returned for unset storage or a policy-missing
-    ///   scalar; collection-item and ordinary conversion errors are returned.
+    /// * `default` - Value returned for unset storage. Errors from concrete
+    ///   collection items are returned.
     ///
     /// # Returns
     ///
-    /// The converted first value, or `default` for unset or conversion-missing
-    /// storage.
+    /// The converted first value, or `default` for an unset collection.
     ///
     /// # Errors
     ///
-    /// Returns an empty-collection error for a concrete empty vector, or a
-    /// conversion error when the first value cannot be converted to `T`.
+    /// Returns an empty-collection error for a concrete empty vector, a
+    /// policy-missing first-item error, or another conversion error when the
+    /// first value cannot be converted to `T`.
     #[inline]
     pub fn to_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
@@ -1448,8 +1459,8 @@ impl MultiValues {
         }
     }
 
-    /// Converts the first value or calls `default` when storage is unset or
-    /// conversion reports a missing value.
+    /// Converts the first value or calls `default` when the collection is
+    /// unset.
     ///
     /// # Type Parameters
     ///
@@ -1458,18 +1469,18 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Callback invoked for unset storage or a policy-missing
-    ///   scalar; it is not invoked for a missing collection item or ordinary
-    ///   conversion error.
+    /// * `default` - Callback invoked only for unset storage.
     ///
     /// # Returns
     ///
-    /// The converted first item or the callback result.
+    /// The converted first item or the callback result for an unset
+    /// collection.
     ///
     /// # Errors
     ///
-    /// Preserves empty-collection, policy-missing-item, and ordinary
-    /// concrete-value conversion errors without invoking the callback.
+    /// Returns an empty-collection error or a conversion error for a concrete
+    /// value that cannot be converted to `T`. A policy-missing item, including
+    /// item zero, remains an error and does not invoke the callback.
     #[inline]
     pub fn to_first_or_else<T, F>(&self, default: F) -> ValueResult<T>
     where
@@ -1541,8 +1552,7 @@ impl MultiValues {
     }
 
     /// Converts the first stored value to `T` using conversion policy and
-    /// limits, or returns `default` when storage is unset or conversion
-    /// reports a missing value.
+    /// limits, or returns `default` when the collection is unset.
     ///
     /// # Type Parameters
     ///
@@ -1550,23 +1560,38 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Lazily materialized value used for unset storage or a
-    ///   conversion-missing result.
+    /// * `default` - Value used only when storage is unset.
     /// * `policy` - Conversion policy forwarded to `qubit_datatype`.
     /// * `limits` - Conversion limits forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///
-    /// The converted first item, or `default` for an unset collection or a
-    /// policy-missing scalar. A missing collection item, including index zero,
-    /// never uses the default.
+    /// The converted first item, or `default` for an unset collection.
     ///
     /// # Errors
     ///
-    /// Returns an empty-collection error, a missing collection-item error, or
-    /// an ordinary conversion error for concrete values that cannot be
-    /// converted under the provided policy and limits. None invokes the
-    /// fallback.
+    /// Returns an empty-collection error, a policy-missing error at item zero,
+    /// or an ordinary conversion error for concrete values that cannot be
+    /// converted under the provided policy and limits. These errors do not
+    /// invoke the fallback.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// use qubit_datatype::{ConversionLimits, ConversionPolicy, DataType};
+    /// use qubit_value::MultiValues;
+    ///
+    /// let policy = ConversionPolicy::env_friendly();
+    /// let limits = ConversionLimits::default();
+    /// let unset = MultiValues::new_unset(DataType::String);
+    /// assert_eq!(unset.to_first_or_with::<u16>(8080, &policy, &limits)?, 8080);
+    ///
+    /// let concrete = MultiValues::new([""]);
+    /// assert!(concrete.to_first_or_with::<u16>(8080, &policy, &limits).is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
     #[inline]
     pub fn to_first_or_with<T>(
         &self,
@@ -1586,8 +1611,7 @@ impl MultiValues {
     }
 
     /// Converts the first value with the provided policy and limits, or calls
-    /// `default` when storage is unset or conversion reports a missing
-    /// value.
+    /// `default` when the collection is unset.
     ///
     /// # Type Parameters
     ///
@@ -1596,19 +1620,20 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Callback invoked for unset storage or a conversion-missing
-    ///   result.
+    /// * `default` - Callback invoked only for unset storage.
     /// * `policy` - Conversion policy forwarded to the shared converter.
     /// * `limits` - Conversion limits forwarded to the shared converter.
     ///
     /// # Returns
     ///
-    /// The converted first item or the callback result.
+    /// The converted first item or the callback result for an unset
+    /// collection.
     ///
     /// # Errors
     ///
-    /// Preserves concrete-value conversion errors, including policy-missing
-    /// collection items, without invoking the callback.
+    /// Returns an empty-collection error or a conversion error for concrete
+    /// values. A policy-missing collection item, including item zero, remains
+    /// an error and does not invoke the callback.
     #[inline]
     pub fn to_first_or_else_with<T, F>(
         &self,
@@ -1652,8 +1677,8 @@ impl MultiValues {
         self.to_list_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
-    /// Converts all stored values to `T`, or returns `default` when storage is
-    /// unset or conversion reports a missing value.
+    /// Converts all stored values to `T`, or returns `default` when the
+    /// collection is unset.
     ///
     /// # Type Parameters
     ///
@@ -1661,20 +1686,18 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Lazily materialized list used for unset storage or a
-    ///   policy-missing scalar; collection-item and ordinary conversion errors
-    ///   are returned.
+    /// * `default` - List used only when storage is unset.
     ///
     /// # Returns
     ///
-    /// All converted items, or `default` for an unset collection or a
-    /// policy-missing outer scalar. A policy-missing collection item and an
-    /// ordinary conversion error never use the default.
+    /// All converted items, or `default` for an unset collection. A concrete
+    /// empty collection produces an empty vector; a policy-missing item or an
+    /// ordinary conversion error never uses the default.
     ///
     /// # Errors
     ///
-    /// Returns the first item conversion error for concrete storage. A
-    /// policy-missing collection item is preserved and does not use the
+    /// Returns the first indexed item-conversion error for concrete storage.
+    /// A policy-missing collection item is preserved and does not use the
     /// fallback.
     #[inline]
     pub fn to_list_or<T>(&self, default: impl IntoValueDefault<Vec<T>>) -> ValueResult<Vec<T>>
@@ -1689,8 +1712,7 @@ impl MultiValues {
         }
     }
 
-    /// Converts all values or calls `default` when storage is unset or
-    /// conversion reports a missing value.
+    /// Converts all values or calls `default` when the collection is unset.
     ///
     /// # Type Parameters
     ///
@@ -1699,18 +1721,16 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Callback invoked for unset storage or a policy-missing
-    ///   scalar; it is not invoked for a missing collection item or ordinary
-    ///   conversion error.
+    /// * `default` - Callback invoked only for unset storage.
     ///
     /// # Returns
     ///
-    /// The converted list or the callback result.
+    /// The converted list or the callback result for an unset collection.
     ///
     /// # Errors
     ///
-    /// Preserves concrete-value conversion errors, including policy-missing
-    /// collection items, without invoking the callback.
+    /// Returns the first indexed item-conversion error for concrete storage
+    /// without invoking the callback.
     #[inline]
     pub fn to_list_or_else<T, F>(&self, default: F) -> ValueResult<Vec<T>>
     where
@@ -1743,8 +1763,9 @@ impl MultiValues {
     ///
     /// # Errors
     ///
-    /// Returns the first conversion error encountered while converting an
-    /// element.
+    /// Returns the first conversion or budget error encountered while
+    /// converting an element. A policy-missing collection item is reported as
+    /// an indexed list conversion error.
     pub fn to_list_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
@@ -1778,9 +1799,8 @@ impl MultiValues {
             .map_err(|error| self.contextual_conversion_error(error, false))
     }
 
-    /// Converts all stored values to `T` using conversion policy and limits, or
-    /// returns `default` when storage is unset or conversion reports a
-    /// missing value.
+    /// Converts all stored values to `T` using conversion policy and limits,
+    /// or returns `default` when the collection is unset.
     ///
     /// # Type Parameters
     ///
@@ -1788,21 +1808,20 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Lazily materialized list used for unset storage or a
-    ///   conversion-missing result.
+    /// * `default` - List used only when storage is unset.
     /// * `policy` - Conversion policy forwarded to `qubit_datatype`.
     /// * `limits` - Conversion limits forwarded to `qubit_datatype`.
     ///
     /// # Returns
     ///
-    /// All converted items, or `default` for an unset collection or a
-    /// policy-missing scalar. A missing collection item and an ordinary
-    /// conversion error never use the default.
+    /// All converted items, or `default` for an unset collection. A concrete
+    /// empty collection produces an empty vector; a missing collection item
+    /// or ordinary conversion error never uses the default.
     ///
     /// # Errors
     ///
-    /// Returns the first item conversion error for concrete storage. Missing
-    /// collection items and ordinary conversion errors are preserved.
+    /// Returns the first indexed item-conversion error for concrete storage.
+    /// Missing collection items and ordinary conversion errors are preserved.
     #[inline]
     pub fn to_list_or_with<T>(
         &self,
@@ -1822,8 +1841,7 @@ impl MultiValues {
     }
 
     /// Converts all values with the provided policy and limits, or calls
-    /// `default` when storage is unset or conversion reports a missing
-    /// value.
+    /// `default` when the collection is unset.
     ///
     /// # Type Parameters
     ///
@@ -1832,20 +1850,18 @@ impl MultiValues {
     ///
     /// # Parameters
     ///
-    /// * `default` - Callback invoked for unset storage or a policy-missing
-    ///   scalar; it is not invoked for a missing collection item or ordinary
-    ///   conversion error.
+    /// * `default` - Callback invoked only for unset storage.
     /// * `policy` - Conversion policy forwarded to the shared converter.
     /// * `limits` - Conversion limits forwarded to the shared converter.
     ///
     /// # Returns
     ///
-    /// The converted list or the callback result.
+    /// The converted list or the callback result for an unset collection.
     ///
     /// # Errors
     ///
-    /// Preserves concrete-value conversion errors, including policy-missing
-    /// collection items, without invoking the callback.
+    /// Returns the first indexed policy-missing item or ordinary conversion
+    /// error for concrete storage without invoking the callback.
     #[inline]
     pub fn to_list_or_else_with<T, F>(
         &self,

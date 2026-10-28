@@ -215,6 +215,8 @@ V1 is a closed contract. The following are compatibility invariants:
 - `Int128`, `UInt128`, and `BigInteger` use canonical decimal text;
 - `BigDecimal` uses a bounded coefficient/scale representation;
 - `Duration` uses seconds and sub-second nanoseconds;
+- concrete `Instant` payloads use UTC years `0..=9999`, matching the four-digit
+  year accepted by the V1 RFC3339 decoder;
 - floats must be finite;
 - string-map keys and nested JSON object keys are emitted in lexicographic
   order under the supported canonical JSON configuration.
@@ -227,13 +229,23 @@ The byte-stability statement applies to canonical JSON emitted with the
 supported `serde_json` configuration. Other Serde formats may carry the DTOs,
 but their byte representation is not part of the V1 JSON stability contract.
 
+This Instant rule tightens encoding acceptance: negative or five-digit years
+could previously be emitted but could not be decoded as V1. Such values remain
+valid runtime values; callers must keep them in memory or choose an explicitly
+versioned application representation before crossing a V1 boundary. Normal
+four-digit-year encodings are unchanged.
+
 <a id="budget-and-preflight"></a>
 ## Budget and Preflight
 
 Wire processing separates early rejection from authoritative accounting.
 
 `ValueWireEncodePreflight` performs conservative lower-bound checks before a
-downstream protocol sorts keys, formats payloads, or allocates its final output.
+downstream protocol formats payloads or allocates its final output. The
+BigDecimal coefficient is counted as string payload using a no-allocation
+lower bound, which may undercount its exact decimal text. In canonical JSON
+serialization, an object is admitted before its sorting index is built, so a
+failure of that object's own structural limit avoids the index allocation.
 Successful `check_value`, `check_values`, and `check_container` calls
 accumulate into one checker, allowing an outer object to charge several
 embedded values to a shared budget. Each call is atomic: when it fails, the
@@ -243,7 +255,8 @@ Preflight does not serialize, retain a sorting index, or prove that final
 encoding will fit. Its estimates intentionally omit or undercount some final
 syntax and formatting costs. The final `JsonEncodeSession` remains
 authoritative and enforces structural measurements plus actual output bytes
-during encoding.
+during encoding. These checks can avoid some work before rejection, but do not
+make every encoding preparation allocation subject to the output budget.
 
 The three preflight counters have distinct units: `nodes` counts JSON value
 nodes, `payload_bytes` counts decoded string/key/number text (null and boolean

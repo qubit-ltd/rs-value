@@ -171,6 +171,7 @@ V1 是封闭契约，以下各项属于兼容性不变量：
 - `Int128`、`UInt128` 和 `BigInteger` 使用 canonical 十进制文本；
 - `BigDecimal` 使用有界 coefficient/scale 表示；
 - `Duration` 使用秒和不足一秒的纳秒；
+- 具体 `Instant` payload 使用 UTC 年份 `0..=9999`，与 V1 RFC3339 decoder 接受的四位年份一致；
 - 浮点数必须有限；
 - 在受支持的 canonical JSON 配置下，字符串 map key 和嵌套 JSON object key 按字典序输出。
 
@@ -180,19 +181,26 @@ Externally tagged 表示不属于 V1 输入。已有 V1 tag、shape 或 payload 
 字节稳定性只针对受支持 `serde_json` 配置产生的 canonical JSON。其他 Serde 格式可以承载这些
 DTO，但其字节表示不属于 V1 JSON 稳定性契约。
 
+这条 Instant 规则收紧了编码接受范围：负年份或五位数年份过去可以编码，却无法由 V1 解码。此类
+值仍可作为运行时值存在；跨越 V1 边界前，调用方应将其保留在内存中，或选择应用显式版本化的
+表示。普通四位数年份的编码保持不变。
+
 <a id="budget-and-preflight"></a>
 ## Budget 与 Preflight
 
 Wire 处理将早期拒绝与权威记账分为两个阶段。
 
-`ValueWireEncodePreflight` 在下游协议排序 key、格式化 payload 或分配最终输出前执行保守的
-下界检查。成功的 `check_value`、`check_values` 和 `check_container` 会累计到同一个 checker，
+`ValueWireEncodePreflight` 在下游协议格式化 payload 或分配最终输出前执行保守的下界检查。
+BigDecimal 系数以无需分配的下界计入字符串 payload，该估算可能小于精确十进制文本长度。
+Canonical JSON 序列化会在创建 object 排序索引前先准入 object，因此因该 object 自身结构限额
+而失败时不会产生这项分配。成功的 `check_value`、`check_values` 和 `check_container` 会累计到同一个 checker，
 因此外层 object 可以让多个嵌入值共享预算。每次调用都具有原子性：失败时，node、payload byte
 和 output byte counter 会恢复到调用前状态。
 
 Preflight 不执行序列化、不保留排序 index，也不证明最终编码一定能通过。估算会刻意省略或少算
 部分最终语法和格式化成本。最终 `JsonEncodeSession` 才是权威检查，会在编码期间校验结构
-measurement 与实际输出字节。
+measurement 与实际输出字节。这些检查可以避免部分拒绝前工作，但不会让所有编码准备分配都受
+output budget 限制。
 
 三个 preflight counter 使用不同单位：`nodes` 统计 JSON value 节点，`payload_bytes` 统计解码后
 字符串、key 和数字文本的字节（null 与 boolean 的 payload 为零），`output_bytes` 统计编码语法和

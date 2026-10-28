@@ -185,6 +185,14 @@ Natural JSON intentionally omits runtime type tags. The user guide contains the
 full Wire workflow, borrowed payload examples, feature compatibility rules,
 and resource-limit handling.
 
+Wire V1 accepts concrete `Instant` years only from 0 through 9999 (UTC), so
+years outside that range now fail encoding instead of producing text the V1
+decoder cannot read. Its preflight uses conservative lower bounds, including
+the BigDecimal coefficient's string size; final encoding still enforces the
+authoritative limits. This can reject some oversized values earlier, but it
+does not cap every temporary allocation. See the guide for the boundary and
+the bounded JSON materialization path.
+
 The Wire DTOs implement `Serialize`, but deliberately do not implement generic
 `Deserialize`: a general Serde deserializer cannot enforce the raw-input and
 structural limits required at an untrusted boundary. Use the bounded
