@@ -147,6 +147,115 @@ fn test_preflight_big_decimal_small_coefficients_and_rollback() {
 }
 
 #[test]
+fn test_preflight_encoding_success_implies_acceptance_at_output_boundaries() {
+    let values = [
+        Value::Int128(i128::MIN),
+        Value::UInt128(u128::MAX),
+        Value::Float32(f32::from_bits(1)),
+        Value::Float32(-0.0),
+        Value::Float32(f32::INFINITY),
+        Value::Float64(f64::from_bits(1)),
+        Value::Float64(-0.0),
+        Value::Float64(f64::NAN),
+        Value::Float64(f64::INFINITY),
+        Value::Duration(Duration::new(u64::MAX, 999_999_999)),
+        Value::Unset(DataType::UInt128),
+        Value::BigInteger(BigInt::from_bytes_le(num_bigint::Sign::Minus, &[0xff; 256])),
+        Value::BigDecimal(BigDecimal::new(BigInt::from(0), 2)),
+        Value::BigDecimal(BigDecimal::new(BigInt::from(-7), 150_000)),
+        Value::BigDecimal(BigDecimal::new(BigInt::from(10_u8).pow(255), -150_001)),
+        Value::Json(serde_json::json!([null, true, 123, "mixed", {"nested": [false]}])),
+    ];
+
+    for value in values {
+        let wire = match ValueWireV1::try_from(value.clone()) {
+            Ok(wire) => wire,
+            Err(_) => continue,
+        };
+        let encoded = match wire.to_json_vec_with_limits(JsonEncodeLimits::new()) {
+            Ok(encoded) => encoded,
+            Err(_) => continue,
+        };
+        let size = encoded.len();
+        for max_output_bytes in [size.saturating_sub(1), size, size.saturating_add(1)] {
+            let limits = JsonEncodeLimits::builder()
+                .max_output_bytes(max_output_bytes)
+                .max_depth(64)
+                .max_nodes(4096)
+                .max_sequence_items(32)
+                .max_map_entries(32)
+                .max_key_bytes(4096)
+                .max_string_bytes(4096)
+                .max_number_bytes(4096)
+                .max_payload_bytes(4 * 1024 * 1024)
+                .build();
+            if wire.to_json_vec_with_limits(limits.clone()).is_ok() {
+                ValueWireEncodePreflight::new(limits)
+                    .check_value(&value)
+                    .expect("successful encoding must imply preflight acceptance");
+            }
+        }
+    }
+}
+
+#[test]
+fn test_preflight_encoding_success_implies_acceptance_for_collections_and_limits() {
+    let values = [
+        ValueContainer::Collection(MultiValues::Int128(Vec::new())),
+        ValueContainer::Collection(MultiValues::String(vec![String::new()])),
+        ValueContainer::Collection(MultiValues::Json(vec![
+            serde_json::Value::Null,
+            serde_json::json!({"items": [true, 1, "text"]}),
+        ])),
+    ];
+    let dimension_profiles = [
+        JsonEncodeLimits::builder().max_depth(0).build(),
+        JsonEncodeLimits::builder().max_depth(1).build(),
+        JsonEncodeLimits::builder().max_nodes(0).build(),
+        JsonEncodeLimits::builder().max_nodes(1).build(),
+        JsonEncodeLimits::builder().max_sequence_items(0).build(),
+        JsonEncodeLimits::builder().max_sequence_items(1).build(),
+        JsonEncodeLimits::builder().max_map_entries(0).build(),
+        JsonEncodeLimits::builder().max_map_entries(1).build(),
+        JsonEncodeLimits::builder().max_key_bytes(0).build(),
+        JsonEncodeLimits::builder().max_key_bytes(1).build(),
+        JsonEncodeLimits::builder().max_string_bytes(0).build(),
+        JsonEncodeLimits::builder().max_string_bytes(1).build(),
+        JsonEncodeLimits::builder().max_number_bytes(0).build(),
+        JsonEncodeLimits::builder().max_number_bytes(1).build(),
+        JsonEncodeLimits::builder().max_payload_bytes(0).build(),
+        JsonEncodeLimits::builder().max_payload_bytes(1).build(),
+        JsonEncodeLimits::builder().max_output_bytes(0).build(),
+        JsonEncodeLimits::builder().max_output_bytes(1).build(),
+        JsonEncodeLimits::builder()
+            .max_depth(64)
+            .max_nodes(4096)
+            .max_sequence_items(32)
+            .max_map_entries(32)
+            .max_key_bytes(4096)
+            .max_string_bytes(4096)
+            .max_number_bytes(4096)
+            .max_payload_bytes(4 * 1024 * 1024)
+            .max_output_bytes(4 * 1024 * 1024)
+            .build(),
+    ];
+
+    for value in values {
+        for limits in &dimension_profiles {
+            let wire = match ValueWireV1::try_from(value.clone()) {
+                Ok(wire) => wire,
+                Err(_) => continue,
+            };
+            if wire.to_json_vec_with_limits(limits.clone()).is_ok() {
+                ValueWireEncodePreflight::new(limits.clone())
+                    .check_container(&value)
+                    .expect("successful encoding must imply preflight acceptance");
+            }
+        }
+    }
+}
+
+#[test]
 fn test_preflight_counts_unset_wire_tag_as_string() {
     let value = Value::Unset(DataType::UInt128);
     let limits = ValueWireV1::default_json_encode_limits()
