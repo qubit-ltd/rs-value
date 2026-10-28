@@ -345,18 +345,26 @@ impl ValueContainer {
     ///
     /// # Errors
     ///
-    /// Returns a type conversion error when the stored type does not match `T`.
+    /// Returns [`ValueError::Missing`] when an unset scalar or collection has
+    /// the requested type, or [`ValueError::TypeMismatch`] when the stored type
+    /// does not match `T`. A concrete empty collection returns an empty slice.
     ///
     /// # Examples
     ///
     /// ```
     /// use qubit_value::ValueContainer;
+    /// use qubit_datatype::DataType;
+    /// use qubit_value::ValueError;
     ///
     /// let values = ValueContainer::from(vec![String::from("a"), String::from("b")]);
     /// let all: &[String] = values.get_slice().unwrap();
     /// assert_eq!(all.len(), 2);
     /// let empty = ValueContainer::from(Vec::<String>::new());
     /// assert!(empty.get_slice::<String>().unwrap().is_empty());
+    /// let unset_scalar = ValueContainer::new_unset_scalar(DataType::String);
+    /// let unset_collection = ValueContainer::new_unset_collection(DataType::String);
+    /// assert!(matches!(unset_scalar.get_slice::<String>(), Err(ValueError::Missing(_))));
+    /// assert!(matches!(unset_collection.get_slice::<String>(), Err(ValueError::Missing(_))));
     /// ```
     #[inline(always)]
     pub fn get_slice<'a, T>(&'a self) -> ValueResult<&'a [T]>

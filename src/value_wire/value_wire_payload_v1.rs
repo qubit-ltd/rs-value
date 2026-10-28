@@ -136,8 +136,11 @@ impl ValueWirePayloadV1 {
     ///
     /// # Errors
     ///
-    /// Returns a limit error when the input or decoded structure is too large,
-    /// or [`ValueWireDecodeError::InvalidJson`] for malformed input.
+    /// Returns a resource error when the input or decoded structure exceeds the
+    /// default limits, [`ValueWireDecodeError::Syntax`] for JSON syntax
+    /// failures, or [`ValueWireDecodeError::InvalidJson`] for invalid UTF-8
+    /// or a payload that does not satisfy the V1 shape, type, or value
+    /// constraints.
     #[cfg(feature = "json")]
     #[inline]
     pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
@@ -157,8 +160,10 @@ impl ValueWirePayloadV1 {
     ///
     /// # Errors
     ///
-    /// Returns a limit error when `input` or its decoded structure exceeds
-    /// `limits`, or [`ValueWireDecodeError::InvalidJson`] for malformed input.
+    /// Returns a resource error when `input` or its decoded structure exceeds
+    /// `limits`, [`ValueWireDecodeError::Syntax`] for JSON syntax failures, or
+    /// [`ValueWireDecodeError::InvalidJson`] for invalid UTF-8 or a payload
+    /// that does not satisfy the V1 shape, type, or value constraints.
     #[cfg(feature = "json")]
     #[inline]
     pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
