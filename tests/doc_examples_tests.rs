@@ -190,7 +190,7 @@ fn fixture_package_name(file: &str, dependencies: &str, example: &MarkdownExampl
 }
 
 /// Extracts the unique executable emitted for the fixture package by Cargo.
-fn executable_from_messages(package_name: &str, messages: &str) -> Result<PathBuf, String> {
+fn executable_from_messages(messages: &str, package_name: &str) -> Result<PathBuf, String> {
     let mut executables = BTreeSet::new();
     for (index, line) in messages.lines().enumerate() {
         if line.trim().is_empty() {
@@ -256,7 +256,7 @@ fn test_artifact_parser_accepts_supported_executable_paths() {
     ] {
         let message = cargo_artifact_message("fixture", "bin", Some(path), true);
         assert_eq!(
-            executable_from_messages("fixture", &message).unwrap(),
+            executable_from_messages(&message, "fixture").unwrap(),
             PathBuf::from(path),
         );
     }
@@ -270,7 +270,7 @@ fn test_artifact_parser_ignores_blank_and_unrelated_messages() {
         cargo_artifact_message("dependency", "bin", Some("dependency"), false),
         cargo_artifact_message("fixture", "lib", Some("library"), false),
     );
-    let error = executable_from_messages("fixture", &messages).unwrap_err();
+    let error = executable_from_messages(&messages, "fixture").unwrap_err();
     assert!(error.contains("no executable artifact"), "{error}");
     assert!(error.contains("fixture"), "{error}");
 }
@@ -278,13 +278,13 @@ fn test_artifact_parser_ignores_blank_and_unrelated_messages() {
 #[test]
 fn test_artifact_parser_requires_executable_for_matching_bin() {
     let message = cargo_artifact_message("fixture", "bin", None, false);
-    let error = executable_from_messages("fixture", &message).unwrap_err();
+    let error = executable_from_messages(&message, "fixture").unwrap_err();
     assert!(error.contains("no executable artifact"), "{error}");
 }
 
 #[test]
 fn test_artifact_parser_reports_invalid_json_line_number() {
-    let error = executable_from_messages("fixture", "{}\nnot-json\n").unwrap_err();
+    let error = executable_from_messages("{}\nnot-json\n", "fixture").unwrap_err();
     assert!(error.contains("line 2"), "{error}");
     assert!(error.contains("invalid Cargo JSON"), "{error}");
 }
@@ -294,7 +294,7 @@ fn test_artifact_parser_deduplicates_identical_paths() {
     let message = cargo_artifact_message("fixture", "bin", Some("target/debug/example"), false);
     let messages = format!("{message}\n{message}");
     assert_eq!(
-        executable_from_messages("fixture", &messages).unwrap(),
+        executable_from_messages(&messages, "fixture").unwrap(),
         PathBuf::from("target/debug/example"),
     );
 }
@@ -306,7 +306,7 @@ fn test_artifact_parser_rejects_multiple_different_executables() {
         cargo_artifact_message("fixture", "bin", Some("target/debug/one"), false),
         cargo_artifact_message("fixture", "bin", Some("target/debug/two"), false),
     );
-    let error = executable_from_messages("fixture", &messages).unwrap_err();
+    let error = executable_from_messages(&messages, "fixture").unwrap_err();
     assert!(error.contains("expected one executable artifact"), "{error}");
     assert!(error.contains("found 2"), "{error}");
 }
@@ -455,7 +455,7 @@ qubit-value = {{ path = {root:?} }}
         let messages = fs::read_to_string(&stdout_path)
             .map_err(|error| diagnostic(file, &example.id, &format!("read Cargo messages: {error}")));
         result = messages
-            .and_then(|messages| executable_from_messages(&package_name, &messages))
+            .and_then(|messages| executable_from_messages(&messages, &package_name))
             .map_err(|error| diagnostic(file, &example.id, &error))
             .and_then(|executable| {
                 let mut command = Command::new(executable);
