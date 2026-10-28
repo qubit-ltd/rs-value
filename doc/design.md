@@ -3,7 +3,7 @@
 [中文版](design.zh_CN.md) · [README](../README.md) · [User guide](user_guide.md) · [API documentation](https://docs.rs/qubit-value)
 
 This document records the architectural boundaries and compatibility rules for
-`qubit-value` 0.11. It is aimed at maintainers of this crate and authors of
+`qubit-value` 0.13. It is aimed at maintainers of this crate and authors of
 protocols or downstream crates that build on its value model.
 
 <a id="scope"></a>
@@ -183,6 +183,15 @@ Complete untrusted JSON documents must use bounded decode helpers; embedded
 payloads use `ValueWireV1Seed` or `ValueWirePayloadV1Seed` under the outer
 decoder's shared session.
 
+When dependency feature unification enables `serde_json/arbitrary_precision`,
+bounded helpers and `JsonDecoder::decode_unique_*` preserve native numeric
+events; generic Serde readers can expose numbers as private maps. The unique
+path constructs an intermediate tree, treats object keys literally, and uses
+the configured depth budget without a separate fixed 127-container cap. This
+adds memory overhead, and target-deserialization errors have no original source
+coordinates. `NamedValue` and `NamedMultiValues` retain generic `Deserialize`
+for embedding; only the public Wire DTOs omit that trait.
+
 <a id="wire-v1-compatibility"></a>
 ## Wire V1 Compatibility
 
@@ -323,6 +332,12 @@ Wire errors do not include raw input contents. Decode errors preserve safe
 location and category information. Both `ValueError` and Wire error enums are
 non-exhaustive where downstream code must tolerate future diagnostic variants;
 downstream matches therefore need a fallback arm.
+
+`ValueWireDecodeError::InvalidJson` now contains `ValueWireJsonError`, which
+retains only Serde category, line, and column—not the original error or input.
+Target-deserialization failures without source coordinates use zero values.
+This changes the payload type from `serde_json::Error`; callers that construct
+the variant or downcast its source must migrate to the safe metadata accessors.
 
 <a id="downstream-integration"></a>
 ## Downstream Integration

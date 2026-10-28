@@ -2,7 +2,7 @@
 
 [English version](design.md) · [README](../README.zh_CN.md) · [用户手册](user_guide.zh_CN.md) · [API 文档](https://docs.rs/qubit-value)
 
-本文记录 `qubit-value` 0.11 的架构边界与兼容性规则，面向本 crate 的维护者，以及基于这套
+本文记录 `qubit-value` 0.13 的架构边界与兼容性规则，面向本 crate 的维护者，以及基于这套
 值模型设计协议或下游 crate 的开发者。
 
 <a id="scope"></a>
@@ -144,6 +144,12 @@ Wire JSON 使用明确的版本、shape 和类型 tag。DTO 实现 `Serialize`�
 `Deserialize`。完整的不可信 JSON 文档必须通过有界 decode helper 读取；嵌入式 payload 应在
 外层 decoder 的共享 session 中使用 `ValueWireV1Seed` 或 `ValueWirePayloadV1Seed`。
 
+依赖 feature 统一启用 `serde_json/arbitrary_precision` 时，有界 helper 和
+`JsonDecoder::decode_unique_*` 会保留原生数字事件；通用 Serde reader 可能把数字呈现为私有 map。
+唯一键路径会构造中间树、按字面处理对象键，并使用配置的 depth budget，没有额外固定的 127 层
+容器上限。中间树会增加内存开销，目标反序列化错误没有原始源码坐标。`NamedValue` 和
+`NamedMultiValues` 仍实现通用 `Deserialize` 以便嵌入；只有公开 Wire DTO 不实现该 trait。
+
 <a id="wire-v1-compatibility"></a>
 ## Wire V1 兼容性
 
@@ -262,6 +268,10 @@ Fallback 遵循以下真值表：
 Wire 错误不包含原始输入内容；decode 错误只保留安全的位置和类别信息。`ValueError` 和 Wire
 错误 enum 在需要允许未来增加诊断变体时使用 `non_exhaustive`，下游 match 因此必须有 fallback
 分支。
+
+`ValueWireDecodeError::InvalidJson` 现在携带 `ValueWireJsonError`，只保留 Serde 类别、行和列，
+不保留原始错误或输入。无法获得源码位置的目标反序列化失败使用零值。这会把载荷类型从
+`serde_json::Error` 改为安全元数据；直接构造该变体或向下转型错误源的调用方需要迁移到这些访问器。
 
 <a id="downstream-integration"></a>
 ## 下游集成

@@ -115,7 +115,7 @@ additional crates support the Wire and embedded-document sections.
 [dependencies]
 qubit-value = { version = "0.13", features = ["all"] }
 qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
-qubit-budget = { version = "0.9.1", features = ["json"] }
+qubit-budget = { version = "0.10", features = ["json"] }
 qubit-json = "0.12"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -389,6 +389,16 @@ through a resource-bounded outer deserializer when nested.
 `JsonDecodeLimits` or `JsonEncodeLimits` value when the application owns a
 different input, output, or value budget.
 
+When `serde_json/arbitrary_precision` is unified through another dependency,
+use these bounded helpers or a `JsonDecoder::decode_unique_*` path. Generic
+Serde readers can expose JSON numbers as serde_json's private map encoding.
+The unique-key decoder builds an intermediate tree, preserves object keys as
+ordinary user keys, and enforces the configured `max_depth`; it has no separate
+fixed 127-container limit. The tree uses extra memory, and errors from
+deserializing the target type do not have original source coordinates. A
+130-level value succeeds when the configured depth allows it, while direct
+`serde_json::from_slice` may hit Serde's default recursion limit.
+
 ### Borrowed Wire encoding
 
 Use a borrowed adapter when the source value already lives long enough for the
@@ -434,7 +444,7 @@ let limits = JsonDecodeLimits::builder()
     .build();
 let session = JsonDecodeSession::from_limits(limits);
 let mut decoder = JsonDecoder::new(session);
-let decoded = decoder.decode_seed_utf8(ValueWireV1Seed::new(), input)?;
+let decoded = decoder.decode_unique_seed_utf8(ValueWireV1Seed::new(), input)?;
 let restored: ValueContainer = decoded.into();
 assert!(restored.is_collection());
 ```
@@ -482,16 +492,26 @@ let tight = JsonDecodeLimits::builder()
     .max_payload_bytes(64usize)
     .build();
 let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(tight));
-assert!(decoder.decode_utf8::<Outer>(input).is_err());
+assert!(decoder.decode_unique_utf8::<Outer>(input).is_err());
 
 let wide = JsonDecodeLimits::builder()
     .max_string_bytes(64usize)
     .max_payload_bytes(128usize)
     .build();
 let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(wide));
-let outer = decoder.decode_utf8::<Outer>(input)?;
+let outer = decoder.decode_unique_utf8::<Outer>(input)?;
 assert_eq!(outer.first.container().data_type().as_str(), "string");
 assert_eq!(outer.second.container().data_type().as_str(), "string");
+
+let numeric_input = br#"{"version":1,"value":{"scalar":{"uint64":18446744073709551615}}}"#;
+let limits = JsonDecodeLimits::builder().max_input_bytes(4096usize).build();
+let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(limits));
+let wire = decoder.decode_unique_seed_utf8(
+    qubit_value::ValueWireV1Seed::new(),
+    numeric_input,
+)?;
+let restored: qubit_value::ValueContainer = wire.into();
+assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
 ```
 
 ### Wire-specific type and input boundaries
@@ -624,6 +644,32 @@ for an intentionally absent configuration property, not for a malformed port or
 a type mismatch. For diagnostics containing string maps or JSON objects, use
 the explicit `redact` view when the application has sensitive fields; ordinary
 `Debug` formatting is not implicitly redacted.
+
+`ValueWireDecodeError::InvalidJson` carries `ValueWireJsonError`, which exposes
+only the Serde category and line/column metadata. It does not retain the
+original error message or input text. Target-type failures from the unique-key
+tree path have no source coordinates and report zero for line and column.
+
+```rust
+use qubit_value::ValueWireDecodeError;
+use serde_json::error::Category;
+
+let source = serde_json::from_str::<u64>("\"not a number\"").unwrap_err();
+let error = ValueWireDecodeError::from(source);
+if let ValueWireDecodeError::InvalidJson(json) = error {
+    assert_eq!(json.classify(), Category::Data);
+    assert!(json.line() > 0);
+    assert!(json.column() > 0);
+}
+```
+
+This changes the `InvalidJson` payload from `serde_json::Error` to
+`ValueWireJsonError`. Downstream code that names the old payload type,
+constructs the variant directly, or downcasts its source should match the safe
+type and use `classify()`, `line()`, and `column()` instead. Ordinary typed
+collections now charge each visible element to the redaction item budget, so a
+policy that previously printed every numeric item may now return a truncated
+view.
 
 ## Troubleshooting
 

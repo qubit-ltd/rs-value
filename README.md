@@ -190,7 +190,7 @@ The Wire DTOs implement `Serialize`, but deliberately do not implement generic
 structural limits required at an untrusted boundary. Use the bounded
 `ValueWireV1::decode_json_slice` helpers for complete JSON documents. For an
 embedded value, pass `ValueWireV1Seed::new()` or `ValueWirePayloadV1Seed::new()`
-to the surrounding `JsonDecoder::decode_seed_utf8` or `next_value_seed` call so
+to the surrounding `JsonDecoder::decode_unique_seed_utf8` or `next_value_seed` call so
 the outer protocol owns one shared budget.
 
 `NamedValue` and `NamedMultiValues` do implement generic `Deserialize` so they
@@ -198,6 +198,23 @@ can be embedded in larger Serde documents. That implementation validates the
 V1 schema and payload shape but inherits resource accounting from the supplied
 deserializer. Use their bounded `decode_json_slice` helpers for complete,
 untrusted JSON input, or a resource-bounded outer decoder when they are nested.
+With `serde_json/arbitrary_precision` feature unification, choose the bounded
+JSON helpers or a `decode_unique_*` outer decoder: generic Serde readers can
+expose numbers as private maps. The unique-key path builds an intermediate
+tree, preserves user object keys literally, and applies the configured depth
+budget rather than a separate fixed 127-container cap. It uses extra memory,
+and target type errors have no original source coordinates. For example, the
+unique decoder accepts a 130-level value when `max_depth` allows it, while a
+direct `serde_json::from_slice` call can hit Serde's own recursion limit.
+
+Wire decode errors expose privacy-safe `ValueWireJsonError` metadata through
+`ValueWireDecodeError::InvalidJson`: category, line, and column are retained,
+but the original Serde error and input text are not. Code that explicitly
+matched the old `serde_json::Error` payload, constructed `InvalidJson` directly,
+or downcast its error source must migrate to `ValueWireJsonError` and its
+`classify()`, `line()`, and `column()` accessors. Ordinary typed collections
+also account for each visible item against the redaction policy; a small item
+budget can now truncate numeric and other primitive collection output.
 
 Natural JSON cannot reconstruct `DataType`, unset state, or scalar-versus-
 collection shape. Wire V1 rejects non-finite floats and unsupported or malformed

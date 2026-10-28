@@ -106,7 +106,7 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 [dependencies]
 qubit-value = { version = "0.13", features = ["all"] }
 qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
-qubit-budget = { version = "0.9.1", features = ["json"] }
+qubit-budget = { version = "0.10", features = ["json"] }
 qubit-json = "0.12"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -358,6 +358,12 @@ deserializer。处理完整且不可信的 JSON 文档时，应使用它们有�
 V1 默认定向 profile；应用自行控制输入、输出或 value 预算时，传入对应的
 `JsonDecodeLimits` 或 `JsonEncodeLimits`。
 
+如果其他依赖统一启用了 `serde_json/arbitrary_precision`，应使用这些有界 helper 或
+`JsonDecoder::decode_unique_*` 路径。通用 Serde reader 可能把 JSON number 呈现为 serde_json 的私有
+map 编码。唯一键 decoder 会构造中间树，将对象键按普通用户键处理，并执行配置的 `max_depth`；它
+没有额外固定的 127 层容器上限。中间树会增加内存开销，目标类型反序列化错误没有原始源码坐标。
+配置深度允许时，130 层值可以解码；直接调用 `serde_json::from_slice` 则可能触及 Serde 默认递归限制。
+
 ### 借用 Wire 编码
 
 如果源值在序列化调用期间一直有效，使用借用适配器可以避免不必要的 clone。
@@ -398,7 +404,7 @@ let limits = JsonDecodeLimits::builder()
     .build();
 let session = JsonDecodeSession::from_limits(limits);
 let mut decoder = JsonDecoder::new(session);
-let decoded = decoder.decode_seed_utf8(ValueWireV1Seed::new(), input)?;
+let decoded = decoder.decode_unique_seed_utf8(ValueWireV1Seed::new(), input)?;
 let restored: ValueContainer = decoded.into();
 assert!(restored.is_collection());
 ```
@@ -444,16 +450,26 @@ let tight = JsonDecodeLimits::builder()
     .max_payload_bytes(64usize)
     .build();
 let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(tight));
-assert!(decoder.decode_utf8::<Outer>(input).is_err());
+assert!(decoder.decode_unique_utf8::<Outer>(input).is_err());
 
 let wide = JsonDecodeLimits::builder()
     .max_string_bytes(64usize)
     .max_payload_bytes(128usize)
     .build();
 let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(wide));
-let outer = decoder.decode_utf8::<Outer>(input)?;
+let outer = decoder.decode_unique_utf8::<Outer>(input)?;
 assert_eq!(outer.first.container().data_type().as_str(), "string");
 assert_eq!(outer.second.container().data_type().as_str(), "string");
+
+let numeric_input = br#"{"version":1,"value":{"scalar":{"uint64":18446744073709551615}}}"#;
+let limits = JsonDecodeLimits::builder().max_input_bytes(4096usize).build();
+let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(limits));
+let wire = decoder.decode_unique_seed_utf8(
+    qubit_value::ValueWireV1Seed::new(),
+    numeric_input,
+)?;
+let restored: qubit_value::ValueContainer = wire.into();
+assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
 ```
 
 ### Wire 的类型和输入边界
@@ -568,6 +584,28 @@ assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
 应把缺失值和非法值分开处理。对于有意缺失的配置属性可以使用默认值；对于错误的 port 或
 类型不匹配，不应使用默认值掩盖问题。如果诊断输出包含字符串 map 或 JSON object，并且应用
 有敏感字段，应使用显式的 `redact` 视图；普通 `Debug` 格式化不会自动脱敏。
+
+`ValueWireDecodeError::InvalidJson` 携带 `ValueWireJsonError`，只暴露 Serde 类别和行列元数据，
+不会保留原始错误消息或输入文本。通过唯一键中间树解码时发生的 target 类型错误没有原始源码位置，
+因此 line 和 column 为零。
+
+```rust
+use qubit_value::ValueWireDecodeError;
+use serde_json::error::Category;
+
+let source = serde_json::from_str::<u64>("\"not a number\"").unwrap_err();
+let error = ValueWireDecodeError::from(source);
+if let ValueWireDecodeError::InvalidJson(json) = error {
+    assert_eq!(json.classify(), Category::Data);
+    assert!(json.line() > 0);
+    assert!(json.column() > 0);
+}
+```
+
+`InvalidJson` 的载荷类型已从 `serde_json::Error` 改为 `ValueWireJsonError`。下游代码若显式写出
+旧载荷类型、直接构造该变体或向下转型其错误源，应改为匹配安全类型，并通过
+`classify()`、`line()` 和 `column()` 读取元数据。普通类型化集合现在会将每个可见元素计入脱敏 item
+budget；以前能完整输出的数字集合，在较小预算下可能变为截断视图。
 
 ## 排障
 
