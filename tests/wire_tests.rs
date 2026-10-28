@@ -27,16 +27,87 @@ use chrono::NaiveTime;
 use chrono::Utc;
 #[cfg(feature = "all")]
 use num_bigint::BigInt;
-#[cfg(feature = "all")]
+#[cfg(any(feature = "all", feature = "chrono"))]
 use qubit_value::MultiValues;
-#[cfg(feature = "all")]
+#[cfg(any(feature = "all", feature = "chrono"))]
 use qubit_value::NamedMultiValues;
-#[cfg(feature = "all")]
+#[cfg(any(feature = "all", feature = "chrono"))]
 use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWireV1;
+#[cfg(feature = "chrono")]
+use qubit_datatype::DataType;
+#[cfg(feature = "chrono")]
+use qubit_value::ValueWirePayloadRefV1;
+#[cfg(feature = "chrono")]
+use qubit_value::ValueWireEncodeError;
+#[cfg(feature = "chrono")]
+use qubit_value::ValueWireRefV1;
+
+#[cfg(feature = "chrono")]
+#[test]
+fn test_wire_instant_rejects_extended_years() {
+    use chrono::TimeZone;
+    use chrono::Utc;
+
+    for year in [-1, 10000] {
+        let instant = Utc.with_ymd_and_hms(year, 1, 1, 0, 0, 0).unwrap();
+        let value = Value::Instant(instant);
+        assert!(matches!(ValueWireV1::try_from(value.clone()), Err(ValueWireEncodeError::InstantYearOutOfRange { year: actual }) if actual == year));
+        assert!(matches!(ValueWireRefV1::try_from(&value), Err(ValueWireEncodeError::InstantYearOutOfRange { year: actual }) if actual == year));
+        assert!(matches!(ValueWirePayloadV1::try_from(value.clone()), Err(ValueWireEncodeError::InstantYearOutOfRange { year: actual }) if actual == year));
+        assert!(matches!(ValueWirePayloadRefV1::try_from(&value), Err(ValueWireEncodeError::InstantYearOutOfRange { year: actual }) if actual == year));
+
+        let values = MultiValues::Instant(vec![instant]);
+        assert!(matches!(ValueWireV1::try_from(ValueContainer::Collection(values.clone())), Err(ValueWireEncodeError::InstantYearOutOfRange { year: actual }) if actual == year));
+        assert!(matches!(ValueWireRefV1::try_from(&ValueContainer::Collection(values.clone())), Err(ValueWireEncodeError::InstantYearOutOfRange { year: actual }) if actual == year));
+        assert!(matches!(ValueWirePayloadV1::try_from(ValueContainer::Collection(values.clone())), Err(ValueWireEncodeError::InstantYearOutOfRange { year: actual }) if actual == year));
+        assert!(matches!(ValueWirePayloadRefV1::try_from(&ValueContainer::Collection(values.clone())), Err(ValueWireEncodeError::InstantYearOutOfRange { year: actual }) if actual == year));
+        assert!(serde_json::to_vec(&NamedValue::new("field", value)).is_err());
+        assert!(serde_json::to_vec(&NamedMultiValues::new("field", values)).is_err());
+    }
+}
+
+#[cfg(feature = "chrono")]
+#[test]
+fn test_wire_instant_rejects_mixed_out_of_range_collection_and_accepts_empty() {
+    use chrono::TimeZone;
+    use chrono::Utc;
+
+    let valid = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+    let invalid = Utc.with_ymd_and_hms(10000, 1, 1, 0, 0, 0).unwrap();
+    let values = MultiValues::Instant(vec![valid, invalid]);
+    assert!(matches!(ValueWireV1::try_from(ValueContainer::Collection(values.clone())), Err(ValueWireEncodeError::InstantYearOutOfRange { year: 10000 })));
+    assert!(matches!(ValueWirePayloadV1::try_from(ValueContainer::Collection(values.clone())), Err(ValueWireEncodeError::InstantYearOutOfRange { year: 10000 })));
+    let mixed = ValueContainer::Collection(values);
+    assert!(matches!(ValueWireRefV1::try_from(&mixed), Err(ValueWireEncodeError::InstantYearOutOfRange { year: 10000 })));
+    assert!(matches!(ValueWirePayloadRefV1::try_from(&mixed), Err(ValueWireEncodeError::InstantYearOutOfRange { year: 10000 })));
+
+    let empty = ValueContainer::Collection(MultiValues::Instant(Vec::new()));
+    assert!(ValueWireV1::try_from(empty).is_ok());
+    assert!(ValueWireV1::try_from(ValueContainer::new_unset_scalar(DataType::Instant)).is_ok());
+}
+
+#[cfg(all(feature = "chrono", feature = "json"))]
+#[test]
+fn test_wire_instant_year_boundaries_round_trip() {
+    use chrono::TimeZone;
+    use chrono::Utc;
+
+    for year in [0, 2026, 9999] {
+        let value = Value::Instant(Utc.with_ymd_and_hms(year, 1, 1, 0, 0, 0).unwrap());
+        let wire = ValueWireV1::try_from(value).expect("in-range instant should encode");
+        let bytes = serde_json::to_vec(&wire).expect("in-range instant should serialize");
+        assert_eq!(
+            std::str::from_utf8(&bytes).expect("wire JSON should be UTF-8"),
+            format!("{{\"version\":1,\"value\":{{\"scalar\":{{\"instant\":\"{year:04}-01-01T00:00:00Z\"}}}}}}")
+        );
+        let decoded = ValueWireV1::decode_json_slice(&bytes).expect("in-range instant should decode");
+        assert_eq!(decoded, wire);
+    }
+}
 
 #[cfg(feature = "all")]
 #[test]

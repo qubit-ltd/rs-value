@@ -48,7 +48,7 @@ pub struct ValueWireRefV1<'a> {
 }
 
 impl<'a> ValueWireRefV1<'a> {
-    /// Borrows a scalar after validating V1's finite-float invariant.
+    /// Borrows a scalar after validating V1's representational constraints.
     ///
     /// # Parameters
     ///
@@ -61,12 +61,13 @@ impl<'a> ValueWireRefV1<'a> {
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError`] when the scalar violates V1 numeric
-    /// representation constraints.
+    /// representation constraints, including the supported UTC year range
+    /// for instants.
     #[inline(always)]
     pub fn from_value(value: &'a Value) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_value(value).map(Self::new)
     }
-    /// Borrows a collection after validating V1's finite-float invariant.
+    /// Borrows a collection after validating V1's representational constraints.
     ///
     /// # Parameters
     ///
@@ -79,12 +80,13 @@ impl<'a> ValueWireRefV1<'a> {
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError`] when an element violates V1 numeric
-    /// representation constraints.
+    /// representation constraints, including the supported UTC year range
+    /// for instants.
     #[inline(always)]
     pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_values(values).map(Self::new)
     }
-    /// Borrows an explicit shape after validating V1's finite-float invariant.
+    /// Borrows an explicit shape after validating V1's representational constraints.
     ///
     /// # Parameters
     ///
@@ -97,7 +99,8 @@ impl<'a> ValueWireRefV1<'a> {
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError`] when any contained value violates V1
-    /// numeric representation constraints.
+    /// numeric representation constraints, including the supported UTC year
+    /// range for instants.
     #[inline(always)]
     pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
         ValueWirePayloadRefV1::from_container(value).map(Self::new)

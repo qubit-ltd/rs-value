@@ -55,6 +55,12 @@ pub enum ValueWireEncodeError {
         /// Inclusive exponent magnitude limit for V1.
         maximum_absolute_scale: i64,
     },
+    /// A UTC instant year must be within the four-digit V1 wire range.
+    #[error("V1 JSON wire cannot represent UTC instant year {year}; supported years are 0 through 9999")]
+    InstantYearOutOfRange {
+        /// UTC calendar year rejected by the V1 wire contract.
+        year: i32,
+    },
     /// The JSON output exceeded one configured resource budget.
     #[cfg(feature = "json")]
     #[error("V1 JSON wire resource budget exceeded: {0}")]

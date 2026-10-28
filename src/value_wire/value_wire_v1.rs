@@ -291,8 +291,10 @@ impl TryFrom<Value> for ValueWireV1 {
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite
-    /// float, or [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a
-    /// decimal whose exponent is outside V1's supported range.
+    /// float, [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a decimal
+    /// whose exponent is outside V1's supported range, or
+    /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an instant outside
+    /// the supported UTC year range.
     #[inline(always)]
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         ValueWirePayloadV1::try_from(value).map(Self::new)
@@ -307,8 +309,10 @@ impl TryFrom<MultiValues> for ValueWireV1 {
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite
-    /// float element, or [`ValueWireEncodeError::BigDecimalScaleTooLarge`]
-    /// for an element whose decimal exponent is outside V1's supported range.
+    /// float element, [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for
+    /// an element whose decimal exponent is outside V1's supported range, or
+    /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an instant outside
+    /// the supported UTC year range.
     #[inline(always)]
     fn try_from(values: MultiValues) -> Result<Self, Self::Error> {
         ValueWirePayloadV1::try_from(values).map(Self::new)
@@ -323,8 +327,10 @@ impl TryFrom<ValueContainer> for ValueWireV1 {
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite
-    /// float, or [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a
-    /// decimal whose exponent is outside V1's supported range.
+    /// float, [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a decimal
+    /// whose exponent is outside V1's supported range, or
+    /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an instant outside
+    /// the supported UTC year range.
     #[inline]
     fn try_from(value: ValueContainer) -> Result<Self, Self::Error> {
         ValueWirePayloadV1::try_from(value).map(Self::new)

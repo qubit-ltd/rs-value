@@ -17,6 +17,29 @@ use serde::Deserializer;
 #[cfg(any(feature = "chrono", feature = "url"))]
 use serde::Serializer;
 
+/// Validates the UTC year accepted by the V1 instant representation.
+///
+/// # Parameters
+///
+/// * `year` - UTC calendar year to validate.
+///
+/// # Returns
+///
+/// `Ok(())` when `year` is within the inclusive four-digit range.
+///
+/// # Errors
+///
+/// Returns [`crate::ValueWireEncodeError::InstantYearOutOfRange`] when `year`
+/// is outside `0..=9999`.
+#[cfg(feature = "chrono")]
+pub(crate) fn validate_instant_year(year: i32) -> Result<(), crate::ValueWireEncodeError> {
+    if (0..=9999).contains(&year) {
+        Ok(())
+    } else {
+        Err(crate::ValueWireEncodeError::InstantYearOutOfRange { year })
+    }
+}
+
 pub(crate) use crate::finite_float::float32;
 pub(crate) use crate::finite_float::float32_vec;
 pub(crate) use crate::finite_float::float64;
@@ -212,7 +235,7 @@ where
 /// Defines canonical scalar and vector wire adapters for one chrono type.
 #[cfg(feature = "chrono")]
 macro_rules! define_chrono_wire {
-    ($scalar:ident, $vector:ident, $type:ty, $parse:expr, $format:expr) => {
+    ($scalar:ident, $vector:ident, $type:ty, $parse:expr, $format:expr $(, $validate:expr)?) => {
         /// Canonical scalar wire adapter generated for one chrono type.
         pub(crate) mod $scalar {
             use serde::Deserializer;
@@ -240,6 +263,12 @@ macro_rules! define_chrono_wire {
             where
                 S: Serializer,
             {
+                $(
+                    {
+                        use serde::ser::Error as _;
+                        ($validate)(value).map_err(S::Error::custom)?;
+                    }
+                )?
                 super::serialize_canonical(value, serializer, $format)
             }
 
@@ -295,6 +324,14 @@ macro_rules! define_chrono_wire {
             where
                 S: Serializer,
             {
+                $(
+                    {
+                        use serde::ser::Error as _;
+                        for value in values {
+                            ($validate)(value).map_err(S::Error::custom)?;
+                        }
+                    }
+                )?
                 super::serialize_canonical_vec(values, serializer, $format)
             }
 
@@ -360,7 +397,11 @@ define_chrono_wire!(
     |input| chrono::DateTime::parse_from_rfc3339(input)
         .map(|value| value.with_timezone(&chrono::Utc))
         .map_err(|error| error.to_string()),
-    |value: &chrono::DateTime<chrono::Utc>| value.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
+    |value: &chrono::DateTime<chrono::Utc>| value.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
+    |value: &chrono::DateTime<chrono::Utc>| {
+        use chrono::Datelike as _;
+        crate::wire::validate_instant_year(value.year())
+    }
 );
 
 /// Defines canonical scalar and vector wire adapters for URL values.

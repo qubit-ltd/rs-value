@@ -19,6 +19,8 @@ use qubit_budget::json::JsonEncodeSession;
 use qubit_json::encode::JsonEncoder;
 use serde::Serialize;
 use serde::Serializer;
+#[cfg(feature = "chrono")]
+use chrono::Datelike;
 
 use super::ValueWireEncodeError;
 use super::WireShapeRef;
@@ -27,6 +29,8 @@ use crate::Value;
 use crate::ValueContainer;
 use crate::multi_values::MultiValuesRepr;
 use crate::value::ValueRepr;
+#[cfg(feature = "chrono")]
+use crate::wire::validate_instant_year;
 #[cfg(feature = "big-decimal")]
 use crate::wire::MAX_BIG_DECIMAL_ABSOLUTE_SCALE;
 #[cfg(feature = "big-decimal")]
@@ -249,6 +253,10 @@ impl<'a> ValueWirePayloadRefV1<'a> {
 /// Returns [`ValueWireEncodeError`] for a non-finite float or an out-of-range
 /// arbitrary-precision decimal scale.
 pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
+    #[cfg(feature = "chrono")]
+    if let ValueRepr::Instant(value) = &value.repr {
+        validate_instant_year(value.year())?;
+    }
     #[cfg(feature = "big-decimal")]
     if let ValueRepr::BigDecimal(value) = &value.repr {
         validate_big_decimal_scale(value.as_bigint_and_scale().1)?;
@@ -278,6 +286,12 @@ pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWi
 /// Returns [`ValueWireEncodeError`] for a non-finite float element or an
 /// out-of-range arbitrary-precision decimal scale.
 pub(in crate::value_wire) fn validate_values(values: &MultiValues) -> Result<(), ValueWireEncodeError> {
+    #[cfg(feature = "chrono")]
+    if let MultiValuesRepr::Instant(values) = &values.repr {
+        for value in values {
+            validate_instant_year(value.year())?;
+        }
+    }
     #[cfg(feature = "big-decimal")]
     if let MultiValuesRepr::BigDecimal(values) = &values.repr {
         for value in values {

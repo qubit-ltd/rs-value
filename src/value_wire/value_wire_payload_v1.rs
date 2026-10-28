@@ -73,7 +73,7 @@ impl ValueWirePayloadV1 {
         Self { value }
     }
 
-    /// Builds a payload after enforcing V1's finite-float invariant.
+    /// Builds a payload after enforcing V1's representational constraints.
     ///
     /// # Parameters
     ///
@@ -85,8 +85,9 @@ impl ValueWirePayloadV1 {
     ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when any contained numeric payload is
-    /// not representable by V1.
+    /// Returns [`ValueWireEncodeError`] when any contained payload is not
+    /// representable by V1, including an instant outside the supported UTC
+    /// year range.
     fn try_new(value: ValueContainer) -> Result<Self, ValueWireEncodeError> {
         match &value {
             ValueContainer::Scalar(value) => validate_value(value)?,
@@ -296,8 +297,10 @@ impl TryFrom<Value> for ValueWirePayloadV1 {
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite
-    /// float, or [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a
-    /// decimal whose exponent is outside V1's supported range.
+    /// float, [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a decimal
+    /// whose exponent is outside V1's supported range, or
+    /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an instant outside
+    /// the supported UTC year range.
     #[inline]
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         Self::try_new(value.into())
@@ -312,8 +315,10 @@ impl TryFrom<MultiValues> for ValueWirePayloadV1 {
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite
-    /// float element, or [`ValueWireEncodeError::BigDecimalScaleTooLarge`]
-    /// for an element whose decimal exponent is outside V1's supported range.
+    /// float element, [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for
+    /// an element whose decimal exponent is outside V1's supported range, or
+    /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an instant outside
+    /// the supported UTC year range.
     #[inline(always)]
     fn try_from(value: MultiValues) -> Result<Self, Self::Error> {
         Self::try_new(value.into())
@@ -328,8 +333,10 @@ impl TryFrom<ValueContainer> for ValueWirePayloadV1 {
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError::NonFiniteFloat`] for a non-finite
-    /// float, or [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a
-    /// decimal whose exponent is outside V1's supported range.
+    /// float, [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for a decimal
+    /// whose exponent is outside V1's supported range, or
+    /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an instant outside
+    /// the supported UTC year range.
     #[inline]
     fn try_from(value: ValueContainer) -> Result<Self, Self::Error> {
         Self::try_new(value)
