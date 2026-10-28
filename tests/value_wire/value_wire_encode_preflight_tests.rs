@@ -33,6 +33,147 @@ use qubit_value::ValueWireEncodePreflight;
 use qubit_value::ValueWireV1;
 use url::Url;
 
+#[test]
+fn test_preflight_key_payload_boundary() {
+    let value = Value::StringMap(HashMap::from([("abc".to_owned(), String::new())]));
+    let limits = JsonEncodeLimits::builder().max_payload_bytes(2_usize).build();
+    assert!(ValueWireEncodePreflight::new(limits).check_value(&value).is_err());
+    let limits = JsonEncodeLimits::builder()
+        .max_payload_bytes(3_usize)
+        .max_nodes(2_usize)
+        .build();
+    assert!(ValueWireEncodePreflight::new(limits).check_value(&value).is_ok());
+}
+
+#[test]
+fn test_preflight_key_output_boundaries_and_utf8_lower_bound() {
+    let value = Value::StringMap(HashMap::from([("abc".to_owned(), String::new())]));
+    for (maximum, accepted) in [(9, false), (10, true)] {
+        let limits = JsonEncodeLimits::builder()
+            .max_output_bytes(maximum)
+            .max_nodes(2)
+            .build();
+        assert_eq!(
+            ValueWireEncodePreflight::new(limits).check_value(&value).is_ok(),
+            accepted
+        );
+    }
+
+    let json = Value::Json(serde_json::json!({"abc": null}));
+    for (maximum, accepted) in [(8, false), (9, true)] {
+        let limits = JsonEncodeLimits::builder().max_output_bytes(maximum).build();
+        assert_eq!(
+            ValueWireEncodePreflight::new(limits).check_value(&json).is_ok(),
+            accepted
+        );
+    }
+
+    for key in ["", "键", "quote\"slash\\"] {
+        let value = Value::StringMap(HashMap::from([(key.to_owned(), String::new())]));
+        let wire = ValueWireV1::try_from(value.clone()).expect("map must have a wire representation");
+        let encoded = wire
+            .to_json_vec_with_limits(JsonEncodeLimits::new())
+            .expect("encoding must succeed");
+        let limits = JsonEncodeLimits::builder().max_output_bytes(encoded.len()).build();
+        ValueWireEncodePreflight::new(limits)
+            .check_value(&value)
+            .expect("key UTF-8 and quote bytes form a safe output lower bound");
+    }
+
+    let empty = Value::StringMap(HashMap::new());
+    ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_payload_bytes(0).build())
+        .check_value(&empty)
+        .expect("an empty object has no key payload");
+}
+
+#[test]
+fn test_preflight_key_payload_accumulates_and_failed_calls_roll_back() {
+    let limits = JsonEncodeLimits::builder().max_payload_bytes(6).build();
+    let map = Value::StringMap(HashMap::from([("abc".to_owned(), String::new())]));
+    assert_three_key_calls(
+        ValueWireEncodePreflight::new(limits),
+        |checker| checker.check_value(&map),
+        "failed scalar check must roll back key bytes",
+    );
+    assert_three_key_calls(
+        ValueWireEncodePreflight::new(limits),
+        |checker| {
+            checker.check_values(&MultiValues::StringMap(vec![HashMap::from([(
+                "abc".to_owned(),
+                String::new(),
+            )])]))
+        },
+        "failed collection check must roll back key bytes",
+    );
+    assert_three_key_calls(
+        ValueWireEncodePreflight::new(limits),
+        |checker| checker.check_container(&ValueContainer::Scalar(map.clone())),
+        "failed container check must roll back key bytes",
+    );
+}
+
+fn assert_three_key_calls<F>(mut checker: ValueWireEncodePreflight, mut check: F, rollback_message: &str)
+where
+    F: FnMut(&mut ValueWireEncodePreflight) -> Result<(), MeasuredBudgetError<JsonResource, usize>>,
+{
+    check(&mut checker).expect("first key-bearing value fits");
+    check(&mut checker).expect("second key-bearing value exactly fits");
+    assert_limit_exceeded(
+        check(&mut checker).expect_err("third key must exceed cumulative payload"),
+        JsonResource::PayloadBytes,
+    );
+    checker
+        .check_value(&Value::String(String::new()))
+        .expect(rollback_message);
+}
+
+#[test]
+fn test_preflight_fixed_object_key_payload_and_output_boundaries() {
+    let duration = Value::Duration(Duration::ZERO);
+    for (maximum, accepted) in [(10, false), (11, true)] {
+        let limits = JsonEncodeLimits::builder()
+            .max_payload_bytes(maximum)
+            .max_nodes(3)
+            .build();
+        assert_eq!(
+            ValueWireEncodePreflight::new(limits).check_value(&duration).is_ok(),
+            accepted
+        );
+    }
+    for (maximum, accepted) in [(19, false), (20, true)] {
+        let limits = JsonEncodeLimits::builder()
+            .max_output_bytes(maximum)
+            .max_nodes(3)
+            .build();
+        assert_eq!(
+            ValueWireEncodePreflight::new(limits).check_value(&duration).is_ok(),
+            accepted
+        );
+    }
+
+    let decimal = Value::BigDecimal(BigDecimal::new(BigInt::from(0), 0));
+    for (maximum, accepted) in [(17, false), (18, true)] {
+        let limits = JsonEncodeLimits::builder()
+            .max_payload_bytes(maximum)
+            .max_nodes(3)
+            .build();
+        assert_eq!(
+            ValueWireEncodePreflight::new(limits).check_value(&decimal).is_ok(),
+            accepted
+        );
+    }
+    for (maximum, accepted) in [(28, false), (29, true)] {
+        let limits = JsonEncodeLimits::builder()
+            .max_output_bytes(maximum)
+            .max_nodes(3)
+            .build();
+        assert_eq!(
+            ValueWireEncodePreflight::new(limits).check_value(&decimal).is_ok(),
+            accepted
+        );
+    }
+}
+
 #[cfg(feature = "json")]
 const DEEP_PREFLIGHT_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_PREFLIGHT_CHILD";
 

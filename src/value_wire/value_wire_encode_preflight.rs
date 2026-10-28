@@ -383,7 +383,7 @@ impl ValueWireEncodePreflight {
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
         self.admit_object(depth, map.len())?;
         for (key, value) in map {
-            self.check_point(JsonMeasurement::Key { bytes: key.len() })?;
+            self.admit_key(key)?;
             self.admit_string(depth + 1, value.len())?;
         }
         Ok(())
@@ -430,7 +430,7 @@ impl ValueWireEncodePreflight {
                 }
                 Frame::Object(mut values, depth) => {
                     if let Some((key, value)) = values.next() {
-                        self.check_point(JsonMeasurement::Key { bytes: key.len() })?;
+                        self.admit_key(key)?;
                         frames.push(Frame::Object(values, depth));
                         frames.push(Frame::Visit(value, depth));
                     }
@@ -492,20 +492,9 @@ impl ValueWireEncodePreflight {
         depth: usize,
         fields: [(&str, usize, bool); N],
     ) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        let output = fields
-            .iter()
-            .try_fold(2_usize, |total, (key, _, _)| {
-                total
-                    .checked_add(key.len())
-                    .and_then(|total| total.checked_add(3))
-                    .ok_or(())
-            })
-            .ok()
-            .and_then(|total| total.checked_add(N.saturating_sub(1)))
-            .ok_or_else(|| self.quantity_error(JsonResource::OutputBytes))?;
-        self.admit(JsonMeasurement::Object { depth, entries: N }, output, 0)?;
+        self.admit_object(depth, N)?;
         for (key, value, is_string) in fields {
-            self.check_point(JsonMeasurement::Key { bytes: key.len() })?;
+            self.admit_key(key)?;
             if is_string {
                 self.admit_string(depth + 1, value)?;
             } else {
@@ -513,6 +502,37 @@ impl ValueWireEncodePreflight {
             }
         }
         Ok(())
+    }
+
+    /// Accounts for one object key without adding a JSON value node.
+    ///
+    /// # Errors
+    ///
+    /// Returns a measured error for a key limit, cumulative limit, or overflow.
+    fn admit_key(&mut self, key: &str) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        self.check_point(JsonMeasurement::Key { bytes: key.len() })?;
+        let output = key
+            .len()
+            .checked_add(2)
+            .ok_or_else(|| self.quantity_error(JsonResource::OutputBytes))?;
+        self.payload_bytes = self
+            .payload_bytes
+            .checked_add(key.len())
+            .ok_or_else(|| self.quantity_error(JsonResource::PayloadBytes))?;
+        self.output_bytes = self
+            .output_bytes
+            .checked_add(output)
+            .ok_or_else(|| self.quantity_error(JsonResource::OutputBytes))?;
+        self.check_cumulative(
+            JsonResource::PayloadBytes,
+            self.payload_bytes,
+            self.limits.value_limits().max_payload_bytes(),
+        )?;
+        self.check_cumulative(
+            JsonResource::OutputBytes,
+            self.output_bytes,
+            self.limits.max_output_bytes(),
+        )
     }
 
     /// Checks one measurement and adds its node, payload, and output lower
@@ -649,6 +669,42 @@ mod tests {
         assert_eq!(checker.nodes, 0);
         assert_eq!(checker.payload_bytes, usize::MAX);
         assert_eq!(checker.output_bytes, 0);
+    }
+
+    #[test]
+    fn test_check_value_reports_key_payload_counter_overflow_and_rolls_back() {
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        checker.payload_bytes = usize::MAX;
+
+        let error = checker
+            .check_value(&Value::StringMap(std::collections::HashMap::from([(
+                "x".to_owned(),
+                String::new(),
+            )])))
+            .expect_err("the key payload counter cannot exceed usize::MAX");
+
+        assert_overflow(error);
+        assert_eq!(checker.nodes, 0);
+        assert_eq!(checker.payload_bytes, usize::MAX);
+        assert_eq!(checker.output_bytes, 0);
+    }
+
+    #[test]
+    fn test_check_value_reports_key_output_counter_overflow_and_rolls_back() {
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        checker.output_bytes = usize::MAX - 3;
+
+        let error = checker
+            .check_value(&Value::StringMap(std::collections::HashMap::from([(
+                "x".to_owned(),
+                String::new(),
+            )])))
+            .expect_err("the key output counter cannot exceed usize::MAX");
+
+        assert_overflow(error);
+        assert_eq!(checker.nodes, 0);
+        assert_eq!(checker.payload_bytes, 0);
+        assert_eq!(checker.output_bytes, usize::MAX - 3);
     }
 
     #[test]
