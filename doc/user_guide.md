@@ -371,6 +371,12 @@ use it only when another protocol already owns the versioned envelope.
 `ValueWireRefV1` and `ValueWirePayloadRefV1` serialize borrowed values without
 cloning them.
 
+V1 rejects legacy bare enum representations such as `{"Int32":42}`. A
+standalone document must use the versioned envelope shown above. The embedded
+payload `{"scalar":{"int32":42}}` is valid only with the payload seed/DTO and
+is not a standalone V1 document; a standalone document without `version` is
+invalid.
+
 For the canonical representations and limits of the feature-gated rich types,
 see the [Wire V1 rich payload table](design.md#wire-v1-rich-payloads). The
 following example shows one complete BigDecimal round trip. The JSON object is
@@ -620,7 +626,8 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
 - A concrete rich type can be decoded only by a build with its corresponding
   feature. Unsupported feature-gated payloads are rejected rather than guessed.
 - Unknown fields, unknown types, wrong scalar/collection shapes, non-numeric
-  versions, and externally tagged documents are rejected.
+  versions, legacy bare enum representations, and standalone documents without
+  the version envelope are rejected.
 
 ## Natural JSON
 
@@ -641,6 +648,13 @@ JSON string allocation; rich formatted values are cached and reused, including
 Duration formatting through the shared session. Measuring integers and Float64
 does not allocate a temporary heap string. Float32 currently creates a temporary
 decimal String to preserve its existing projection semantics.
+
+JSON numbers are range-checked during projection even when the `serde_json::Value`
+was constructed directly in memory: integer tokens must fit `i64` or `u64`, and
+fractional or exponent tokens must represent a finite `f64`. Out-of-range
+integers and non-finite numbers return conversion errors. Represent arbitrary-
+precision values as strings, or use the corresponding Wire rich-number payload
+when the runtime type must be preserved.
 
 Projection budget errors use `ValueError::JsonProjectionLimit`, preserving the
 resource, exact budget facts and optional collection index. Ordinary conversion

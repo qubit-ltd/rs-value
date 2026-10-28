@@ -238,6 +238,12 @@ are:
 {"version":1,"value":{"collection":{"int32":[1,2]}}}
 ```
 
+V1 rejects legacy bare enum representations such as `{"Int32":42}`. The
+standalone envelope above is a complete V1 document; an embedded payload such
+as `{"scalar":{"int32":42}}` is valid only with the payload seed/DTO, not as
+a standalone document. A standalone document without the `version` field is
+invalid.
+
 V1 is a closed contract. The following are compatibility invariants:
 
 - the version is the JSON number `1`;
@@ -254,9 +260,10 @@ V1 is a closed contract. The following are compatibility invariants:
 - string-map keys and nested JSON object keys are emitted in lexicographic
   order under the supported canonical JSON configuration.
 
-Externally tagged representations are not V1 input. Existing V1 tags, shapes,
-or payload encodings must not be repurposed or extended in place. A new runtime
-type or incompatible representation requires a new Wire version.
+The nested `scalar`/`collection` shape and lowercase type tag are part of the
+V1 schema. Existing V1 tags, shapes, or payload encodings must not be
+repurposed or extended in place. A new runtime type or incompatible
+representation requires a new Wire version.
 
 The byte-stability statement applies to canonical JSON emitted with the
 supported `serde_json` configuration. Other Serde formats may carry the DTOs,
@@ -296,6 +303,9 @@ nodes, `payload_bytes` counts decoded string/key/number text (null and boolean
 payloads count as zero), and `output_bytes` counts the lower-bound encoded
 syntax plus text. Strings and keys use UTF-8 bytes; string quotes and the
 minimum object/array punctuation are included in the output lower bound.
+Each key contributes its UTF-8 text to cumulative payload bytes and its text
+plus two quote bytes to the output lower bound, but does not add a JSON value
+node.
 Escaping, canonical key sorting, outer envelope fields, and exact rich-type
 formatting may add bytes later. A successful preflight therefore admits a
 candidate for final encoding but never replaces that final check.

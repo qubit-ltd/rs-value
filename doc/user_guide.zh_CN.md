@@ -339,6 +339,10 @@ Wire 名称。
 envelope 时才使用它。`ValueWireRefV1` 和 `ValueWirePayloadRefV1` 可以在不克隆源值的情况下
 序列化借用值。
 
+V1 拒绝旧的裸枚举表示，例如 `{"Int32":42}`。独立文档必须使用上方的版本 envelope。嵌入式
+payload `{"scalar":{"int32":42}}` 仅可与 payload seed/DTO 配合使用，不能作为独立 V1
+文档；独立文档缺少 `version` 字段时无效。
+
 各富类型的规范表示和边界见[Wire V1 富类型 payload 表](design.zh_CN.md#wire-v1-rich-payloads)。
 下面通过完整往返展示 BigDecimal：JSON 对象是带版本 envelope 中的类型 payload；集合则在同一 tag
 下使用 payload 数组。scale 会保留小数的原始表示（`123.4500`），这与 `BigDecimal`
@@ -556,8 +560,8 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
   JavaScript 的 `n` 后缀不是合法 JSON。
 - 具体扩展类型只有在接收方启用对应 feature 时才能解码；不支持的 payload 会被拒绝，不会
   被猜测成其他类型。
-- 未知字段、未知类型、错误的 scalar/collection shape、不是数字 `1` 的版本，以及外部标签
-  文档都会被拒绝。
+- 未知字段、未知类型、错误的 scalar/collection shape、不是数字 `1` 的版本、旧的裸枚举
+  表示，以及缺少版本 envelope 的独立文档都会被拒绝。
 
 ## 自然 JSON
 
@@ -572,6 +576,10 @@ null 的编码字节。大数在格式化前检查系数和 scale 限额。有�
 以确保最终树的分配发生在所有限额检查之后。源字符串一直借用到最终 JSON string 分配；
 富类型的格式化结果缓存复用，Duration 也只通过共享会话格式化一次。整数和 Float64 的测量不需要临时堆字符串。
 Float32 为保持现有十进制投影语义，目前会先生成临时 String。
+
+投影时也会检查直接在内存中构造的 `serde_json::Value` 数字范围：整数 token 必须落在 `i64` 或
+`u64` 范围内，小数或指数 token 必须能表示为有限 `f64`。越界整数和非有限数字会返回转换错误。
+任意精度数值应使用字符串表示；若需保留运行时类型，则使用对应的 Wire 大数 payload。
 
 投影预算错误使用 `ValueError::JsonProjectionLimit`，保留资源、实际预算事实和可选集合
 索引；普通转换错误仍保留原有类型。每次调用使用新预算。需要限制最终编码字节时，请使用

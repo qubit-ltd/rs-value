@@ -189,6 +189,10 @@ BigDecimal payload 保留 coefficient 和 scale 表示。`BigDecimal` identity/h
 {"version":1,"value":{"collection":{"int32":[1,2]}}}
 ```
 
+V1 拒绝旧的裸枚举表示，例如 `{"Int32":42}`。上方带版本 envelope 的对象是完整的独立
+V1 文档；嵌入式 payload（例如 `{"scalar":{"int32":42}}`）仅可与 payload seed/DTO
+配合使用，不能作为独立文档。独立文档缺少 `version` 字段时也无效。
+
 V1 是封闭契约，以下各项属于兼容性不变量：
 
 - 版本必须是 JSON number `1`；
@@ -202,8 +206,8 @@ V1 是封闭契约，以下各项属于兼容性不变量：
 - 浮点数必须有限；
 - 在受支持的 canonical JSON 配置下，字符串 map key 和嵌套 JSON object key 按字典序输出。
 
-Externally tagged 表示不属于 V1 输入。已有 V1 tag、shape 或 payload 编码不得原地改义或
-扩展；新增运行时类型或不兼容表示时，必须定义新的 Wire 版本。
+嵌套的 `scalar`/`collection` shape 和小写类型 tag 都属于 V1 schema。已有 V1 tag、shape 或
+payload 编码不得原地改义或扩展；新增运行时类型或不兼容表示时，必须定义新的 Wire 版本。
 
 字节稳定性只针对受支持 `serde_json` 配置产生的 canonical JSON。其他 Serde 格式可以承载这些
 DTO，但其字节表示不属于 V1 JSON 稳定性契约。
@@ -232,7 +236,8 @@ output budget 限制。
 三个 preflight counter 使用不同单位：`nodes` 统计 JSON value 节点，`payload_bytes` 统计解码后
 字符串、key 和数字文本的字节（null 与 boolean 的 payload 为零），`output_bytes` 统计编码语法和
 文本的输出下界。字符串和 key 使用 UTF-8 字节；字符串引号以及 object/array 的最少标点计入输出
-下界。转义、canonical key 排序、外层 envelope 字段和富类型的精确格式化可能在后续增加字节，
+下界。每个 key 的 UTF-8 文本计入累计 payload 字节，文本及两侧引号计入 output 下界，但 key
+不增加 JSON value node。转义、canonical key 排序、外层 envelope 字段和富类型的精确格式化可能在后续增加字节，
 所以 preflight 通过不能替代最终检查。
 
 `new_value_limits` 适用于由外层协议拥有 output budget 的场景。`new_u64_limits` 把下游的
