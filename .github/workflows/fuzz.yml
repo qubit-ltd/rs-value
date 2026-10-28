@@ -39,6 +39,9 @@ jobs:
       - name: Install cargo-fuzz
         run: cargo install cargo-fuzz --version 0.13.2 --locked
 
+      - name: Prepare local path dependencies
+        run: ./.infra/bin/prepare-local-path-dependencies.sh
+
       - name: Fuzz target
         working-directory: fuzz
         run: cargo +nightly-2026-06-05 fuzz run ${{ matrix.target }} -- -max_total_time=300 -max_len=4096
