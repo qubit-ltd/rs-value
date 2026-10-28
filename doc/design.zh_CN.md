@@ -111,6 +111,13 @@ Unset 表示带类型的缺失，而不是无类型的 null。`Value::new_unset(
 - `StringMap` 和 JSON object identity 不依赖 map 的迭代顺序；
 - JSON array 的顺序仍然有意义。
 
+`Value::numeric_cmp` 可以比较不同数值运行时变体的数学值，但不会改变 `PartialEq` 的
+identity 语义：例如，`Int32(1)` 与 `Int64(1)` 在 `NumericComparisonPolicy::Exact` 下比较相等，
+作为 `Value` 却仍然不同。它适用于元数据筛选等明确的比较操作，不能替代身份或 hash 语义。调用方
+必须限定操作数为具体数值，并处理 `NumericComparisonError`；unset 不代表零。`Approximate` 在
+有限浮点参与时可能将混合表示投影到 `f64`，结果因此依赖比较对象且不满足传递性，不能用于定义
+排序、分组或有序集合键。
+
 JSON 相等与 hash 使用迭代遍历，避免递归调用。带 budget 的 hash API 会在 staged transaction
 中预检查完整 JSON payload；若预算失败，调用方 hasher 与已提交 budget 都保持不变。
 
@@ -152,6 +159,26 @@ Wire JSON 使用明确的版本、shape 和类型 tag。DTO 实现 `Serialize`�
 
 <a id="wire-v1-compatibility"></a>
 ## Wire V1 兼容性
+
+<a id="wire-v1-rich-payloads"></a>
+### 富类型 payload 格式
+
+下表中的字符串和对象都是类型 tag 下的 **payload**。独立文档仍会将 typed value 放入带版本的
+envelope；集合形态则在同一 tag 下使用 payload 数组。
+
+| 类型 / tag | 格式与边界 | 代表性 payload |
+| --- | --- | --- |
+| `Int128` / `int128`、`UInt128` / `uint128`、`BigInteger` / `biginteger` | JSON 字符串中的规范十进制整数文本；不能有加号、多余前导零或负零。原生宽度类型还必须在自身范围内。 | `"123"` |
+| `BigDecimal` / `bigdecimal` | 严格对象；`coefficient` 是规范十进制整数字符串，`scale` 是 `i64`，数值为 coefficient × 10^(-scale)。`abs(scale) ≤ 150000`。 | `{"coefficient":"1234500","scale":4}` 表示 `123.4500`。 |
+| `Duration` / `duration` | 严格对象，`secs: u64` 且 `nanos < 1000000000`。 | `{"secs":1,"nanos":2}` |
+| `Date` / `date` | chrono `%F` 规范输出；通过重新格式化解析结果检查规范性，不额外缩窄日期范围。 | `"2026-07-14"` |
+| `Time` / `time` | `%H:%M:%S%.f`；小数精度遵循当前 formatter 的规范输出。 | `"01:02:03"` |
+| `DateTime` / `datetime` | `%Y-%m-%dT%H:%M:%S%.f`，不带时区；保留当前年份规则。 | `"2026-07-14T01:02:03"` |
+| `Instant` / `instant` | UTC RFC3339，AutoSi 小数精度，使用 `Z` 后缀；UTC 年份 `0..=9999`。 | `"2026-07-14T01:02:03Z"` |
+| `Url` / `url` | 使用 `Url::as_str()` 的规范化文本；输入即使可解析，只要规范化后文本变化仍会被拒绝。 | `"https://example.com/path"` |
+
+BigDecimal payload 保留 coefficient 和 scale 表示。`BigDecimal` identity/hash 对末尾零的归一化
+不会改写 Wire payload。
 
 独立 V1 文档包含数字 `version` 字段和一个 typed `value`；嵌入式 payload 只省略外层版本
 字段。以下是有代表性的值：

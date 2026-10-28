@@ -169,6 +169,9 @@ Two sibling crates use this value model for key-value containers:
   metadata/property storage and filtering. Use it when values describe
   resources, records, or searchable application metadata.
 
+`Value::numeric_cmp` compares numbers across runtime types while keeping
+type-sensitive identity separate; see the [numeric comparison guide](doc/user_guide.md#numeric-comparison).
+
 ## Wire V1 or Natural JSON?
 
 Choose Wire V1 when a receiver must distinguish `Int32(42)` from `String("42")`,

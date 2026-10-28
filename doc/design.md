@@ -139,6 +139,17 @@ Equality and hashing form one semantic contract across `Value`,
 - `StringMap` and JSON object identity are independent of map iteration order;
 - JSON array order remains significant.
 
+`Value::numeric_cmp` compares mathematical values across numeric runtime
+variants without changing `PartialEq` identity: for example, `Int32(1)` and
+`Int64(1)` compare equal under `NumericComparisonPolicy::Exact` while remaining
+distinct `Value`s. This comparison is for an explicit operation such as a
+metadata filter, not a replacement for identity or hash semantics. Callers
+must restrict operands to concrete numeric values and handle
+`NumericComparisonError`; unset values are not zero. `Approximate` may project
+finite mixed representations to `f64`, making its result pair-dependent and
+non-transitive, so it must not define ordering, sorting, grouping, or ordered
+collection keys.
+
 JSON equality and hashing use iterative traversal instead of recursive calls.
 The budget-aware hashing APIs preflight the complete JSON payload in a staged
 transaction. A budget error leaves both the caller's hasher and the committed
@@ -194,6 +205,28 @@ for embedding; only the public Wire DTOs omit that trait.
 
 <a id="wire-v1-compatibility"></a>
 ## Wire V1 Compatibility
+
+<a id="wire-v1-rich-payloads"></a>
+### Rich payload formats
+
+The following strings and objects are **payloads** under a type tag. A
+standalone document still wraps the typed value in the versioned envelope;
+collection shape uses an array of payloads under that same tag.
+
+| Type / tag | Format and boundary | Representative payload |
+| --- | --- | --- |
+| `Int128` / `int128`, `UInt128` / `uint128`, `BigInteger` / `biginteger` | Canonical base-10 integer text inside a JSON string; no plus sign, redundant leading zeroes, or negative zero. Native-width values must also fit their range. | `"123"` |
+| `BigDecimal` / `bigdecimal` | Strict object; `coefficient` is a canonical base-10 integer string, `scale` is an `i64`, and the value is coefficient × 10^(-scale). `abs(scale) ≤ 150000`. | `{"coefficient":"1234500","scale":4}` means `123.4500`. |
+| `Duration` / `duration` | Strict object with `secs: u64` and `nanos < 1000000000`. | `{"secs":1,"nanos":2}` |
+| `Date` / `date` | Chrono `%F` canonical output, checked by formatting the parsed date again; no additional range restriction. | `"2026-07-14"` |
+| `Time` / `time` | `%H:%M:%S%.f`; fractional precision follows the current formatter's canonical output. | `"01:02:03"` |
+| `DateTime` / `datetime` | `%Y-%m-%dT%H:%M:%S%.f`, without a timezone; retains current year rules. | `"2026-07-14T01:02:03"` |
+| `Instant` / `instant` | UTC RFC3339, AutoSi fractional precision, `Z` suffix; UTC year `0..=9999`. | `"2026-07-14T01:02:03Z"` |
+| `Url` / `url` | Canonicalized text from `Url::as_str()`; parseable input is rejected if its text changes during normalization. | `"https://example.com/path"` |
+
+The decimal payload preserves its coefficient and scale representation.
+`BigDecimal` identity/hash normalization of trailing zeroes does not rewrite
+the Wire payload.
 
 A standalone V1 document has a numeric `version` field and one typed `value`.
 An embedded payload omits only the outer version field. Representative values

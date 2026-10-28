@@ -144,6 +144,9 @@ key。完整类型表、JSON 数字契约、错误、资源限制和 feature 兼
 - [`rs-metadata`](https://github.com/qubit-ltd/rs-metadata) 提供类型化元数据/属性存储和过滤。
   资源、记录或可检索的应用元数据适合使用它。
 
+`Value::numeric_cmp` 支持跨运行时类型比较数值，同时保留类型敏感的 identity 语义；详见
+[数值比较指南](doc/user_guide.zh_CN.md#numeric-comparison)。
+
 ## 选择 Wire V1 还是自然 JSON
 
 当接收方必须区分 `Int32(42)` 和 `String("42")`、保留标量与集合形态，或保留

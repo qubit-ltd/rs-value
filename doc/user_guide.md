@@ -115,6 +115,7 @@ additional crates support the Wire and embedded-document sections.
 [dependencies]
 qubit-value = { version = "0.13", features = ["all"] }
 qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
+bigdecimal = "0.4"
 qubit-budget = { version = "0.10", features = ["json"] }
 qubit-json = "0.12"
 serde = { version = "1.0", features = ["derive"] }
@@ -295,6 +296,46 @@ let first_port: u16 = ports
 assert_eq!(first_port, 8080);
 ```
 
+<a id="numeric-comparison"></a>
+## Compare numbers across runtime types
+
+An `rs-metadata` filter may need to accept a stored numeric property even when
+its concrete integer width differs from the query. `Value` identity still
+includes the runtime variant: `Int32(1)` and `Int64(1)` are distinct values,
+although `numeric_cmp` reports mathematical equality under the exact policy.
+Import `NumericComparisonPolicy` from `qubit_datatype`; it is intentionally not
+re-exported by `qubit_value`.
+
+Use the exact policy when the filter needs a deterministic numeric ordering.
+The application owns the acceptance decision; this example accepts equality
+and separately handles an invalid NaN operand:
+
+<!-- example:numeric-comparison run -->
+```rust
+use std::cmp::Ordering;
+use qubit_datatype::NumericComparisonPolicy;
+use qubit_value::{NumericComparisonError, Value};
+
+let stored = Value::Int32(1);
+let operand = Value::Int64(1);
+assert_ne!(stored, operand);
+let accepted = stored.numeric_cmp(&operand, NumericComparisonPolicy::Exact)? == Ordering::Equal;
+assert!(accepted);
+assert!(matches!(
+    Value::Float64(f64::NAN).numeric_cmp(&operand, NumericComparisonPolicy::Exact),
+    Err(NumericComparisonError::LeftNaN)
+));
+```
+
+`numeric_cmp` returns `NumericComparisonError` for a missing left or right
+operand, a nonnumeric left or right operand, or NaN on either side/both sides.
+Validation checks missing operands left-to-right, then concrete types
+left-to-right, then NaN positions. Unset does not mean zero. `Approximate` is
+not a general tolerance or epsilon comparison: finite floats can cause mixed
+representations to be projected to `f64`, and those pair-dependent results may
+be non-transitive. Do not use it for `Ord`, sorting, grouping, or ordered
+collection keys.
+
 ## Wire V1: preserve type and shape across JSON
 
 ### When to use Wire V1
@@ -329,6 +370,32 @@ Use Natural JSON (`to_json_value`) when the receiver only needs ordinary JSON.
 use it only when another protocol already owns the versioned envelope.
 `ValueWireRefV1` and `ValueWirePayloadRefV1` serialize borrowed values without
 cloning them.
+
+For the canonical representations and limits of the feature-gated rich types,
+see the [Wire V1 rich payload table](design.md#wire-v1-rich-payloads). The
+following example shows one complete BigDecimal round trip. The JSON object is
+the type's payload inside the versioned envelope; collections use an array of
+payloads under the same tag. Its scale preserves the stored decimal
+representation (`123.4500`), independently of `BigDecimal` identity/hash
+normalization of trailing zeroes.
+
+<!-- example:wire-rich-types run -->
+```rust
+use std::str::FromStr;
+use bigdecimal::BigDecimal;
+use qubit_value::{Value, ValueContainer, ValueWireV1};
+
+let original = ValueContainer::from(Value::BigDecimal(BigDecimal::from_str("123.4500")?));
+let wire = ValueWireV1::try_from(original.clone())?;
+let bytes = wire.to_json_vec()?;
+assert_eq!(
+    serde_json::from_slice::<serde_json::Value>(&bytes)?,
+    serde_json::json!({"version":1,"value":{"scalar":{"bigdecimal":{"coefficient":"1234500","scale":4}}}})
+);
+let decoded = ValueWireV1::decode_json_slice(&bytes)?;
+let restored: ValueContainer = decoded.into();
+assert_eq!(restored, original);
+```
 
 V1 is closed. Existing tags, shapes, and payload representations cannot be
 extended in place; a future runtime type requires a new wire version. String-map

@@ -106,6 +106,7 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 [dependencies]
 qubit-value = { version = "0.13", features = ["all"] }
 qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
+bigdecimal = "0.4"
 qubit-budget = { version = "0.10", features = ["json"] }
 qubit-json = "0.12"
 serde = { version = "1.0", features = ["derive"] }
@@ -273,6 +274,39 @@ let first_port: u16 = ports
 assert_eq!(first_port, 8080);
 ```
 
+<a id="numeric-comparison"></a>
+## 跨运行时类型比较数值
+
+`rs-metadata` 的过滤条件可能要比较数值属性和查询值，即使二者使用不同的整数宽度。
+`Value` identity 仍包含运行时变体：`Int32(1)` 与 `Int64(1)` 是不同的值，但在精确策略下，
+`numeric_cmp` 会判定它们的数学值相等。`NumericComparisonPolicy` 应从 `qubit_datatype` 导入，
+`qubit_value` 不会重新导出它。
+
+过滤需要确定的数值顺序时使用 Exact。是否接受记录仍由应用决定；下面的例子接受相等值，并单独
+检查 NaN 输入错误：
+
+<!-- example:numeric-comparison run -->
+```rust
+use std::cmp::Ordering;
+use qubit_datatype::NumericComparisonPolicy;
+use qubit_value::{NumericComparisonError, Value};
+
+let stored = Value::Int32(1);
+let operand = Value::Int64(1);
+assert_ne!(stored, operand);
+let accepted = stored.numeric_cmp(&operand, NumericComparisonPolicy::Exact)? == Ordering::Equal;
+assert!(accepted);
+assert!(matches!(
+    Value::Float64(f64::NAN).numeric_cmp(&operand, NumericComparisonPolicy::Exact),
+    Err(NumericComparisonError::LeftNaN)
+));
+```
+
+`numeric_cmp` 会针对左侧或右侧缺失值、左右侧非数值，以及左侧 NaN、右侧 NaN 或双方 NaN
+返回 `NumericComparisonError`。检查顺序是先从左到右判断缺失值，再从左到右判断具体类型，最后分类
+NaN。unset 不等于零。`Approximate` 不是通用容差或 epsilon 比较：有限浮点数可能使混合表示投影到
+`f64`，不同配对的结果可能不满足传递性。因此不能用它实现 `Ord`、排序、分组或有序集合键。
+
 ## Wire V1：通过 JSON 保留类型和形态
 
 ### 什么时候使用 Wire V1
@@ -304,6 +338,29 @@ Wire 名称。
 `ValueWirePayloadV1` 表示不带外层版本字段的同一 typed shape；只有在另一个协议已经拥有版本
 envelope 时才使用它。`ValueWireRefV1` 和 `ValueWirePayloadRefV1` 可以在不克隆源值的情况下
 序列化借用值。
+
+各富类型的规范表示和边界见[Wire V1 富类型 payload 表](design.zh_CN.md#wire-v1-rich-payloads)。
+下面通过完整往返展示 BigDecimal：JSON 对象是带版本 envelope 中的类型 payload；集合则在同一 tag
+下使用 payload 数组。scale 会保留小数的原始表示（`123.4500`），这与 `BigDecimal`
+identity/hash 对末尾零的归一化是两回事。
+
+<!-- example:wire-rich-types run -->
+```rust
+use std::str::FromStr;
+use bigdecimal::BigDecimal;
+use qubit_value::{Value, ValueContainer, ValueWireV1};
+
+let original = ValueContainer::from(Value::BigDecimal(BigDecimal::from_str("123.4500")?));
+let wire = ValueWireV1::try_from(original.clone())?;
+let bytes = wire.to_json_vec()?;
+assert_eq!(
+    serde_json::from_slice::<serde_json::Value>(&bytes)?,
+    serde_json::json!({"version":1,"value":{"scalar":{"bigdecimal":{"coefficient":"1234500","scale":4}}}})
+);
+let decoded = ValueWireV1::decode_json_slice(&bytes)?;
+let restored: ValueContainer = decoded.into();
+assert_eq!(restored, original);
+```
 
 V1 是封闭格式。现有 tag、shape 和 payload 表示不能原地扩展；未来新增运行时类型必须使用
 新的 wire 版本。在支持的规范化 JSON 配置下，字符串 map key 和嵌套 JSON object key 会按
