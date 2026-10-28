@@ -196,20 +196,24 @@ fn executable_from_messages(messages: &str, package_name: &str) -> Result<PathBu
         if line.trim().is_empty() {
             continue;
         }
-        let message: serde_json::Value = serde_json::from_str(line)
-            .map_err(|error| format!("invalid Cargo JSON on line {}: {error}", index + 1))?;
-        let is_artifact = message.get("reason").and_then(serde_json::Value::as_str)
-            == Some("compiler-artifact");
+        let message: serde_json::Value =
+            serde_json::from_str(line).map_err(|error| format!("invalid Cargo JSON on line {}: {error}", index + 1))?;
+        let is_artifact = message.get("reason").and_then(serde_json::Value::as_str) == Some("compiler-artifact");
         let target = message.get("target");
-        let name_matches = target.and_then(|value| value.get("name"))
-            .and_then(serde_json::Value::as_str) == Some(package_name);
-        let is_bin = target.and_then(|value| value.get("kind"))
+        let name_matches = target
+            .and_then(|value| value.get("name"))
+            .and_then(serde_json::Value::as_str)
+            == Some(package_name);
+        let is_bin = target
+            .and_then(|value| value.get("kind"))
             .and_then(serde_json::Value::as_array)
             .is_some_and(|kinds| kinds.iter().any(|value| value.as_str() == Some("bin")));
-        if is_artifact && name_matches && is_bin {
-            if let Some(path) = message.get("executable").and_then(serde_json::Value::as_str) {
-                executables.insert(PathBuf::from(path));
-            }
+        if is_artifact
+            && name_matches
+            && is_bin
+            && let Some(path) = message.get("executable").and_then(serde_json::Value::as_str)
+        {
+            executables.insert(PathBuf::from(path));
         }
     }
     match executables.len() {
@@ -230,12 +234,7 @@ fn read_diagnostic(path: &Path) -> String {
         .collect()
 }
 
-fn cargo_artifact_message(
-    package_name: &str,
-    kind: &str,
-    executable: Option<&str>,
-    fresh: bool,
-) -> String {
+fn cargo_artifact_message(package_name: &str, kind: &str, executable: Option<&str>, fresh: bool) -> String {
     let mut message = serde_json::json!({
         "reason": "compiler-artifact",
         "target": { "name": package_name, "kind": [kind] },
@@ -621,6 +620,7 @@ fn test_bilingual_markdown_examples_compile_and_run_from_source() {
             "doc/user_guide.zh_CN.md",
             &[
                 "borrowed-wire",
+                "bounded-serializable",
                 "conversion",
                 "embedded-payload-budget",
                 "multi-values",
