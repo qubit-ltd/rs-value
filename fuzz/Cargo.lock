@@ -428,6 +428,7 @@ dependencies = [
  "libfuzzer-sys",
  "num-bigint",
  "qubit-budget",
+ "qubit-datatype",
  "qubit-json",
  "qubit-value",
  "serde_json",
