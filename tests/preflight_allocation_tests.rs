@@ -73,7 +73,8 @@ unsafe impl GlobalAlloc for CountingAllocator {
 }
 
 fn measured_preflight_bytes(value: &Value) -> usize {
-    let (result, bytes) = measured_allocations(|| ValueWireEncodePreflight::new(JsonEncodeLimits::new()).check_value(value));
+    let (result, bytes) =
+        measured_allocations(|| ValueWireEncodePreflight::new(JsonEncodeLimits::new()).check_value(value));
     result.expect("an unbounded preflight must accept the fixture");
     bytes
 }
@@ -140,20 +141,33 @@ fn test_big_decimal_preflight_rejection_allocation_does_not_scale_with_coefficie
     ));
     let base = ValueWireV1::default_json_encode_limits();
     let profiles = [
-        (base.clone().into_builder().max_string_bytes(64).build(), JsonResource::StringBytes),
-        (base.clone().into_builder().max_payload_bytes(128).build(), JsonResource::PayloadBytes),
-        (base.into_builder().max_output_bytes(256).build(), JsonResource::OutputBytes),
+        (
+            base.into_builder().max_string_bytes(64).build(),
+            JsonResource::StringBytes,
+        ),
+        (
+            base.into_builder().max_payload_bytes(128).build(),
+            JsonResource::PayloadBytes,
+        ),
+        (
+            base.into_builder().max_output_bytes(256).build(),
+            JsonResource::OutputBytes,
+        ),
     ];
 
     for (limits, resource) in profiles {
-        let (small_error, small_bytes) = measured_allocations(|| {
-            ValueWireEncodePreflight::new(limits.clone()).check_value(&small)
-        });
-        let (large_error, large_bytes) = measured_allocations(|| {
-            ValueWireEncodePreflight::new(limits).check_value(&large)
-        });
-        assert_expected_limit(small_error.expect_err("small fixture must exceed this profile"), resource);
-        assert_expected_limit(large_error.expect_err("large fixture must exceed this profile"), resource);
+        let (small_error, small_bytes) =
+            measured_allocations(|| ValueWireEncodePreflight::new(limits).check_value(&small));
+        let (large_error, large_bytes) =
+            measured_allocations(|| ValueWireEncodePreflight::new(limits).check_value(&large));
+        assert_expected_limit(
+            small_error.expect_err("small fixture must exceed this profile"),
+            resource,
+        );
+        assert_expected_limit(
+            large_error.expect_err("large fixture must exceed this profile"),
+            resource,
+        );
         assert!(
             large_bytes <= small_bytes.saturating_add(4096),
             "rejected coefficient preflight allocation grew: resource={resource:?}, 4096 digits={small_bytes}, 128 Ki digits={large_bytes}",

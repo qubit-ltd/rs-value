@@ -13,12 +13,12 @@ use std::alloc::Layout;
 use std::alloc::System;
 use std::cell::Cell;
 
-use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::BudgetError;
-use qubit_value::Value;
+use qubit_budget::json::JsonEncodeLimits;
 use qubit_value::MultiValues;
-use qubit_value::ValueWirePayloadRefV1;
+use qubit_value::Value;
 use qubit_value::ValueWireEncodeError;
+use qubit_value::ValueWirePayloadRefV1;
 
 struct CountingAllocator;
 
@@ -111,7 +111,10 @@ fn test_borrowed_wire_preparation_allocation_does_not_scale_with_json_object() {
     let (large_payload, large_bytes) = measured_allocations(|| ValueWirePayloadRefV1::from_value(&large));
     assert!(small_payload.is_ok());
     assert!(large_payload.is_ok());
-    assert!(large_bytes <= small_bytes.saturating_add(4096), "JSON tree borrow allocations differ: 16={small_bytes}, 8192={large_bytes}");
+    assert!(
+        large_bytes <= small_bytes.saturating_add(4096),
+        "JSON tree borrow allocations differ: 16={small_bytes}, 8192={large_bytes}"
+    );
 }
 
 #[test]
@@ -125,7 +128,10 @@ fn test_borrowed_wire_preparation_allocation_does_not_scale_with_string_collecti
     let (long_payload, long_bytes) = measured_allocations(|| ValueWirePayloadRefV1::from_values(&long));
     assert!(short_payload.is_ok());
     assert!(long_payload.is_ok());
-    assert!(long_bytes <= short_bytes.saturating_add(4096), "string collection borrow allocations differ: 16={short_bytes}, 8192={long_bytes}");
+    assert!(
+        long_bytes <= short_bytes.saturating_add(4096),
+        "string collection borrow allocations differ: 16={short_bytes}, 8192={long_bytes}"
+    );
 }
 
 #[test]
@@ -135,21 +141,27 @@ fn test_canonical_json_rejection_admits_object_before_sorting_entries() {
     let large_value = object(8192);
     let large = ValueWirePayloadRefV1::from_value(&large_value).unwrap();
     let limits = JsonEncodeLimits::builder().max_nodes(2).build();
-    let _ = small.to_json_vec_with_limits(limits.clone());
-    let _ = large.to_json_vec_with_limits(limits.clone());
+    let _ = small.to_json_vec_with_limits(limits);
+    let _ = large.to_json_vec_with_limits(limits);
 
-    let (small_result, small_bytes) = measured_allocations(|| small.to_json_vec_with_limits(limits.clone()));
+    let (small_result, small_bytes) = measured_allocations(|| small.to_json_vec_with_limits(limits));
     let (large_result, large_bytes) = measured_allocations(|| large.to_json_vec_with_limits(limits));
     for result in [small_result, large_result] {
-        assert!(matches!(
-            result,
-            Err(ValueWireEncodeError::Budget(BudgetError::Insufficient {
-                resource: qubit_budget::json::JsonResource::Nodes,
-                ..
-            }))
-        ), "expected node budget rejection at object admission");
+        assert!(
+            matches!(
+                result,
+                Err(ValueWireEncodeError::Budget(BudgetError::Insufficient {
+                    resource: qubit_budget::json::JsonResource::Nodes,
+                    ..
+                }))
+            ),
+            "expected node budget rejection at object admission"
+        );
     }
-    assert!(large_bytes <= small_bytes.saturating_add(4096), "rejected object allocation grew before node admission: 16={small_bytes}, 8192={large_bytes}");
+    assert!(
+        large_bytes <= small_bytes.saturating_add(4096),
+        "rejected object allocation grew before node admission: 16={small_bytes}, 8192={large_bytes}"
+    );
 }
 
 #[test]

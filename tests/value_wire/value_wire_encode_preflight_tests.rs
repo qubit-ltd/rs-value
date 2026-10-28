@@ -97,9 +97,18 @@ fn test_preflight_big_decimal_coefficient_respects_string_payload_and_output_lim
     let value = Value::BigDecimal(BigDecimal::new(coefficient, 2));
     let base = ValueWireV1::default_json_encode_limits();
     let profiles = [
-        (base.clone().into_builder().max_string_bytes(64).build(), JsonResource::StringBytes),
-        (base.clone().into_builder().max_payload_bytes(128).build(), JsonResource::PayloadBytes),
-        (base.into_builder().max_output_bytes(256).build(), JsonResource::OutputBytes),
+        (
+            base.into_builder().max_string_bytes(64).build(),
+            JsonResource::StringBytes,
+        ),
+        (
+            base.into_builder().max_payload_bytes(128).build(),
+            JsonResource::PayloadBytes,
+        ),
+        (
+            base.into_builder().max_output_bytes(256).build(),
+            JsonResource::OutputBytes,
+        ),
     ];
 
     for (limits, resource) in profiles {
@@ -120,9 +129,9 @@ fn test_preflight_big_decimal_small_coefficients_and_rollback() {
     for coefficient in [0_i64, 7, -7] {
         let value = Value::BigDecimal(BigDecimal::new(BigInt::from(coefficient), 2));
         let wire = ValueWireV1::try_from(value.clone()).expect("small decimal should have a wire value");
-        wire.to_json_vec_with_limits(limits.clone())
+        wire.to_json_vec_with_limits(limits)
             .expect("small decimal coefficient is encoded as a string, independent of number limit");
-        ValueWireEncodePreflight::new(limits.clone())
+        ValueWireEncodePreflight::new(limits)
             .check_value(&value)
             .expect("small coefficient lower bound must fit");
     }
@@ -133,13 +142,17 @@ fn test_preflight_big_decimal_small_coefficients_and_rollback() {
         .build();
     let small = Value::BigDecimal(BigDecimal::new(BigInt::from(1), 2));
     let large = Value::BigDecimal(BigDecimal::new(BigInt::from(10_u8).pow(4095), 2));
-    let mut checker = ValueWireEncodePreflight::new(limits.clone());
+    let mut checker = ValueWireEncodePreflight::new(limits);
     checker.check_value(&small).expect("initial small coefficient must fit");
     assert_limit_exceeded(
-        checker.check_value(&large).expect_err("large coefficient must be rejected"),
+        checker
+            .check_value(&large)
+            .expect_err("large coefficient must be rejected"),
         JsonResource::StringBytes,
     );
-    checker.check_value(&small).expect("failed check must restore all counters");
+    checker
+        .check_value(&small)
+        .expect("failed check must restore all counters");
 
     let mut reference = ValueWireEncodePreflight::new(limits);
     reference.check_value(&small).expect("reference first value must fit");
@@ -189,7 +202,7 @@ fn test_preflight_encoding_success_implies_acceptance_at_output_boundaries() {
                 .max_number_bytes(4096)
                 .max_payload_bytes(4 * 1024 * 1024)
                 .build();
-            if wire.to_json_vec_with_limits(limits.clone()).is_ok() {
+            if wire.to_json_vec_with_limits(limits).is_ok() {
                 ValueWireEncodePreflight::new(limits)
                     .check_value(&value)
                     .expect("successful encoding must imply preflight acceptance");
@@ -246,8 +259,8 @@ fn test_preflight_encoding_success_implies_acceptance_for_collections_and_limits
                 Ok(wire) => wire,
                 Err(_) => continue,
             };
-            if wire.to_json_vec_with_limits(limits.clone()).is_ok() {
-                ValueWireEncodePreflight::new(limits.clone())
+            if wire.to_json_vec_with_limits(*limits).is_ok() {
+                ValueWireEncodePreflight::new(*limits)
                     .check_container(&value)
                     .expect("successful encoding must imply preflight acceptance");
             }
