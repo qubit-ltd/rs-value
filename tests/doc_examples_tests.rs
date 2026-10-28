@@ -189,6 +189,38 @@ fn fixture_package_name(file: &str, dependencies: &str, example: &MarkdownExampl
     format!("documented-markdown-example-{:016x}", hasher.finish())
 }
 
+/// Extracts the unique executable emitted for the fixture package by Cargo.
+fn executable_from_messages(package_name: &str, messages: &str) -> Result<PathBuf, String> {
+    let mut executables = BTreeSet::new();
+    for (index, line) in messages.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let message: serde_json::Value = serde_json::from_str(line)
+            .map_err(|error| format!("invalid Cargo JSON on line {}: {error}", index + 1))?;
+        let is_artifact = message.get("reason").and_then(serde_json::Value::as_str)
+            == Some("compiler-artifact");
+        let target = message.get("target");
+        let name_matches = target.and_then(|value| value.get("name"))
+            .and_then(serde_json::Value::as_str) == Some(package_name);
+        let is_bin = target.and_then(|value| value.get("kind"))
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|kinds| kinds.iter().any(|value| value.as_str() == Some("bin")));
+        if is_artifact && name_matches && is_bin {
+            if let Some(path) = message.get("executable").and_then(serde_json::Value::as_str) {
+                executables.insert(PathBuf::from(path));
+            }
+        }
+    }
+    match executables.len() {
+        0 => Err(format!("no executable artifact found for package `{package_name}`")),
+        1 => Ok(executables.into_iter().next().expect("one executable")),
+        count => Err(format!(
+            "expected one executable artifact for package `{package_name}`, found {count}"
+        )),
+    }
+}
+
 fn read_diagnostic(path: &Path) -> String {
     fs::read(path)
         .unwrap_or_default()
@@ -196,6 +228,87 @@ fn read_diagnostic(path: &Path) -> String {
         .take(64 * 1024)
         .map(|byte| byte as char)
         .collect()
+}
+
+fn cargo_artifact_message(
+    package_name: &str,
+    kind: &str,
+    executable: Option<&str>,
+    fresh: bool,
+) -> String {
+    let mut message = serde_json::json!({
+        "reason": "compiler-artifact",
+        "target": { "name": package_name, "kind": [kind] },
+        "fresh": fresh,
+    });
+    if let Some(executable) = executable {
+        message["executable"] = serde_json::Value::String(executable.to_owned());
+    }
+    message.to_string()
+}
+
+#[test]
+fn test_artifact_parser_accepts_supported_executable_paths() {
+    for path in [
+        "target/debug/example",
+        "target/x86_64-unknown-linux-gnu/debug/example",
+        r"target\debug\example.exe",
+    ] {
+        let message = cargo_artifact_message("fixture", "bin", Some(path), true);
+        assert_eq!(
+            executable_from_messages("fixture", &message).unwrap(),
+            PathBuf::from(path),
+        );
+    }
+}
+
+#[test]
+fn test_artifact_parser_ignores_blank_and_unrelated_messages() {
+    let messages = format!(
+        "\n{}\n{}\n{}\n",
+        serde_json::json!({ "reason": "build-finished", "success": true }),
+        cargo_artifact_message("dependency", "bin", Some("dependency"), false),
+        cargo_artifact_message("fixture", "lib", Some("library"), false),
+    );
+    let error = executable_from_messages("fixture", &messages).unwrap_err();
+    assert!(error.contains("no executable artifact"), "{error}");
+    assert!(error.contains("fixture"), "{error}");
+}
+
+#[test]
+fn test_artifact_parser_requires_executable_for_matching_bin() {
+    let message = cargo_artifact_message("fixture", "bin", None, false);
+    let error = executable_from_messages("fixture", &message).unwrap_err();
+    assert!(error.contains("no executable artifact"), "{error}");
+}
+
+#[test]
+fn test_artifact_parser_reports_invalid_json_line_number() {
+    let error = executable_from_messages("fixture", "{}\nnot-json\n").unwrap_err();
+    assert!(error.contains("line 2"), "{error}");
+    assert!(error.contains("invalid Cargo JSON"), "{error}");
+}
+
+#[test]
+fn test_artifact_parser_deduplicates_identical_paths() {
+    let message = cargo_artifact_message("fixture", "bin", Some("target/debug/example"), false);
+    let messages = format!("{message}\n{message}");
+    assert_eq!(
+        executable_from_messages("fixture", &messages).unwrap(),
+        PathBuf::from("target/debug/example"),
+    );
+}
+
+#[test]
+fn test_artifact_parser_rejects_multiple_different_executables() {
+    let messages = format!(
+        "{}\n{}",
+        cargo_artifact_message("fixture", "bin", Some("target/debug/one"), false),
+        cargo_artifact_message("fixture", "bin", Some("target/debug/two"), false),
+    );
+    let error = executable_from_messages("fixture", &messages).unwrap_err();
+    assert!(error.contains("expected one executable artifact"), "{error}");
+    assert!(error.contains("found 2"), "{error}");
 }
 
 fn run_process(
@@ -316,7 +429,13 @@ qubit-value = {{ path = {root:?} }}
         .args(if example.mode == ExampleMode::Compile {
             &["check", "--offline", "--quiet", "--manifest-path"][..]
         } else {
-            &["build", "--offline", "--quiet", "--manifest-path"][..]
+            &[
+                "build",
+                "--offline",
+                "--quiet",
+                "--message-format=json",
+                "--manifest-path",
+            ][..]
         })
         .arg(workspace.join("Cargo.toml"))
         .arg("--target-dir")
@@ -333,18 +452,24 @@ qubit-value = {{ path = {root:?} }}
         &stderr_path,
     );
     if result.is_ok() && example.mode == ExampleMode::Run {
-        let executable = target.join("build").join("debug").join(&package_name);
-        let mut command = Command::new(&executable);
-        command.env_remove("RUSTFLAGS").env_remove("CARGO_ENCODED_RUSTFLAGS");
-        result = run_process(
-            command,
-            file,
-            &example.id,
-            "run",
-            Duration::from_secs(10),
-            &stdout_path,
-            &stderr_path,
-        );
+        let messages = fs::read_to_string(&stdout_path)
+            .map_err(|error| diagnostic(file, &example.id, &format!("read Cargo messages: {error}")));
+        result = messages
+            .and_then(|messages| executable_from_messages(&package_name, &messages))
+            .map_err(|error| diagnostic(file, &example.id, &error))
+            .and_then(|executable| {
+                let mut command = Command::new(executable);
+                command.env_remove("RUSTFLAGS").env_remove("CARGO_ENCODED_RUSTFLAGS");
+                run_process(
+                    command,
+                    file,
+                    &example.id,
+                    "run",
+                    Duration::from_secs(10),
+                    &stdout_path,
+                    &stderr_path,
+                )
+            });
     }
     let cleanup = fs::remove_dir_all(&workspace)
         .map_err(|error| diagnostic(file, &example.id, &format!("remove fixture: {error}")));
