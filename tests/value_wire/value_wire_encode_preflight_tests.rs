@@ -92,6 +92,61 @@ fn test_preflight_counts_big_decimal_payload_nodes() {
 }
 
 #[test]
+fn test_preflight_big_decimal_coefficient_respects_string_payload_and_output_limits() {
+    let coefficient = BigInt::from(10_u8).pow(4095);
+    let value = Value::BigDecimal(BigDecimal::new(coefficient, 2));
+    let base = ValueWireV1::default_json_encode_limits();
+    let profiles = [
+        (base.clone().into_builder().max_string_bytes(64).build(), JsonResource::StringBytes),
+        (base.clone().into_builder().max_payload_bytes(128).build(), JsonResource::PayloadBytes),
+        (base.into_builder().max_output_bytes(256).build(), JsonResource::OutputBytes),
+    ];
+
+    for (limits, resource) in profiles {
+        let error = ValueWireEncodePreflight::new(limits)
+            .check_value(&value)
+            .expect_err("the large coefficient must be rejected before encoding");
+        assert_limit_exceeded(error, resource);
+    }
+}
+
+#[test]
+fn test_preflight_big_decimal_small_coefficients_and_rollback() {
+    let limits = ValueWireV1::default_json_encode_limits()
+        .into_builder()
+        .max_string_bytes(64)
+        .max_number_bytes(1)
+        .build();
+    for coefficient in [0_i64, 7, -7] {
+        let value = Value::BigDecimal(BigDecimal::new(BigInt::from(coefficient), 2));
+        let wire = ValueWireV1::try_from(value.clone()).expect("small decimal should have a wire value");
+        wire.to_json_vec_with_limits(limits.clone())
+            .expect("small decimal coefficient is encoded as a string, independent of number limit");
+        ValueWireEncodePreflight::new(limits.clone())
+            .check_value(&value)
+            .expect("small coefficient lower bound must fit");
+    }
+
+    let limits = ValueWireV1::default_json_encode_limits()
+        .into_builder()
+        .max_string_bytes(64)
+        .build();
+    let small = Value::BigDecimal(BigDecimal::new(BigInt::from(1), 2));
+    let large = Value::BigDecimal(BigDecimal::new(BigInt::from(10_u8).pow(4095), 2));
+    let mut checker = ValueWireEncodePreflight::new(limits.clone());
+    checker.check_value(&small).expect("initial small coefficient must fit");
+    assert_limit_exceeded(
+        checker.check_value(&large).expect_err("large coefficient must be rejected"),
+        JsonResource::StringBytes,
+    );
+    checker.check_value(&small).expect("failed check must restore all counters");
+
+    let mut reference = ValueWireEncodePreflight::new(limits);
+    reference.check_value(&small).expect("reference first value must fit");
+    reference.check_value(&small).expect("reference second value must fit");
+}
+
+#[test]
 fn test_preflight_counts_unset_wire_tag_as_string() {
     let value = Value::Unset(DataType::UInt128);
     let limits = ValueWireV1::default_json_encode_limits()

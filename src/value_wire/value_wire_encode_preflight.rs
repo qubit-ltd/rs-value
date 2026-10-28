@@ -318,10 +318,12 @@ impl ValueWireEncodePreflight {
                     match value {
                         ValueRef::BigDecimal(value) => {
                             let (coefficient, scale) = value.as_bigint_and_scale();
-                            drop(coefficient);
                             self.admit_object_with_keys(
                                 depth,
-                                [("coefficient", 0, true), ("scale", decimal_len(scale as i128), false)],
+                                [
+                                    ("coefficient", bigint_digits(coefficient.as_ref()), true),
+                                    ("scale", decimal_len(scale as i128), false),
+                                ],
                             )
                         }
                         _ => unreachable!("table strategy and ValueRef variant diverged"),
