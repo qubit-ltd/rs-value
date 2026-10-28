@@ -10,9 +10,11 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+use std::fs::File;
 use std::hash::DefaultHasher;
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -226,12 +228,87 @@ fn executable_from_messages(messages: &str, package_name: &str) -> Result<PathBu
 }
 
 fn read_diagnostic(path: &Path) -> String {
-    fs::read(path)
-        .unwrap_or_default()
-        .into_iter()
-        .take(64 * 1024)
-        .map(|byte| byte as char)
-        .collect()
+    let Ok(file) = File::open(path) else {
+        return String::new();
+    };
+    let mut bytes = Vec::new();
+    if file.take(64 * 1024).read_to_end(&mut bytes).is_err() {
+        return String::new();
+    }
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
+#[test]
+fn test_read_diagnostic_returns_ascii_and_chinese_text() {
+    let directory = DiagnosticFixture::new();
+    let path = directory.write("text.log", "ASCII".as_bytes());
+    assert_eq!(read_diagnostic(&path), "ASCII");
+
+    let path = directory.write("chinese.log", "中文路径".as_bytes());
+    assert_eq!(read_diagnostic(&path), "中文路径");
+}
+
+#[test]
+fn test_read_diagnostic_replaces_invalid_utf8() {
+    let directory = DiagnosticFixture::new();
+    let path = directory.write("invalid.log", &[0xff, b'a']);
+    assert_eq!(read_diagnostic(&path), "\u{fffd}a");
+}
+
+#[test]
+fn test_read_diagnostic_replaces_utf8_split_at_limit() {
+    let directory = DiagnosticFixture::new();
+    let mut bytes = vec![b'x'; 65_535];
+    bytes.extend_from_slice("中".as_bytes());
+    bytes.extend_from_slice(b"suffix");
+    let path = directory.write("split.log", &bytes);
+    let expected = format!("{}\u{fffd}", "x".repeat(65_535));
+    let actual = read_diagnostic(&path);
+    assert_eq!(actual, expected);
+    assert!(!actual.contains("suffix"));
+}
+
+#[test]
+fn test_read_diagnostic_reads_at_most_64_kibibytes() {
+    let directory = DiagnosticFixture::new();
+    let mut bytes = vec![b'x'; 65_536];
+    bytes.extend_from_slice(b"suffix");
+    let path = directory.write("large.log", &bytes);
+    let actual = read_diagnostic(&path);
+    assert_eq!(actual, "x".repeat(65_536));
+    assert!(!actual.contains("suffix"));
+}
+
+#[test]
+fn test_read_diagnostic_returns_empty_for_missing_file() {
+    let directory = DiagnosticFixture::new();
+    assert_eq!(read_diagnostic(&directory.path.join("missing.log")), "");
+}
+
+struct DiagnosticFixture {
+    path: PathBuf,
+}
+
+impl DiagnosticFixture {
+    fn new() -> Self {
+        static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
+        let serial = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!("qubit-value-diagnostic-{}-{serial}", std::process::id(),));
+        fs::create_dir(&path).expect("create diagnostic fixture directory");
+        Self { path }
+    }
+
+    fn write(&self, name: &str, bytes: &[u8]) -> PathBuf {
+        let path = self.path.join(name);
+        fs::write(&path, bytes).expect("write diagnostic fixture");
+        path
+    }
+}
+
+impl Drop for DiagnosticFixture {
+    fn drop(&mut self) {
+        fs::remove_dir_all(&self.path).expect("remove diagnostic fixture directory");
+    }
 }
 
 fn cargo_artifact_message(package_name: &str, kind: &str, executable: Option<&str>, fresh: bool) -> String {
