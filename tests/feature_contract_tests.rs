@@ -23,7 +23,7 @@ use qubit_datatype::AdmittedConversion;
 use qubit_datatype::DataConversionError;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConversionTarget;
-#[cfg(feature = "converter")]
+#[cfg(any(feature = "converter", feature = "redact"))]
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataTypeOf;
@@ -329,6 +329,105 @@ fn test_redact_feature_stops_before_unadmitted_collection_elements() {
     assert!(output.contains("visible"), "{output}");
     assert!(!output.contains("must-not-be-formatted"), "{output}");
     assert!(output.contains("<truncated>"), "{output}");
+}
+
+#[cfg(feature = "redact")]
+#[test]
+fn test_redact_primitive_collection_obeys_item_budget() {
+    let policy = RedactionPolicy::builder()
+        .limits(|limits| {
+            limits.max_nodes(64).max_collection_items(1).max_depth(8);
+        })
+        .expect("valid limits")
+        .build()
+        .expect("valid policy");
+    let result = Redactor::new(policy).redact_text(&MultiValues::Int32(vec![17, 934751]));
+
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    assert!(result.text().as_str().contains("17"));
+    assert!(!result.text().as_str().contains("934751"));
+}
+
+#[cfg(feature = "redact")]
+#[test]
+fn test_redact_boolean_collection_obeys_item_budget() {
+    let policy = RedactionPolicy::builder()
+        .limits(|limits| {
+            limits.max_nodes(64).max_collection_items(1).max_depth(8);
+        })
+        .expect("valid limits")
+        .build()
+        .expect("valid policy");
+    let result = Redactor::new(policy).redact_text(&MultiValues::Bool(vec![true, false]));
+
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    assert!(result.text().as_str().contains("true"));
+    assert!(!result.text().as_str().contains("false"));
+}
+
+#[cfg(feature = "redact")]
+#[test]
+fn test_redact_primitive_collection_preserves_shape_and_empty_unset() {
+    let policy = RedactionPolicy::builder()
+        .limits(|limits| {
+            limits.max_nodes(64).max_collection_items(2).max_depth(8);
+        })
+        .expect("valid limits")
+        .build()
+        .expect("valid policy");
+    let result = Redactor::new(policy.clone()).redact_text(&MultiValues::Int32(vec![17, 934751]));
+
+    assert_eq!(result.summary().completion(), RedactionCompletion::Complete);
+    assert_eq!(result.text().as_str(), "Int32([17, 934751])");
+
+    let empty = Redactor::new(policy.clone()).redact_text(&MultiValues::Int32(Vec::new()));
+    assert_eq!(empty.summary().completion(), RedactionCompletion::Complete);
+    assert_eq!(empty.text().as_str(), "Int32([])");
+
+    let unset = Redactor::new(policy).redact_text(&MultiValues::Unset(DataType::Int32));
+    assert_eq!(unset.summary().completion(), RedactionCompletion::Complete);
+    assert!(unset.text().as_str().contains("Int32"));
+}
+
+#[cfg(feature = "redact")]
+#[test]
+fn test_redact_primitive_collection_obeys_node_and_depth_limits() {
+    let values = MultiValues::Int32(vec![17, 934751]);
+    let node_policy = RedactionPolicy::builder()
+        .limits(|limits| {
+            limits.max_nodes(0).max_collection_items(8).max_depth(8);
+        })
+        .expect("valid limits")
+        .build()
+        .expect("valid policy");
+    let node_result = Redactor::new(node_policy).redact_text(&values);
+    assert_eq!(
+        node_result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    assert!(!node_result.text().as_str().contains("17"));
+    assert!(!node_result.text().as_str().contains("934751"));
+
+    let depth_policy = RedactionPolicy::builder()
+        .limits(|limits| {
+            limits.max_nodes(64).max_collection_items(8).max_depth(0);
+        })
+        .expect("valid limits")
+        .build()
+        .expect("valid policy");
+    let depth_result = Redactor::new(depth_policy).redact_text(&values);
+    assert_eq!(
+        depth_result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    assert!(!depth_result.text().as_str().contains("17"));
+    assert!(!depth_result.text().as_str().contains("934751"));
 }
 
 #[cfg(all(feature = "converter", feature = "chrono"))]

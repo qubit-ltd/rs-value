@@ -10,9 +10,13 @@
 
 #[cfg(feature = "redact")]
 mod redacted_string_map;
+#[cfg(feature = "redact")]
+mod redacted_values;
 mod value_repr;
 
 #[cfg(feature = "redact")]
 pub(in crate::value) use redacted_string_map::RedactedStringMap;
+#[cfg(feature = "redact")]
+pub(in crate::value) use redacted_values::write_unredacted_values;
 
 pub(crate) use self::value_repr::ValueRepr;

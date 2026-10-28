@@ -13,11 +13,50 @@ use qubit_redact::RedactionWriter;
 use super::Value;
 use super::ValueRepr;
 use super::internal::RedactedStringMap;
+use super::internal::write_unredacted_values;
 use crate::MultiValues;
 use crate::MultiValuesRef;
 use crate::NamedMultiValues;
 use crate::NamedValue;
 use crate::ValueContainer;
+
+macro_rules! redact_collection_payload {
+    (String, $values:expr, $writer:expr) => {
+        $writer.sequence(|items| {
+            items.for_each($values, |items, value| {
+                items.unredacted_item(|| value);
+            });
+        })
+    };
+    (StringMap, $values:expr, $writer:expr) => {
+        $writer.sequence(|items| {
+            items.for_each($values, |items, values| {
+                items.nested_item(&RedactedStringMap { values });
+            });
+        })
+    };
+    (Json, $values:expr, $writer:expr) => {
+        $writer.sequence(|items| {
+            items.for_each($values, |items, value| {
+                items.json_value_item(value);
+            });
+        })
+    };
+    ($variant:ident, $values:expr, $writer:expr) => {
+        write_unredacted_values($writer, stringify!($variant), $values)
+    };
+}
+
+macro_rules! redact_multi_values_match {
+    ($values:expr, $writer:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
+        match $values {
+            MultiValuesRef::Unset(_) => unreachable!("unset values are handled before dispatch"),
+            $($(#[$cfg])* MultiValuesRef::$variant(values) => {
+                redact_collection_payload!($variant, values, $writer)
+            },)+
+        }
+    };
+}
 
 impl Redact for Value {
     /// Writes one value through the shared structured writer.
@@ -44,33 +83,12 @@ impl Redact for Value {
 impl Redact for MultiValues {
     /// Writes a typed collection through the shared structured writer.
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
-        match self.view() {
-            MultiValuesRef::StringMap(values) => {
-                writer.sequence(|items| {
-                    items.for_each(values, |items, values| {
-                        items.nested_item(&RedactedStringMap { values });
-                    });
-                });
-            }
-            MultiValuesRef::String(values) => {
-                writer.sequence(|items| {
-                    items.for_each(values, |items, value| {
-                        items.unredacted_item(|| value);
-                    });
-                });
-            }
-            #[cfg(feature = "json")]
-            MultiValuesRef::Json(values) => {
-                writer.sequence(|items| {
-                    items.for_each(values, |items, value| {
-                        items.json_value_item(value);
-                    });
-                });
-            }
-            _ => {
-                writer.unredacted(self);
-            }
+        let values = self.view();
+        if matches!(values, MultiValuesRef::Unset(_)) {
+            writer.unredacted(self);
+            return;
         }
+        for_each_value_type!(redact_multi_values_match, values, writer);
     }
 }
 

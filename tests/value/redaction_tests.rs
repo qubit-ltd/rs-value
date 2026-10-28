@@ -143,6 +143,53 @@ fn test_multi_values_json_stops_before_unadmitted_items() {
 }
 
 #[test]
+fn test_multi_values_typed_collections_obey_item_budget() {
+    fn assert_second_item_is_not_admitted<T: Redact>(values: &T, first: &str, second: &str) {
+        let policy = RedactionPolicy::builder()
+            .limits(|limits| {
+                limits.max_nodes(64).max_collection_items(1).max_depth(8);
+            })
+            .expect("the test limits should be valid")
+            .build()
+            .expect("policy should build");
+        let result = Redactor::new(policy).redact_text(values);
+        let output = result.text().as_str();
+
+        assert_eq!(
+            result.summary().completion(),
+            RedactionCompletion::Truncated
+        );
+        assert!(output.contains(first), "{output}");
+        assert!(!output.contains(second), "{output}");
+        assert!(output.contains("<truncated>"), "{output}");
+    }
+
+    let dates = MultiValues::Date(vec![
+        chrono::NaiveDate::from_ymd_opt(2026, 1, 2).expect("valid date"),
+        chrono::NaiveDate::from_ymd_opt(2037, 11, 29).expect("valid date"),
+    ]);
+    assert_second_item_is_not_admitted(&dates, "2026", "2037");
+
+    let integers = MultiValues::BigInteger(vec![
+        num_bigint::BigInt::from(123456789_i64),
+        num_bigint::BigInt::from(987654321_i64),
+    ]);
+    assert_second_item_is_not_admitted(&integers, "123456789", "987654321");
+
+    let decimals = MultiValues::BigDecimal(vec![
+        "12345.6789".parse().expect("valid decimal"),
+        "98765.4321".parse().expect("valid decimal"),
+    ]);
+    assert_second_item_is_not_admitted(&decimals, "123456789", "987654321");
+
+    let urls = MultiValues::Url(vec![
+        url::Url::parse("https://first.example/path").expect("valid URL"),
+        url::Url::parse("https://second.example/sentinel").expect("valid URL"),
+    ]);
+    assert_second_item_is_not_admitted(&urls, "first.example", "second.example");
+}
+
+#[test]
 fn test_value_redacted_view_preserves_scalar_without_key_context() {
     let value = Value::String("visible-without-key".to_owned());
     let policy = RedactionPolicy::builder()
