@@ -15,6 +15,7 @@ use qubit_budget::BudgetError;
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
+use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireEncodeError;
@@ -61,6 +62,24 @@ fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {
     let actual = ValueWireV1::decode_json_slice(&input).expect("bounded input should decode");
 
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn test_value_wire_v1_json_numbers_round_trip() {
+    let expected = ValueWireV1::try_from(Value::Json(serde_json::json!({
+        "amount": 1.5,
+        "items": [100.0, -0.0],
+        "marker": {"$serde_json::private::Number": "1.5"},
+    })))
+    .expect("construct JSON wire value");
+    let encoded = expected.to_json_vec().expect("encode JSON wire value");
+    let decoded = ValueWireV1::decode_json_slice(&encoded).expect("decode JSON wire value");
+
+    assert_eq!(
+        decoded, expected,
+        "JSON numbers and literal marker objects must remain distinct"
+    );
+    assert_eq!(decoded.to_json_vec().expect("re-encode JSON wire value"), encoded);
 }
 
 #[test]

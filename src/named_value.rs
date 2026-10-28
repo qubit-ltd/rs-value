@@ -174,7 +174,7 @@ impl NamedValue {
     pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
-            .decode_utf8(input)
+            .decode_unique_utf8(input)
             .map_err(ValueWireDecodeError::from)
     }
 

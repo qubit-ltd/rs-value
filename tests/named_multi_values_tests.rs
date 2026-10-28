@@ -27,6 +27,26 @@ use qubit_value::ValueError;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireEncodeError;
 
+#[test]
+fn test_named_multi_values_json_numbers_round_trip() {
+    let expected = NamedMultiValues::new(
+        "prices",
+        MultiValues::Json(vec![serde_json::json!({
+            "amount": 1.5,
+            "items": [100.0, -0.0],
+            "marker": {"$serde_json::private::Number": "1.5"},
+        })]),
+    );
+    let encoded = expected.to_json_vec().expect("encode named JSON values");
+    let decoded = NamedMultiValues::decode_json_slice(&encoded).expect("decode named JSON values");
+
+    assert_eq!(
+        decoded, expected,
+        "JSON numbers and literal marker objects must remain distinct"
+    );
+    assert_eq!(decoded.to_json_vec().expect("re-encode named JSON values"), encoded);
+}
+
 /// Rejects schema fields outside the stable named-collection wrapper contract.
 #[test]
 fn test_named_multi_values_rejects_unknown_fields() {

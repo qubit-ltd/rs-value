@@ -34,7 +34,7 @@ use super::deserialize_wire;
 /// let limits = JsonDecodeLimits::builder().max_input_bytes(256usize).build();
 /// let session = JsonDecodeSession::from_limits(limits);
 /// let mut decoder = JsonDecoder::new(session);
-/// let value = decoder.decode_seed_utf8(
+/// let value = decoder.decode_unique_seed_utf8(
 ///     ValueWireV1Seed::new(),
 ///     br#"{"version":1,"value":{"scalar":{"int32":7}}}"#,
 /// )?;

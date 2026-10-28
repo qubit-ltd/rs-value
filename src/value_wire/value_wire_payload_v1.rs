@@ -163,7 +163,7 @@ impl ValueWirePayloadV1 {
     pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
-            .decode_seed_utf8(ValueWirePayloadV1Seed::new(), input)
+            .decode_unique_seed_utf8(ValueWirePayloadV1Seed::new(), input)
             .map_err(ValueWireDecodeError::from)
     }
 

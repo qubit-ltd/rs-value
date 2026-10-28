@@ -34,7 +34,7 @@ use super::WireShapeOwned;
 /// let limits = JsonDecodeLimits::builder().max_input_bytes(256usize).build();
 /// let session = JsonDecodeSession::from_limits(limits);
 /// let mut decoder = JsonDecoder::new(session);
-/// let payload = decoder.decode_seed_utf8(
+/// let payload = decoder.decode_unique_seed_utf8(
 ///     ValueWirePayloadV1Seed::new(),
 ///     br#"{"scalar":{"int32":7}}"#,
 /// )?;

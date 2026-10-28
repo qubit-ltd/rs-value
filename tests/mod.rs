@@ -47,6 +47,8 @@ mod named_value {
         mod named_value_wire_ref_tests;
     }
 }
+#[cfg(feature = "json")]
+mod json_feature_unification_tests;
 mod numeric_comparison_error_tests;
 #[cfg(all(feature = "converter", feature = "json"))]
 mod strict_json_tests;

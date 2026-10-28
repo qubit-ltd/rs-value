@@ -103,6 +103,25 @@ fn test_value_wire_payload_v1_default_encoding_round_trips() {
 }
 
 #[test]
+fn test_value_wire_payload_v1_json_numbers_round_trip() {
+    let payload = ValueWirePayloadV1::try_from(Value::Json(serde_json::json!({
+        "amount": 1.5,
+        "items": [100.0, -0.0],
+        "marker": {"$serde_json::private::Number": "1.5"},
+    })))
+    .expect("construct JSON payload");
+    let encoded = payload.to_json_vec().expect("encode JSON payload");
+    let decoded = ValueWirePayloadV1::decode_json_slice(&encoded).expect("decode JSON payload");
+
+    assert_eq!(decoded, payload, "JSON number types must survive feature unification");
+    assert_eq!(
+        decoded.to_json_vec().expect("re-encode JSON payload"),
+        encoded,
+        "number values must not become private-protocol objects",
+    );
+}
+
+#[test]
 fn test_value_wire_payload_ref_v1_bounded_encoding_matches_owned_payload() {
     let value = ValueContainer::from(vec![1_i32, 2]);
     let owned = ValueWirePayloadV1::try_from(value.clone()).expect("construct V1 payload");

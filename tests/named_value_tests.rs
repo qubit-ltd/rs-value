@@ -25,6 +25,26 @@ use qubit_value::Value;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireEncodeError;
 
+#[test]
+fn test_named_value_json_numbers_round_trip() {
+    let expected = NamedValue::new(
+        "price",
+        Value::Json(serde_json::json!({
+            "amount": 1.5,
+            "items": [100.0, -0.0],
+            "marker": {"$serde_json::private::Number": "1.5"},
+        })),
+    );
+    let encoded = expected.to_json_vec().expect("encode named JSON value");
+    let decoded = NamedValue::decode_json_slice(&encoded).expect("decode named JSON value");
+
+    assert_eq!(
+        decoded, expected,
+        "JSON numbers and literal marker objects must remain distinct"
+    );
+    assert_eq!(decoded.to_json_vec().expect("re-encode named JSON value"), encoded);
+}
+
 /// Rejects schema fields outside the stable named-value wrapper contract.
 #[test]
 fn test_named_value_rejects_unknown_fields() {
