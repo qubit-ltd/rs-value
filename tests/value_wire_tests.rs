@@ -9,15 +9,23 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+#[cfg(feature = "big-decimal")]
 use std::str::FromStr;
 use std::time::Duration;
 
+#[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDateTime;
+#[cfg(feature = "chrono")]
 use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
 use chrono::TimeZone;
+#[cfg(feature = "chrono")]
 use chrono::Utc;
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
@@ -36,6 +44,7 @@ use serde_json::json;
 use serde_json::to_string;
 use serde_json::to_value;
 use serde_json::to_vec;
+#[cfg(feature = "url")]
 use url::Url;
 
 #[test]
@@ -332,12 +341,14 @@ fn value_fixtures() -> Vec<ValueFixture> {
             tag: "float64",
             payload: json!(2.5),
         },
+        #[cfg(feature = "big-integer")]
         ValueFixture {
             data_type: DataType::BigInteger,
             value: Value::BigInteger(BigInt::from(123)),
             tag: "biginteger",
             payload: json!("123"),
         },
+        #[cfg(feature = "big-decimal")]
         ValueFixture {
             data_type: DataType::BigDecimal,
             value: Value::BigDecimal(BigDecimal::from_str("123.4500").expect("valid decimal")),
@@ -350,24 +361,28 @@ fn value_fixtures() -> Vec<ValueFixture> {
             tag: "string",
             payload: json!("text"),
         },
+        #[cfg(feature = "chrono")]
         ValueFixture {
             data_type: DataType::Date,
             value: Value::Date(NaiveDate::from_ymd_opt(2026, 7, 14).unwrap()),
             tag: "date",
             payload: json!("2026-07-14"),
         },
+        #[cfg(feature = "chrono")]
         ValueFixture {
             data_type: DataType::Time,
             value: Value::Time(NaiveTime::from_hms_opt(1, 2, 3).unwrap()),
             tag: "time",
             payload: json!("01:02:03"),
         },
+        #[cfg(feature = "chrono")]
         ValueFixture {
             data_type: DataType::DateTime,
             value: Value::DateTime(NaiveDateTime::parse_from_str("2026-07-14 01:02:03", "%Y-%m-%d %H:%M:%S").unwrap()),
             tag: "datetime",
             payload: json!("2026-07-14T01:02:03"),
         },
+        #[cfg(feature = "chrono")]
         ValueFixture {
             data_type: DataType::Instant,
             value: Value::Instant(Utc.with_ymd_and_hms(2026, 7, 14, 1, 2, 3).unwrap()),
@@ -380,6 +395,7 @@ fn value_fixtures() -> Vec<ValueFixture> {
             tag: "duration",
             payload: json!({"secs": 1, "nanos": 2}),
         },
+        #[cfg(feature = "url")]
         ValueFixture {
             data_type: DataType::Url,
             value: Value::new(Url::parse("https://example.com/path").unwrap()),
@@ -407,7 +423,20 @@ fn test_value_wire_v1_fixtures_cover_every_data_type() {
         .into_iter()
         .map(|fixture| fixture.data_type)
         .collect::<Vec<_>>();
-    let mut expected = DataType::ALL.to_vec();
+    let mut expected = DataType::ALL
+        .iter()
+        .copied()
+        .filter(|data_type| match data_type {
+            DataType::BigInteger => cfg!(feature = "big-integer"),
+            DataType::BigDecimal => cfg!(feature = "big-decimal"),
+            DataType::Date | DataType::Time | DataType::DateTime | DataType::Instant => {
+                cfg!(feature = "chrono")
+            }
+            DataType::Url => cfg!(feature = "url"),
+            DataType::Json => cfg!(feature = "json"),
+            _ => true,
+        })
+        .collect::<Vec<_>>();
     actual.sort_by_key(|data_type| data_type.as_str());
     expected.sort_by_key(|data_type| data_type.as_str());
     assert_eq!(actual, expected);
@@ -439,14 +468,21 @@ fn test_value_wire_v1_tags_are_unique_and_stable() {
             (DataType::UInt128, "uint128"),
             (DataType::Float32, "float32"),
             (DataType::Float64, "float64"),
+            #[cfg(feature = "big-integer")]
             (DataType::BigInteger, "biginteger"),
+            #[cfg(feature = "big-decimal")]
             (DataType::BigDecimal, "bigdecimal"),
             (DataType::String, "string"),
+            #[cfg(feature = "chrono")]
             (DataType::Date, "date"),
+            #[cfg(feature = "chrono")]
             (DataType::Time, "time"),
+            #[cfg(feature = "chrono")]
             (DataType::DateTime, "datetime"),
+            #[cfg(feature = "chrono")]
             (DataType::Instant, "instant"),
             (DataType::Duration, "duration"),
+            #[cfg(feature = "url")]
             (DataType::Url, "url"),
             (DataType::StringMap, "stringmap"),
             (DataType::Json, "json"),
@@ -670,12 +706,25 @@ fn test_value_wire_v1_wide_integer_payloads_require_canonical_decimal_strings() 
 }
 
 #[test]
-fn test_value_wire_v1_big_number_payloads_require_canonical_structures() {
+#[cfg(feature = "big-integer")]
+fn test_value_wire_v1_big_integer_payloads_require_canonical_structures() {
     for invalid in [
         scalar_wire("biginteger", json!([1, [123]])),
         scalar_wire("biginteger", json!("12x")),
         scalar_wire("biginteger", json!("+1")),
         scalar_wire("biginteger", json!("001")),
+    ] {
+        assert!(crate::decode_value_wire_value(invalid).is_err());
+    }
+    assert!(crate::decode_value_wire_value(collection_wire("biginteger", json!(["1", "02"]),)).is_err(),);
+    let valid = scalar_wire("biginteger", json!("1"));
+    assert!(crate::decode_value_wire_value(valid).is_ok());
+}
+
+#[cfg(feature = "big-decimal")]
+#[test]
+fn test_value_wire_v1_big_decimal_payloads_require_canonical_structures() {
+    for invalid in [
         scalar_wire("bigdecimal", json!(12.5)),
         scalar_wire("bigdecimal", json!("1.0")),
         scalar_wire("bigdecimal", json!({"coefficient": "01", "scale": 1})),
@@ -683,7 +732,8 @@ fn test_value_wire_v1_big_number_payloads_require_canonical_structures() {
     ] {
         assert!(crate::decode_value_wire_value(invalid).is_err());
     }
-    assert!(crate::decode_value_wire_value(collection_wire("biginteger", json!(["1", "02"]),)).is_err(),);
+    let valid = scalar_wire("bigdecimal", json!({"coefficient": "1", "scale": 0}));
+    assert!(crate::decode_value_wire_value(valid).is_ok());
 }
 
 #[test]

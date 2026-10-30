@@ -2018,7 +2018,6 @@ fn test_narrow_signed_integer_converters_accept_numeric_sources() {
     assert_eq!(Value::BigDecimal(BigDecimal::from(32_000)).to::<i16>().unwrap(), 32_000);
 }
 
-#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_narrow_signed_integer_converters_reject_invalid_values() {
     assert!(Value::String("128".to_string()).to::<i8>().is_conversion_error());
@@ -2029,19 +2028,28 @@ fn test_narrow_signed_integer_converters_reject_invalid_values() {
     assert!(Value::Float64(f64::MAX).to::<i128>().is_conversion_error());
     assert!(Value::String("invalid".to_string()).to::<i16>().is_conversion_error());
 
-    let too_big = BigInt::from(i128::MAX) + BigInt::from(1u8);
-    assert!(Value::BigInteger(too_big).to::<i128>().is_conversion_error());
-    assert!(
-        Value::BigDecimal(BigDecimal::from_str("1e100").unwrap())
-            .to::<i128>()
-            .is_conversion_error()
-    );
+    #[cfg(feature = "big-integer")]
+    {
+        let too_big = BigInt::from(i128::MAX) + BigInt::from(1u8);
+        assert!(Value::BigInteger(too_big).to::<i128>().is_conversion_error());
+    }
+    #[cfg(feature = "big-decimal")]
+    {
+        assert!(
+            Value::BigDecimal(BigDecimal::from_str("1e100").unwrap())
+                .to::<i128>()
+                .is_conversion_error()
+        );
+    }
 
-    let date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
-    assert!(matches!(
-        Value::Date(date).to::<i128>(),
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
-    ));
+    #[cfg(feature = "chrono")]
+    {
+        let date = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        assert!(matches!(
+            Value::Date(date).to::<i128>(),
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
+        ));
+    }
     assert!(matches!(
         Value::Unset(DataType::Int128).to::<i128>(),
         Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::UnsetScalar

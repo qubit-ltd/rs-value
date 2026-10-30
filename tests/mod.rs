@@ -54,7 +54,7 @@ mod value_missing_tests;
 mod value_type_table_tests;
 #[cfg(feature = "json")]
 mod value_wire;
-#[cfg(feature = "all")]
+#[cfg(feature = "json")]
 mod value_wire_tests;
 mod wide_integer_tests;
 mod wide_integer {
@@ -64,7 +64,6 @@ mod wide_integer {
         mod parsed_integer_tests;
     }
 }
-#[cfg(feature = "all")]
 mod wire {
     mod decimal {
         mod internal {
@@ -75,6 +74,7 @@ mod wire {
         mod decimal_tests;
     }
     mod internal {
+        #[cfg(feature = "big-decimal")]
         mod big_decimal_payload_tests;
         mod duration_payload_tests;
     }

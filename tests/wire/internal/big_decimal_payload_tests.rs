@@ -8,6 +8,7 @@
 
 //! Big-decimal V1 payload behavior.
 
+#[cfg(feature = "big-decimal")]
 use serde_json::json;
 
 #[cfg(feature = "big-decimal")]
