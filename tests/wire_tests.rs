@@ -17,7 +17,7 @@ use std::time::Duration;
 use bigdecimal::BigDecimal;
 #[cfg(feature = "all")]
 use chrono::DateTime;
-#[cfg(feature = "all")]
+#[cfg(feature = "chrono")]
 use chrono::NaiveDate;
 #[cfg(feature = "all")]
 use chrono::NaiveDateTime;
@@ -157,9 +157,10 @@ fn test_wire_instant_rejects_invalid_timestamp() {
     assert!(matches!(error, qubit_value::ValueWireDecodeError::InvalidJson(_)));
 }
 
-fn wire_error_without_location(input: &str) -> String {
-    crate::decode_value_wire_str(input)
-        .expect_err("invalid payload must be rejected")
+fn collection_payload_error_without_location(payload: &str) -> String {
+    let input = format!(r#"{{"version":1,"value":{payload}}}"#);
+    crate::decode_value_wire_str(&input)
+        .expect_err("invalid collection payload must be rejected")
         .to_string()
         .split(" at line ")
         .next()
@@ -170,33 +171,65 @@ fn wire_error_without_location(input: &str) -> String {
 #[cfg(feature = "chrono")]
 #[test]
 fn test_wire_date_collection_reports_first_item_error_before_tail_error() {
+    let valid = r#"{"version":1,"value":{"collection":{"date":["2026-07-14"]}}}"#;
+    let restored = crate::decode_value_wire_str(valid)
+        .expect("valid date collection must reach the typed adapter")
+        .into_container();
+    assert!(restored.is_collection());
+    assert_eq!(restored.data_type(), qubit_datatype::DataType::Date);
+    assert_eq!(restored.len(), 1);
+
     let first_only = r#"{"collection":{"date":["not-a-date"]}}"#;
     let with_tail = r#"{"collection":{"date":["not-a-date",3]}}"#;
-    assert_eq!(
-        wire_error_without_location(with_tail),
-        wire_error_without_location(first_only)
-    );
+    let first_error = collection_payload_error_without_location(first_only);
+    let date_error = "not-a-date"
+        .parse::<NaiveDate>()
+        .expect_err("invalid date text must fail to parse")
+        .to_string();
+    assert!(first_error.contains(&date_error), "{first_error}");
+    assert!(!first_error.contains("unknown field"));
+    assert_eq!(collection_payload_error_without_location(with_tail), first_error);
 }
 
 #[test]
 fn test_wire_duration_collection_reports_first_item_error_before_tail_error() {
+    let valid = r#"{"version":1,"value":{"collection":{"duration":[{"secs":0,"nanos":999999999}]}}}"#;
+    let restored = crate::decode_value_wire_str(valid)
+        .expect("valid duration collection must reach the typed adapter")
+        .into_container();
+    assert!(restored.is_collection());
+    assert_eq!(restored.data_type(), qubit_datatype::DataType::Duration);
+    assert_eq!(restored.len(), 1);
+
     let first_only = r#"{"collection":{"duration":[{"secs":0,"nanos":1000000000}]}}"#;
     let with_tail = r#"{"collection":{"duration":[{"secs":0,"nanos":1000000000},3]}}"#;
-    assert_eq!(
-        wire_error_without_location(with_tail),
-        wire_error_without_location(first_only)
+    let first_error = collection_payload_error_without_location(first_only);
+    assert!(
+        first_error.contains("duration nanoseconds must be less than 1000000000"),
+        "{first_error}"
     );
+    assert_eq!(collection_payload_error_without_location(with_tail), first_error);
 }
 
 #[cfg(feature = "big-decimal")]
 #[test]
 fn test_wire_decimal_collection_reports_first_item_error_before_tail_error() {
+    let valid = r#"{"version":1,"value":{"collection":{"bigdecimal":[{"coefficient":"1","scale":150000}]}}}"#;
+    let restored = crate::decode_value_wire_str(valid)
+        .expect("valid decimal collection must reach the typed adapter")
+        .into_container();
+    assert!(restored.is_collection());
+    assert_eq!(restored.data_type(), qubit_datatype::DataType::BigDecimal);
+    assert_eq!(restored.len(), 1);
+
     let first_only = r#"{"collection":{"bigdecimal":[{"coefficient":"1","scale":150001}]}}"#;
     let with_tail = r#"{"collection":{"bigdecimal":[{"coefficient":"1","scale":150001},3]}}"#;
-    assert_eq!(
-        wire_error_without_location(with_tail),
-        wire_error_without_location(first_only)
+    let first_error = collection_payload_error_without_location(first_only);
+    assert!(
+        first_error.contains("decimal scale exceeds the V1 maximum absolute scale"),
+        "{first_error}"
     );
+    assert_eq!(collection_payload_error_without_location(with_tail), first_error);
 }
 
 /// Checks every feature enabled V1 payload adapter through the public wire

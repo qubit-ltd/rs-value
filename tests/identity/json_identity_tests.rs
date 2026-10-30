@@ -108,6 +108,7 @@ fn test_deep_json_identity_hash_does_not_recurse() {
         .arg("--exact")
         .arg("identity::json_identity_tests::test_deep_json_identity_hash_in_isolated_process")
         .arg("--ignored")
+        .arg("--nocapture")
         .env(DEEP_JSON_HASH_CHILD_ENV, "1")
         .output()
         .expect("run deep JSON hash child test");
@@ -116,6 +117,12 @@ fn test_deep_json_identity_hash_does_not_recurse() {
         output.status.success(),
         "deep JSON hash child failed: status={:?}\nstdout:\n{}\nstderr:\n{}",
         output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("QUBIT_VALUE_DEEP_HASH_DONE"),
+        "deep JSON hash child did not complete\nstdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr),
     );
@@ -138,6 +145,7 @@ fn test_deep_json_identity_hash_in_isolated_process() {
 
     let json = serde_json::Value::try_from(value).expect("hash fixture retains its JSON type");
     dismantle_json_value(json);
+    eprintln!("QUBIT_VALUE_DEEP_HASH_DONE");
 }
 
 /// Verifies the root is counted as depth one by budgeted hashing.
@@ -381,6 +389,7 @@ fn test_deep_json_identity_equality_does_not_recurse() {
         .arg("--exact")
         .arg("identity::json_identity_tests::test_deep_json_identity_equality_in_isolated_process")
         .arg("--ignored")
+        .arg("--nocapture")
         .env(DEEP_JSON_IDENTITY_CHILD_ENV, "1")
         .output()
         .expect("run deep JSON identity child test");
@@ -389,6 +398,12 @@ fn test_deep_json_identity_equality_does_not_recurse() {
         output.status.success(),
         "deep JSON identity child failed: status={:?}\nstdout:\n{}\nstderr:\n{}",
         output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("QUBIT_VALUE_DEEP_EQUALITY_DONE"),
+        "deep JSON equality child did not complete\nstdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr),
     );
@@ -418,6 +433,7 @@ fn test_deep_json_identity_equality_in_isolated_process() {
         let json = serde_json::Value::try_from(value).expect("equality fixture retains its JSON type");
         dismantle_json_value(json);
     }
+    eprintln!("QUBIT_VALUE_DEEP_EQUALITY_DONE");
 }
 
 /// Hashes a JSON value with the public value identity contract.

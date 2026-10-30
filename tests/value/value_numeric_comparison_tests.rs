@@ -19,6 +19,11 @@ use qubit_datatype::NumericComparisonPolicy;
 use qubit_value::NumericComparisonError;
 use qubit_value::Value;
 
+fn assert_numeric_order(left: Value, right: Value, policy: NumericComparisonPolicy, expected: Ordering) {
+    assert_eq!(left.numeric_cmp(&right, policy), Ok(expected));
+    assert_eq!(right.numeric_cmp(&left, policy), Ok(expected.reverse()));
+}
+
 /// Verifies numeric equality is distinct from representation identity.
 #[test]
 fn test_value_numeric_cmp_compares_across_numeric_variants() {
@@ -33,19 +38,145 @@ fn test_value_numeric_cmp_compares_across_numeric_variants() {
     );
 }
 
+/// Verifies integer comparisons preserve boundaries across widths and signs.
+#[test]
+fn test_value_numeric_cmp_preserves_integer_boundaries() {
+    let cases = [
+        (
+            Value::Int8(i8::MIN),
+            Value::Int128(i128::from(i8::MIN)),
+            Ordering::Equal,
+        ),
+        (
+            Value::Int16(i16::MIN),
+            Value::Int128(i128::from(i16::MIN)),
+            Ordering::Equal,
+        ),
+        (
+            Value::Int32(i32::MIN),
+            Value::Int128(i128::from(i32::MIN)),
+            Ordering::Equal,
+        ),
+        (
+            Value::Int64(i64::MIN),
+            Value::Int128(i128::from(i64::MIN)),
+            Ordering::Equal,
+        ),
+        (Value::Int128(i128::MIN), Value::Int64(i64::MIN), Ordering::Less),
+        (
+            Value::UInt8(u8::MAX),
+            Value::UInt128(u128::from(u8::MAX)),
+            Ordering::Equal,
+        ),
+        (
+            Value::UInt16(u16::MAX),
+            Value::UInt128(u128::from(u16::MAX)),
+            Ordering::Equal,
+        ),
+        (
+            Value::UInt32(u32::MAX),
+            Value::UInt128(u128::from(u32::MAX)),
+            Ordering::Equal,
+        ),
+        (
+            Value::UInt64(u64::MAX),
+            Value::UInt128(u128::from(u64::MAX)),
+            Ordering::Equal,
+        ),
+        (Value::UInt128(u128::MAX), Value::UInt64(u64::MAX), Ordering::Greater),
+        (
+            Value::UInt64(i64::MAX as u64 + 1),
+            Value::Int64(i64::MAX),
+            Ordering::Greater,
+        ),
+        (Value::Int8(-1), Value::UInt8(0), Ordering::Less),
+    ];
+
+    for (left, right, expected) in cases {
+        assert_numeric_order(left, right, NumericComparisonPolicy::Exact, expected);
+    }
+}
+
+/// Verifies float precision, signed zero, and infinity boundaries.
+#[test]
+fn test_value_numeric_cmp_preserves_float_boundaries() {
+    assert_numeric_order(
+        Value::UInt64(9_007_199_254_740_993),
+        Value::Float64(9_007_199_254_740_992.0),
+        NumericComparisonPolicy::Exact,
+        Ordering::Greater,
+    );
+    assert_numeric_order(
+        Value::UInt64(9_007_199_254_740_993),
+        Value::Float64(9_007_199_254_740_992.0),
+        NumericComparisonPolicy::Approximate,
+        Ordering::Equal,
+    );
+    assert_numeric_order(
+        Value::Float32(16_777_216.0),
+        Value::UInt32(16_777_217),
+        NumericComparisonPolicy::Exact,
+        Ordering::Less,
+    );
+    assert_numeric_order(
+        Value::Float32(-0.0),
+        Value::Int8(0),
+        NumericComparisonPolicy::Exact,
+        Ordering::Equal,
+    );
+
+    for policy in [NumericComparisonPolicy::Exact, NumericComparisonPolicy::Approximate] {
+        assert_numeric_order(
+            Value::Float32(f32::NEG_INFINITY),
+            Value::Int128(i128::MIN),
+            policy,
+            Ordering::Less,
+        );
+        assert_numeric_order(
+            Value::Float64(f64::INFINITY),
+            Value::UInt128(u128::MAX),
+            policy,
+            Ordering::Greater,
+        );
+    }
+}
+
+/// Verifies big integers can exceed the largest built-in unsigned integer.
+#[cfg(feature = "big-integer")]
+#[test]
+fn test_value_numeric_cmp_preserves_big_integer_boundary() {
+    assert_numeric_order(
+        Value::BigInteger(BigInt::from(u128::MAX) + BigInt::from(1_u8)),
+        Value::UInt128(u128::MAX),
+        NumericComparisonPolicy::Exact,
+        Ordering::Greater,
+    );
+}
+
 /// Verifies exact and approximate decimal/float policy behavior.
 #[cfg(feature = "big-decimal")]
 #[test]
 fn test_value_numeric_cmp_applies_explicit_policy() {
     let decimal = Value::BigDecimal(BigDecimal::from_str("0.1").unwrap());
     let float = Value::Float64(0.1);
-    assert_eq!(
-        decimal.numeric_cmp(&float, NumericComparisonPolicy::Exact),
-        Ok(Ordering::Less)
+    assert_numeric_order(
+        decimal.clone(),
+        float.clone(),
+        NumericComparisonPolicy::Exact,
+        Ordering::Less,
     );
-    assert_eq!(
-        decimal.numeric_cmp(&float, NumericComparisonPolicy::Approximate),
-        Ok(Ordering::Equal)
+    assert_numeric_order(decimal, float, NumericComparisonPolicy::Approximate, Ordering::Equal);
+}
+
+/// Verifies big decimal values compare exactly with built-in integers.
+#[cfg(feature = "big-decimal")]
+#[test]
+fn test_value_numeric_cmp_preserves_big_decimal_boundary() {
+    assert_numeric_order(
+        Value::BigDecimal(BigDecimal::from_str("1.25").unwrap()),
+        Value::Int8(2),
+        NumericComparisonPolicy::Exact,
+        Ordering::Less,
     );
 }
 
