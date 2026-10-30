@@ -44,6 +44,12 @@ use crate::ValueContainer;
 /// and future runtime data types require a new wire version instead of
 /// extending V1.
 ///
+/// Runtime JSON numbers are accepted only when V1 can reconstruct the same
+/// `serde_json::Number` under the strict `qubit-json` number model. Numbers
+/// that would change identity when round-tripped return the JSON-gated
+/// `JsonNumberNotRoundTrippable` error. This error does not expose the number
+/// text.
+///
 /// Deserialization is intentionally available through
 /// [`crate::ValueWireV1Seed`], which lets a bounded decoder control the
 /// complete input and structure.

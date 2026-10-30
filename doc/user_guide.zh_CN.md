@@ -263,6 +263,40 @@ let fallback: u16 = Value::new_unset(qubit_datatype::DataType::UInt16)
 assert_eq!(fallback, 8080);
 ```
 
+<a id="shared-conversion-session"></a>
+### 让多次读取共享转换限制
+
+每次调用 `_with` 都会创建独立会话。相关读取需要共用预算时，使用 `_in` 方法传入同一个
+会话。成功消耗的 item 会在会话中累计；下面第三次转换会超过共享的两项限制：
+
+<!-- example:shared-conversion-session run -->
+```rust
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionOperationLimits;
+use qubit_datatype::ConversionPolicy;
+use qubit_datatype::ConversionResource;
+use qubit_datatype::ConversionSession;
+use qubit_value::Value;
+use qubit_value::ValueError;
+
+let policy = ConversionPolicy::strict();
+let limits = ConversionLimits::builder()
+    .operation_limits(ConversionOperationLimits::builder().max_items(2).build())
+    .build();
+let mut session = ConversionSession::new(&policy, &limits);
+assert_eq!(Value::from("41").to_in::<u16>(&mut session)?, 41);
+assert_eq!(Value::from("42").to_in::<u16>(&mut session)?, 42);
+let error = Value::from("43").to_in::<u16>(&mut session).unwrap_err();
+assert!(matches!(error, ValueError::Conversion(ref source)
+    if source.resource() == Some(ConversionResource::Items)));
+assert_eq!(session.items_used(), 2);
+```
+
+`Value::to_in` 会复用调用方的会话。`MultiValues` 和 `ValueContainer` 也提供对应的
+`to_first_in`、`to_list_in` 入口。会话不是整批自动回滚的事务：成功消耗会累计；失败转换
+可能保留此前已经成功计入的 item 或 input 消耗。具体失败计量遵循 `qubit-datatype` 合同，
+调用方不应假设整个批次都会回滚。
+
 如果转换策略将源值判定为缺失，例如配置了“空白即缺失”，`to_or` 也可以使用默认值；但它
 不会掩盖普通类型不匹配或非法转换。完整的源/目标矩阵和策略说明请参阅
 [`qubit-datatype` API 文档](https://docs.rs/qubit-datatype/latest/qubit_datatype/)。
@@ -361,6 +395,20 @@ envelope 时才使用它。`ValueWireRefV1` 和 `ValueWirePayloadRefV1` 可以�
 V1 拒绝旧的裸枚举表示，例如 `{"Int32":42}`。独立文档必须使用上方的版本 envelope。嵌入式
 payload `{"scalar":{"int32":42}}` 仅可与 payload seed/DTO 配合使用，不能作为独立 V1
 文档；独立文档缺少 `version` 字段时无效。
+
+### JSON 数字接受范围
+
+Wire V1 只接受能由严格数字模型恢复为相同 `serde_json::Number` 的运行时 JSON 数字：负整数适合
+`i64`，非负整数适合 `u64`，小数或指数值可转成有限 `f64` 且不会改变 Number equality。这会保护
+`Value::Json` 使用的运行时 JSON identity。
+
+其他依赖启用 `serde_json/arbitrary_precision` 时，`1.2500`、`1e1` 或不能由 `f64` 无损保留的小数，
+会在构造或序列化 Wire 数据时被拒绝。错误不包含数字文本。V1 保留已接受的 JSON 值，不保留输入
+数字 token 的拼写；decoder 已标准化的数字若满足相同规则，仍可接受。
+
+需要精确宽整数或小数时，应使用显式 `BigInteger` 或 `BigDecimal` 运行时类型。嵌套 JSON 树中的任意数字
+可在应用 schema 中约定为字符串。若允许舍入，应在构造 Wire 数据前主动转换为标准有限 `f64`；库不
+会暗中舍入。已舍入的数据无法从 Wire 恢复，必须从原始数据源重新导入。
 
 JSON 的 envelope、具名包装类型，以及 `Duration` 和 `BigDecimal` 富类型 payload 都要求使用带
 字段名的对象。以前可能被接受的数组形式现在会被拒绝；请改用

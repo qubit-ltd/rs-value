@@ -285,6 +285,43 @@ let fallback: u16 = Value::new_unset(qubit_datatype::DataType::UInt16)
 assert_eq!(fallback, 8080);
 ```
 
+<a id="shared-conversion-session"></a>
+### Share conversion limits across reads
+
+Each `_with` call creates its own session. Use an `_in` method when related
+reads should consume one shared budget. Successful item consumption accumulates
+in that session; here the third conversion exceeds the shared two-item limit:
+
+<!-- example:shared-conversion-session run -->
+```rust
+use qubit_datatype::ConversionLimits;
+use qubit_datatype::ConversionOperationLimits;
+use qubit_datatype::ConversionPolicy;
+use qubit_datatype::ConversionResource;
+use qubit_datatype::ConversionSession;
+use qubit_value::Value;
+use qubit_value::ValueError;
+
+let policy = ConversionPolicy::strict();
+let limits = ConversionLimits::builder()
+    .operation_limits(ConversionOperationLimits::builder().max_items(2).build())
+    .build();
+let mut session = ConversionSession::new(&policy, &limits);
+assert_eq!(Value::from("41").to_in::<u16>(&mut session)?, 41);
+assert_eq!(Value::from("42").to_in::<u16>(&mut session)?, 42);
+let error = Value::from("43").to_in::<u16>(&mut session).unwrap_err();
+assert!(matches!(error, ValueError::Conversion(ref source)
+    if source.resource() == Some(ConversionResource::Items)));
+assert_eq!(session.items_used(), 2);
+```
+
+`Value::to_in` reuses the caller's session. `MultiValues` and `ValueContainer`
+provide corresponding `to_first_in` and `to_list_in` entry points. A session is
+not an all-or-nothing batch transaction: successful consumption accumulates,
+and a failed conversion may retain item or input consumption that was already
+successfully charged. The precise failure accounting follows the
+`qubit-datatype` contract; callers should not assume the whole batch rolls back.
+
 `to_or` can also use a conversion policy's missing-value result, such as a
 configured blank-as-missing behavior. It does not hide an ordinary type
 mismatch or invalid conversion. The full source/target matrix and policy
@@ -398,6 +435,28 @@ standalone document must use the versioned envelope shown above. The embedded
 payload `{"scalar":{"int32":42}}` is valid only with the payload seed/DTO and
 is not a standalone V1 document; a standalone document without `version` is
 invalid.
+
+### JSON number acceptance
+
+Wire V1 accepts a runtime JSON number only when the strict number model can
+reconstruct the same `serde_json::Number`: negative integers fit `i64`,
+non-negative integers fit `u64`, and fractional or exponential values become
+finite `f64` values without changing Number equality. This preserves the
+runtime JSON identity used by `Value::Json`.
+
+When another dependency enables `serde_json/arbitrary_precision`, a number such
+as `1.2500`, `1e1`, or a decimal that cannot be preserved by `f64` is rejected
+when constructing or serializing Wire data. The error does not include the
+number text. V1 preserves accepted JSON values, not the spelling of the source
+number token. A decoder-normalized number remains accepted if it meets the same
+rule.
+
+Callers that need exact wide integers or decimals should use the explicit
+`BigInteger` or `BigDecimal` runtime types. For arbitrary numbers nested in a
+JSON tree, define a string representation in the application schema. If
+rounding is acceptable, convert to a standard finite `f64` before constructing
+Wire data; the library does not round implicitly. Previously rounded data
+cannot be recovered from Wire and must be reloaded from its original source.
 
 JSON record positions in the envelope, named wrappers, and rich `Duration` and
 `BigDecimal` payloads require objects with named fields. Array-shaped records

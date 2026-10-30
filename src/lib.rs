@@ -54,7 +54,10 @@
 //! - JSON numbers follow `qubit-json`'s explicit range contract: negative
 //!   integers fit `i64`, non-negative integers fit `u64`, and fractional or
 //!   exponential values are finite `f64`. Wider exact values use the crate's
-//!   explicit string-based integer and decimal wire representations.
+//!   explicit string-based integer and decimal wire representations. Runtime
+//!   JSON numbers must also round trip to the same `serde_json::Number`; with
+//!   `arbitrary_precision`, nonstandard or over-precise representations are
+//!   rejected instead of silently changing JSON identity.
 //!
 //! # Usage Examples
 //!

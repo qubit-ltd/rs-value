@@ -197,6 +197,19 @@ V1 拒绝旧的裸枚举表示，例如 `{"Int32":42}`。上方带版本 envelop
 V1 文档；嵌入式 payload（例如 `{"scalar":{"int32":42}}`）仅可与 payload seed/DTO
 配合使用，不能作为独立文档。独立文档缺少 `version` 字段时也无效。
 
+Wire V1 只接受能由当前 `qubit-json` 严格数字模型恢复为相同
+`serde_json::Number` 的运行时 JSON 数字：负整数必须适合 `i64`，非负整数必须适合
+`u64`，小数或指数形式必须能转换为有限 `f64` 且不改变 Number equality。这同时保护 JSON
+identity 和数值。依赖统一启用 `serde_json/arbitrary_precision` 时，`1.2500`、`1e1` 或
+精度超出 `f64` 可保留范围的小数会在构造或序列化时被拒绝。错误不包含数字文本。Wire V1
+不承诺保留输入 JSON 的数字词法；若 decoder 已将数字标准化，且满足同一规则，仍可进入 Wire。
+
+这会收紧过去可成功序列化、但随后解码为不同数字 identity 的输入范围。已接受值的字节和
+identity、V1 tag 与 schema 均不改变。需要精确宽整数或小数时，应使用显式的
+`BigInteger`/`BigDecimal` 运行时类型；嵌套任意 JSON 数字可由应用 schema 约定为字符串。若应用
+允许舍入，可在构造 Wire 数据前主动转换为标准有限 `f64`；库不会暗中执行有损转换。已经舍入的
+历史数据无法从 Wire 表示恢复，必须从原始数据源重新导入。
+
 JSON 的 envelope、具名包装类型，以及 `Duration` 和 `BigDecimal` 富类型 payload 都要求使用带
 字段名的对象。以前可能被接受的数组记录形式现在会被拒绝。JSON 数组仍可用于集合 payload，
 也仍是 `Json` 类型下的合法值。

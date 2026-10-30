@@ -29,6 +29,11 @@ use crate::ValueContainer;
 
 /// Borrowed standalone V1 envelope for serialization without cloning.
 ///
+/// Runtime JSON numbers must round trip to the same `serde_json::Number` under
+/// the strict `qubit-json` number model. A number that would change identity
+/// returns the JSON-gated `JsonNumberNotRoundTrippable` error; the error does
+/// not expose the number text.
+///
 /// # Type Parameters
 ///
 /// * `'a` - Lifetime of the runtime payload borrowed for serialization.

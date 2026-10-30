@@ -42,6 +42,11 @@ use crate::ValueWireDecodeError;
 
 /// Typed V1 scalar-or-collection payload without an enclosing version field.
 ///
+/// Runtime JSON numbers must round trip to the same `serde_json::Number` under
+/// the strict `qubit-json` number model. A number that would change identity
+/// returns the JSON-gated `JsonNumberNotRoundTrippable` error; the error does
+/// not expose the number text.
+///
 /// Deserialization is intentionally available through
 /// [`crate::ValueWirePayloadV1Seed`], which lets a bounded decoder control the
 /// complete input and structure.

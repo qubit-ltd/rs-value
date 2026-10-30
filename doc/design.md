@@ -201,6 +201,28 @@ Complete untrusted JSON documents must use bounded decode helpers; embedded
 payloads use `ValueWireV1Seed` or `ValueWirePayloadV1Seed` under the outer
 decoder's shared session.
 
+Runtime JSON numbers are accepted by Wire V1 only when the current strict
+`qubit-json` number model can reconstruct the same `serde_json::Number`: a
+negative integer must fit `i64`, a non-negative integer must fit `u64`, and a
+fractional or exponential value must become a finite `f64` without changing
+Number equality. This preserves JSON identity as well as numeric value. With
+`serde_json/arbitrary_precision`, values such as `1.2500`, `1e1`, or a decimal
+with more precision than `f64` can preserve are rejected at construction or
+serialization. The error does not include the number text. Wire V1 does not
+preserve source JSON number spelling; values already normalized by the decoder
+remain eligible when they satisfy the same rule.
+
+This narrows the accepted input for values that could previously serialize
+successfully and then decode to a different number identity. It does not change
+the bytes or identity of accepted values, the V1 tags, or the schema. Callers
+that need exact wider integers or decimals should use the explicit
+`BigInteger`/`BigDecimal` runtime types, or use an application schema that
+stores nested arbitrary JSON numbers as strings. An application that accepts
+rounding may convert to a standard finite `f64` before constructing Wire data;
+the library never performs that lossy conversion implicitly. Previously
+rounded data cannot be recovered from its Wire representation and must be
+reloaded from its original source.
+
 When dependency feature unification enables `serde_json/arbitrary_precision`,
 bounded helpers and `JsonDecoder::decode_unique_*` preserve native numeric
 events; generic Serde readers can expose numbers as private maps. The unique

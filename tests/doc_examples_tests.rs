@@ -224,6 +224,7 @@ fn test_bilingual_markdown_example_ids_are_stable() {
                 "numeric-comparison",
                 "redacted-output",
                 "runtime-config",
+                "shared-conversion-session",
                 "shared-decode-session",
                 "single-value",
                 "wire-rich-types",
@@ -258,6 +259,6 @@ fn test_bilingual_markdown_examples_execute() {
         }
     }
     let extracted: usize = documents.iter().map(|(_, examples)| examples.len()).sum();
-    assert_eq!(extracted, 34, "baseline marked-example count");
+    assert_eq!(extracted, 36, "baseline marked-example count");
     internal::markdown_example_runner::run_markdown_examples(root, &documents).unwrap();
 }

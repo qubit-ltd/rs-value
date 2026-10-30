@@ -84,6 +84,9 @@ Use `to_with` when the boundary needs an explicit policy and limits. Every
 `to_with` call creates a fresh `ConversionSession`, so independent reads do not
 share cumulative consumption:
 
+To share limits across related reads, use the `_in` APIs with one
+`ConversionSession`; see [Shared conversion session](doc/user_guide.md#shared-conversion-session).
+
 <!-- example:conversion-policy run -->
 ```rust
 use qubit_datatype::ConversionLimits;
@@ -190,7 +193,11 @@ Choose `to_json_value()` when the boundary is ordinary application JSON and
 the receiver only needs JSON semantics. Wire V1 is a closed, versioned format;
 Natural JSON intentionally omits runtime type tags, unset state, and
 scalar-versus-collection shape. Wire V1 rejects non-finite floats, unsupported
-types, and malformed payloads instead of guessing.
+types, malformed payloads, and runtime JSON numbers that cannot round trip
+with the same Number identity instead of guessing. With
+`serde_json/arbitrary_precision`, nonstandard or over-precise number forms may
+be rejected; use explicit big-number types or an application string schema
+when exact precision is required.
 
 For complete untrusted JSON documents, use the bounded Wire JSON helpers. For
 embedded values, pass `ValueWireV1Seed` or `ValueWirePayloadV1Seed` to
