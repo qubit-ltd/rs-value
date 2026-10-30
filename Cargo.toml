@@ -126,7 +126,7 @@ serde_json = { version = "^1.0", features = ["float_roundtrip"], optional = true
 chrono = { version = "^0.4", default-features = false, features = ["std", "serde"], optional = true }
 url = { version = "^2.5", features = ["serde"], optional = true }
 num-bigint = { version = "^0.4", optional = true }
-bigdecimal = { version = "^0.4", optional = true }
+bigdecimal = { version = "^0.4.7", optional = true }
 
 qubit-datatype = { path = "../rs-datatype", version = "0.15", default-features = false }
 
