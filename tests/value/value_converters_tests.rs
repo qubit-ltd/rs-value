@@ -784,7 +784,6 @@ fn test_as_bool_string_parse_error() {
     let value_false = Value::String("false".to_string());
     assert!(!value_false.to::<bool>().unwrap());
 }
-#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_as_bool_all_unsupported_types() {
     // Test all types that do not support conversion to bool
@@ -807,51 +806,60 @@ fn test_as_bool_all_unsupported_types() {
         Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
     ));
 
-    // Date type
-    assert!(matches!(
-        Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).to::<bool>(),
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
-    ));
+    #[cfg(feature = "chrono")]
+    {
+        // Date type
+        assert!(matches!(
+            Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap()).to::<bool>(),
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
+        ));
 
-    // Time type
-    assert!(matches!(
-        Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).to::<bool>(),
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
-    ));
+        // Time type
+        assert!(matches!(
+            Value::Time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()).to::<bool>(),
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
+        ));
 
-    // DateTime type
-    assert!(matches!(
-        Value::DateTime(
-            NaiveDate::from_ymd_opt(2024, 1, 1)
-                .unwrap()
-                .and_hms_opt(12, 0, 0)
-                .unwrap()
-        )
-        .to::<bool>(),
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
-    ));
+        // DateTime type
+        assert!(matches!(
+            Value::DateTime(
+                NaiveDate::from_ymd_opt(2024, 1, 1)
+                    .unwrap()
+                    .and_hms_opt(12, 0, 0)
+                    .unwrap()
+            )
+            .to::<bool>(),
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
+        ));
 
-    // Instant type
-    assert!(matches!(
-        Value::Instant(
-            DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
-                .expect("fixed test instant must be valid"),
-        )
-        .to::<bool>(),
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
-    ));
+        // Instant type
+        assert!(matches!(
+            Value::Instant(
+                DateTime::<Utc>::from_timestamp(1_700_000_000, 0)
+                    .expect("fixed test instant must be valid"),
+            )
+            .to::<bool>(),
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
+        ));
+    }
 
-    // BigInteger type
-    assert!(matches!(
-        Value::BigInteger(BigInt::from(123)).to::<bool>(),
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::InvalidValue
-    ));
+    #[cfg(feature = "big-integer")]
+    {
+        // BigInteger type
+        assert!(matches!(
+            Value::BigInteger(BigInt::from(123)).to::<bool>(),
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::InvalidValue
+        ));
+    }
 
-    // BigDecimal type
-    assert!(matches!(
-        Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).to::<bool>(),
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
-    ));
+    #[cfg(feature = "big-decimal")]
+    {
+        // BigDecimal type
+        assert!(matches!(
+            Value::BigDecimal(BigDecimal::from_str("123.45").unwrap()).to::<bool>(),
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
+        ));
+    }
 }
 #[test]
 fn test_as_int32_direct_int32_type() {

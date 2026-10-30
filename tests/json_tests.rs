@@ -386,12 +386,6 @@ fn test_natural_json_projects_scalar() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
-#[cfg(all(
-    feature = "chrono",
-    feature = "big-integer",
-    feature = "big-decimal",
-    feature = "url"
-))]
 fn test_natural_json_projects_every_scalar_variant() {
     macro_rules! assert_scalar {
         ($value:expr, $expected:expr) => {
@@ -415,23 +409,29 @@ fn test_natural_json_projects_every_scalar_variant() {
     assert!(Value::Float32(f32::NAN).to_json_value().is_err());
     assert_scalar!(Value::String("text".to_string()), json!("text"));
     assert_scalar!(Value::Duration(Duration::from_secs(1)), json!("1000ms"));
-    assert_scalar!(
-        Value::Date(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()),
-        json!("2025-01-01")
-    );
-    assert_scalar!(
-        Value::Time(NaiveTime::from_hms_opt(1, 2, 3).unwrap()),
-        json!("01:02:03")
-    );
-    let datetime = NaiveDate::from_ymd_opt(2025, 1, 1)
-        .unwrap()
-        .and_hms_opt(1, 2, 3)
-        .unwrap();
-    assert_scalar!(Value::DateTime(datetime), json!("2025-01-01 01:02:03"));
-    let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
-    assert_scalar!(Value::Instant(instant), json!("2025-01-01 01:02:03 UTC"));
+    #[cfg(feature = "chrono")]
+    {
+        assert_scalar!(
+            Value::Date(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()),
+            json!("2025-01-01")
+        );
+        assert_scalar!(
+            Value::Time(NaiveTime::from_hms_opt(1, 2, 3).unwrap()),
+            json!("01:02:03")
+        );
+        let datetime = NaiveDate::from_ymd_opt(2025, 1, 1)
+            .unwrap()
+            .and_hms_opt(1, 2, 3)
+            .unwrap();
+        assert_scalar!(Value::DateTime(datetime), json!("2025-01-01 01:02:03"));
+        let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
+        assert_scalar!(Value::Instant(instant), json!("2025-01-01 01:02:03 UTC"));
+    }
+    #[cfg(feature = "big-integer")]
     assert_scalar!(Value::BigInteger(BigInt::from(7)), json!("7"));
+    #[cfg(feature = "big-decimal")]
     assert_scalar!(Value::BigDecimal("7.5".parse::<BigDecimal>().unwrap()), json!("7.5"));
+    #[cfg(feature = "url")]
     assert_scalar!(
         Value::Url(Url::parse("https://example.com").unwrap()),
         json!("https://example.com/")
@@ -564,12 +564,6 @@ fn test_natural_json_canonicalizes_mixed_empty_and_primitive_values() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
-#[cfg(all(
-    feature = "chrono",
-    feature = "big-integer",
-    feature = "big-decimal",
-    feature = "url"
-))]
 fn test_natural_json_projects_every_collection_variant() {
     macro_rules! assert_collection {
         ($values:expr, $expected:expr) => {
@@ -595,27 +589,33 @@ fn test_natural_json_projects_every_collection_variant() {
         MultiValues::String(vec!["a".to_string(), "b".to_string()]),
         json!(["a", "b"])
     );
-    assert_collection!(
-        MultiValues::Date(vec![NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()]),
-        json!(["2025-01-01"])
-    );
-    assert_collection!(
-        MultiValues::Time(vec![NaiveTime::from_hms_opt(1, 2, 3).unwrap()]),
-        json!(["01:02:03"])
-    );
-    let datetime = NaiveDate::from_ymd_opt(2025, 1, 1)
-        .unwrap()
-        .and_hms_opt(1, 2, 3)
-        .unwrap();
-    assert_collection!(MultiValues::DateTime(vec![datetime]), json!(["2025-01-01 01:02:03"]));
-    let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
-    assert_collection!(MultiValues::Instant(vec![instant]), json!(["2025-01-01 01:02:03 UTC"]));
+    #[cfg(feature = "chrono")]
+    {
+        assert_collection!(
+            MultiValues::Date(vec![NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()]),
+            json!(["2025-01-01"])
+        );
+        assert_collection!(
+            MultiValues::Time(vec![NaiveTime::from_hms_opt(1, 2, 3).unwrap()]),
+            json!(["01:02:03"])
+        );
+        let datetime = NaiveDate::from_ymd_opt(2025, 1, 1)
+            .unwrap()
+            .and_hms_opt(1, 2, 3)
+            .unwrap();
+        assert_collection!(MultiValues::DateTime(vec![datetime]), json!(["2025-01-01 01:02:03"]));
+        let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
+        assert_collection!(MultiValues::Instant(vec![instant]), json!(["2025-01-01 01:02:03 UTC"]));
+    }
+    #[cfg(feature = "big-integer")]
     assert_collection!(MultiValues::BigInteger(vec![BigInt::from(7)]), json!(["7"]));
+    #[cfg(feature = "big-decimal")]
     assert_collection!(
         MultiValues::BigDecimal(vec!["7.5".parse::<BigDecimal>().unwrap()]),
         json!(["7.5"])
     );
     assert_collection!(MultiValues::Duration(vec![Duration::from_secs(1)]), json!(["1000ms"]));
+    #[cfg(feature = "url")]
     assert_collection!(
         MultiValues::Url(vec![Url::parse("https://example.com").unwrap()]),
         json!(["https://example.com/"])
