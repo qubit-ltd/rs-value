@@ -265,8 +265,11 @@ impl MultiValues {
     ///
     /// # Errors
     ///
-    /// Returns a type conversion error when the stored element type does not
-    /// match `T`.
+    /// Returns [`ValueError::TypeMismatch`] when the stored element type does
+    /// not match `T`. Returns [`ValueError::Missing`] when the collection is
+    /// unset with the requested stored type, with reason
+    /// [`crate::ValueMissingReason::UnsetCollection`]. A concrete empty
+    /// collection succeeds with an empty slice.
     ///
     /// # Examples
     ///
@@ -278,6 +281,15 @@ impl MultiValues {
     /// assert_eq!(all.len(), 2);
     /// let empty = MultiValues::new(Vec::<String>::new());
     /// assert!(empty.get_slice::<String>().unwrap().is_empty());
+    /// let unset = MultiValues::Unset(qubit_datatype::DataType::String);
+    /// let error = unset.get_slice::<String>().unwrap_err();
+    /// assert!(matches!(error, qubit_value::ValueError::Missing(_)));
+    /// assert_eq!(
+    ///     error.missing().unwrap().reason(),
+    ///     qubit_value::ValueMissingReason::UnsetCollection,
+    /// );
+    /// let error = unset.get_slice::<i32>().unwrap_err();
+    /// assert!(matches!(error, qubit_value::ValueError::TypeMismatch { .. }));
     /// ```
     #[inline(always)]
     pub fn get_slice<'a, T>(&'a self) -> ValueResult<&'a [T]>
