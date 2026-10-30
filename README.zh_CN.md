@@ -121,6 +121,8 @@ qubit-datatype = { version = "0.15", default-features = false, features = ["conv
 - `ValueContainer::Scalar` 和 `ValueContainer::Collection` 保留形态；单元素集合仍然是集合。
 - `get_or`/`to_or` 及其集合版本让 fallback 语义保持明确：未设置值可以使用默认值，具体空
   集合的首项读取、集合元素缺失、类型不匹配和普通转换失败仍会报告错误。
+- `MultiValues::get_first` 读取一个标量首项，现在要求目标实现 `StrictValueRead`；完整集合
+  使用 `get` 或 `get_slice`。这会收紧曾将 `Vec<T>` 或 slice 作为首项目标的调用方的源码兼容性。
 - `NamedValue` 和 `NamedMultiValues` 为运行时值附加 key，不改变值本身的类型语义。
 - `ValueWireV1` 提供带版本的类型保留 JSON 表示，并提供有界的 `to_json_vec()`、
   `to_json_writer()` 入口；定向 `_with_limits` 方法分别接收 `JsonDecodeLimits` 和

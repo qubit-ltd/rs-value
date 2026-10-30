@@ -237,6 +237,26 @@ replaces the entire collection and can change its element type. `Unset` and a
 concrete empty collection remain distinguishable through `is_unset()` and
 `is_empty()`.
 
+#### First-item reads and source compatibility
+
+`get_first`, `get_first_or`, and `get_first_or_else` return one scalar item
+and require `T: StrictValueRead`. `get_first_ref` borrows one scalar item and
+requires conversions from both `Value` and `MultiValues`. These bounds reject
+collection targets at compile time. Use the complete-collection APIs when the
+whole list is intended:
+
+| Previous call | Use instead |
+| --- | --- |
+| `get_first::<Vec<i32>>()` | `get::<i32>()` |
+| `get_first_ref::<[i32]>()` | `get_slice::<i32>()` |
+| `get_first_or::<Vec<i32>>(default)` | `get_or::<i32>(default)` |
+| `get_first_or_else::<Vec<i32>, _>(factory)` | `get_or_else::<i32, _>(factory)` |
+| Scalar wrapper bounded only by `TryFrom<&MultiValues>` | Bound it by `T: StrictValueRead` |
+
+The stricter bound is a source-compatibility change for collection targets and
+generic wrappers with the old bound. Scalar reads, unset defaults, and
+`get_first_or_else`'s lazy fallback behavior are unchanged.
+
 ### Convert with explicit policy
 
 For adapters that must inspect runtime types, `Value::view()` returns

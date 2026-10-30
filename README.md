@@ -135,6 +135,10 @@ default feature set is empty; enable only the families you use:
   unset values can use defaults, while concrete empty first-item reads, missing
   collection items, type mismatches, and ordinary conversion failures remain
   errors.
+- `MultiValues::get_first` reads one scalar item and now requires
+  `StrictValueRead`; complete collections use `get` or `get_slice`. This
+  tightens source compatibility for callers that used first-item methods with
+  `Vec<T>` or slice targets.
 - `NamedValue` and `NamedMultiValues` attach a key to a runtime value without
   changing the value's type semantics.
 - `ValueWireV1` provides a versioned, type-preserving JSON representation with

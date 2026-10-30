@@ -221,6 +221,23 @@ assert_eq!(first, 9000);
 `add` 必须检查元素类型是否一致，因此会失败；`set` 替换整个集合，也可以改变元素类型。
 通过 `is_unset()` 和 `is_empty()` 可以区分未设置集合和具体空集合。
 
+#### 首项读取与源码兼容性
+
+`get_first`、`get_first_or` 和 `get_first_or_else` 返回一个标量首项，要求
+`T: StrictValueRead`。`get_first_ref` 借用一个标量首项，要求目标同时支持从 `Value` 和
+`MultiValues` 转换。这些 bound 会在编译期拒绝集合目标。需要完整集合时请使用对应 API：
+
+| 旧调用 | 改用 |
+| --- | --- |
+| `get_first::<Vec<i32>>()` | `get::<i32>()` |
+| `get_first_ref::<[i32]>()` | `get_slice::<i32>()` |
+| `get_first_or::<Vec<i32>>(default)` | `get_or::<i32>(default)` |
+| `get_first_or_else::<Vec<i32>, _>(factory)` | `get_or_else::<i32, _>(factory)` |
+| 仅以 `TryFrom<&MultiValues>` 约束的标量包装函数 | 将 bound 改为 `T: StrictValueRead` |
+
+更严格的 bound 会影响曾使用集合目标或旧 bound 泛型包装函数的调用方，属于源码兼容性变化。
+标量读取、unset 默认值以及 `get_first_or_else` 的惰性 fallback 行为保持不变。
+
 ### 使用显式策略转换
 
 需要检查运行时类型的适配器可以使用 `Value::view()` 和 `MultiValues::view()`，分别获得
