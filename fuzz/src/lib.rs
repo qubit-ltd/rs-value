@@ -8,4 +8,5 @@
 
 //! Shared input generation for the fuzz targets and their deterministic tests.
 
+pub mod bounded_wire_input;
 pub mod preflight_input;
