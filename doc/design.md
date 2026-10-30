@@ -244,6 +244,11 @@ as `{"scalar":{"int32":42}}` is valid only with the payload seed/DTO, not as
 a standalone document. A standalone document without the `version` field is
 invalid.
 
+JSON record positions in the envelope, named wrappers, and rich `Duration` and
+`BigDecimal` payloads require objects with named fields. Array-shaped records
+that may have been accepted by earlier builds are now rejected. JSON arrays
+remain valid collection payloads and valid values under the `Json` type tag.
+
 V1 is a closed contract. The following are compatibility invariants:
 
 - the version is the JSON number `1`;
@@ -298,11 +303,12 @@ authoritative and enforces structural measurements plus actual output bytes
 during encoding. These checks can avoid some work before rejection, but do not
 make every encoding preparation allocation subject to the output budget.
 
-The explicit-limit JSON vector and writer helpers on all four Wire DTOs run a
-fresh conservative payload preflight before constructing the final encoding
-session. The final session remains authoritative for the complete payload or
-envelope, so the preflight may reject from a lower-bound estimate but a passing
-preflight does not guarantee success or bound every preparation allocation.
+The explicit-limit JSON vector and writer helpers on all four Wire DTOs and
+both named wrappers run a fresh conservative payload preflight before
+constructing the final encoding session. The final session remains
+authoritative for the complete payload or envelope, so the preflight may reject
+from a lower-bound estimate but a passing preflight does not guarantee success
+or bound every preparation allocation.
 
 The three preflight counters have distinct units: `nodes` counts JSON value
 nodes, `payload_bytes` counts decoded string/key/number text (null and boolean
@@ -369,7 +375,10 @@ Missing storage, a concrete empty collection, a conversion classified as
 missing, type mismatch, and invalid conversion remain distinguishable.
 Collection conversion errors retain the failing source index. Natural JSON
 projection limit errors retain the data type, optional collection index, and
-the measured resource facts.
+the measured resource facts. Duration formatting budget failures at the
+projection boundary are reported as `ValueError::JsonProjectionLimit`, with
+their original resource facts and collection index; ordinary conversion
+failures retain their conversion error classification.
 
 Fallback behavior follows this truth table:
 

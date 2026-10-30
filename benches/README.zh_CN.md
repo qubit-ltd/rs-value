@@ -5,6 +5,17 @@
 4096 个字符串值。测试夹具使用足够大的预算，使 4096 项输出能够成功编码，避免把
 预算拒绝误当成性能数据。
 
+三组分别计时以下步骤：
+
+| 组名 | 计时范围 |
+| --- | --- |
+| `preflight/` | 仅显式 payload preflight。 |
+| `borrowed_encode/` | DTO 在计时开始前构造；计时内由 helper 执行内部 preflight 并编码借用的 DTO。 |
+| `preflight_and_encode/` | 显式 preflight、借用 DTO 构造、helper 内部 preflight 和编码都在计时内。 |
+
+`preflight_and_encode/` 与 `borrowed_encode/` 的差值还包含借用 DTO 的构造成本，不能解释为纯
+preflight 成本。
+
 运行定向基准测试：
 
 ```text

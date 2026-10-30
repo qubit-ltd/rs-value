@@ -118,6 +118,7 @@ qubit-datatype = { version = "0.15", default-features = false, features = ["conv
 bigdecimal = "0.4"
 qubit-budget = { version = "0.10", features = ["json"] }
 qubit-json = "0.12"
+qubit-redact = { version = "0.10", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```
@@ -398,6 +399,13 @@ payload `{"scalar":{"int32":42}}` is valid only with the payload seed/DTO and
 is not a standalone V1 document; a standalone document without `version` is
 invalid.
 
+JSON record positions in the envelope, named wrappers, and rich `Duration` and
+`BigDecimal` payloads require objects with named fields. Array-shaped records
+that may have been accepted by earlier builds are now rejected; change them to
+objects such as `{"secs":1,"nanos":2}` or
+`{"coefficient":"123","scale":4}`. Arrays remain valid for collection
+payloads and for values whose declared type is `Json`.
+
 For the canonical representations and limits of the feature-gated rich types,
 see the [Wire V1 rich payload table](design.md#wire-v1-rich-payloads). The
 following example shows one complete BigDecimal round trip. The JSON object is
@@ -534,12 +542,12 @@ constructors are fallible because they validate finite floats and bounded
 `BigDecimal` scale before exposing a serializable payload. JSON object keys
 have no serde_json Number-marker reservation.
 
-All four Wire DTOs also run a conservative payload preflight when their
-explicit-limit `to_json_vec_with_limits` or `to_json_writer_with_limits`
-helpers are called. The final encoder remains authoritative for the complete
-payload or envelope. A lower-bound preflight error can therefore reject early,
-while a successful preflight neither guarantees encoding success nor bounds
-every preparation allocation.
+All four Wire DTOs and both named wrappers also run a conservative payload
+preflight when their explicit-limit `to_json_vec_with_limits` or
+`to_json_writer_with_limits` helpers are called. The final encoder remains
+authoritative for the complete payload or envelope. A lower-bound preflight
+error can therefore reject early, while a successful preflight neither
+guarantees encoding success nor bounds every preparation allocation.
 
 ### Embedded values and a shared `JsonDecodeSession`
 
@@ -689,6 +697,46 @@ resource, exact budget facts and optional collection index. Ordinary conversion
 errors retain their existing types. Each call starts fresh accounting. Use
 Wire `JsonEncodeLimits` or a bounded rs-json encoder to constrain final encoded
 bytes; `ConversionLimits` is not a JSON encoding length limit.
+
+### Redact a named secret before displaying a value
+
+When a value is shown in logs or diagnostics, define which named fields are
+sensitive and use `qubit-redact` to produce the display text. This example
+marks `api_key` as secret, keeps an ordinary label visible, then demonstrates
+the explicit fallback for a result that cannot fit its output budget:
+
+<!-- example:redacted-output run -->
+```rust
+use std::collections::HashMap;
+
+use qubit_redact::RedactionPolicy;
+use qubit_redact::Redactor;
+use qubit_redact::Sensitivity;
+use qubit_value::Value;
+
+let value = Value::new(HashMap::from([
+    ("api_key".to_owned(), "raw-secret".to_owned()),
+    ("label".to_owned(), "visible".to_owned()),
+]));
+let policy = RedactionPolicy::builder()
+    .fields(|fields| { fields.raise("api_key", Sensitivity::Secret); })?
+    .build()?;
+let output = Redactor::new(policy).redact_text(&value);
+let text = output.text_or_marker("<redaction incomplete>");
+assert!(!text.contains("raw-secret"));
+assert!(text.contains("visible"));
+
+let bounded = RedactionPolicy::builder()
+    .limits(|limits| { limits.max_output_bytes(0); })?
+    .build()?;
+let output = Redactor::new(bounded).redact_text(&value);
+assert_eq!(output.text_or_marker("<redaction incomplete>"), "<redaction incomplete>");
+```
+
+`Value`'s ordinary `Debug` output does not apply a redaction policy. A bare
+scalar has no business field name for a field rule to match, and redaction
+cannot identify every secret from its contents; classify fields explicitly
+where the application knows their meaning.
 
 ### Bounded materialization from Serde
 

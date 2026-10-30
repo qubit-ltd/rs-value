@@ -109,6 +109,7 @@ qubit-datatype = { version = "0.15", default-features = false, features = ["conv
 bigdecimal = "0.4"
 qubit-budget = { version = "0.10", features = ["json"] }
 qubit-json = "0.12"
+qubit-redact = { version = "0.10", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```
@@ -361,6 +362,11 @@ V1 拒绝旧的裸枚举表示，例如 `{"Int32":42}`。独立文档必须使�
 payload `{"scalar":{"int32":42}}` 仅可与 payload seed/DTO 配合使用，不能作为独立 V1
 文档；独立文档缺少 `version` 字段时无效。
 
+JSON 的 envelope、具名包装类型，以及 `Duration` 和 `BigDecimal` 富类型 payload 都要求使用带
+字段名的对象。以前可能被接受的数组形式现在会被拒绝；请改用
+`{"secs":1,"nanos":2}` 或 `{"coefficient":"123","scale":4}` 这样的对象。
+集合 payload 和声明类型为 `Json` 的数组仍然有效。
+
 各富类型的规范表示和边界见[Wire V1 富类型 payload 表](design.zh_CN.md#wire-v1-rich-payloads)。
 下面通过完整往返展示 BigDecimal：JSON 对象是带版本 envelope 中的类型 payload；集合则在同一 tag
 下使用 payload 数组。scale 会保留小数的原始表示（`123.4500`），这与 `BigDecimal`
@@ -476,7 +482,7 @@ assert_eq!(
 有界的 `BigDecimal scale`，因此它们是可能失败的。JSON object key 不再有 serde_json Number
 marker 保留规则。
 
-四类 Wire DTO 的显式限额 `to_json_vec_with_limits` 和
+四类 Wire DTO 和两种具名包装类型的显式限额 `to_json_vec_with_limits` 与
 `to_json_writer_with_limits` helper 也会自动执行保守 payload preflight。最终 encoder 仍权威检查完整
 payload 或 envelope。下界 preflight 错误可以提前拒绝；通过 preflight 不保证编码成功，也不限制全部准备阶段分配。
 
@@ -607,6 +613,43 @@ Float32 为保持现有十进制投影语义，目前会先生成临时 String�
 索引；普通转换错误仍保留原有类型。每次调用使用新预算。需要限制最终编码字节时，请使用
 Wire 的 `JsonEncodeLimits` 或 rs-json 的有界编码器；`ConversionLimits` 不是 JSON 编码
 长度上限。
+
+### 显示值之前先脱敏具名秘密
+
+如果要在日志或诊断信息中显示一个值，应先明确哪些具名字段属于敏感信息，再用
+`qubit-redact` 生成展示文本。下面将 `api_key` 标为秘密，保留普通 label，并展示输出预算不足时
+如何明确返回替代标记：
+
+<!-- example:redacted-output run -->
+```rust
+use std::collections::HashMap;
+
+use qubit_redact::RedactionPolicy;
+use qubit_redact::Redactor;
+use qubit_redact::Sensitivity;
+use qubit_value::Value;
+
+let value = Value::new(HashMap::from([
+    ("api_key".to_owned(), "raw-secret".to_owned()),
+    ("label".to_owned(), "visible".to_owned()),
+]));
+let policy = RedactionPolicy::builder()
+    .fields(|fields| { fields.raise("api_key", Sensitivity::Secret); })?
+    .build()?;
+let output = Redactor::new(policy).redact_text(&value);
+let text = output.text_or_marker("<redaction incomplete>");
+assert!(!text.contains("raw-secret"));
+assert!(text.contains("visible"));
+
+let bounded = RedactionPolicy::builder()
+    .limits(|limits| { limits.max_output_bytes(0); })?
+    .build()?;
+let output = Redactor::new(bounded).redact_text(&value);
+assert_eq!(output.text_or_marker("<redaction incomplete>"), "<redaction incomplete>");
+```
+
+普通的 `Value` `Debug` 输出不会自动脱敏。裸标量没有业务字段名，字段规则无法据此匹配；脱敏
+也不能仅凭内容识别所有秘密。应用应在掌握字段含义的位置明确标注敏感数据。
 
 ### 有界物化 Serde 数据
 

@@ -202,7 +202,8 @@ fn benchmark_preflight(c: &mut Criterion) {
     }
 }
 
-/// Benchmarks encoding an already prepared borrowed wire payload.
+/// Benchmarks encoding an already prepared borrowed DTO, including its internal
+/// preflight.
 fn benchmark_borrowed_encode(c: &mut Criterion) {
     let limits = JsonEncodeLimits::builder().max_output_bytes(4 * 1024 * 1024).build();
     for size in [1, 32, 4096] {
@@ -217,7 +218,8 @@ fn benchmark_borrowed_encode(c: &mut Criterion) {
     }
 }
 
-/// Benchmarks the complete preparation plus borrowed encoding path.
+/// Benchmarks explicit preflight, borrowed DTO construction, internal
+/// preflight, and encoding.
 fn benchmark_preflight_and_encode(c: &mut Criterion) {
     let limits = JsonEncodeLimits::builder().max_output_bytes(4 * 1024 * 1024).build();
     for size in [1, 32, 4096] {

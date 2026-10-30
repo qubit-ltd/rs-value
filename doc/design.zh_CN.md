@@ -193,6 +193,10 @@ V1 拒绝旧的裸枚举表示，例如 `{"Int32":42}`。上方带版本 envelop
 V1 文档；嵌入式 payload（例如 `{"scalar":{"int32":42}}`）仅可与 payload seed/DTO
 配合使用，不能作为独立文档。独立文档缺少 `version` 字段时也无效。
 
+JSON 的 envelope、具名包装类型，以及 `Duration` 和 `BigDecimal` 富类型 payload 都要求使用带
+字段名的对象。以前可能被接受的数组记录形式现在会被拒绝。JSON 数组仍可用于集合 payload，
+也仍是 `Json` 类型下的合法值。
+
 V1 是封闭契约，以下各项属于兼容性不变量：
 
 - 版本必须是 JSON number `1`；
@@ -233,9 +237,9 @@ Preflight 不执行序列化、不保留排序 index，也不证明最终编码�
 measurement 与实际输出字节。这些检查可以避免部分拒绝前工作，但不会让所有编码准备分配都受
 output budget 限制。
 
-四类 Wire DTO 的显式限额 JSON vector 和 writer helper 都会在创建最终编码 session 前执行一次新的
-保守 payload preflight。最终 session 仍会权威检查完整 payload 或 envelope；因此 preflight 可能依据
-下界估算提前拒绝，但通过 preflight 不保证编码成功，也不限制全部准备阶段分配。
+四类 Wire DTO 和两种具名包装类型的显式限额 JSON vector 与 writer helper 都会在创建最终编码
+session 前执行一次新的保守 payload preflight。最终 session 仍会权威检查完整 payload 或 envelope；
+因此 preflight 可能依据下界估算提前拒绝，但通过 preflight 不保证编码成功，也不限制全部准备阶段分配。
 
 三个 preflight counter 使用不同单位：`nodes` 统计 JSON value 节点，`payload_bytes` 统计解码后
 字符串、key 和数字文本的字节（null 与 boolean 的 payload 为零），`output_bytes` 统计编码语法和
@@ -291,7 +295,8 @@ feature 的 decoder 会拒绝 payload，而不会强制转换成其他类型。�
 
 未设置存储、具体空集合、被转换策略判定为 missing、类型不匹配和非法转换保持可区分。集合
 转换错误保留失败的源 index；自然 JSON 投影限额错误保留 data type、可选集合 index，以及
-实际测得的资源信息。
+实际测得的资源信息。Duration 格式化在投影边界触发的预算失败使用
+`ValueError::JsonProjectionLimit`，并保留原资源事实和集合 index；普通转换失败仍按原转换错误分类。
 
 `ValueMissing` 使用私有字段保存事实，由 `ValueMissingReason` 分类，同时记录源类型、请求的
 目标类型、可选源索引和原始转换错误。存储分类与转换来源彼此独立：unset 读取也可能携带原始

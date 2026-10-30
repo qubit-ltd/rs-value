@@ -7,6 +7,18 @@ checking and encoding a value for Wire V1. The `preflight/`,
 item output so a benchmark measures the operation rather than a rejected
 limit.
 
+The groups measure these steps:
+
+| Group | Timed work |
+| --- | --- |
+| `preflight/` | Explicit payload preflight only. |
+| `borrowed_encode/` | DTO construction happens before timing; the timed helper runs its internal preflight and encodes the borrowed DTO. |
+| `preflight_and_encode/` | Explicit preflight, borrowed DTO construction, the helper's internal preflight, and encoding all happen during timing. |
+
+The difference between `preflight_and_encode/` and `borrowed_encode/` includes
+borrowed DTO construction as well as the explicit preflight. It is not a
+measurement of pure preflight cost.
+
 Run the focused benchmark with:
 
 ```text
