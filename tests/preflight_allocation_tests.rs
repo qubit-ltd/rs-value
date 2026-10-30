@@ -497,24 +497,54 @@ fn assert_big_decimal_payload_construction_does_not_copy_coefficient() {
         );
     }
 
-    let (invalid_small_borrowed_scalar, _) =
+    let (invalid_small_borrowed_scalar, invalid_small_borrowed_scalar_bytes) =
         measured_allocations(|| ValueWirePayloadRefV1::from_value(&invalid_small_scalar));
-    let (invalid_borrowed_scalar, _) =
+    let (invalid_borrowed_scalar, invalid_borrowed_scalar_bytes) =
         measured_allocations(|| ValueWirePayloadRefV1::from_value(&invalid_large_scalar));
-    let (invalid_small_borrowed_values, _) =
+    let (invalid_small_borrowed_values, invalid_small_borrowed_values_bytes) =
         measured_allocations(|| ValueWirePayloadRefV1::from_values(&invalid_small_values));
-    let (invalid_borrowed_values, _) =
+    let (invalid_borrowed_values, invalid_borrowed_values_bytes) =
         measured_allocations(|| ValueWirePayloadRefV1::from_values(&invalid_large_values));
     let invalid_small_owned_scalar = invalid_small_scalar.clone();
     let invalid_owned_scalar = invalid_large_scalar.clone();
     let invalid_small_owned_values = invalid_small_values.clone();
     let invalid_owned_values = invalid_large_values.clone();
-    let (invalid_small_owned_scalar_result, _) =
+    let (invalid_small_owned_scalar_result, invalid_small_owned_scalar_bytes) =
         measured_allocations(|| ValueWirePayloadV1::try_from(invalid_small_owned_scalar));
-    let (invalid_owned_scalar_result, _) = measured_allocations(|| ValueWirePayloadV1::try_from(invalid_owned_scalar));
-    let (invalid_small_owned_values_result, _) =
+    let (invalid_owned_scalar_result, invalid_owned_scalar_bytes) =
+        measured_allocations(|| ValueWirePayloadV1::try_from(invalid_owned_scalar));
+    let (invalid_small_owned_values_result, invalid_small_owned_values_bytes) =
         measured_allocations(|| ValueWirePayloadV1::try_from(invalid_small_owned_values));
-    let (invalid_owned_values_result, _) = measured_allocations(|| ValueWirePayloadV1::try_from(invalid_owned_values));
+    let (invalid_owned_values_result, invalid_owned_values_bytes) =
+        measured_allocations(|| ValueWirePayloadV1::try_from(invalid_owned_values));
+
+    for (small, large, label) in [
+        (
+            invalid_small_borrowed_scalar_bytes,
+            invalid_borrowed_scalar_bytes,
+            "invalid borrowed scalar",
+        ),
+        (
+            invalid_small_borrowed_values_bytes,
+            invalid_borrowed_values_bytes,
+            "invalid borrowed collection",
+        ),
+        (
+            invalid_small_owned_scalar_bytes,
+            invalid_owned_scalar_bytes,
+            "invalid owned scalar",
+        ),
+        (
+            invalid_small_owned_values_bytes,
+            invalid_owned_values_bytes,
+            "invalid owned collection",
+        ),
+    ] {
+        assert!(
+            large <= small.saturating_add(4096),
+            "{label} construction allocation grew with the coefficient: small={small}, large={large}",
+        );
+    }
 
     for (error, label) in [
         (invalid_small_borrowed_scalar.err(), "small borrowed scalar"),
