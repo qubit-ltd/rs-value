@@ -9,15 +9,23 @@
 //! Contract tests for conservative Wire V1 encoding preflight checks.
 
 use std::collections::HashMap;
+#[cfg(feature = "converter")]
 use std::mem::ManuallyDrop;
+#[cfg(feature = "converter")]
 use std::process::Command;
 use std::time::Duration;
 
+#[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
+#[cfg(feature = "chrono")]
 use chrono::DateTime;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
 use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
 use chrono::Utc;
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 use num_bigint::BigInt;
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
@@ -33,6 +41,7 @@ use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodePreflight;
 use qubit_value::ValueWireV1;
+#[cfg(feature = "url")]
 use url::Url;
 
 #[test]
@@ -153,30 +162,33 @@ fn test_preflight_fixed_object_key_payload_and_output_boundaries() {
         );
     }
 
-    let decimal = Value::BigDecimal(BigDecimal::new(BigInt::from(0), 0));
-    for (maximum, accepted) in [(17, false), (18, true)] {
-        let limits = JsonEncodeLimits::builder()
-            .max_payload_bytes(maximum)
-            .max_nodes(3)
-            .build();
-        assert_eq!(
-            ValueWireEncodePreflight::new(limits).check_value(&decimal).is_ok(),
-            accepted
-        );
-    }
-    for (maximum, accepted) in [(28, false), (29, true)] {
-        let limits = JsonEncodeLimits::builder()
-            .max_output_bytes(maximum)
-            .max_nodes(3)
-            .build();
-        assert_eq!(
-            ValueWireEncodePreflight::new(limits).check_value(&decimal).is_ok(),
-            accepted
-        );
+    #[cfg(feature = "big-decimal")]
+    {
+        let decimal = Value::BigDecimal(BigDecimal::new(BigInt::from(0), 0));
+        for (maximum, accepted) in [(17, false), (18, true)] {
+            let limits = JsonEncodeLimits::builder()
+                .max_payload_bytes(maximum)
+                .max_nodes(3)
+                .build();
+            assert_eq!(
+                ValueWireEncodePreflight::new(limits).check_value(&decimal).is_ok(),
+                accepted
+            );
+        }
+        for (maximum, accepted) in [(28, false), (29, true)] {
+            let limits = JsonEncodeLimits::builder()
+                .max_output_bytes(maximum)
+                .max_nodes(3)
+                .build();
+            assert_eq!(
+                ValueWireEncodePreflight::new(limits).check_value(&decimal).is_ok(),
+                accepted
+            );
+        }
     }
 }
 
-#[cfg(feature = "json")]
+#[cfg(feature = "converter")]
 const DEEP_PREFLIGHT_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_PREFLIGHT_CHILD";
 
 #[test]
@@ -222,6 +234,7 @@ fn test_preflight_counts_duration_payload_nodes_and_keys() {
 }
 
 #[test]
+#[cfg(feature = "big-decimal")]
 fn test_preflight_counts_big_decimal_payload_nodes() {
     let value = Value::BigDecimal("12.5".parse::<BigDecimal>().expect("the decimal literal must parse"));
     let limits = ValueWireV1::default_json_encode_limits()
@@ -240,6 +253,7 @@ fn test_preflight_counts_big_decimal_payload_nodes() {
 }
 
 #[test]
+#[cfg(feature = "big-decimal")]
 fn test_preflight_big_decimal_coefficient_respects_string_payload_and_output_limits() {
     let coefficient = BigInt::from(10_u8).pow(4095);
     let value = Value::BigDecimal(BigDecimal::new(coefficient, 2));
@@ -268,6 +282,7 @@ fn test_preflight_big_decimal_coefficient_respects_string_payload_and_output_lim
 }
 
 #[test]
+#[cfg(feature = "big-decimal")]
 fn test_preflight_big_decimal_small_coefficients_and_rollback() {
     let limits = ValueWireV1::default_json_encode_limits()
         .into_builder()
@@ -321,9 +336,13 @@ fn test_preflight_encoding_success_implies_acceptance_at_output_boundaries() {
         Value::Float64(f64::INFINITY),
         Value::Duration(Duration::new(u64::MAX, 999_999_999)),
         Value::Unset(DataType::UInt128),
+        #[cfg(feature = "big-integer")]
         Value::BigInteger(BigInt::from_bytes_le(num_bigint::Sign::Minus, &[0xff; 256])),
+        #[cfg(feature = "big-decimal")]
         Value::BigDecimal(BigDecimal::new(BigInt::from(0), 2)),
+        #[cfg(feature = "big-decimal")]
         Value::BigDecimal(BigDecimal::new(BigInt::from(-7), 150_000)),
+        #[cfg(feature = "big-decimal")]
         Value::BigDecimal(BigDecimal::new(BigInt::from(10_u8).pow(255), -150_001)),
         Value::Json(serde_json::json!([null, true, 123, "mixed", {"nested": [false]}])),
     ];
@@ -571,10 +590,14 @@ fn test_new_u64_limits_preserves_unconfigured_dimensions() {
 
 #[test]
 fn test_check_value_traverses_every_scalar_shape_and_accumulates_nodes() {
-    let date = NaiveDate::from_ymd_opt(2026, 9, 7).expect("valid date");
-    let time = NaiveTime::from_hms_opt(12, 34, 56).expect("valid time");
-    let datetime = date.and_time(time);
-    let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
+    #[cfg(feature = "chrono")]
+    let (date, time, datetime, instant) = {
+        let date = NaiveDate::from_ymd_opt(2026, 9, 7).expect("valid date");
+        let time = NaiveTime::from_hms_opt(12, 34, 56).expect("valid time");
+        let datetime = date.and_time(time);
+        let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
+        (date, time, datetime, instant)
+    };
     let values = vec![
         (Value::Unset(DataType::Bool), 1_usize),
         (Value::Bool(true), 1),
@@ -592,14 +615,22 @@ fn test_check_value_traverses_every_scalar_shape_and_accumulates_nodes() {
         (Value::UInt128(u128::MAX), 1),
         (Value::Float32(1.5), 1),
         (Value::Float64(-2.25), 1),
+        #[cfg(feature = "big-integer")]
         (Value::BigInteger(BigInt::from(0)), 1),
+        #[cfg(feature = "big-integer")]
         (Value::BigInteger(BigInt::from(-7)), 1),
+        #[cfg(feature = "big-decimal")]
         (Value::BigDecimal("7.5".parse::<BigDecimal>().expect("decimal")), 3),
         (Value::Duration(Duration::from_secs(1)), 3),
+        #[cfg(feature = "chrono")]
         (Value::Date(date), 1),
+        #[cfg(feature = "chrono")]
         (Value::Time(time), 1),
+        #[cfg(feature = "chrono")]
         (Value::DateTime(datetime), 1),
+        #[cfg(feature = "chrono")]
         (Value::Instant(instant), 1),
+        #[cfg(feature = "url")]
         (Value::Url(Url::parse("https://example.com/path").expect("URL")), 1),
         (
             Value::StringMap(HashMap::from([("key".to_owned(), "value".to_owned())])),
@@ -944,6 +975,7 @@ fn test_check_values_covers_empty_and_nested_json() {
 }
 
 #[test]
+#[cfg(feature = "converter")]
 fn test_preflight_handles_deep_json_without_recursion() {
     use crate::deep_json_helpers::run_isolated_test;
 
@@ -1006,6 +1038,7 @@ fn test_preflight_handles_deep_json_without_recursion() {
 }
 
 #[test]
+#[cfg(feature = "converter")]
 #[ignore = "run only through test_preflight_handles_deep_json_without_recursion"]
 fn test_preflight_deep_json_baseline_child() {
     assert!(std::env::var_os(DEEP_PREFLIGHT_CHILD_ENV).is_some());
@@ -1024,6 +1057,7 @@ fn test_preflight_deep_json_baseline_child() {
 }
 
 #[test]
+#[cfg(feature = "converter")]
 #[ignore = "run only through test_preflight_handles_deep_json_without_recursion"]
 fn test_preflight_deep_json_iterative_child() {
     assert!(std::env::var_os(DEEP_PREFLIGHT_CHILD_ENV).is_some());
@@ -1043,6 +1077,7 @@ fn test_preflight_deep_json_iterative_child() {
     eprintln!("done");
 }
 
+#[cfg(feature = "converter")]
 fn rustc_version() -> String {
     Command::new("rustc")
         .arg("--version")
