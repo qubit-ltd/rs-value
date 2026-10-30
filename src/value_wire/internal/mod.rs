@@ -19,6 +19,7 @@ mod wire_envelope_ref;
 mod wire_preflight_strategy;
 mod wire_shape_owned;
 mod wire_shape_ref;
+mod wire_source_ref;
 
 pub(in crate::value_wire) use collection_wire_owned::CollectionWireOwned;
 pub(in crate::value_wire) use collection_wire_ref::CollectionWireRef;
@@ -31,3 +32,4 @@ pub(in crate::value_wire) use wire_envelope_ref::WireEnvelopeRef;
 pub(in crate::value_wire) use wire_preflight_strategy::WirePreflightStrategy;
 pub(in crate::value_wire) use wire_shape_owned::WireShapeOwned;
 pub(in crate::value_wire) use wire_shape_ref::WireShapeRef;
+pub(in crate::value_wire) use wire_source_ref::WireSourceRef;

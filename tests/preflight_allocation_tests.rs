@@ -27,6 +27,7 @@ use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWireEncodePreflight;
 use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
+use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
 
 struct CountingAllocator;
@@ -173,6 +174,126 @@ fn test_big_decimal_preflight_rejection_allocation_does_not_scale_with_coefficie
             "rejected coefficient preflight allocation grew: resource={resource:?}, 4096 digits={small_bytes}, 128 Ki digits={large_bytes}",
         );
     }
+}
+
+#[test]
+fn test_direct_wire_helpers_reject_large_decimal_before_formatting() {
+    let small_digits = "9".repeat(4096);
+    let large_digits = "9".repeat(128 * 1024);
+    let small_scalar = Value::BigDecimal(BigDecimal::new(
+        BigInt::parse_bytes(small_digits.as_bytes(), 10).expect("small coefficient must parse"),
+        2,
+    ));
+    let large_scalar = Value::BigDecimal(BigDecimal::new(
+        BigInt::parse_bytes(large_digits.as_bytes(), 10).expect("large coefficient must parse"),
+        2,
+    ));
+    let small_collection = MultiValues::BigDecimal(vec![BigDecimal::new(
+        BigInt::parse_bytes(small_digits.as_bytes(), 10).expect("small coefficient must parse"),
+        2,
+    )]);
+    let large_collection = MultiValues::BigDecimal(vec![BigDecimal::new(
+        BigInt::parse_bytes(large_digits.as_bytes(), 10).expect("large coefficient must parse"),
+        2,
+    )]);
+
+    let small_payload_ref = ValueWirePayloadRefV1::from_value(&small_scalar).unwrap();
+    let large_payload_ref = ValueWirePayloadRefV1::from_value(&large_scalar).unwrap();
+    let small_wire_ref = ValueWireRefV1::from_value(&small_scalar).unwrap();
+    let large_wire_ref = ValueWireRefV1::from_value(&large_scalar).unwrap();
+    let small_collection_payload_ref = ValueWirePayloadRefV1::from_values(&small_collection).unwrap();
+    let large_collection_payload_ref = ValueWirePayloadRefV1::from_values(&large_collection).unwrap();
+    let small_collection_wire_ref = ValueWireRefV1::from_values(&small_collection).unwrap();
+    let large_collection_wire_ref = ValueWireRefV1::from_values(&large_collection).unwrap();
+
+    // Owned DTO cloning happens outside the measured helper calls.
+    let small_payload = ValueWirePayloadV1::try_from(small_scalar.clone()).unwrap();
+    let large_payload = ValueWirePayloadV1::try_from(large_scalar.clone()).unwrap();
+    let small_wire = ValueWireV1::try_from(small_scalar.clone()).unwrap();
+    let large_wire = ValueWireV1::try_from(large_scalar.clone()).unwrap();
+    let small_collection_payload = ValueWirePayloadV1::try_from(small_collection.clone()).unwrap();
+    let large_collection_payload = ValueWirePayloadV1::try_from(large_collection.clone()).unwrap();
+    let small_collection_wire = ValueWireV1::try_from(small_collection.clone()).unwrap();
+    let large_collection_wire = ValueWireV1::try_from(large_collection.clone()).unwrap();
+
+    macro_rules! check_helpers {
+        ($label:literal, $small:expr, $large:expr) => {{
+            let profiles = [
+                (
+                    JsonEncodeLimits::builder().max_string_bytes(64).build(),
+                    JsonResource::StringBytes,
+                ),
+                (
+                    JsonEncodeLimits::builder().max_payload_bytes(128).build(),
+                    JsonResource::PayloadBytes,
+                ),
+                (
+                    JsonEncodeLimits::builder().max_output_bytes(256).build(),
+                    JsonResource::OutputBytes,
+                ),
+            ];
+            for (limits, resource) in profiles {
+                let (small_result, small_bytes) = measured_allocations(|| $small.to_json_vec_with_limits(limits));
+                let (large_result, large_bytes) = measured_allocations(|| $large.to_json_vec_with_limits(limits));
+                assert_expected_encode_limit(small_result.unwrap_err(), resource, $label, "vector");
+                assert_expected_encode_limit(large_result.unwrap_err(), resource, $label, "vector");
+                assert_bounded_direct_helper_allocations($label, "vector", resource, small_bytes, large_bytes);
+
+                let mut small_writer = b"prefix".to_vec();
+                let mut large_writer = b"prefix".to_vec();
+                let (small_result, small_bytes) =
+                    measured_allocations(|| $small.to_json_writer_with_limits(&mut small_writer, limits));
+                let (large_result, large_bytes) =
+                    measured_allocations(|| $large.to_json_writer_with_limits(&mut large_writer, limits));
+                assert_expected_encode_limit(small_result.unwrap_err(), resource, $label, "writer");
+                assert_expected_encode_limit(large_result.unwrap_err(), resource, $label, "writer");
+                assert_eq!(small_writer, b"prefix", "{} writer changed prefix", $label);
+                assert_eq!(large_writer, b"prefix", "{} writer changed prefix", $label);
+                assert_bounded_direct_helper_allocations($label, "writer", resource, small_bytes, large_bytes);
+            }
+        }};
+    }
+
+    check_helpers!("ValueWirePayloadRefV1 scalar", &small_payload_ref, &large_payload_ref);
+    check_helpers!("ValueWireRefV1 scalar", &small_wire_ref, &large_wire_ref);
+    check_helpers!("ValueWirePayloadV1 scalar", &small_payload, &large_payload);
+    check_helpers!("ValueWireV1 scalar", &small_wire, &large_wire);
+    check_helpers!(
+        "ValueWirePayloadRefV1 collection",
+        &small_collection_payload_ref,
+        &large_collection_payload_ref
+    );
+    check_helpers!(
+        "ValueWireRefV1 collection",
+        &small_collection_wire_ref,
+        &large_collection_wire_ref
+    );
+    check_helpers!(
+        "ValueWirePayloadV1 collection",
+        &small_collection_payload,
+        &large_collection_payload
+    );
+    check_helpers!("ValueWireV1 collection", &small_collection_wire, &large_collection_wire);
+}
+
+fn assert_expected_encode_limit(error: ValueWireEncodeError, expected: JsonResource, dto: &str, method: &str) {
+    assert!(
+        matches!(error, ValueWireEncodeError::Budget(BudgetError::LimitExceeded { resource, .. }) if resource == expected),
+        "{dto} {method} expected {expected:?}, got {error:?}",
+    );
+}
+
+fn assert_bounded_direct_helper_allocations(
+    dto: &str,
+    method: &str,
+    resource: JsonResource,
+    small: usize,
+    large: usize,
+) {
+    assert!(
+        large <= small.saturating_add(4096),
+        "{dto} {method} {resource:?} allocation grew with coefficient: 4096 digits={small}, 128 Ki digits={large}",
+    );
 }
 
 fn assert_expected_limit(error: MeasuredBudgetError<JsonResource, usize>, expected: JsonResource) {

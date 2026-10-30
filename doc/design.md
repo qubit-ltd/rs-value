@@ -298,6 +298,12 @@ authoritative and enforces structural measurements plus actual output bytes
 during encoding. These checks can avoid some work before rejection, but do not
 make every encoding preparation allocation subject to the output budget.
 
+The explicit-limit JSON vector and writer helpers on all four Wire DTOs run a
+fresh conservative payload preflight before constructing the final encoding
+session. The final session remains authoritative for the complete payload or
+envelope, so the preflight may reject from a lower-bound estimate but a passing
+preflight does not guarantee success or bound every preparation allocation.
+
 The three preflight counters have distinct units: `nodes` counts JSON value
 nodes, `payload_bytes` counts decoded string/key/number text (null and boolean
 payloads count as zero), and `output_bytes` counts the lower-bound encoded

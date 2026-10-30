@@ -149,13 +149,19 @@ impl<'a> ValueWireRefV1<'a> {
     ///
     /// Compact UTF-8 JSON bytes for the complete V1 envelope.
     ///
+    /// Runs a conservative payload preflight before encoding, then enforces
+    /// `limits` authoritatively while encoding the full envelope. The preflight
+    /// may report a lower-bound budget error and does not bound every
+    /// preparation allocation.
+    ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits` or
-    /// Serde rejects the envelope.
+    /// Returns [`ValueWireEncodeError`] when preflight or final encoding
+    /// exceeds `limits`, or Serde rejects the envelope.
     #[cfg(feature = "json")]
     #[inline]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+        self.value.check_encode_preflight(limits)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -204,10 +210,16 @@ impl<'a> ValueWireRefV1<'a> {
     ///
     /// `Ok(())` after the complete envelope is written.
     ///
+    /// Runs a conservative payload preflight before encoding, then enforces
+    /// `limits` authoritatively while encoding the full envelope. The preflight
+    /// may report a lower-bound budget error and does not bound every
+    /// preparation allocation.
+    ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits`, Serde
-    /// rejects the envelope, or `writer` rejects output.
+    /// Returns [`ValueWireEncodeError`] when preflight or final encoding
+    /// exceeds `limits`, Serde rejects the envelope, or `writer` rejects
+    /// output.
     #[cfg(feature = "json")]
     #[inline]
     pub fn to_json_writer_with_limits<W>(
@@ -218,6 +230,7 @@ impl<'a> ValueWireRefV1<'a> {
     where
         W: Write,
     {
+        self.value.check_encode_preflight(limits)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .write_buffered(&mut writer, self)

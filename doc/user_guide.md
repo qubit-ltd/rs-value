@@ -534,6 +534,13 @@ constructors are fallible because they validate finite floats and bounded
 `BigDecimal` scale before exposing a serializable payload. JSON object keys
 have no serde_json Number-marker reservation.
 
+All four Wire DTOs also run a conservative payload preflight when their
+explicit-limit `to_json_vec_with_limits` or `to_json_writer_with_limits`
+helpers are called. The final encoder remains authoritative for the complete
+payload or envelope. A lower-bound preflight error can therefore reject early,
+while a successful preflight neither guarantees encoding success nor bounds
+every preparation allocation.
+
 ### Embedded values and a shared `JsonDecodeSession`
 
 `decode_json_slice_with_limits` is for a complete top-level Wire document. If a

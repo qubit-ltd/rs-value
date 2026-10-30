@@ -476,6 +476,10 @@ assert_eq!(
 有界的 `BigDecimal scale`，因此它们是可能失败的。JSON object key 不再有 serde_json Number
 marker 保留规则。
 
+四类 Wire DTO 的显式限额 `to_json_vec_with_limits` 和
+`to_json_writer_with_limits` helper 也会自动执行保守 payload preflight。最终 encoder 仍权威检查完整
+payload 或 envelope。下界 preflight 错误可以提前拒绝；通过 preflight 不保证编码成功，也不限制全部准备阶段分配。
+
 ### 嵌入值与共享 `JsonDecodeSession`
 
 `decode_json_slice_with_limits` 用于完整的顶层 Wire 文档。如果值嵌套在更大的 JSON 文档中，

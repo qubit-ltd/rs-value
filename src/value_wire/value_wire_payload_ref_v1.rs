@@ -23,7 +23,10 @@ use serde::Serialize;
 use serde::Serializer;
 
 use super::ValueWireEncodeError;
+#[cfg(feature = "json")]
+use super::ValueWireEncodePreflight;
 use super::WireShapeRef;
+use super::internal::WireSourceRef;
 use crate::MultiValues;
 use crate::Value;
 use crate::ValueContainer;
@@ -60,8 +63,8 @@ use crate::wire::validate_instant_year;
 /// ```
 #[must_use]
 pub struct ValueWirePayloadRefV1<'a> {
-    /// Borrowed scalar-or-collection shape validated for V1 serialization.
-    shape: WireShapeRef<'a>,
+    /// Borrowed source validated for V1 serialization.
+    source: WireSourceRef<'a>,
 }
 
 impl<'a> ValueWirePayloadRefV1<'a> {
@@ -85,7 +88,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     pub fn from_value(value: &'a Value) -> Result<Self, ValueWireEncodeError> {
         validate_value(value)?;
         Ok(Self {
-            shape: WireShapeRef::Scalar(value.into()),
+            source: WireSourceRef::Scalar(value),
         })
     }
 
@@ -110,7 +113,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
         validate_values(values)?;
         Ok(Self {
-            shape: WireShapeRef::Collection(values.into()),
+            source: WireSourceRef::Collection(values),
         })
     }
 
@@ -133,10 +136,9 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// an Instant's UTC year is outside 0 through 9999.
     pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
         match value {
-            ValueContainer::Scalar(value) => validate_value(value)?,
-            ValueContainer::Collection(values) => validate_values(values)?,
+            ValueContainer::Scalar(value) => Self::from_value(value),
+            ValueContainer::Collection(values) => Self::from_values(values),
         }
-        Ok(Self { shape: value.into() })
     }
 
     /// Encodes the borrowed V1 payload into a compact JSON vector.
@@ -165,13 +167,19 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     ///
     /// Compact UTF-8 JSON bytes for this unversioned payload.
     ///
+    /// Runs a conservative payload preflight before encoding, then enforces
+    /// `limits` authoritatively while encoding. The preflight may report a
+    /// lower-bound budget error and does not bound every preparation
+    /// allocation.
+    ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits` or
-    /// Serde rejects the payload.
+    /// Returns [`ValueWireEncodeError`] when the payload preflight or final
+    /// encoding exceeds `limits`, or Serde rejects the payload.
     #[cfg(feature = "json")]
     #[inline]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+        self.check_encode_preflight(limits)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -220,10 +228,16 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     ///
     /// `Ok(())` after the complete payload is written.
     ///
+    /// Runs a conservative payload preflight before encoding, then enforces
+    /// `limits` authoritatively while encoding. The preflight may report a
+    /// lower-bound budget error and does not bound every preparation
+    /// allocation.
+    ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits`, Serde
-    /// rejects the payload, or `writer` rejects output.
+    /// Returns [`ValueWireEncodeError`] when the payload preflight or final
+    /// encoding exceeds `limits`, Serde rejects the payload, or `writer`
+    /// rejects output.
     #[cfg(feature = "json")]
     #[inline]
     pub fn to_json_writer_with_limits<W>(
@@ -234,6 +248,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     where
         W: Write,
     {
+        self.check_encode_preflight(limits)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .write_buffered(&mut writer, self)
@@ -248,7 +263,37 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     #[must_use]
     #[inline(always)]
     pub(in crate::value_wire) fn shape(&self) -> WireShapeRef<'a> {
-        self.shape
+        match self.source {
+            WireSourceRef::Scalar(value) => WireShapeRef::Scalar(value.into()),
+            WireSourceRef::Collection(values) => WireShapeRef::Collection(values.into()),
+        }
+    }
+
+    /// Checks the borrowed runtime payload against conservative JSON limits.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - JSON resource limits used to check payload preparation.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the conservative payload preflight accepts the source.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] when a lower-bound payload estimate
+    /// exceeds `limits`. The final encoder performs the authoritative check.
+    #[cfg(feature = "json")]
+    pub(in crate::value_wire) fn check_encode_preflight(
+        &self,
+        limits: JsonEncodeLimits,
+    ) -> Result<(), ValueWireEncodeError> {
+        let mut checker = ValueWireEncodePreflight::new(limits);
+        match self.source {
+            WireSourceRef::Scalar(value) => checker.check_value(value),
+            WireSourceRef::Collection(values) => checker.check_values(values),
+        }
+        .map_err(ValueWireEncodeError::from)
     }
 }
 

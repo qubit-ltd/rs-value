@@ -233,6 +233,10 @@ Preflight 不执行序列化、不保留排序 index，也不证明最终编码�
 measurement 与实际输出字节。这些检查可以避免部分拒绝前工作，但不会让所有编码准备分配都受
 output budget 限制。
 
+四类 Wire DTO 的显式限额 JSON vector 和 writer helper 都会在创建最终编码 session 前执行一次新的
+保守 payload preflight。最终 session 仍会权威检查完整 payload 或 envelope；因此 preflight 可能依据
+下界估算提前拒绝，但通过 preflight 不保证编码成功，也不限制全部准备阶段分配。
+
 三个 preflight counter 使用不同单位：`nodes` 统计 JSON value 节点，`payload_bytes` 统计解码后
 字符串、key 和数字文本的字节（null 与 boolean 的 payload 为零），`output_bytes` 统计编码语法和
 文本的输出下界。字符串和 key 使用 UTF-8 字节；字符串引号以及 object/array 的最少标点计入输出

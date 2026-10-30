@@ -28,6 +28,8 @@ use super::VALUE_WIRE_V1_VERSION;
 #[cfg(feature = "json")]
 use super::ValueWireDecodeError;
 use super::ValueWireEncodeError;
+#[cfg(feature = "json")]
+use super::ValueWireEncodePreflight;
 use super::ValueWirePayloadV1;
 use super::serialize_wire;
 use crate::MultiValues;
@@ -190,12 +192,20 @@ impl ValueWireV1 {
     ///
     /// Compact UTF-8 JSON bytes for the complete V1 document.
     ///
+    /// Runs a conservative payload preflight before encoding, then enforces
+    /// `limits` authoritatively while encoding the full envelope. The preflight
+    /// may report a lower-bound budget error and does not bound every
+    /// preparation allocation.
+    ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits` or the
-    /// document cannot be serialized.
+    /// Returns [`ValueWireEncodeError`] when preflight or final encoding
+    /// exceeds `limits`, or the document cannot be serialized.
     #[cfg(feature = "json")]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+        ValueWireEncodePreflight::new(limits)
+            .check_container(self.container())
+            .map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .to_vec(self)
@@ -244,10 +254,16 @@ impl ValueWireV1 {
     ///
     /// `Ok(())` after the complete document is written.
     ///
+    /// Runs a conservative payload preflight before encoding, then enforces
+    /// `limits` authoritatively while encoding the full envelope. The preflight
+    /// may report a lower-bound budget error and does not bound every
+    /// preparation allocation.
+    ///
     /// # Errors
     ///
-    /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits`, the
-    /// document cannot be serialized, or `writer` rejects output.
+    /// Returns [`ValueWireEncodeError`] when preflight or final encoding
+    /// exceeds `limits`, the document cannot be serialized, or `writer`
+    /// rejects output.
     #[cfg(feature = "json")]
     pub fn to_json_writer_with_limits<W>(
         &self,
@@ -257,6 +273,9 @@ impl ValueWireV1 {
     where
         W: Write,
     {
+        ValueWireEncodePreflight::new(limits)
+            .check_container(self.container())
+            .map_err(ValueWireEncodeError::from)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
             .write_buffered(&mut writer, self)

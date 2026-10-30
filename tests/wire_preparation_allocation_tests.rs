@@ -112,18 +112,27 @@ fn string_map(size: usize) -> HashMap<String, String> {
 
 fn assert_node_rejection(result: Result<Vec<u8>, ValueWireEncodeError>, limit: usize) {
     let error = result.expect_err("node-limited StringMap must be rejected");
-    let ValueWireEncodeError::Budget(BudgetError::Insufficient {
-        resource: JsonResource::Nodes,
-        limit: actual_limit,
-        remaining,
-        requested,
-    }) = error
-    else {
-        panic!("expected insufficient node budget, got {error:?}");
-    };
-    assert_eq!(actual_limit, limit);
-    assert_eq!(remaining, 0);
-    assert!(requested > remaining);
+    match error {
+        ValueWireEncodeError::Budget(BudgetError::Insufficient {
+            resource: JsonResource::Nodes,
+            limit: actual_limit,
+            remaining,
+            requested,
+        }) => {
+            assert_eq!(actual_limit, limit);
+            assert_eq!(remaining, 0);
+            assert!(requested > remaining);
+        }
+        ValueWireEncodeError::Budget(BudgetError::LimitExceeded {
+            resource: JsonResource::Nodes,
+            observed,
+            maximum,
+        }) => {
+            assert_eq!(maximum, limit);
+            assert!(observed.lower_bound() > limit);
+        }
+        other => panic!("expected node budget rejection, got {other:?}"),
+    }
 }
 
 fn assert_depth_rejection(result: Result<Vec<u8>, ValueWireEncodeError>, maximum: usize) {
@@ -193,18 +202,8 @@ fn test_canonical_json_rejection_admits_object_before_sorting_entries() {
 
     let (small_result, small_bytes) = measured_allocations(|| small.to_json_vec_with_limits(limits));
     let (large_result, large_bytes) = measured_allocations(|| large.to_json_vec_with_limits(limits));
-    for result in [small_result, large_result] {
-        assert!(
-            matches!(
-                result,
-                Err(ValueWireEncodeError::Budget(BudgetError::Insufficient {
-                    resource: qubit_budget::json::JsonResource::Nodes,
-                    ..
-                }))
-            ),
-            "expected node budget rejection at object admission"
-        );
-    }
+    assert_node_rejection(small_result, 2);
+    assert_node_rejection(large_result, 2);
     assert!(
         large_bytes <= small_bytes.saturating_add(4096),
         "rejected object allocation grew before node admission: 16={small_bytes}, 8192={large_bytes}"
