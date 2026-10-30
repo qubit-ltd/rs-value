@@ -47,10 +47,12 @@ use crate::ValueWireDecodeError;
 /// # Examples
 ///
 /// ```
-/// use std::convert::TryFrom;
 /// use qubit_value::{Value, ValueWirePayloadV1};
 ///
-/// let _payload = ValueWirePayloadV1::try_from(Value::from(42_i32)).unwrap();
+/// let payload = ValueWirePayloadV1::try_from(Value::from(42_i32)).unwrap();
+/// let encoded = serde_json::to_string(&payload).unwrap();
+/// assert_eq!(encoded, r#"{"scalar":{"int32":42}}"#);
+/// assert_eq!(payload.into_container().get_first::<i32>().unwrap(), 42);
 /// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -52,7 +52,11 @@ use crate::wire::validate_instant_year;
 /// use qubit_value::{Value, ValueWirePayloadRefV1};
 ///
 /// let value = Value::from(42_i32);
-/// let _payload = ValueWirePayloadRefV1::from_value(&value).unwrap();
+/// let payload = ValueWirePayloadRefV1::from_value(&value).unwrap();
+/// let encoded = serde_json::to_string(&payload).unwrap();
+/// assert_eq!(encoded, r#"{"scalar":{"int32":42}}"#);
+/// let owned = qubit_value::ValueWirePayloadV1::try_from(Value::from(42_i32)).unwrap();
+/// assert_eq!(encoded, serde_json::to_string(&owned).unwrap());
 /// ```
 #[must_use]
 pub struct ValueWirePayloadRefV1<'a> {

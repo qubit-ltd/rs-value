@@ -49,10 +49,12 @@ use crate::ValueContainer;
 /// # Examples
 ///
 /// ```
-/// use std::convert::TryFrom;
 /// use qubit_value::{Value, ValueWireV1};
 ///
-/// let _wire = ValueWireV1::try_from(Value::from(42_i32)).unwrap();
+/// let wire = ValueWireV1::try_from(Value::from(42_i32)).unwrap();
+/// let encoded = serde_json::to_string(&wire).unwrap();
+/// assert_eq!(encoded, r#"{"version":1,"value":{"scalar":{"int32":42}}}"#);
+/// assert_eq!(wire.into_container().get_first::<i32>().unwrap(), 42);
 /// ```
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

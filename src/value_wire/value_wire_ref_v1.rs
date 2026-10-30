@@ -39,7 +39,11 @@ use crate::ValueContainer;
 /// use qubit_value::{Value, ValueWireRefV1};
 ///
 /// let value = Value::from(42_i32);
-/// let _wire = ValueWireRefV1::from_value(&value).unwrap();
+/// let wire = ValueWireRefV1::from_value(&value).unwrap();
+/// let encoded = serde_json::to_string(&wire).unwrap();
+/// assert_eq!(encoded, r#"{"version":1,"value":{"scalar":{"int32":42}}}"#);
+/// let owned = qubit_value::ValueWireV1::try_from(Value::from(42_i32)).unwrap();
+/// assert_eq!(encoded, serde_json::to_string(&owned).unwrap());
 /// ```
 #[must_use]
 pub struct ValueWireRefV1<'a> {
