@@ -10,6 +10,8 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
+mod internal;
+
 /// A Rust example extracted verbatim from one Markdown document.
 #[derive(Debug, Eq, Hash, PartialEq)]
 struct MarkdownExample {
@@ -237,4 +239,24 @@ fn test_bilingual_markdown_example_ids_are_stable() {
         let actual_ids: Vec<&str> = english.keys().map(String::as_str).collect();
         assert_eq!(actual_ids, expected_ids, "{english_file}: example IDs");
     }
+}
+
+#[test]
+fn test_bilingual_markdown_examples_execute() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let pairs = [
+        ("README.md", "README.zh_CN.md"),
+        ("doc/user_guide.md", "doc/user_guide.zh_CN.md"),
+    ];
+    let mut documents = Vec::new();
+    for (english, chinese) in pairs {
+        for path in [english, chinese] {
+            let source = std::fs::read_to_string(root.join(path)).expect("read marked document");
+            let examples = extract_examples(path, &source).unwrap();
+            documents.push((path, examples));
+        }
+    }
+    let extracted: usize = documents.iter().map(|(_, examples)| examples.len()).sum();
+    assert_eq!(extracted, 32, "baseline marked-example count");
+    internal::markdown_example_runner::run_markdown_examples(root, &documents).unwrap();
 }
