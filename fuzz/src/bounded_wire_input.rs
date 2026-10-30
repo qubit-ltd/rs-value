@@ -25,10 +25,7 @@ pub fn check_input(data: &[u8]) -> bool {
 
 fn decode_limits(max_input_bytes: usize, limits: JsonDecodeLimits) -> JsonDecodeLimits {
     JsonDecodeLimits::builder()
-        .input_bytes_limit(ResourceLimit::new(
-            JsonResource::InputBytes,
-            max_input_bytes,
-        ))
+        .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, max_input_bytes))
         .value_limits(limits.into_value_limits())
         .build()
 }
@@ -56,10 +53,7 @@ fn varied_decode_limits(data: &[u8]) -> JsonDecodeLimits {
         .max_map_entries(items[selector(data, 3) % items.len()])
         .build();
     JsonDecodeLimits::builder()
-        .input_bytes_limit(ResourceLimit::new(
-            JsonResource::InputBytes,
-            WIDE_INPUT_BYTES,
-        ))
+        .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, WIDE_INPUT_BYTES))
         .value_limits(values)
         .build()
 }
@@ -71,17 +65,13 @@ fn check_profile(data: &[u8], limits: JsonDecodeLimits) -> bool {
     match ValueWireV1::decode_json_slice_with_limits(data, limits) {
         Ok(value) => {
             let encode_limits = JsonEncodeLimits::builder()
-                .output_bytes_limit(ResourceLimit::new(
-                    JsonResource::OutputBytes,
-                    ROUND_TRIP_BYTES,
-                ))
+                .output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, ROUND_TRIP_BYTES))
                 .value_limits(ValueWireV1::default_json_encode_limits().into_value_limits())
                 .build();
             let encoded = value
                 .to_json_vec_with_limits(encode_limits)
                 .expect("decoded values must round-trip within the output budget");
-            let decode_limits =
-                decode_limits(ROUND_TRIP_BYTES, ValueWireV1::default_json_decode_limits());
+            let decode_limits = decode_limits(ROUND_TRIP_BYTES, ValueWireV1::default_json_decode_limits());
             let decoded = ValueWireV1::decode_json_slice_with_limits(&encoded, decode_limits)
                 .expect("encoded values must round-trip within the input budget");
             assert_eq!(decoded, value);
