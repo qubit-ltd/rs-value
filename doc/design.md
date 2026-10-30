@@ -254,12 +254,13 @@ collection shape uses an array of payloads under that same tag.
 | `Url` / `url` | Canonicalized text from `Url::as_str()`; parseable input is rejected if its text changes during normalization. | `"https://example.com/path"` |
 
 Collection adapters deserialize one typed payload at a time and immediately
-validate or convert it before requesting the next element. This removes the
-whole-sequence intermediate payload vector and stops typed tail processing
-after the first semantic validation error. It does not change whole-document
-syntax preflight, input budgets, or which collections are accepted. When one
-element is semantically invalid and a later element also has a structural
-error, the earlier semantic error can now take precedence. A streaming
+validate or convert it before requesting the next element. Float collections
+also check each decoded value for finiteness before requesting the next typed
+element. This removes the whole-sequence intermediate payload vector and stops
+typed tail processing after the first semantic validation error. It does not
+change whole-document syntax preflight, input budgets, or which collections are
+accepted. When one element is semantically invalid and a later element also
+has a structural error, the earlier semantic error can now take precedence. A streaming
 deserializer may also consume fewer tail elements on failure; budget already
 charged for earlier decoding is not rolled back.
 

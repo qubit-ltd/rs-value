@@ -9,5 +9,7 @@
 //! Private abstractions shared by finite-float Serde adapters.
 
 mod finite_float;
+mod finite_float_sequence_visitor;
 
 pub(in crate::finite_float) use finite_float::FiniteFloat;
+pub(in crate::finite_float) use finite_float_sequence_visitor::FiniteFloatSequenceVisitor;
