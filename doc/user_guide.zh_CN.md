@@ -324,6 +324,7 @@ assert!(matches!(
 NaN。unset 不等于零。`Approximate` 不是通用容差或 epsilon 比较：有限浮点数可能使混合表示投影到
 `f64`，不同配对的结果可能不满足传递性。因此不能用它实现 `Ord`、排序、分组或有序集合键。
 
+<a id="wire-v1"></a>
 ## Wire V1：通过 JSON 保留类型和形态
 
 ### 什么时候使用 Wire V1
@@ -694,6 +695,7 @@ assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
 自然 JSON 刻意丢弃运行时 `DataType` 标签。未设置值会投影为 `null`，每个具体集合都会投影
 为数组，单元素集合也不例外。必须恢复 `DataType`、unset 状态或形态时，应改用 Wire V1。
 
+<a id="errors-and-diagnostics"></a>
 ## 错误与诊断
 
 值操作返回 `ValueResult<T>`，它是 `Result<T, ValueError>` 的别名。主要错误类别如下：
@@ -740,6 +742,7 @@ budget；以前能完整输出的数字集合，在较小预算下可能变为�
 检查 `value.data_type()`，当源类型必须完全一致时使用类型化 getter。如果确实需要转换，启用
 `converter`，调用 `to<T>()` 并选择符合应用要求的策略。
 
+<a id="default-values"></a>
 ### 没有使用默认值
 
 确认容器确实是 unset。具体的空 `MultiValues` 不是未设置集合。还要检查转换策略是否把源值

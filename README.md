@@ -187,59 +187,28 @@ document is:
 ```
 
 Choose `to_json_value()` when the boundary is ordinary application JSON and
-the receiver only needs JSON semantics. Wire V1 is closed and versioned;
-Natural JSON intentionally omits runtime type tags. The user guide contains the
-full Wire workflow, borrowed payload examples, feature compatibility rules,
-and resource-limit handling.
+the receiver only needs JSON semantics. Wire V1 is a closed, versioned format;
+Natural JSON intentionally omits runtime type tags, unset state, and
+scalar-versus-collection shape. Wire V1 rejects non-finite floats, unsupported
+types, and malformed payloads instead of guessing.
 
-Wire V1 accepts concrete `Instant` years only from 0 through 9999 (UTC), so
-years outside that range now fail encoding instead of producing text the V1
-decoder cannot read. Its preflight uses conservative lower bounds, including
-the BigDecimal coefficient's string size; final encoding still enforces the
-authoritative limits. This can reject some oversized values earlier, but it
-does not cap every temporary allocation. See the guide for the boundary and
-the bounded JSON materialization path.
+For complete untrusted JSON documents, use the bounded Wire JSON helpers. For
+embedded values, pass `ValueWireV1Seed` or `ValueWirePayloadV1Seed` to
+`JsonDecoder::decode_unique_seed_utf8` or `next_value_seed` so values in one
+request share its budget; create a fresh bounded session for each independent
+Wire operation. Wire DTOs implement `Serialize` but not generic `Deserialize`;
+`NamedValue` and `NamedMultiValues` do implement generic `Deserialize`, whose
+resource accounting comes from the supplied deserializer. This is not a budget
+for every Serde decode. When `serde_json/arbitrary_precision` is unified, use a
+bounded JSON helper or a `decode_unique_*` path. See the [Wire V1 guide](doc/user_guide.md#wire-v1)
+for type and shape details, `Instant` and preflight limits, DTO seeds,
+intermediate-tree tradeoffs, and feature compatibility.
 
-The Wire DTOs implement `Serialize`, but deliberately do not implement generic
-`Deserialize`: a general Serde deserializer cannot enforce the raw-input and
-structural limits required at an untrusted boundary. Use the bounded
-`ValueWireV1::decode_json_slice` helpers for complete JSON documents. For an
-embedded value, pass `ValueWireV1Seed::new()` or `ValueWirePayloadV1Seed::new()`
-to the surrounding `JsonDecoder::decode_unique_seed_utf8` or `next_value_seed` call so
-the outer protocol owns one shared budget.
-
-`NamedValue` and `NamedMultiValues` do implement generic `Deserialize` so they
-can be embedded in larger Serde documents. That implementation validates the
-V1 schema and payload shape but inherits resource accounting from the supplied
-deserializer. Use their bounded `decode_json_slice` helpers for complete,
-untrusted JSON input, or a resource-bounded outer decoder when they are nested.
-With `serde_json/arbitrary_precision` feature unification, choose the bounded
-JSON helpers or a `decode_unique_*` outer decoder: generic Serde readers can
-expose numbers as private maps. The unique-key path builds an intermediate
-tree, preserves user object keys literally, and applies the configured depth
-budget rather than a separate fixed 127-container cap. It uses extra memory,
-and target type errors have no original source coordinates. For example, the
-unique decoder accepts a 130-level value when `max_depth` allows it, while a
-direct `serde_json::from_slice` call can hit Serde's own recursion limit.
-
-Wire decode errors expose privacy-safe `ValueWireJsonError` metadata through
-`ValueWireDecodeError::InvalidJson`: category, line, and column are retained,
-but the original Serde error and input text are not. Code that explicitly
-matched the old `serde_json::Error` payload, constructed `InvalidJson` directly,
-or downcast its error source must migrate to `ValueWireJsonError` and its
-`classify()`, `line()`, and `column()` accessors. Ordinary typed collections
-also account for each visible item against the redaction policy; a small item
-budget can now truncate numeric and other primitive collection output.
-
-Natural JSON cannot reconstruct `DataType`, unset state, or scalar-versus-
-collection shape. Wire V1 rejects non-finite floats and unsupported or malformed
-payloads instead of guessing. Use a fresh bounded session for each independent
-Wire operation; reuse a session only when several embedded values belong to the
-same outer request budget.
-
-For conversion fallbacks, a policy-missing scalar may use the supplied default.
-A missing item inside a concrete collection never does, including item zero;
-an explicitly empty collection also remains an error for first-item reads.
+A scalar treated as missing by the conversion policy may use a fallback; a
+missing item in a concrete collection, including its first item, does not. An
+explicitly empty collection also remains an error for first-item reads. See the
+[errors and diagnostics guide](doc/user_guide.md#errors-and-diagnostics) and
+[default-value troubleshooting guide](doc/user_guide.md#default-values).
 
 ## Learn more
 

@@ -159,42 +159,23 @@ key。完整类型表、JSON 数字契约、错误、资源限制和 feature 兼
 ```
 
 当边界只是普通业务 JSON，接收方只需要 JSON 语义时，选择 `to_json_value()`。Wire V1 是封闭的、
-带版本的格式；自然 JSON 刻意不包含运行时类型标签。完整的 Wire 工作流、借用 payload、feature
-兼容性和资源限制处理，请参阅用户手册。
+带版本的格式；自然 JSON 刻意不包含运行时类型标签、unset 状态或标量/集合形态。Wire V1 会拒绝
+非有限浮点、不支持的类型和非法 payload，不会猜测输入含义。
 
-Wire V1 只接受 UTC 年份在 0 到 9999 之间的具体 `Instant`；超出范围的值现在会在编码时失败，
-而不会生成 V1 解码器无法读取的文本。它的 preflight 使用保守下界，包括 BigDecimal 系数的
-字符串大小；最终编码仍执行权威限额。这样可以更早拒绝部分超限值，但不会限制所有临时分配。
-年份边界和有界 JSON 物化路径见用户手册。
+完整且不可信的 JSON 文档应使用有界 Wire JSON helper。嵌入外层协议时，把
+`ValueWireV1Seed` 或 `ValueWirePayloadV1Seed` 传给外层的
+`JsonDecoder::decode_unique_seed_utf8` 或 `next_value_seed`，让同一请求中的值共享预算；彼此独立的
+Wire 操作应使用新的有界 session。Wire DTO 实现 `Serialize`，但不实现通用
+`Deserialize`；`NamedValue` 和 `NamedMultiValues` 实现了通用
+`Deserialize`，其资源记账由调用方提供的 deserializer 决定。这不代表所有 Serde 解码都有预算。
+依赖图统一启用 `serde_json/arbitrary_precision` 时，应选择有界 JSON helper 或 `decode_unique_*`
+路径。类型与形态、`Instant` 和 preflight 限制、DTO seeds、中间树的取舍及 feature 兼容性详见
+[Wire V1 指南](doc/user_guide.zh_CN.md#wire-v1)。
 
-Wire DTO 实现了 `Serialize`，但刻意不实现通用的 `Deserialize`：普通 Serde deserializer 无法在
-不可信边界上同时约束原始输入大小和结构资源。完整 JSON 文档应使用有界的
-`ValueWireV1::decode_json_slice` 系列入口。嵌入外层协议时，应将
-`ValueWireV1Seed::new()` 或 `ValueWirePayloadV1Seed::new()` 传给外层的
-`JsonDecoder::decode_unique_seed_utf8` 或 `next_value_seed`，由外层协议统一持有并共享一个 budget。
-
-`NamedValue` 和 `NamedMultiValues` 为了能嵌入更大的 Serde 文档，实现了通用
-`Deserialize`。该实现会校验 V1 schema 和 payload shape，但资源记账继承调用方提供的
-deserializer。处理完整且不可信的 JSON 输入时，应使用它们有界的 `decode_json_slice` 系列
-入口；作为嵌套值时，则应由有资源限制的外层 decoder 统一解码。
-依赖图统一启用 `serde_json/arbitrary_precision` 时，应使用有界 JSON helper 或外层
-`decode_unique_*` 解码器；通用 Serde reader 可能把数字呈现为私有 map。唯一键路径会构造中间树，
-按配置的 depth budget 控制深度，没有额外固定的 127 层容器上限，并按字面保留用户对象键。它会
-增加内存开销，目标类型错误也没有原始源码坐标。例如，`max_depth` 足够时，唯一键解码器可接受
-130 层的值；直接调用 `serde_json::from_slice` 则可能触及 Serde 自身的递归限制。
-
-Wire 解码错误通过 `ValueWireDecodeError::InvalidJson` 暴露隐私安全的 `ValueWireJsonError` 元数据：
-保留类别、行和列，但不保留原始 Serde 错误或输入文本。若代码显式匹配旧的 `serde_json::Error`
-载荷、直接构造 `InvalidJson`，或向下转型其错误源，应迁移到 `ValueWireJsonError` 及其
-`classify()`、`line()` 和 `column()` 访问器。普通类型化集合现在也会按脱敏策略逐项记账；较小的
-item budget 可能使数字及其他基本类型集合的输出被截断。
-
-自然 JSON 无法恢复 `DataType`、unset 状态或标量/集合形态。Wire V1 会拒绝非有限浮点、
-不支持的类型和非法 payload，不会猜测输入含义。每个独立 Wire 操作应创建新的有界 session；
-只有多个嵌入值属于同一个外层请求预算时，才应复用 session。
-
-对于转换 fallback，策略将标量判定为 missing 时可以使用调用方提供的默认值。具体集合中的
-缺失元素永远不会回退，包括第零项；显式为空的集合读取首项时也仍然返回错误。
+转换时，如果策略将标量判定为 missing，可以使用 fallback；具体集合中的缺失元素（包括首项）
+不会回退。显式为空的集合读取首项时也仍然返回错误。详见
+[错误与诊断指南](doc/user_guide.zh_CN.md#errors-and-diagnostics)和
+[默认值排障指南](doc/user_guide.zh_CN.md#default-values)。
 
 ## 延伸阅读
 

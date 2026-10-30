@@ -356,6 +356,7 @@ representations to be projected to `f64`, and those pair-dependent results may
 be non-transitive. Do not use it for `Ord`, sorting, grouping, or ordered
 collection keys.
 
+<a id="wire-v1"></a>
 ## Wire V1: preserve type and shape across JSON
 
 ### When to use Wire V1
@@ -780,6 +781,7 @@ projects to `null`, and every concrete collection projects to an array,
 including a one-item collection. Use Wire V1 when those distinctions must be
 reconstructed.
 
+<a id="errors-and-diagnostics"></a>
 ## Errors and diagnostics
 
 Value operations return `ValueResult<T>`, an alias for `Result<T, ValueError>`.
@@ -834,6 +836,7 @@ Inspect `value.data_type()` and use a typed getter when the source type must be
 exact. If conversion is intended, enable `converter` and call `to<T>()` with a
 policy that matches the application.
 
+<a id="default-values"></a>
 ### A default is not used
 
 Check whether the container is actually unset. A concrete empty `MultiValues`
