@@ -36,10 +36,17 @@ use crate::value::ValueRepr;
 use crate::wire::MAX_BIG_DECIMAL_ABSOLUTE_SCALE;
 #[cfg(feature = "big-decimal")]
 use crate::wire::is_valid_big_decimal_scale;
+#[cfg(feature = "json")]
+use crate::wire::json::validate_numbers;
 #[cfg(feature = "chrono")]
 use crate::wire::validate_instant_year;
 
 /// Borrowed unversioned V1 payload for serialization without cloning.
+///
+/// Runtime JSON numbers must round trip to the same `serde_json::Number` under
+/// the strict `qubit-json` number model. A number that would change identity
+/// returns the JSON-gated `JsonNumberNotRoundTrippable` error; the error does
+/// not expose the number text.
 ///
 /// Use one of the fallible constructors or the corresponding `TryFrom` impl
 /// to create a payload. The private representation prevents callers from
@@ -315,6 +322,10 @@ impl<'a> ValueWirePayloadRefV1<'a> {
 /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an Instant whose UTC
 /// year is outside 0 through 9999.
 pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
+    #[cfg(feature = "json")]
+    if let ValueRepr::Json(value) = &value.repr {
+        validate_numbers(value)?;
+    }
     #[cfg(feature = "chrono")]
     if let ValueRepr::Instant(value) = &value.repr {
         validate_instant_year(value.year())?;
@@ -351,6 +362,12 @@ pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWi
 /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an Instant whose UTC
 /// year is outside 0 through 9999.
 pub(in crate::value_wire) fn validate_values(values: &MultiValues) -> Result<(), ValueWireEncodeError> {
+    #[cfg(feature = "json")]
+    if let MultiValuesRepr::Json(values) = &values.repr {
+        for value in values {
+            validate_numbers(value)?;
+        }
+    }
     #[cfg(feature = "chrono")]
     if let MultiValuesRepr::Instant(values) = &values.repr {
         for value in values {

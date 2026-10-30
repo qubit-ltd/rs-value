@@ -19,7 +19,6 @@ use qubit_datatype::ConversionOperationLimits;
 #[cfg(feature = "converter")]
 use qubit_datatype::InvalidValueReason;
 use qubit_json::decode::JsonDecoder;
-#[cfg(feature = "converter")]
 use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
@@ -28,8 +27,11 @@ use qubit_value::ValueContainer;
 #[cfg(feature = "converter")]
 use qubit_value::ValueError;
 use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireEncodeError;
+use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWirePayloadV1Seed;
+use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
 use qubit_value::ValueWireV1Seed;
 use serde::Deserialize;
@@ -43,6 +45,170 @@ fn limits() -> JsonDecodeLimits {
         .max_nodes(4096usize)
         .max_number_bytes(128usize)
         .build()
+}
+
+#[test]
+fn test_wire_json_number_round_trip_boundary() {
+    let number_inputs = [
+        "0.12345678901234567890123",
+        "1e1",
+        "1.2500",
+        "18446744073709551616",
+        "1e400",
+        "-0",
+    ];
+    for input in number_inputs {
+        let Ok(number) = serde_json::from_str::<JsonValue>(input) else {
+            continue;
+        };
+        let text = number.to_string();
+        let expected_standard: Option<serde_json::Number> = if text == "-0" {
+            serde_json::Number::from_f64(-0.0)
+        } else if text.bytes().any(|byte| matches!(byte, b'.' | b'e' | b'E')) {
+            text.parse::<f64>().ok().and_then(serde_json::Number::from_f64)
+        } else if text.starts_with('-') {
+            text.parse::<i64>().ok().map(serde_json::Number::from)
+        } else {
+            text.parse::<u64>().ok().map(serde_json::Number::from)
+        };
+        let value = Value::Json(number.clone());
+        if expected_standard.as_ref() == number.as_number() {
+            let wire = ValueWireV1::try_from(value.clone()).expect("standardized number is accepted");
+            let bytes = wire.to_json_vec().expect("standardized number encodes");
+            assert_eq!(
+                ValueWireV1::decode_json_slice(&bytes)
+                    .expect("standardized number decodes")
+                    .into_container(),
+                ValueContainer::from(value)
+            );
+            continue;
+        }
+        assert!(
+            matches!(
+                ValueWirePayloadV1::try_from(value.clone()),
+                Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+            ),
+            "scalar {input} must be rejected"
+        );
+        assert!(
+            matches!(
+                ValueWirePayloadRefV1::try_from(&value),
+                Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+            ),
+            "borrowed scalar {input} must be rejected"
+        );
+        assert!(matches!(
+            ValueWireV1::try_from(value.clone()),
+            Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+        ));
+        assert!(matches!(
+            ValueWireRefV1::try_from(&value),
+            Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+        ));
+        let named = NamedValue::new("number", value.clone());
+        assert!(serde_json::to_vec(&named).is_err());
+        assert!(named.to_json_vec().is_err());
+        let nested = Value::Json(serde_json::json!({"outer": [number.clone()]}));
+        assert!(
+            matches!(
+                ValueWireV1::try_from(nested.clone()),
+                Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+            ),
+            "nested scalar {input} must be rejected"
+        );
+        assert!(
+            matches!(
+                ValueWireRefV1::try_from(&nested),
+                Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+            ),
+            "borrowed nested scalar {input} must be rejected"
+        );
+        let values = MultiValues::Json(vec![serde_json::json!(0), number]);
+        assert!(
+            matches!(
+                ValueWirePayloadV1::try_from(values.clone()),
+                Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+            ),
+            "collection {input} must be rejected"
+        );
+        assert!(
+            matches!(
+                ValueWirePayloadRefV1::try_from(&values),
+                Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+            ),
+            "borrowed collection {input} must be rejected"
+        );
+        assert!(matches!(
+            ValueWireV1::try_from(values.clone()),
+            Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+        ));
+        assert!(matches!(
+            ValueWireRefV1::try_from(&values),
+            Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+        ));
+        let named = NamedMultiValues::new("numbers", values.clone());
+        assert!(serde_json::to_vec(&named).is_err());
+        assert!(named.to_json_vec().is_err());
+    }
+}
+
+#[test]
+fn test_wire_json_number_standard_values_preserve_identity() {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hash;
+    use std::hash::Hasher;
+
+    let values = [
+        JsonValue::from(i64::MIN),
+        JsonValue::from(u64::MAX),
+        JsonValue::from(0.125_f64),
+        JsonValue::from(1.25e100_f64),
+        JsonValue::from(-0.0_f64),
+    ];
+    for json in values {
+        let original = ValueContainer::from(Value::Json(json));
+        let wire = ValueWireV1::try_from(original.clone()).expect("standard number is accepted");
+        let bytes = wire.to_json_vec().expect("standard number encodes");
+        let restored = ValueWireV1::decode_json_slice(&bytes)
+            .expect("standard number decodes")
+            .into_container();
+        assert_eq!(restored, original);
+        let mut expected_hash = DefaultHasher::new();
+        original.hash(&mut expected_hash);
+        let mut actual_hash = DefaultHasher::new();
+        restored.hash(&mut actual_hash);
+        assert_eq!(actual_hash.finish(), expected_hash.finish());
+    }
+}
+
+#[test]
+fn test_wire_json_number_named_standard_wrappers_round_trip() {
+    let value = Value::Json(JsonValue::from(42_u64));
+    let named_value = NamedValue::new("answer", value.clone());
+
+    // Standard JSON numbers remain supported through both Serde entry points.
+    let serde_bytes = serde_json::to_vec(&named_value).expect("ordinary named Serde encoding");
+    let serde_value: NamedValue = serde_json::from_slice(&serde_bytes).expect("ordinary named Serde decoding");
+    assert_eq!(serde_value.name(), "answer");
+    assert_eq!(serde_value.value(), &value);
+
+    let bounded_bytes = named_value.to_json_vec().expect("bounded named encoding");
+    let bounded_value = NamedValue::decode_json_slice(&bounded_bytes).expect("bounded named decoding");
+    assert_eq!(bounded_value.name(), "answer");
+    assert_eq!(bounded_value.value(), &value);
+
+    let values = MultiValues::Json(vec![JsonValue::from(42_u64), JsonValue::from(43_u64)]);
+    let named_values = NamedMultiValues::new("answers", values.clone());
+    let serde_bytes = serde_json::to_vec(&named_values).expect("ordinary named-list Serde encoding");
+    let serde_values: NamedMultiValues =
+        serde_json::from_slice(&serde_bytes).expect("ordinary named-list Serde decoding");
+    assert_eq!(serde_values.name(), "answers");
+    assert_eq!(serde_values.values(), &values);
+
+    let bounded_bytes = named_values.to_json_vec().expect("bounded named-list encoding");
+    let bounded_values = NamedMultiValues::decode_json_slice(&bounded_bytes).expect("bounded named-list decoding");
+    assert_eq!(bounded_values.name(), "answers");
+    assert_eq!(bounded_values.values(), &values);
 }
 
 #[cfg(feature = "converter")]

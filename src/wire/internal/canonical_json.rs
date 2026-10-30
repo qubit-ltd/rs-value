@@ -9,6 +9,7 @@
 //! Private recursive canonical serializer for JSON values.
 
 use serde::Serialize;
+use serde::ser::Error as SerError;
 use serde::ser::SerializeMap;
 use serde::ser::SerializeSeq;
 use serde::ser::Serializer;
@@ -33,7 +34,10 @@ impl Serialize for CanonicalJson<'_> {
         match self.0 {
             Value::Null => serializer.serialize_unit(),
             Value::Bool(value) => serializer.serialize_bool(*value),
-            Value::Number(value) => value.serialize(serializer),
+            Value::Number(value) => {
+                crate::wire::json::validate_number(value).map_err(S::Error::custom)?;
+                value.serialize(serializer)
+            }
             Value::String(value) => serializer.serialize_str(value),
             Value::Array(values) => {
                 let mut sequence = serializer.serialize_seq(Some(values.len()))?;
@@ -54,3 +58,7 @@ impl Serialize for CanonicalJson<'_> {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "../../../tests/wire/internal/canonical_json_tests.rs"]
+mod canonical_json_tests;

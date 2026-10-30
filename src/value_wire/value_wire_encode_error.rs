@@ -41,6 +41,11 @@ use thiserror::Error;
 #[must_use]
 #[derive(Debug, Error)]
 pub enum ValueWireEncodeError {
+    /// A JSON number cannot be restored with the V1 number model without
+    /// changing its `serde_json::Number` identity.
+    #[cfg(feature = "json")]
+    #[error("V1 JSON wire cannot preserve this JSON number representation")]
+    JsonNumberNotRoundTrippable,
     /// A JSON V1 float must be finite.
     #[error("V1 JSON wire cannot represent a non-finite {data_type} value")]
     NonFiniteFloat {

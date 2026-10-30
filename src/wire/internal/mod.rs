@@ -17,6 +17,8 @@ mod canonical_json;
 mod canonical_string_map;
 mod duration_payload;
 mod duration_payload_visitor;
+#[cfg(feature = "json")]
+mod json_number_children;
 mod strict_string_map;
 mod strict_string_map_visitor;
 
@@ -26,4 +28,6 @@ pub(in crate::wire) use big_decimal_payload::BigDecimalPayload;
 pub(in crate::wire) use canonical_json::CanonicalJson;
 pub(in crate::wire) use canonical_string_map::CanonicalStringMap;
 pub(in crate::wire) use duration_payload::DurationPayload;
+#[cfg(feature = "json")]
+pub(in crate::wire) use json_number_children::JsonNumberChildren;
 pub(in crate::wire) use strict_string_map::StrictStringMap;
