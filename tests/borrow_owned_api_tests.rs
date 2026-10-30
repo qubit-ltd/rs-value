@@ -8,6 +8,7 @@
 
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
+use qubit_value::StrictValueRead;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueError;
@@ -181,6 +182,72 @@ fn test_borrowed_reads_preserve_missing_and_mismatch_errors() {
         wrong.get_ref::<String>(),
         Err(ValueError::TypeMismatch { .. })
     ));
+}
+
+#[test]
+fn test_strict_first_reads_preserve_scalar_collection_and_fallback_contracts() {
+    let values = MultiValues::Int32(vec![1, 2]);
+    assert_eq!(values.get_first::<i32>().unwrap(), 1);
+    assert_eq!(*values.get_first_ref::<i32>().unwrap(), 1);
+    assert_eq!(values.get::<i32>().unwrap(), vec![1, 2]);
+    assert_eq!(values.get_slice::<i32>().unwrap(), &[1, 2]);
+
+    let empty = MultiValues::Int32(Vec::new());
+    let error = empty.get_first::<i32>().unwrap_err();
+    assert_eq!(
+        error.missing().unwrap().reason(),
+        qubit_value::ValueMissingReason::EmptyCollection
+    );
+
+    let unset = MultiValues::Unset(DataType::Int32);
+    assert_eq!(unset.get_first_or::<i32>(7).unwrap(), 7);
+    assert!(matches!(
+        unset.get_first::<bool>(),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+
+    let strings = MultiValues::String(vec![String::from("first"), String::from("second")]);
+    assert_eq!(strings.get_first_ref::<str>().unwrap(), "first");
+    assert!(std::ptr::eq(
+        strings.get_first_ref::<String>().unwrap(),
+        &strings.get_slice::<String>().unwrap()[0]
+    ));
+
+    let calls = std::cell::Cell::new(0);
+    assert_eq!(
+        unset
+            .get_first_or_else::<i32, _>(|| {
+                calls.set(calls.get() + 1);
+                9
+            })
+            .unwrap(),
+        9
+    );
+    assert_eq!(calls.get(), 1);
+
+    assert!(
+        values
+            .get_first_or_else::<i32, _>(|| {
+                calls.set(calls.get() + 1);
+                9
+            })
+            .is_ok()
+    );
+    let empty_result = empty.get_first_or_else::<i32, _>(|| {
+        calls.set(calls.get() + 1);
+        9
+    });
+    assert!(empty_result.is_err());
+    let mismatch_result = unset.get_first_or_else::<bool, _>(|| {
+        calls.set(calls.get() + 1);
+        true
+    });
+    assert!(mismatch_result.is_err());
+    assert_eq!(calls.get(), 1);
+
+    assert_eq!(i32::read_collection_first(&values).unwrap(), 1);
+    let container = ValueContainer::from(values);
+    assert_eq!(container.get_first::<i32>().unwrap(), 1);
 }
 
 #[test]

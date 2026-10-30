@@ -98,7 +98,7 @@ where
 
     #[inline(always)]
     fn read_collection_first(values: &MultiValues) -> ValueResult<Self> {
-        values.get_first()
+        Self::try_from(values)
     }
 
     #[inline(always)]

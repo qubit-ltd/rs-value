@@ -61,6 +61,7 @@ use super::internal::MultiValuesRepr;
 use super::multi_values_identity::hash_multi_values_payload_with_json_budget;
 use super::multi_values_ref::MultiValuesRef;
 use crate::IntoValueDefault;
+use crate::StrictValueRead;
 use crate::Value;
 use crate::ValueError;
 use crate::ValueResult;
@@ -231,10 +232,19 @@ impl MultiValues {
     /// let empty = MultiValues::new(Vec::<String>::new());
     /// assert!(matches!(empty.get_first_ref::<String>(), Err(ValueError::Missing(_))));
     /// ```
+    ///
+    /// A first-item borrow does not accept a complete slice target:
+    ///
+    /// ```compile_fail
+    /// use qubit_value::MultiValues;
+    ///
+    /// let values = MultiValues::Int32(vec![1, 2]);
+    /// let _: &[i32] = values.get_first_ref::<[i32]>().unwrap();
+    /// ```
     #[inline(always)]
     pub fn get_first_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
     where
-        &'a T: TryFrom<&'a Self, Error = ValueError>,
+        &'a T: TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a Self, Error = ValueError>,
     {
         <&'a T>::try_from(self)
     }
@@ -859,12 +869,21 @@ impl MultiValues {
     /// let first: String = multi.get_first().unwrap();
     /// assert_eq!(first, "hello");
     /// ```
+    ///
+    /// A first-item read does not accept a complete collection target:
+    ///
+    /// ```compile_fail
+    /// use qubit_value::MultiValues;
+    ///
+    /// let values = MultiValues::Int32(vec![1, 2]);
+    /// let _: Vec<i32> = values.get_first::<Vec<i32>>().unwrap();
+    /// ```
     #[inline(always)]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
-        for<'a> T: TryFrom<&'a Self, Error = ValueError>,
+        T: StrictValueRead,
     {
-        T::try_from(self)
+        T::read_collection_first(self)
     }
 
     /// Generic first-value getter with a default value.
@@ -889,10 +908,17 @@ impl MultiValues {
     ///
     /// Returns [`ValueError::Missing`] for a concrete empty collection or
     /// [`ValueError::TypeMismatch`] when the stored type differs from `T`.
+    ///
+    /// ```compile_fail
+    /// use qubit_value::MultiValues;
+    ///
+    /// let values = MultiValues::Int32(vec![1, 2]);
+    /// let _: Vec<i32> = values.get_first_or::<Vec<i32>>(Vec::new()).unwrap();
+    /// ```
     #[inline(always)]
     pub fn get_first_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
-        for<'a> T: TryFrom<&'a Self, Error = ValueError>,
+        T: StrictValueRead,
     {
         match self.get_first() {
             Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => {
@@ -921,10 +947,17 @@ impl MultiValues {
     ///
     /// Preserves empty-collection and type-mismatch errors without invoking
     /// the callback.
+    ///
+    /// ```compile_fail
+    /// use qubit_value::MultiValues;
+    ///
+    /// let values = MultiValues::Int32(vec![1, 2]);
+    /// let _: Vec<i32> = values.get_first_or_else::<Vec<i32>, _>(Vec::new).unwrap();
+    /// ```
     #[inline(always)]
     pub fn get_first_or_else<T, F>(&self, default: F) -> ValueResult<T>
     where
-        for<'a> T: TryFrom<&'a Self, Error = ValueError>,
+        T: StrictValueRead,
         F: FnOnce() -> T,
     {
         match self.get_first() {
