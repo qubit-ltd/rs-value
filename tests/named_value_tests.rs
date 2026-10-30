@@ -9,22 +9,35 @@
 //!
 //! Tests various functionalities of the named single value container。
 
+#[cfg(feature = "chrono")]
 use chrono::DateTime as UtcDateTime;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDateTime;
+#[cfg(feature = "chrono")]
 use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
 use chrono::Utc;
+#[cfg(feature = "json")]
 use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
 use qubit_budget::Observation;
+#[cfg(feature = "json")]
 use qubit_budget::json::JsonDecodeLimits;
+#[cfg(feature = "json")]
 use qubit_budget::json::JsonEncodeLimits;
+#[cfg(feature = "json")]
 use qubit_budget::json::JsonResource;
 use qubit_datatype::DataType;
 use qubit_value::NamedValue;
 use qubit_value::Value;
+#[cfg(feature = "json")]
 use qubit_value::ValueWireDecodeError;
+#[cfg(feature = "json")]
 use qubit_value::ValueWireEncodeError;
 
+#[cfg(feature = "json")]
 #[test]
 fn test_named_value_json_numbers_round_trip() {
     let expected = NamedValue::new(
@@ -80,6 +93,7 @@ fn test_named_value_serializes_with_v1_wire_contract() {
 }
 
 /// Applies one shared budget to the wrapper name and nested scalar value.
+#[cfg(feature = "json")]
 #[test]
 fn test_named_value_bounded_decode_reuses_value_budget() {
     let named = NamedValue::new("port", Value::Int32(42));
@@ -122,6 +136,7 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
 }
 
 #[test]
+#[cfg(feature = "json")]
 fn test_named_value_default_encoding_round_trips() {
     let named = NamedValue::new("port", Value::Int32(42));
     let encoded = named.to_json_vec().expect("default limits should encode named value");
@@ -133,6 +148,7 @@ fn test_named_value_default_encoding_round_trips() {
 }
 
 #[test]
+#[cfg(feature = "json")]
 fn test_named_value_writer_matches_vec_and_rejects_output_limit() {
     let named = NamedValue::new("port", Value::Int32(42));
     let mut output = Vec::new();
@@ -314,6 +330,7 @@ fn test_named_value_get_string() {
     assert_eq!(nv.value().get_string().unwrap(), "hello");
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_get_date() {
     let nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()));
@@ -323,6 +340,7 @@ fn test_named_value_get_date() {
     );
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_get_time() {
     let nv = NamedValue::new(
@@ -335,6 +353,7 @@ fn test_named_value_get_time() {
     );
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_get_datetime() {
     let nv = NamedValue::new(
@@ -353,6 +372,7 @@ fn test_named_value_get_datetime() {
     );
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_get_instant() {
     let inst: UtcDateTime<Utc> =
@@ -484,6 +504,7 @@ fn test_named_value_set_get_string() {
     assert_eq!(s, "hello");
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_set_get_date() {
     let mut nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()));
@@ -493,6 +514,7 @@ fn test_named_value_set_get_date() {
     assert_eq!(got, date);
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_set_get_time() {
     let mut nv = NamedValue::new("t", Value::Time(NaiveTime::from_hms_opt(0, 0, 0).unwrap()));
@@ -502,6 +524,7 @@ fn test_named_value_set_get_time() {
     assert_eq!(got, time);
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_set_get_datetime() {
     let mut nv = NamedValue::new(
@@ -520,6 +543,7 @@ fn test_named_value_set_get_datetime() {
     assert_eq!(got, dt);
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_set_get_instant() {
     let inst: UtcDateTime<Utc> =

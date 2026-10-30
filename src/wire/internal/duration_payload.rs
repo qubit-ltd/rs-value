@@ -11,20 +11,35 @@
 use std::time::Duration;
 
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
+
+use super::duration_payload_visitor::DurationPayloadVisitor;
 
 /// Encodes a [`Duration`] as whole seconds and a fractional nanosecond count.
 ///
 /// The nanosecond component is less than one billion, matching the invariant
 /// required by [`Duration::new`].
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Serialize)]
 pub(in crate::wire) struct DurationPayload {
     /// Number of complete seconds in the represented duration.
     pub(in crate::wire) secs: u64,
     /// Fractional nanoseconds within the final second, from zero to
     /// 999,999,999.
     pub(in crate::wire) nanos: u32,
+}
+
+impl<'de> Deserialize<'de> for DurationPayload {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        if deserializer.is_human_readable() {
+            deserializer.deserialize_map(DurationPayloadVisitor)
+        } else {
+            deserializer.deserialize_struct("DurationPayload", &["secs", "nanos"], DurationPayloadVisitor)
+        }
+    }
 }
 
 impl From<&Duration> for DurationPayload {

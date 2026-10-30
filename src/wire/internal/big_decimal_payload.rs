@@ -13,18 +13,32 @@ use std::str::FromStr;
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
 
+use super::big_decimal_payload_visitor::BigDecimalPayloadVisitor;
 use crate::wire::is_valid_big_decimal_scale;
 
 /// Exact wire representation of an arbitrary-precision decimal.
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Serialize)]
 pub(in crate::wire) struct BigDecimalPayload {
     /// Canonical base-10 integer coefficient.
     pub(in crate::wire) coefficient: String,
     /// Number of decimal places represented by the coefficient.
     pub(in crate::wire) scale: i64,
+}
+
+impl<'de> Deserialize<'de> for BigDecimalPayload {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        if deserializer.is_human_readable() {
+            deserializer.deserialize_map(BigDecimalPayloadVisitor)
+        } else {
+            deserializer.deserialize_struct("BigDecimalPayload", &["coefficient", "scale"], BigDecimalPayloadVisitor)
+        }
+    }
 }
 
 impl TryFrom<&BigDecimal> for BigDecimalPayload {

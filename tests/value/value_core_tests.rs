@@ -9,14 +9,19 @@
 //!
 //! Tests for core and structural `Value` operations.
 
+#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 use std::str::FromStr;
 
+#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 use bigdecimal::BigDecimal;
+#[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::Value;
 use qubit_value::ValueError;
+#[cfg(feature = "json")]
 use qubit_value::ValueWireEncodeError;
+#[cfg(feature = "json")]
 use qubit_value::ValueWireV1;
 
 #[test]
@@ -86,12 +91,14 @@ fn test_value_numeric_types() {
 fn test_value_is_numeric_is_state_aware() {
     assert!(Value::Int32(42).is_numeric());
     assert!(Value::Float64(0.0).is_numeric());
+    #[cfg(feature = "big-integer")]
     assert!(Value::BigInteger(BigInt::from(1)).is_numeric());
     assert!(!Value::Unset(DataType::Int32).is_numeric());
     assert!(!Value::String("42".to_string()).is_numeric());
     assert!(!Value::Bool(true).is_numeric());
 }
 
+#[cfg(feature = "json")]
 #[test]
 fn test_value_wire_rejects_non_finite_floats() {
     let finite = Value::Float64(1.25);
@@ -175,6 +182,7 @@ fn test_value_ref_types() {
     assert_eq!(value.get_string().unwrap(), "world");
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_value_datetime_types() {
     use chrono::DateTime;
@@ -239,6 +247,7 @@ fn test_set_on_non_empty_for_coverage() {
     assert_eq!(v.get_string().unwrap(), "world");
 }
 
+#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_data_type_coverage_all_variants() {
     // Test data_type() method coverage for all data type variants
@@ -316,6 +325,7 @@ fn test_data_type_coverage_all_variants() {
     );
 }
 
+#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_is_unset_distinguishes_empty_inner_values() {
     use chrono::DateTime;

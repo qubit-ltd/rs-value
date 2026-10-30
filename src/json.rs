@@ -115,7 +115,9 @@ macro_rules! prepare_payload {
         $budget.format(&$value, $depth).map(PreparedScalar::Formatted)
     };
     ($variant:ident, json_duration, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
-        let text = DataConverter::from($value).to_in::<String>(&mut $budget.conversion)?;
+        let text = DataConverter::from($value)
+            .to_in::<String>(&mut $budget.conversion)
+            .map_err(|error| $budget.duration_conversion_error(error))?;
         $budget.admit_output_string(text.len(), $depth)?;
         Ok(PreparedScalar::Formatted(text))
     }};

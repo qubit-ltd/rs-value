@@ -10,10 +10,13 @@
 
 #[cfg(feature = "big-decimal")]
 mod big_decimal_payload;
+#[cfg(feature = "big-decimal")]
+mod big_decimal_payload_visitor;
 #[cfg(feature = "json")]
 mod canonical_json;
 mod canonical_string_map;
 mod duration_payload;
+mod duration_payload_visitor;
 mod strict_string_map;
 mod strict_string_map_visitor;
 

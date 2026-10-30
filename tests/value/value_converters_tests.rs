@@ -12,11 +12,17 @@
 use std::f64;
 use std::str::FromStr;
 
+#[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
+#[cfg(feature = "chrono")]
 use chrono::DateTime;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
 use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
 use chrono::Utc;
+#[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 use qubit_datatype::BlankStringPolicy;
 use qubit_datatype::BooleanConversionPolicy;
@@ -166,6 +172,7 @@ fn test_value_to_with_applies_common_conversion_policy() {
         "fallback"
     );
 }
+#[cfg(feature = "chrono")]
 #[test]
 fn test_value_datetime_to_string() {
     // Test Date to string conversion
@@ -243,6 +250,7 @@ fn test_value_as_bool_all_branches() {
         Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
     ));
 }
+#[cfg(all(feature = "chrono", feature = "big-decimal"))]
 #[test]
 fn test_value_as_int32_all_branches() {
     // Test all types that can convert to i32
@@ -362,6 +370,7 @@ fn test_value_as_int64_all_branches() {
         Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::UnsetScalar
     ));
 }
+#[cfg(feature = "chrono")]
 #[test]
 fn test_value_as_float64_all_branches() {
     // Test floating point conversion
@@ -504,6 +513,7 @@ fn test_value_as_float64_conversions() {
     let value = Value::String("invalid number".to_string());
     assert!(value.to::<f64>().is_conversion_error());
 }
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_big_type_conversions_for_coverage() {
     let lossy = ConversionPolicy::builder()
@@ -563,6 +573,7 @@ fn test_as_bool_string_conversion_error() {
         ));
     }
 }
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_as_int32_conversion_errors() {
     // Test i64 out of range ConversionError
@@ -610,6 +621,7 @@ fn test_as_int32_conversion_errors() {
         _ => panic!("Expected ConversionError for BigInteger overflow"),
     }
 }
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_as_int64_conversion_errors() {
     // Test i128 out of range ConversionError
@@ -648,6 +660,7 @@ fn test_as_int64_conversion_errors() {
         _ => panic!("Expected ConversionError for BigInteger overflow"),
     }
 }
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_as_float64_conversion_errors() {
     // Test string conversion failure ConversionError
@@ -771,6 +784,7 @@ fn test_as_bool_string_parse_error() {
     let value_false = Value::String("false".to_string());
     assert!(!value_false.to::<bool>().unwrap());
 }
+#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_as_bool_all_unsupported_types() {
     // Test all types that do not support conversion to bool
@@ -1178,6 +1192,7 @@ fn test_as_float64_string_parse_error() {
     let value_scientific = Value::String("1.23e10".to_string());
     assert_eq!(value_scientific.to::<f64>().unwrap(), 1.23e10);
 }
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_as_float64_biginteger_conversion_error() {
     // BigInteger within normal range should convert successfully
@@ -1193,6 +1208,7 @@ fn test_as_float64_biginteger_conversion_error() {
     let value_negative = Value::BigInteger(BigInt::from(-999999));
     assert_eq!(value_negative.to::<f64>().unwrap(), -999999.0);
 }
+#[cfg(feature = "big-decimal")]
 #[test]
 fn test_as_float64_bigdecimal_conversion_error() {
     let lossy = ConversionPolicy::builder()
@@ -1387,6 +1403,7 @@ fn test_conversion_with_edge_values() {
     assert_eq!(Value::Float32(f32::MAX).to::<f64>().unwrap(), f32::MAX as f64);
     assert_eq!(Value::Float32(f32::MIN).to::<f64>().unwrap(), f32::MIN as f64);
 }
+#[cfg(feature = "big-decimal")]
 #[test]
 fn test_as_int32_bigdecimal_out_of_range() {
     // Create a BigDecimal out of i32 range
@@ -1397,6 +1414,7 @@ fn test_as_int32_bigdecimal_out_of_range() {
     let result = value.to::<i32>();
     assert!(result.is_conversion_error());
 }
+#[cfg(feature = "chrono")]
 #[test]
 fn test_as_int32_non_numeric_type_conversion_failed() {
     let date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
@@ -1425,6 +1443,7 @@ fn test_as_int32_non_numeric_type_conversion_failed() {
     let value = Value::DateTime(datetime);
     assert!(value.to::<i32>().is_conversion_error());
 }
+#[cfg(feature = "chrono")]
 #[test]
 fn test_as_int64_non_numeric_type_conversion_failed() {
     let time = NaiveTime::from_hms_opt(12, 30, 45).unwrap();
@@ -1448,6 +1467,7 @@ fn test_as_int64_non_numeric_type_conversion_failed() {
     let value = Value::Date(date);
     assert!(value.to::<i64>().is_conversion_error());
 }
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_as_int64_big_types_edge_cases() {
     // BigInteger out of i64 range
@@ -1466,6 +1486,7 @@ fn test_as_int64_big_types_edge_cases() {
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), 123);
 }
+#[cfg(feature = "chrono")]
 #[test]
 fn test_as_float64_non_numeric_type_conversion_failed() {
     // DateTime type cannot convert to f64
@@ -1660,6 +1681,7 @@ fn test_as_int64_uint128_overflow() {
         _ => panic!("Expected ConversionError for large u128"),
     }
 }
+#[cfg(feature = "big-decimal")]
 #[test]
 fn test_as_int64_bigdecimal_conversion_failed() {
     // Create a BigDecimal out of i64 range
@@ -1715,6 +1737,7 @@ fn test_as_float64_string_parse_failed() {
     let result = value.to::<f64>();
     assert!(result.is_conversion_error());
 }
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_as_float64_biginteger_conversion_edge_cases() {
     // BigInteger within normal range should convert successfully
@@ -1738,6 +1761,7 @@ fn test_as_float64_biginteger_conversion_edge_cases() {
     let value = Value::BigInteger(zero_bigint);
     assert_eq!(value.to::<f64>().unwrap(), 0.0);
 }
+#[cfg(feature = "big-decimal")]
 #[test]
 fn test_as_float64_bigdecimal_conversion_edge_cases() {
     // BigDecimal within normal range should convert successfully
@@ -1922,6 +1946,7 @@ fn test_to_f32_extended_sources() {
 fn test_to_f32_range_failures() {
     assert!(Value::Float64(f64::MAX).to::<f32>().is_conversion_error());
 }
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_big_number_to_f32_and_f64_failures() {
     let huge_big_int = BigInt::from_str(&"9".repeat(2000)).unwrap();
@@ -1941,6 +1966,7 @@ fn test_big_number_to_f32_and_f64_failures() {
     assert!(Value::BigDecimal(huge_big_decimal).to::<f64>().is_conversion_error());
 }
 
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_narrow_signed_integer_converters_accept_numeric_sources() {
     let lossy = ConversionPolicy::builder()
@@ -1984,6 +2010,7 @@ fn test_narrow_signed_integer_converters_accept_numeric_sources() {
     assert_eq!(Value::BigDecimal(BigDecimal::from(32_000)).to::<i16>().unwrap(), 32_000);
 }
 
+#[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_narrow_signed_integer_converters_reject_invalid_values() {
     assert!(Value::String("128".to_string()).to::<i8>().is_conversion_error());

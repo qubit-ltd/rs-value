@@ -6,28 +6,81 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+#[cfg(feature = "json")]
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hash;
 use std::hash::Hasher;
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
 use std::time::Duration;
 
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 use bigdecimal::BigDecimal;
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
 use chrono::DateTime;
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
 use chrono::NaiveDate;
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
 use chrono::NaiveTime;
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
 use chrono::Utc;
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 use num_bigint::BigInt;
 #[cfg(feature = "json")]
 use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonResource;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonValueLimits;
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
 use qubit_datatype::DataType;
 use qubit_value::Value;
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
 use url::Url;
 
 #[cfg(feature = "json")]
@@ -60,7 +113,6 @@ impl Hasher for PanickingHasher {
 }
 
 /// Returns the standard-library hash of `value` for equality-contract tests.
-#[cfg(feature = "json")]
 fn hash(value: &Value) -> u64 {
     let mut hasher = DefaultHasher::new();
     value.hash(&mut hasher);
@@ -132,6 +184,13 @@ fn test_value_variant_identity_supports_hash_collections() {
 }
 
 /// Exercises native equality and hashing for every payload variant.
+#[cfg(all(
+    feature = "chrono",
+    feature = "big-integer",
+    feature = "big-decimal",
+    feature = "url",
+    feature = "json"
+))]
 #[test]
 fn test_value_identity_covers_every_variant() {
     let date = NaiveDate::from_ymd_opt(2026, 7, 16).unwrap();
@@ -176,6 +235,7 @@ fn test_value_identity_covers_every_variant() {
 }
 
 /// Verifies equal decimal encodings use the same canonical hash.
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_value_big_decimal_identity_normalizes_coefficient_and_scale() {
     let encodings = [
@@ -197,6 +257,7 @@ fn test_value_big_decimal_identity_normalizes_coefficient_and_scale() {
 }
 
 /// Verifies zero and extreme scales never trigger scale-sized hashing work.
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_value_big_decimal_hash_handles_extreme_scales() {
     let zero_min = Value::BigDecimal(BigDecimal::new(BigInt::from(0), i64::MIN));
@@ -289,6 +350,7 @@ fn test_value_hash_with_json_budget_panic_rolls_back_budget() {
 
 /// Verifies budgeted hashing preserves special non-JSON identity hashes.
 #[cfg(feature = "json")]
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_value_hash_with_json_budget_matches_standard_hash_for_special_non_json_values() {
     let float = Value::Float32(-0.0);

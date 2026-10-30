@@ -23,9 +23,11 @@ use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::Observation;
 use qubit_budget::json::JsonEncodeLimits;
+use qubit_budget::json::JsonEncodeSession;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 use qubit_datatype::DataType;
+use qubit_json::encode::JsonEncoder;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
@@ -326,12 +328,25 @@ fn test_preflight_encoding_success_implies_acceptance_at_output_boundaries() {
         Value::Json(serde_json::json!([null, true, 123, "mixed", {"nested": [false]}])),
     ];
 
+    let positive = Value::Int32(7);
+    let positive_wire = ValueWireV1::try_from(positive.clone()).expect("int32 must have a V1 wire value");
+    let encoded = JsonEncoder::new(JsonEncodeSession::from_limits(
+        JsonEncodeLimits::<JsonResource, usize>::new(),
+    ))
+    .to_vec(&positive_wire)
+    .expect("the fixed positive sample must encode successfully");
+    ValueWireEncodePreflight::new(JsonEncodeLimits::new())
+        .check_value(&positive)
+        .expect("the fixed positive sample must pass preflight");
+    assert!(!encoded.is_empty());
+
     for value in values {
         let wire = match ValueWireV1::try_from(value.clone()) {
             Ok(wire) => wire,
             Err(_) => continue,
         };
-        let encoded = match wire.to_json_vec_with_limits(JsonEncodeLimits::new()) {
+        let unbounded: JsonEncodeLimits = JsonEncodeLimits::new();
+        let encoded = match JsonEncoder::new(JsonEncodeSession::from_limits(unbounded)).to_vec(&wire) {
             Ok(encoded) => encoded,
             Err(_) => continue,
         };
@@ -348,7 +363,10 @@ fn test_preflight_encoding_success_implies_acceptance_at_output_boundaries() {
                 .max_number_bytes(4096)
                 .max_payload_bytes(4 * 1024 * 1024)
                 .build();
-            if wire.to_json_vec_with_limits(limits).is_ok() {
+            if JsonEncoder::new(JsonEncodeSession::from_limits(limits))
+                .to_vec(&wire)
+                .is_ok()
+            {
                 ValueWireEncodePreflight::new(limits)
                     .check_value(&value)
                     .expect("successful encoding must imply preflight acceptance");
@@ -399,13 +417,27 @@ fn test_preflight_encoding_success_implies_acceptance_for_collections_and_limits
             .build(),
     ];
 
+    let positive = ValueContainer::Collection(MultiValues::Int32(vec![1, 2]));
+    let wire = ValueWireV1::try_from(positive.clone()).expect("int32 collection must have a V1 wire value");
+    JsonEncoder::new(JsonEncodeSession::from_limits(
+        JsonEncodeLimits::<JsonResource, usize>::new(),
+    ))
+    .to_vec(&wire)
+    .expect("the fixed collection positive sample must encode successfully");
+    ValueWireEncodePreflight::new(JsonEncodeLimits::new())
+        .check_container(&positive)
+        .expect("the fixed collection positive sample must pass preflight");
+
     for value in values {
         for limits in &dimension_profiles {
             let wire = match ValueWireV1::try_from(value.clone()) {
                 Ok(wire) => wire,
                 Err(_) => continue,
             };
-            if wire.to_json_vec_with_limits(*limits).is_ok() {
+            if JsonEncoder::new(JsonEncodeSession::from_limits(*limits))
+                .to_vec(&wire)
+                .is_ok()
+            {
                 ValueWireEncodePreflight::new(*limits)
                     .check_container(&value)
                     .expect("successful encoding must imply preflight acceptance");

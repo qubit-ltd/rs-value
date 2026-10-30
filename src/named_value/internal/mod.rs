@@ -9,6 +9,7 @@
 //! Private wire representations for [`super::NamedValue`].
 
 mod named_value_wire_owned;
+mod named_value_wire_owned_visitor;
 mod named_value_wire_ref;
 
 pub(in crate::named_value) use named_value_wire_owned::NamedValueWireOwned;

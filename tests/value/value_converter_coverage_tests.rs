@@ -23,9 +23,12 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use qubit_datatype::DataType;
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 use qubit_datatype::InvalidValueReason;
 use qubit_value::Value;
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 use qubit_value::ValueError;
+#[cfg(feature = "url")]
 use url::Url;
 
 // ============================================================================
@@ -74,6 +77,7 @@ fn test_value_converter_duration_from_integer_uses_default_milliseconds() {
 // Url conversion — Empty / invalid type branches
 // ============================================================================
 
+#[cfg(feature = "url")]
 #[test]
 fn test_value_converter_url_empty() {
     let v = Value::Unset(DataType::Url);
@@ -81,6 +85,7 @@ fn test_value_converter_url_empty() {
     assert!(result.is_err());
 }
 
+#[cfg(feature = "url")]
 #[test]
 fn test_value_converter_url_wrong_type() {
     let v = Value::Int32(42);
@@ -92,6 +97,7 @@ fn test_value_converter_url_wrong_type() {
 // serde_json::Value conversion — Empty / invalid type branches
 // ============================================================================
 
+#[cfg(feature = "json")]
 #[test]
 fn test_value_converter_json_empty() {
     let v = Value::Unset(DataType::Json);
@@ -99,6 +105,7 @@ fn test_value_converter_json_empty() {
     assert!(result.is_err());
 }
 
+#[cfg(feature = "json")]
 #[test]
 fn test_value_converter_json_wrong_type() {
     let v = Value::Int32(42);
@@ -845,6 +852,7 @@ fn test_to_f32_empty() {
     assert!(Value::Unset(DataType::Float32).to::<f32>().is_err());
 }
 
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_to_f32_from_biginteger_normal() {
     use std::str::FromStr;
@@ -854,6 +862,7 @@ fn test_to_f32_from_biginteger_normal() {
     assert_eq!(Value::BigInteger(big).to::<f32>().unwrap(), 42.0f32);
 }
 
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_to_f32_from_biginteger_huge_out_of_range() {
     use num_bigint::BigInt;
@@ -861,6 +870,7 @@ fn test_to_f32_from_biginteger_huge_out_of_range() {
     assert!(Value::BigInteger(huge).to::<f32>().is_err());
 }
 
+#[cfg(feature = "big-decimal")]
 #[test]
 fn test_to_f32_from_bigdecimal_normal() {
     use std::str::FromStr;
@@ -871,6 +881,7 @@ fn test_to_f32_from_bigdecimal_normal() {
     assert!((result - 2.25f32).abs() < 1e-5);
 }
 
+#[cfg(feature = "big-decimal")]
 #[test]
 fn test_to_f32_from_bigdecimal_huge_out_of_range() {
     use std::str::FromStr;
@@ -880,6 +891,7 @@ fn test_to_f32_from_bigdecimal_huge_out_of_range() {
     assert!(Value::BigDecimal(huge).to::<f32>().is_err());
 }
 
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_to_f32_from_biginteger_out_of_range() {
     use num_bigint::BigInt;
@@ -895,6 +907,7 @@ fn test_to_f32_from_biginteger_out_of_range() {
     ));
 }
 
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_to_f32_from_bigdecimal_out_of_range() {
     use bigdecimal::BigDecimal;
@@ -920,6 +933,7 @@ fn test_to_f32_wrong_type() {
 // f64 conversion — BigInteger/BigDecimal paths
 // ============================================================================
 
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_to_f64_from_biginteger_normal() {
     use num_bigint::BigInt;
@@ -936,6 +950,7 @@ fn test_to_f64_from_biginteger_normal() {
     assert!((result - i64::MAX as f64).abs() < 1.0);
 }
 
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_to_f64_from_biginteger_huge_out_of_range() {
     use num_bigint::BigInt;
@@ -943,6 +958,7 @@ fn test_to_f64_from_biginteger_huge_out_of_range() {
     assert!(Value::BigInteger(huge).to::<f64>().is_err());
 }
 
+#[cfg(feature = "big-decimal")]
 #[test]
 fn test_to_f64_from_bigdecimal_normal() {
     use std::str::FromStr;
@@ -953,6 +969,7 @@ fn test_to_f64_from_bigdecimal_normal() {
     assert!((result - 2.25f64).abs() < 1e-10);
 }
 
+#[cfg(feature = "big-decimal")]
 #[test]
 fn test_to_f64_from_bigdecimal_huge_out_of_range() {
     use std::str::FromStr;
@@ -962,6 +979,7 @@ fn test_to_f64_from_bigdecimal_huge_out_of_range() {
     assert!(Value::BigDecimal(huge).to::<f64>().is_err());
 }
 
+#[cfg(feature = "big-integer")]
 #[test]
 fn test_to_f64_from_biginteger_out_of_range() {
     use num_bigint::BigInt;
@@ -977,6 +995,7 @@ fn test_to_f64_from_biginteger_out_of_range() {
     ));
 }
 
+#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_to_f64_from_bigdecimal_out_of_range() {
     use bigdecimal::BigDecimal;

@@ -9,14 +9,23 @@
 //!
 //! Tests various functionalities of the named multi values container。
 
+#[cfg(feature = "chrono")]
 use chrono::DateTime as UtcDateTime;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
 use chrono::NaiveDateTime;
+#[cfg(feature = "chrono")]
 use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
 use chrono::Utc;
+#[cfg(feature = "json")]
 use qubit_budget::BudgetError;
+#[cfg(feature = "json")]
 use qubit_budget::json::JsonDecodeLimits;
+#[cfg(feature = "json")]
 use qubit_budget::json::JsonEncodeLimits;
+#[cfg(feature = "json")]
 use qubit_budget::json::JsonResource;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
@@ -24,9 +33,12 @@ use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueError;
+#[cfg(feature = "json")]
 use qubit_value::ValueWireDecodeError;
+#[cfg(feature = "json")]
 use qubit_value::ValueWireEncodeError;
 
+#[cfg(feature = "json")]
 #[test]
 fn test_named_multi_values_json_numbers_round_trip() {
     let expected = NamedMultiValues::new(
@@ -83,6 +95,7 @@ fn test_named_multi_values_serializes_with_v1_wire_contract() {
 }
 
 /// Applies one shared budget to the wrapper and every collection element.
+#[cfg(feature = "json")]
 #[test]
 fn test_named_multi_values_bounded_decode_reuses_collection_budget() {
     let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![42, 43]));
@@ -109,6 +122,7 @@ fn test_named_multi_values_bounded_decode_reuses_collection_budget() {
 }
 
 #[test]
+#[cfg(feature = "json")]
 fn test_named_multi_values_default_encoding_round_trips() {
     let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![42]));
     let encoded = named.to_json_vec().expect("default limits should encode named values");
@@ -120,6 +134,7 @@ fn test_named_multi_values_default_encoding_round_trips() {
 }
 
 #[test]
+#[cfg(feature = "json")]
 fn test_named_multi_values_writer_matches_vec_and_rejects_output_limit() {
     let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![42, 43]));
     let mut output = Vec::new();
@@ -249,6 +264,7 @@ fn test_nmv_get_string_list() {
     assert_eq!(v, vec!["a".to_string(), "b".to_string()]);
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_nmv_get_dates() {
     let nmv = NamedMultiValues::new(
@@ -259,6 +275,7 @@ fn test_nmv_get_dates() {
     assert_eq!(v, vec![NaiveDate::from_ymd_opt(2020, 1, 2).unwrap()]);
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_nmv_get_times() {
     let nmv = NamedMultiValues::new(
@@ -269,6 +286,7 @@ fn test_nmv_get_times() {
     assert_eq!(v, vec![NaiveTime::from_hms_milli_opt(1, 2, 3, 4).unwrap()]);
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_nmv_get_datetimes() {
     let nmv = NamedMultiValues::new(
@@ -288,6 +306,7 @@ fn test_nmv_get_datetimes() {
     );
 }
 
+#[cfg(feature = "chrono")]
 #[test]
 fn test_nmv_get_instants() {
     let now: UtcDateTime<Utc> =

@@ -10,9 +10,9 @@
 //! Provides integration tests for the value processing framework.
 
 mod helpers_tests;
-#[cfg(feature = "all")]
+#[cfg(feature = "json")]
 pub(crate) use helpers_tests::decode_value_wire_payload_value;
-#[cfg(feature = "all")]
+#[cfg(feature = "json")]
 pub(crate) use helpers_tests::decode_value_wire_slice;
 pub(crate) use helpers_tests::decode_value_wire_str;
 pub(crate) use helpers_tests::decode_value_wire_value;
@@ -25,18 +25,14 @@ mod into_value_default_tests;
 #[cfg(all(feature = "converter", feature = "json"))]
 mod json_tests;
 mod multi_values;
-#[cfg(feature = "all")]
 mod named_multi_values_tests;
-#[cfg(feature = "all")]
 mod named_multi_values {
     mod internal {
         mod named_multi_values_wire_owned_tests;
         mod named_multi_values_wire_ref_tests;
     }
 }
-#[cfg(feature = "all")]
 mod named_value_tests;
-#[cfg(feature = "all")]
 mod named_value {
     mod internal {
         mod named_value_wire_owned_tests;

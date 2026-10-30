@@ -11,6 +11,8 @@
 
 use libfuzzer_sys::fuzz_target;
 use qubit_budget::json::JsonEncodeLimits;
+use qubit_budget::json::JsonEncodeSession;
+use qubit_json::encode::JsonEncoder;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodePreflight;
 use qubit_value::ValueWireV1;
@@ -51,7 +53,10 @@ fn check_successful_encoding(value: &ValueContainer, limits: JsonEncodeLimits) {
         Ok(wire) => wire,
         Err(_) => return,
     };
-    if wire.to_json_vec_with_limits(limits.clone()).is_ok() {
+    if JsonEncoder::new(JsonEncodeSession::from_limits(limits))
+        .to_vec(&wire)
+        .is_ok()
+    {
         ValueWireEncodePreflight::new(limits)
             .check_container(value)
             .expect("successful bounded encoding must pass preflight");
@@ -62,7 +67,7 @@ fuzz_target!(|data: &[u8]| {
     let input = bounded_input(data);
     let value = value_from_bytes(input);
     assert_eq!(value, value_from_bytes(input), "input decoding must be deterministic");
-    let wide = JsonEncodeLimits::builder()
+    let wide: JsonEncodeLimits = JsonEncodeLimits::builder()
         .max_output_bytes(MAX_OUTPUT_BYTES)
         .max_depth(MAX_DEPTH + 8)
         .max_nodes(MAX_ITEMS * MAX_ITEMS)
@@ -74,7 +79,7 @@ fuzz_target!(|data: &[u8]| {
         .max_payload_bytes(MAX_OUTPUT_BYTES)
         .build();
     if let Ok(wire) = ValueWireV1::try_from(value.clone())
-        && let Ok(encoded) = wire.to_json_vec_with_limits(wide)
+        && let Ok(encoded) = JsonEncoder::new(JsonEncodeSession::from_limits(wide)).to_vec(&wire)
     {
         let size = encoded.len();
         for output_limit in [

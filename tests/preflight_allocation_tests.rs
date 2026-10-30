@@ -22,6 +22,8 @@ use qubit_budget::MeasuredBudgetError;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_value::MultiValues;
+use qubit_value::NamedMultiValues;
+use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWireEncodePreflight;
@@ -274,6 +276,127 @@ fn test_direct_wire_helpers_reject_large_decimal_before_formatting() {
         &large_collection_payload
     );
     check_helpers!("ValueWireV1 collection", &small_collection_wire, &large_collection_wire);
+}
+
+#[test]
+fn test_named_helpers_reject_large_decimal_before_formatting() {
+    let small_digits = "9".repeat(4096);
+    let large_digits = "9".repeat(128 * 1024);
+    let small_coefficient = BigInt::parse_bytes(small_digits.as_bytes(), 10).expect("small coefficient must parse");
+    let large_coefficient = BigInt::parse_bytes(large_digits.as_bytes(), 10).expect("large coefficient must parse");
+    let small_scalar = NamedValue::new(
+        "decimal",
+        Value::BigDecimal(BigDecimal::new(small_coefficient.clone(), 2)),
+    );
+    let large_scalar = NamedValue::new(
+        "decimal",
+        Value::BigDecimal(BigDecimal::new(large_coefficient.clone(), 2)),
+    );
+    let small_collection = NamedMultiValues::new(
+        "decimals",
+        MultiValues::BigDecimal(vec![BigDecimal::new(small_coefficient, 2)]),
+    );
+    let large_collection = NamedMultiValues::new(
+        "decimals",
+        MultiValues::BigDecimal(vec![BigDecimal::new(large_coefficient, 2)]),
+    );
+
+    macro_rules! check_named_helpers {
+        ($label:literal, $small:expr, $large:expr) => {{
+            let profiles = [
+                (
+                    JsonEncodeLimits::builder().max_string_bytes(64).build(),
+                    JsonResource::StringBytes,
+                ),
+                (
+                    JsonEncodeLimits::builder().max_payload_bytes(128).build(),
+                    JsonResource::PayloadBytes,
+                ),
+                (
+                    JsonEncodeLimits::builder().max_output_bytes(256).build(),
+                    JsonResource::OutputBytes,
+                ),
+            ];
+            for (limits, resource) in profiles {
+                let (small_result, small_bytes) = measured_allocations(|| $small.to_json_vec_with_limits(limits));
+                let (large_result, large_bytes) = measured_allocations(|| $large.to_json_vec_with_limits(limits));
+                assert_expected_encode_limit(small_result.unwrap_err(), resource, $label, "vector");
+                assert_expected_encode_limit(large_result.unwrap_err(), resource, $label, "vector");
+                assert_bounded_direct_helper_allocations($label, "vector", resource, small_bytes, large_bytes);
+
+                let mut small_writer = b"prefix".to_vec();
+                let mut large_writer = b"prefix".to_vec();
+                let (small_result, small_bytes) =
+                    measured_allocations(|| $small.to_json_writer_with_limits(&mut small_writer, limits));
+                let (large_result, large_bytes) =
+                    measured_allocations(|| $large.to_json_writer_with_limits(&mut large_writer, limits));
+                assert_expected_encode_limit(small_result.unwrap_err(), resource, $label, "writer");
+                assert_expected_encode_limit(large_result.unwrap_err(), resource, $label, "writer");
+                assert_eq!(small_writer, b"prefix", "{} writer changed prefix", $label);
+                assert_eq!(large_writer, b"prefix", "{} writer changed prefix", $label);
+                assert_bounded_direct_helper_allocations($label, "writer", resource, small_bytes, large_bytes);
+            }
+
+            let small_default = $small
+                .to_json_vec()
+                .expect("small named fixture fits the default profile");
+            assert_eq!(
+                small_default,
+                $small
+                    .to_json_vec_with_limits(JsonEncodeLimits::new())
+                    .expect("small named fixture fits an explicit wide profile"),
+            );
+            let mut default_writer = Vec::new();
+            $small
+                .to_json_writer(&mut default_writer)
+                .expect("default named writer helper succeeds");
+            assert_eq!(default_writer, small_default);
+        }};
+    }
+
+    check_named_helpers!("NamedValue", &small_scalar, &large_scalar);
+    check_named_helpers!("NamedMultiValues", &small_collection, &large_collection);
+}
+
+#[test]
+fn test_named_helpers_keep_name_and_complete_output_limits() {
+    let named = NamedValue::new("toolong", Value::Int32(7));
+    let limits = JsonEncodeLimits::builder().max_string_bytes(3).build();
+    assert_expected_encode_limit(
+        named.to_json_vec_with_limits(limits).unwrap_err(),
+        JsonResource::StringBytes,
+        "NamedValue name",
+        "vector",
+    );
+    let mut writer = b"prefix".to_vec();
+    assert_expected_encode_limit(
+        named.to_json_writer_with_limits(&mut writer, limits).unwrap_err(),
+        JsonResource::StringBytes,
+        "NamedValue name",
+        "writer",
+    );
+    assert_eq!(writer, b"prefix", "name rejection must leave writer prefix unchanged");
+
+    let small = NamedValue::new("ok", Value::Int32(7));
+    let wide = JsonEncodeLimits::new();
+    let encoded = small
+        .to_json_vec_with_limits(wide)
+        .expect("wide profile must encode the full wrapper");
+    let complete_len = encoded.len();
+    assert!(
+        small
+            .to_json_vec_with_limits(JsonEncodeLimits::builder().max_output_bytes(complete_len).build())
+            .is_ok()
+    );
+    assert!(matches!(
+        small
+            .to_json_vec_with_limits(JsonEncodeLimits::builder().max_output_bytes(complete_len - 1).build(),)
+            .unwrap_err(),
+        ValueWireEncodeError::Budget(BudgetError::Insufficient {
+            resource: JsonResource::OutputBytes,
+            ..
+        })
+    ));
 }
 
 fn assert_expected_encode_limit(error: ValueWireEncodeError, expected: JsonResource, dto: &str, method: &str) {

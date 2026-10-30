@@ -9,6 +9,7 @@
 //! Private wire representations for [`super::NamedMultiValues`].
 
 mod named_multi_values_wire_owned;
+mod named_multi_values_wire_owned_visitor;
 mod named_multi_values_wire_ref;
 
 pub(in crate::named_multi_values) use named_multi_values_wire_owned::NamedMultiValuesWireOwned;

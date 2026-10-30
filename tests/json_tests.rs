@@ -10,11 +10,7 @@
 
 #[cfg(all(feature = "converter", feature = "json"))]
 use std::collections::HashMap;
-#[cfg(all(
-    feature = "converter",
-    feature = "json",
-    any(feature = "chrono", feature = "big-decimal")
-))]
+#[cfg(all(feature = "converter", feature = "json"))]
 use std::time::Duration;
 
 #[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
@@ -274,10 +270,100 @@ fn test_natural_json_enforces_structure_before_materializing() {
     );
 }
 
-/// Duration formatting shares cumulative output capacity with every list item.
+/// Duration projection reports formatter resource failures as projection
+/// limits.
+#[test]
+fn test_natural_json_duration_budget_error_scalar_and_collection() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::ConversionResource;
+    let duration = Value::Duration(Duration::from_secs(1));
+    let policy = ConversionPolicy::default();
+    let zero_output = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(0).build())
+        .build();
+    let direct_error = match duration.to_with::<String>(&policy, &zero_output) {
+        Err(ValueError::Conversion(error)) => error,
+        other => panic!("expected direct Duration conversion budget error, got {other:?}"),
+    };
+    let scalar_error = duration
+        .to_json_value_with(&policy, &zero_output)
+        .expect_err("zero output budget rejects duration rendering");
+    let ValueError::JsonProjectionLimit {
+        data_type,
+        source_index,
+        source,
+    } = scalar_error
+    else {
+        panic!("expected a structured projection limit error");
+    };
+    assert_eq!(data_type, DataType::Duration);
+    assert_eq!(source_index, None);
+    assert_eq!(*source.resource(), ConversionResource::OutputBytes);
+    assert_eq!(source.budget_error().unwrap().configured_limit(), 0);
+    assert_eq!(direct_error.resource(), Some(*source.resource()));
+    assert_eq!(
+        direct_error.configured_limit(),
+        Some(source.budget_error().unwrap().configured_limit())
+    );
+    assert_eq!(direct_error.used(), source.budget_error().unwrap().used());
+    assert_eq!(direct_error.remaining(), source.budget_error().unwrap().remaining());
+    assert_eq!(direct_error.requested(), source.budget_error().unwrap().requested());
+
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
+        .build();
+    let collection_error = MultiValues::Duration(vec![Duration::from_secs(1); 2])
+        .to_json_value_with(&policy, &limits)
+        .expect_err("second duration exceeds cumulative output capacity");
+    let ValueError::JsonProjectionLimit {
+        source_index, source, ..
+    } = collection_error
+    else {
+        panic!("expected a structured projection limit error");
+    };
+    assert_eq!(source_index, Some(1));
+    assert_eq!(*source.resource(), ConversionResource::OutputBytes);
+    assert_eq!(source.budget_error().unwrap().configured_limit(), 6);
+    assert_eq!(source.budget_error().unwrap().used(), Some(6));
+    assert_eq!(source.budget_error().unwrap().remaining(), Some(0));
+    assert!(
+        source
+            .budget_error()
+            .unwrap()
+            .requested()
+            .is_some_and(|requested| requested > 0)
+    );
+}
+
+/// Duration projection accepts an exact output limit and does not relabel
+/// unrelated non-finite number failures.
+#[test]
+fn test_natural_json_duration_budget_error_exact_fit_and_non_finite_float() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionOperationLimits;
+    use qubit_datatype::ConversionPolicy;
+    let policy = ConversionPolicy::default();
+    let exact = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
+        .build();
+    assert_eq!(
+        Value::Duration(Duration::from_secs(1))
+            .to_json_value_with(&policy, &exact)
+            .expect("exact duration output budget fits"),
+        json!("1000ms"),
+    );
+    assert!(matches!(
+        Value::Float64(f64::INFINITY).to_json_value_with(&policy, &exact),
+        Err(ValueError::Conversion(_)),
+    ));
+}
+
+/// Wide number text remains subject to the same cumulative output capacity.
 #[test]
 #[cfg(feature = "big-decimal")]
-fn test_natural_json_bounds_duration_and_wide_number_text() {
+fn test_natural_json_bounds_wide_number_text() {
     use qubit_datatype::ConversionLimits;
     use qubit_datatype::ConversionOperationLimits;
     use qubit_datatype::ConversionPolicy;
@@ -285,11 +371,6 @@ fn test_natural_json_bounds_duration_and_wide_number_text() {
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
         .build();
-    assert!(
-        MultiValues::Duration(vec![Duration::from_secs(1); 2])
-            .to_json_value_with(&policy, &limits)
-            .is_err()
-    );
     assert!(Value::Int128(i128::MAX).to_json_value_with(&policy, &limits).is_err());
     assert!(
         Value::BigDecimal("123456789.123".parse().expect("decimal"))

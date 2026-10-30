@@ -8,11 +8,14 @@
 
 //! Shared admission for one complete natural JSON projection.
 
+use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Write;
 
+use qubit_budget::BudgetError;
 use qubit_budget::BudgetedStringError;
 use qubit_budget::MeasuredBudgetError;
+use qubit_budget::QuantityConversionError;
 use qubit_budget::ResourceBudget;
 use qubit_budget::ResourceQuantity;
 use qubit_budget::json::JsonMeasurement;
@@ -23,6 +26,7 @@ use qubit_datatype::ConversionPolicy;
 use qubit_datatype::ConversionResource;
 use qubit_datatype::ConversionSession;
 use qubit_datatype::DataConversionError;
+use qubit_datatype::DataConversionErrorKind;
 use qubit_datatype::DataType;
 use qubit_datatype::InvalidValueReason;
 
@@ -216,6 +220,30 @@ impl<'a> ProjectionBudget<'a> {
         Ok(text)
     }
 
+    /// Adapts Duration conversion resource failures to projection failures.
+    /// Ordinary conversion errors remain conversions; resource causes retain
+    /// their original budget or quantity facts.
+    pub(super) fn duration_conversion_error(&self, error: DataConversionError) -> ValueError {
+        let measured = match error.kind() {
+            DataConversionErrorKind::LimitExceeded => {
+                let source = find_error_source::<BudgetError<ConversionResource, u64>>(&error).cloned();
+                source.map(MeasuredBudgetError::Budget)
+            }
+            DataConversionErrorKind::Quantity => {
+                let Some(resource) = error.quantity_resource() else {
+                    return ValueError::Conversion(error);
+                };
+                let source = find_error_source::<QuantityConversionError>(&error).cloned();
+                source.map(|source| MeasuredBudgetError::quantity(resource, source))
+            }
+            _ => return ValueError::Conversion(error),
+        };
+        match measured {
+            Some(source) if Some(*source.resource()) == error.resource() => self.error(source),
+            _ => ValueError::Conversion(error),
+        }
+    }
+
     /// Reports a formatting failure without exposing source payload text.
     fn format_error(&self) -> ValueError {
         ValueError::Conversion(DataConversionError::invalid(
@@ -224,6 +252,17 @@ impl<'a> ProjectionBudget<'a> {
             InvalidValueReason::OutOfRange,
         ))
     }
+}
+
+fn find_error_source<T: Error + 'static>(error: &dyn Error) -> Option<&T> {
+    let mut source = error.source();
+    while let Some(current) = source {
+        if let Some(source) = current.downcast_ref::<T>() {
+            return Some(source);
+        }
+        source = current.source();
+    }
+    None
 }
 
 #[cfg(test)]

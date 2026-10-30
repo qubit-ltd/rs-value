@@ -8,9 +8,9 @@
 
 //! Shared helpers for integration tests.
 
-#[cfg(feature = "all")]
+#[cfg(feature = "json")]
 use qubit_value::ValueWirePayloadV1;
-#[cfg(feature = "all")]
+#[cfg(feature = "json")]
 use qubit_value::ValueWirePayloadV1Seed;
 use qubit_value::ValueWireV1;
 use qubit_value::ValueWireV1Seed;
@@ -28,20 +28,35 @@ pub(crate) fn decode_value_wire_value(input: Value) -> Result<ValueWireV1, Error
     decode_value_wire_str(&serde_json::to_string(&input).expect("test JSON value should serialize"))
 }
 
-#[cfg(feature = "all")]
+#[cfg(feature = "json")]
 pub(crate) fn decode_value_wire_slice(input: &[u8]) -> Result<ValueWireV1, Error> {
     let mut deserializer = Deserializer::from_slice(input);
     ValueWireV1Seed::new().deserialize(&mut deserializer)
 }
 
-#[cfg(feature = "all")]
+#[cfg(feature = "json")]
 pub(crate) fn decode_value_wire_payload_str(input: &str) -> Result<ValueWirePayloadV1, Error> {
     let mut deserializer = Deserializer::from_str(input);
     ValueWirePayloadV1Seed::new().deserialize(&mut deserializer)
 }
 
-#[cfg(feature = "all")]
+#[cfg(feature = "json")]
 pub(crate) fn decode_value_wire_payload_value(input: Value) -> Result<ValueWirePayloadV1, Error> {
     let input = serde_json::to_string(&input).expect("test JSON value should serialize");
     decode_value_wire_payload_str(&input)
+}
+
+#[cfg(feature = "json")]
+#[test]
+fn test_wire_decode_helpers_are_available_with_json_feature() {
+    use qubit_value::Value;
+    use qubit_value::ValueContainer;
+
+    let wire = crate::decode_value_wire_slice(br#"{"version":1,"value":{"scalar":{"int32":7}}}"#)
+        .expect("decode the V1 envelope through the shared slice helper");
+    assert_eq!(wire.into_container(), ValueContainer::Scalar(Value::Int32(7)));
+
+    let payload = crate::decode_value_wire_payload_value(serde_json::json!({"scalar":{"int32":7}}))
+        .expect("decode the unversioned V1 payload through the shared helper");
+    assert_eq!(payload.into_container(), ValueContainer::Scalar(Value::Int32(7)));
 }

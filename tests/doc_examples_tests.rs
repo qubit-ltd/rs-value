@@ -222,6 +222,7 @@ fn test_bilingual_markdown_example_ids_are_stable() {
                 "natural-json",
                 "natural-json-map",
                 "numeric-comparison",
+                "redacted-output",
                 "runtime-config",
                 "shared-decode-session",
                 "single-value",
@@ -257,6 +258,6 @@ fn test_bilingual_markdown_examples_execute() {
         }
     }
     let extracted: usize = documents.iter().map(|(_, examples)| examples.len()).sum();
-    assert_eq!(extracted, 32, "baseline marked-example count");
+    assert_eq!(extracted, 34, "baseline marked-example count");
     internal::markdown_example_runner::run_markdown_examples(root, &documents).unwrap();
 }

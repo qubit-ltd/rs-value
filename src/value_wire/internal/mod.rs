@@ -14,6 +14,7 @@ mod scalar_wire_owned;
 mod scalar_wire_ref;
 mod wire_data_type_v1;
 mod wire_envelope_owned;
+mod wire_envelope_owned_visitor;
 mod wire_envelope_ref;
 #[cfg(feature = "json")]
 mod wire_preflight_strategy;
