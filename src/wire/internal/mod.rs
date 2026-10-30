@@ -25,6 +25,7 @@ mod json_number_children;
 mod number_text_comparator;
 mod strict_string_map;
 mod strict_string_map_visitor;
+mod validated_sequence_visitor;
 
 #[cfg(feature = "big-decimal")]
 pub(in crate::wire) use big_decimal_payload::BigDecimalPayload;
@@ -39,3 +40,4 @@ pub(in crate::wire) use json_number_children::JsonNumberChildren;
 #[cfg(feature = "json")]
 pub(in crate::wire) use number_text_comparator::NumberTextComparator;
 pub(in crate::wire) use strict_string_map::StrictStringMap;
+pub(in crate::wire) use validated_sequence_visitor::ValidatedSequenceVisitor;

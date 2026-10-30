@@ -181,6 +181,12 @@ envelope；集合形态则在同一 tag 下使用 payload 数组。
 | `Instant` / `instant` | UTC RFC3339，AutoSi 小数精度，使用 `Z` 后缀；UTC 年份 `0..=9999`。 | `"2026-07-14T01:02:03Z"` |
 | `Url` / `url` | 使用 `Url::as_str()` 的规范化文本；输入即使可解析，只要规范化后文本变化仍会被拒绝。 | `"https://example.com/path"` |
 
+集合 adapter 会逐项反序列化 typed payload，并在请求下一项前立即验证或转换当前项。这样
+可以移除整批中间 payload vector，并在首个语义验证错误后停止读取 typed 尾项；它不改变
+整份文档的语法预检查、输入预算或集合的接受范围。当某项语义非法且后续项另有结构错误时，
+现在可能优先报告较早的语义错误。流式 deserializer 在失败时也可能少消费尾项；此前已记账的
+预算不会回滚。
+
 BigDecimal payload 保留 coefficient 和 scale 表示。`BigDecimal` identity/hash 对末尾零的归一化
 不会改写 Wire payload。
 

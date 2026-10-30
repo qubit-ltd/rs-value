@@ -253,6 +253,16 @@ collection shape uses an array of payloads under that same tag.
 | `Instant` / `instant` | UTC RFC3339, AutoSi fractional precision, `Z` suffix; UTC year `0..=9999`. | `"2026-07-14T01:02:03Z"` |
 | `Url` / `url` | Canonicalized text from `Url::as_str()`; parseable input is rejected if its text changes during normalization. | `"https://example.com/path"` |
 
+Collection adapters deserialize one typed payload at a time and immediately
+validate or convert it before requesting the next element. This removes the
+whole-sequence intermediate payload vector and stops typed tail processing
+after the first semantic validation error. It does not change whole-document
+syntax preflight, input budgets, or which collections are accepted. When one
+element is semantically invalid and a later element also has a structural
+error, the earlier semantic error can now take precedence. A streaming
+deserializer may also consume fewer tail elements on failure; budget already
+charged for earlier decoding is not rolled back.
+
 The decimal payload preserves its coefficient and scale representation.
 `BigDecimal` identity/hash normalization of trailing zeroes does not rewrite
 the Wire payload.

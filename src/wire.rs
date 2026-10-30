@@ -218,18 +218,16 @@ where
     P: Fn(&str) -> Result<T, String>,
     F: Fn(&T) -> String,
 {
-    use serde::de::Error as _;
+    use internal::ValidatedSequenceVisitor;
 
-    Vec::<String>::deserialize(deserializer)?
-        .into_iter()
-        .map(|input| {
-            let value = parse(&input).map_err(D::Error::custom)?;
-            if format(&value) != input {
-                return Err(D::Error::custom("non-canonical V1 string payload"));
-            }
-            Ok(value)
-        })
-        .collect()
+    ValidatedSequenceVisitor::<String, T, _>::new(|input: String| {
+        let value = parse(&input)?;
+        if format(&value) != input {
+            return Err("non-canonical V1 string payload".to_owned());
+        }
+        Ok(value)
+    })
+    .deserialize(deserializer)
 }
 
 /// Defines canonical scalar and vector wire adapters for one chrono type.
@@ -730,14 +728,13 @@ pub(crate) mod big_decimal {
 #[cfg(feature = "big-decimal")]
 pub(crate) mod big_decimal_vec {
     use bigdecimal::BigDecimal;
-    use serde::Deserialize;
     use serde::Deserializer;
     use serde::Serializer;
-    use serde::de::Error as _;
     use serde::ser::Error as _;
     use serde::ser::SerializeSeq;
 
     use super::BigDecimalPayload;
+    use super::internal::ValidatedSequenceVisitor;
 
     /// Serializes decimals as exact `{ coefficient, scale }` payloads.
     ///
@@ -790,10 +787,10 @@ pub(crate) mod big_decimal_vec {
     where
         D: Deserializer<'de>,
     {
-        Vec::<BigDecimalPayload>::deserialize(deserializer)?
-            .into_iter()
-            .map(|value| value.try_into().map_err(D::Error::custom))
-            .collect()
+        ValidatedSequenceVisitor::<BigDecimalPayload, BigDecimal, _>::new(|value: BigDecimalPayload| {
+            value.try_into().map_err(str::to_owned)
+        })
+        .deserialize(deserializer)
     }
 }
 
@@ -865,12 +862,11 @@ pub(crate) mod duration {
 pub(crate) mod duration_vec {
     use std::time::Duration;
 
-    use serde::Deserialize;
     use serde::Deserializer;
     use serde::Serializer;
-    use serde::de::Error as _;
 
     use super::DurationPayload;
+    use super::internal::ValidatedSequenceVisitor;
 
     /// Serializes durations as a sequence of `{ secs, nanos }` payloads.
     ///
@@ -919,9 +915,9 @@ pub(crate) mod duration_vec {
     where
         D: Deserializer<'de>,
     {
-        Vec::<DurationPayload>::deserialize(deserializer)?
-            .into_iter()
-            .map(|value| value.try_into().map_err(D::Error::custom))
-            .collect()
+        ValidatedSequenceVisitor::<DurationPayload, Duration, _>::new(|value: DurationPayload| {
+            value.try_into().map_err(str::to_owned)
+        })
+        .deserialize(deserializer)
     }
 }
