@@ -56,11 +56,6 @@ name = "feature_contract_tests"
 path = "tests/feature_contract_tests.rs"
 
 [[test]]
-name = "documentation_installation_tests"
-path = "tests/documentation_installation_tests.rs"
-required-features = ["all"]
-
-[[test]]
 name = "doc_examples_tests"
 path = "tests/doc_examples_tests.rs"
 required-features = ["all"]
