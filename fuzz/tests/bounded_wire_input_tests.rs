@@ -6,8 +6,9 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+//! Regression tests for raw bounded Wire V1 inputs.
+
 use qubit_budget::BudgetError;
-use qubit_budget::ResourceLimit;
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_value::ValueContainer;
@@ -25,131 +26,151 @@ fn test_long_document_reaches_wide_decode_and_round_trips() {
     assert!(check_input(input.as_bytes()));
 }
 
-#[test]
-fn test_input_byte_boundaries() {
-    let base = r#"{"version":1,"value":{"scalar":{"int32":1}}}"#;
-    for (length, expected) in [(94, true), (95, true), (4096, true), (4097, false)] {
-        let mut input = base.to_owned();
-        input.push_str(&" ".repeat(length - input.len()));
-        assert_eq!(check_input(input.as_bytes()), expected, "length {length}");
-        let result = ValueWireV1::decode_json_slice_with_limits(input.as_bytes(), bounded_limits(4096));
-        if length > 4096 {
-            assert_input_bytes_error(result.unwrap_err());
-        } else {
-            assert!(result.is_ok());
-        }
-        if length > 94 {
-            assert_input_bytes_error(
-                ValueWireV1::decode_json_slice_with_limits(input.as_bytes(), bounded_limits(94)).unwrap_err(),
-            );
-        } else {
-            assert!(ValueWireV1::decode_json_slice_with_limits(input.as_bytes(), bounded_limits(94)).is_ok());
-        }
-    }
-}
-
-fn bounded_limits(max_input_bytes: usize) -> JsonDecodeLimits {
-    let defaults = ValueWireV1::default_json_decode_limits();
-    JsonDecodeLimits::builder()
-        .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, max_input_bytes))
-        .value_limits(defaults.into_value_limits())
+fn decode_limits(max_input_bytes: usize) -> JsonDecodeLimits {
+    ValueWireV1::default_json_decode_limits()
+        .into_builder()
+        .max_input_bytes(max_input_bytes)
         .build()
 }
 
-fn assert_input_bytes_error(error: ValueWireDecodeError) {
-    assert!(matches!(
-        error,
-        ValueWireDecodeError::Budget(
-            BudgetError::LimitExceeded {
-                resource: JsonResource::InputBytes,
-                ..
-            } | BudgetError::Insufficient {
-                resource: JsonResource::InputBytes,
-                ..
-            }
-        )
-    ));
+fn assert_resource(input: &[u8], limits: JsonDecodeLimits, resource: JsonResource) {
+    let result = ValueWireV1::decode_json_slice_with_limits(input, limits);
+    assert!(
+        matches!(
+            result,
+            Err(ValueWireDecodeError::Budget(
+                BudgetError::LimitExceeded { resource: actual, .. }
+                    | BudgetError::Insufficient { resource: actual, .. }
+            )) if actual == resource
+        ),
+        "unexpected resource error: {result:?}, expected {resource:?}"
+    );
 }
 
-fn decode_with_values(
-    input: &[u8],
-    values: qubit_budget::json::JsonValueLimits,
-) -> Result<qubit_value::ValueWireV1, ValueWireDecodeError> {
-    let limits = JsonDecodeLimits::builder()
-        .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 4096))
-        .value_limits(values)
-        .build();
-    ValueWireV1::decode_json_slice_with_limits(input, limits)
-}
-
-fn assert_resource_error(error: ValueWireDecodeError, expected: JsonResource) {
-    assert!(matches!(
-        error,
-        ValueWireDecodeError::Budget(
-            BudgetError::LimitExceeded { resource, .. }
-                | BudgetError::Insufficient { resource, .. }
-        ) if resource == expected
-    ));
+fn nested_document(depth: usize) -> String {
+    format!(
+        r#"{{"version":1,"value":{{"scalar":{{"json":{}null{}}}}}}}"#,
+        "[".repeat(depth),
+        "]".repeat(depth),
+    )
 }
 
 #[test]
-fn test_structural_limits_reject_and_accept_at_boundaries() {
-    let defaults = ValueWireV1::default_json_decode_limits().into_value_limits();
-    let deep = format!(
-        r#"{{"version":1,"value":{{"scalar":{{"json":{}null{}}}}}}}"#,
-        "[".repeat(65),
-        "]".repeat(65),
-    );
-    assert_resource_error(
-        decode_with_values(deep.as_bytes(), defaults.clone()).unwrap_err(),
+fn test_input_byte_boundaries_preserve_full_document() {
+    for length in [94, 95, 4096, 4097] {
+        let mut input = br#"{"version":1,"value":{"scalar":{"int32":42}}}"#.to_vec();
+        input.resize(length, b' ');
+        for maximum in [94, 4096] {
+            let limits = decode_limits(maximum);
+            if length > maximum {
+                assert_resource(&input, limits, JsonResource::InputBytes);
+            } else {
+                let _ = ValueWireV1::decode_json_slice_with_limits(&input, limits)
+                    .expect("a valid document at the byte limit must decode");
+            }
+        }
+        assert_eq!(check_input(&input), length <= 4096, "length: {length}");
+    }
+}
+
+#[test]
+fn test_depth_budget_rejects_and_accepts_nested_payload() {
+    let input = nested_document(4);
+    assert_resource(
+        input.as_bytes(),
+        decode_limits(4096).into_builder().max_depth(4).build(),
         JsonResource::Depth,
     );
+    let _ = ValueWireV1::decode_json_slice_with_limits(
+        input.as_bytes(),
+        decode_limits(4096).into_builder().max_depth(16).build(),
+    )
+    .expect("a relaxed depth limit must admit the nested payload");
+    assert!(check_input(input.as_bytes()));
+}
 
-    let shallow = r#"{"version":1,"value":{"scalar":{"json":[[null]]}}}"#;
-    let low_depth = defaults.clone().into_builder().max_depth(1).build();
-    assert_resource_error(
-        decode_with_values(shallow.as_bytes(), low_depth).unwrap_err(),
-        JsonResource::Depth,
-    );
-    let raised_depth = defaults.clone().into_builder().max_depth(8).build();
-    assert!(decode_with_values(shallow.as_bytes(), raised_depth).is_ok());
+#[test]
+fn test_default_depth_budget_rejects_deep_payload() {
+    let input = nested_document(65);
+    assert_resource(input.as_bytes(), decode_limits(4096), JsonResource::Depth);
+    assert!(!check_input(input.as_bytes()));
+}
 
-    let collection = ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2, 3]))
-        .expect("construct integer sequence")
-        .to_json_vec()
-        .expect("encode integer sequence");
-    let low_nodes = defaults.clone().into_builder().max_nodes(1).build();
-    assert_resource_error(
-        decode_with_values(&collection, low_nodes).unwrap_err(),
+#[test]
+fn test_nodes_budget_rejects_and_accepts_collection() {
+    let value = ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2, 3])).expect("construct integer collection");
+    let input = value.to_json_vec().expect("serialize integer collection");
+    assert_resource(
+        &input,
+        decode_limits(4096).into_builder().max_nodes(1).build(),
         JsonResource::Nodes,
     );
-    let enough_nodes = defaults.clone().into_builder().max_nodes(64).build();
-    assert!(decode_with_values(&collection, enough_nodes).is_ok());
-
-    let low_items = defaults.clone().into_builder().max_sequence_items(2).build();
-    assert_resource_error(
-        decode_with_values(&collection, low_items).unwrap_err(),
-        JsonResource::SequenceItems,
-    );
-    let enough_items = defaults.clone().into_builder().max_sequence_items(3).build();
-    assert!(decode_with_values(&collection, enough_items).is_ok());
-
-    let map = br#"{"version":1,"value":{"scalar":{"json":{"a":1,"b":2,"c":3}}}}"#;
-    let low_map = defaults.clone().into_builder().max_map_entries(2).build();
-    assert_resource_error(decode_with_values(map, low_map).unwrap_err(), JsonResource::MapEntries);
-    let enough_map = defaults.into_builder().max_map_entries(3).build();
-    assert!(decode_with_values(map, enough_map).is_ok());
+    let _ =
+        ValueWireV1::decode_json_slice_with_limits(&input, decode_limits(4096).into_builder().max_nodes(64).build())
+            .expect("a relaxed node limit must admit the collection");
+    assert!(check_input(&input));
 }
 
 #[test]
-fn test_long_duplicate_key_and_malformed_tail_are_not_input_limits() {
-    let duplicate = include_bytes!("../corpus/bounded_value_wire_v1/duplicate-key");
-    let error =
-        ValueWireV1::decode_json_slice_with_limits(duplicate, ValueWireV1::default_json_decode_limits()).unwrap_err();
-    assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
+fn test_sequence_budget_rejects_and_accepts_collection() {
+    let value = ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2, 3])).expect("construct integer collection");
+    let input = value.to_json_vec().expect("serialize integer collection");
+    assert_resource(
+        &input,
+        decode_limits(4096).into_builder().max_sequence_items(2).build(),
+        JsonResource::SequenceItems,
+    );
+    let _ = ValueWireV1::decode_json_slice_with_limits(
+        &input,
+        decode_limits(4096).into_builder().max_sequence_items(3).build(),
+    )
+    .expect("a sequence at its item limit must decode");
+    assert!(check_input(&input));
+}
 
-    let malformed = include_bytes!("../corpus/bounded_value_wire_v1/malformed-tail");
-    let error =
-        ValueWireV1::decode_json_slice_with_limits(malformed, ValueWireV1::default_json_decode_limits()).unwrap_err();
-    assert!(matches!(error, ValueWireDecodeError::Syntax(_)));
+#[test]
+fn test_map_budget_rejects_and_accepts_json_payload() {
+    let input = br#"{"version":1,"value":{"scalar":{"json":{"a":1,"b":2,"c":3}}}}"#;
+    assert_resource(
+        input,
+        decode_limits(4096).into_builder().max_map_entries(2).build(),
+        JsonResource::MapEntries,
+    );
+    let _ = ValueWireV1::decode_json_slice_with_limits(
+        input,
+        decode_limits(4096).into_builder().max_map_entries(3).build(),
+    )
+    .expect("a map at its entry limit must decode");
+    assert!(check_input(input));
+}
+
+#[test]
+fn test_long_duplicate_key_reaches_invalid_json_rejection() {
+    let input = include_bytes!("../corpus/bounded_value_wire_v1/duplicate-key");
+    assert!(input.len() > 94 && input.len() < 4096);
+    let result = ValueWireV1::decode_json_slice_with_limits(input, decode_limits(4096));
+    assert!(
+        matches!(result, Err(ValueWireDecodeError::InvalidJson(_))),
+        "{result:?}"
+    );
+    assert!(!check_input(input));
+}
+
+#[test]
+fn test_long_malformed_tail_reaches_syntax_rejection() {
+    let input = include_bytes!("../corpus/bounded_value_wire_v1/malformed-tail");
+    assert!(input.len() > 94 && input.len() < 4096);
+    let result = ValueWireV1::decode_json_slice_with_limits(input, decode_limits(4096));
+    assert!(matches!(result, Err(ValueWireDecodeError::Syntax(_))), "{result:?}");
+    assert!(!check_input(input));
+}
+
+#[test]
+fn test_valid_corpus_documents_reach_wide_decode() {
+    assert!(check_input(include_bytes!(
+        "../corpus/bounded_value_wire_v1/long-string"
+    )));
+    assert!(check_input(include_bytes!(
+        "../corpus/bounded_value_wire_v1/nested-array"
+    )));
 }

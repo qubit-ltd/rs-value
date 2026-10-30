@@ -277,3 +277,11 @@ cargo +nightly-2026-06-05 fuzz run bounded_value_wire_v1 -- -max_total_time=30 -
 - 临时 SDD 证据目录在 CI 期间被清理，完整重跑日志已从运行进程的打开文件恢复；较早命令结果以会话输出和本文记录为准。
 - 可保留的验证证据缓存：`/home/starfish/.cache/qubit/implementation-evidence/rs-value-rv005006-h5zulxfv`，包含完整 CI 重跑日志、最低版本构建日志/metadata 和 CI 生成的摘要。
 - Git 收尾由当前实施流程继续完成：本轮两份方案文档单独提交，rs-value 实现分支合回原分支，按授权同步分支并清理本任务创建的隔离工作树。实际合并/推送结果以最终交付答复为准，不将收尾操作未执行时写成已成功。
+
+### 原分支并发实现的合并核对
+
+- 集成时原分支已包含同目的提交 `4f2f690`、`42d0161`、`6aa70ed`、`9d0c57d`，保留其历史并解决三个 add/add 冲突。
+- 最终 helper 保留三档、超长输入必须为 InputBytes 的断言，以及原分支对 BudgetError.maximum/limit 的精确断言；保留混合类型重复键语料、版权头和 65_536 字面量。10 项拆分集成回归覆盖原有 4 项组合测试的全部行为。
+- 新一轮独立合并审查无实质问题；合并后 fuzz crate 15 项与核心库 9 项测试通过，rustfmt、diff-check、项目 style-check 通过。
+- 合并后重新运行原始输入 sanitizer smoke：退出 0，31 秒 1056394 次执行，无崩溃。原先完整 CI 通过的生产源码、根清单、锁文件、原有测试与基础设施均与合并结果一致；合并带来的变化限定在 fuzz helper 断言和回归组织，已按对应边界补验。
+- 合并后日志保存在前述验证证据缓存的 merged-*.log 文件中。
