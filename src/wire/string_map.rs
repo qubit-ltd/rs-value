@@ -39,10 +39,10 @@ pub(crate) fn serialize<S>(value: &HashMap<String, String>, serializer: S) -> Re
 where
     S: Serializer,
 {
+    let mut map = serializer.serialize_map(Some(value.len()))?;
     let mut entries: Vec<_> = value.iter().collect();
     entries.sort_unstable_by_key(|(left, _)| *left);
 
-    let mut map = serializer.serialize_map(Some(entries.len()))?;
     for (key, value) in entries {
         map.serialize_entry(key, value)?;
     }

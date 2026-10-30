@@ -12,9 +12,11 @@ use std::alloc::GlobalAlloc;
 use std::alloc::Layout;
 use std::alloc::System;
 use std::cell::Cell;
+use std::collections::HashMap;
 
 use qubit_budget::BudgetError;
 use qubit_budget::json::JsonEncodeLimits;
+use qubit_budget::json::JsonResource;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 #[cfg(feature = "url")]
@@ -102,6 +104,49 @@ fn string_values(size: usize, length: usize) -> MultiValues {
     MultiValues::String(vec!["x".repeat(length); size])
 }
 
+fn string_map(size: usize) -> HashMap<String, String> {
+    (0..size)
+        .map(|index| (format!("key-{index:05}"), format!("value-{index:05}")))
+        .collect()
+}
+
+fn assert_node_rejection(result: Result<Vec<u8>, ValueWireEncodeError>, limit: usize) {
+    let error = result.expect_err("node-limited StringMap must be rejected");
+    let ValueWireEncodeError::Budget(BudgetError::Insufficient {
+        resource: JsonResource::Nodes,
+        limit: actual_limit,
+        remaining,
+        requested,
+    }) = error
+    else {
+        panic!("expected insufficient node budget, got {error:?}");
+    };
+    assert_eq!(actual_limit, limit);
+    assert_eq!(remaining, 0);
+    assert!(requested > remaining);
+}
+
+fn assert_depth_rejection(result: Result<Vec<u8>, ValueWireEncodeError>, maximum: usize) {
+    let error = result.expect_err("depth-limited StringMap must be rejected");
+    let ValueWireEncodeError::Budget(BudgetError::LimitExceeded {
+        resource: JsonResource::Depth,
+        observed,
+        maximum: actual_maximum,
+    }) = error
+    else {
+        panic!("expected depth limit rejection, got {error:?}");
+    };
+    assert_eq!(actual_maximum, maximum);
+    assert!(observed.lower_bound() > maximum);
+}
+
+fn assert_allocations_do_not_scale(small_bytes: usize, large_bytes: usize, label: &str) {
+    assert!(
+        large_bytes <= small_bytes.saturating_add(4096),
+        "{label} rejected-map allocation grew: 16={small_bytes}, 8192={large_bytes}"
+    );
+}
+
 #[test]
 fn test_borrowed_wire_preparation_allocation_does_not_scale_with_json_object() {
     let small = object(16);
@@ -163,6 +208,100 @@ fn test_canonical_json_rejection_admits_object_before_sorting_entries() {
     assert!(
         large_bytes <= small_bytes.saturating_add(4096),
         "rejected object allocation grew before node admission: 16={small_bytes}, 8192={large_bytes}"
+    );
+}
+
+#[test]
+fn test_string_map_rejection_admits_map_before_sorting_entries() {
+    let small_scalar_value = Value::StringMap(string_map(16));
+    let large_scalar_value = Value::StringMap(string_map(8192));
+    let small_scalar = ValueWirePayloadRefV1::from_value(&small_scalar_value).unwrap();
+    let large_scalar = ValueWirePayloadRefV1::from_value(&large_scalar_value).unwrap();
+
+    let small_collection_value = MultiValues::StringMap(vec![string_map(16)]);
+    let large_collection_value = MultiValues::StringMap(vec![string_map(8192)]);
+    let small_collection = ValueWirePayloadRefV1::from_values(&small_collection_value).unwrap();
+    let large_collection = ValueWirePayloadRefV1::from_values(&large_collection_value).unwrap();
+
+    for limits in [
+        JsonEncodeLimits::builder().max_nodes(2).build(),
+        JsonEncodeLimits::builder().max_depth(2).build(),
+        JsonEncodeLimits::builder().max_nodes(3).build(),
+        JsonEncodeLimits::builder().max_depth(3).build(),
+    ] {
+        let _ = small_scalar.to_json_vec_with_limits(limits);
+        let _ = large_scalar.to_json_vec_with_limits(limits);
+        let _ = small_collection.to_json_vec_with_limits(limits);
+        let _ = large_collection.to_json_vec_with_limits(limits);
+    }
+
+    for (small_wire, large_wire, limits, limit, is_depth, label) in [
+        (
+            &small_scalar,
+            &large_scalar,
+            JsonEncodeLimits::builder().max_nodes(2).build(),
+            2,
+            false,
+            "scalar nodes",
+        ),
+        (
+            &small_scalar,
+            &large_scalar,
+            JsonEncodeLimits::builder().max_depth(2).build(),
+            2,
+            true,
+            "scalar depth",
+        ),
+        (
+            &small_collection,
+            &large_collection,
+            JsonEncodeLimits::builder().max_nodes(3).build(),
+            3,
+            false,
+            "collection nodes",
+        ),
+        (
+            &small_collection,
+            &large_collection,
+            JsonEncodeLimits::builder().max_depth(3).build(),
+            3,
+            true,
+            "collection depth",
+        ),
+    ] {
+        let (small_result, small_bytes) = measured_allocations(|| small_wire.to_json_vec_with_limits(limits));
+        let (large_result, large_bytes) = measured_allocations(|| large_wire.to_json_vec_with_limits(limits));
+        if is_depth {
+            assert_depth_rejection(small_result, limit);
+            assert_depth_rejection(large_result, limit);
+        } else {
+            assert_node_rejection(small_result, limit);
+            assert_node_rejection(large_result, limit);
+        }
+        assert_allocations_do_not_scale(small_bytes, large_bytes, label);
+    }
+}
+
+#[test]
+fn test_string_map_success_output_keeps_canonical_order() {
+    let scalar_value = Value::StringMap(HashMap::from([
+        (String::from("b"), String::from("2")),
+        (String::from("a"), String::from("1")),
+    ]));
+    let scalar_wire = ValueWirePayloadRefV1::from_value(&scalar_value).unwrap();
+    assert_eq!(
+        serde_json::to_string(&scalar_wire).unwrap(),
+        r#"{"scalar":{"stringmap":{"a":"1","b":"2"}}}"#
+    );
+
+    let collection_value = MultiValues::StringMap(vec![HashMap::from([
+        (String::from("b"), String::from("2")),
+        (String::from("a"), String::from("1")),
+    ])]);
+    let collection_wire = ValueWirePayloadRefV1::from_values(&collection_value).unwrap();
+    assert_eq!(
+        serde_json::to_string(&collection_wire).unwrap(),
+        r#"{"collection":{"stringmap":[{"a":"1","b":"2"}]}}"#
     );
 }
 
