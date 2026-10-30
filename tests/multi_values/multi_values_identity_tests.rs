@@ -159,7 +159,7 @@ fn test_multi_values_big_decimal_identity_is_canonical() {
 /// Exercises equality and hashing for every multi-value variant.
 #[test]
 fn test_multi_values_identity_covers_every_variant() {
-    let mut values = vec![
+    let values = vec![
         MultiValues::Unset(DataType::Bool),
         MultiValues::Bool(vec![true]),
         MultiValues::Char(vec!['x']),
@@ -179,6 +179,14 @@ fn test_multi_values_identity_covers_every_variant() {
         MultiValues::StringMap(vec![HashMap::from([("key".to_owned(), "value".to_owned())])]),
         MultiValues::Duration(vec![Duration::new(8, 9)]),
     ];
+    #[cfg(any(
+        feature = "big-integer",
+        feature = "big-decimal",
+        feature = "chrono",
+        feature = "url",
+        feature = "json",
+    ))]
+    let mut values = values;
     #[cfg(feature = "big-integer")]
     values.push(MultiValues::BigInteger(vec![BigInt::from(6)]));
     #[cfg(feature = "big-decimal")]
