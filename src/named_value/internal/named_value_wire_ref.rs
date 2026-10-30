@@ -15,7 +15,7 @@ use crate::ValueWireRefV1;
 /// Borrows a named scalar value for serialization without cloning its data.
 ///
 /// The name and independently versioned scalar payload remain borrowed for
-/// `'a`, the lifetime of the source [`super::NamedValue`].
+/// `'a`, the lifetime of the source [`super::super::NamedValue`].
 ///
 /// # Type Parameters
 ///

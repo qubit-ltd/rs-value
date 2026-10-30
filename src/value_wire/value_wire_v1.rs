@@ -38,11 +38,15 @@ use crate::ValueContainer;
 
 /// Stable version-one wire DTO for a scalar or homogeneous collection.
 ///
-/// For a given serializer and value, output is byte-stable with canonical field
-/// and object-key order, including recursively nested JSON objects. V1 is
-/// closed: existing tags, shapes, and payload representations cannot change,
-/// and future runtime data types require a new wire version instead of
-/// extending V1.
+/// Canonical JSON output is byte-stable for the same value under the
+/// supported `serde_json` version and configuration, with canonical field
+/// and object-key order, including recursively nested JSON objects. Other
+/// Serde formats may represent this DTO, but their bytes are outside this
+/// stability contract. See the [crate documentation](crate).
+///
+/// V1 is closed: existing tags, shapes, and payload representations cannot
+/// change, and future runtime data types require a new wire version instead
+/// of extending V1.
 ///
 /// Runtime JSON numbers are accepted only when V1 can reconstruct the same
 /// `serde_json::Number` under the strict `qubit-json` number model. Numbers

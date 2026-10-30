@@ -30,6 +30,18 @@ pub(in crate::wire) struct DurationPayload {
 }
 
 impl<'de> Deserialize<'de> for DurationPayload {
+    /// Selects the payload representation from the deserializer's format hint.
+    ///
+    /// Human-readable formats are requested as maps with `secs` and `nanos`;
+    /// other formats are requested as the named struct representation. The
+    /// visitor enforces the field and element constraints for either shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns the deserializer's error for an unsupported shape, malformed
+    /// field value, duplicate or unknown map field, missing field, or a
+    /// sequence whose length is not two. The nanosecond range is checked later
+    /// when converting this payload to [`Duration`].
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

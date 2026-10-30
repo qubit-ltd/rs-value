@@ -23,6 +23,19 @@ pub(in crate::value_wire) struct WireEnvelopeOwned {
 }
 
 impl<'de> Deserialize<'de> for WireEnvelopeOwned {
+    /// Requests a map for human-readable formats and the named struct
+    /// representation for other formats.
+    ///
+    /// The visitor requires one `version` and one `value` field in a map, or
+    /// exactly two sequence elements in version/value order. Errors decoding
+    /// either field are propagated from the nested deserializer. Support for
+    /// the decoded version is checked downstream.
+    ///
+    /// # Errors
+    ///
+    /// Returns the deserializer's error for a malformed envelope shape, an
+    /// unknown, duplicate, or missing map field, or a field value that cannot
+    /// be decoded.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

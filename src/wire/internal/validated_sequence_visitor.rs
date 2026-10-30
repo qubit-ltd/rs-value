@@ -16,14 +16,29 @@ use serde::de::Error as _;
 use serde::de::SeqAccess;
 use serde::de::Visitor;
 
-/// Converts each sequence payload before requesting the next one.
+/// Decodes and converts sequence elements one at a time.
+///
+/// `P` is the deserialized payload type, `T` is the converted value type, and
+/// `F` converts one payload into a validated value. The `convert` field stores
+/// that conversion, while `marker` records the relationship between `P` and
+/// `T` without storing either type directly. If decoding or conversion of an
+/// element fails, the visitor returns immediately and does not request later
+/// typed elements. This does not bypass any whole-document preflight performed
+/// by the caller, and resources already consumed are not rolled back.
 pub(in crate::wire) struct ValidatedSequenceVisitor<P, T, F> {
+    /// Converts each decoded payload, returning a message when it is invalid.
     convert: F,
+    /// Associates the payload and output types with this visitor.
     marker: PhantomData<fn(P) -> T>,
 }
 
 impl<P, T, F> ValidatedSequenceVisitor<P, T, F> {
-    /// Creates a visitor that converts payloads into validated values.
+    /// Creates a visitor with the conversion applied to each decoded payload.
+    ///
+    /// # Parameters
+    ///
+    /// - `convert`: Converts a payload into its validated value, or returns a
+    ///   diagnostic message when validation fails.
     pub(in crate::wire) fn new(convert: F) -> Self {
         Self {
             convert,
@@ -31,7 +46,25 @@ impl<P, T, F> ValidatedSequenceVisitor<P, T, F> {
         }
     }
 
-    /// Deserializes a sequence, stopping when an element fails conversion.
+    /// Deserializes a sequence, converting each payload before reading the
+    /// next typed element.
+    ///
+    /// # Parameters
+    ///
+    /// - `deserializer`: The source deserializer, which must provide a sequence
+    ///   representation.
+    ///
+    /// # Returns
+    ///
+    /// The converted values in input order.
+    ///
+    /// # Errors
+    ///
+    /// Returns the deserializer's error if the sequence or a payload cannot
+    /// be decoded, or if conversion returns a validation message. After either
+    /// failure, no later typed element is requested. Any outer whole-document
+    /// preflight remains in effect; consumption performed before an error is
+    /// not rolled back.
     pub(in crate::wire) fn deserialize<'de, D>(self, deserializer: D) -> Result<Vec<T>, D::Error>
     where
         D: Deserializer<'de>,
@@ -49,6 +82,7 @@ where
 {
     type Value = Vec<T>;
 
+    /// Describes the sequence of payloads accepted by this visitor.
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("a sequence of valid payloads")
     }

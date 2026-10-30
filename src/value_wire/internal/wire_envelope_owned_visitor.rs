@@ -6,7 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-//! Serde visitor for an owned V1 envelope.
+//! Serde visitor for the version and value fields of an owned wire envelope.
 
 use serde::de::Error;
 use serde::de::MapAccess;
@@ -14,19 +14,31 @@ use serde::de::SeqAccess;
 use serde::de::Visitor;
 
 use super::WireEnvelopeOwned;
+/// Reads an envelope with exactly one `version` and one `value` field.
+///
+/// This visitor validates the envelope's structure and field types. Whether
+/// the decoded version is supported is checked by a later part of the V1
+/// deserialization path.
 pub(super) struct WireEnvelopeOwnedVisitor;
 
 impl<'de> Visitor<'de> for WireEnvelopeOwnedVisitor {
     type Value = WireEnvelopeOwned;
 
+    /// Describes the envelope shape expected by this visitor.
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("struct WireEnvelopeOwned")
     }
 
+    /// Reads exactly two sequence elements, in `version`, then `value` order.
+    ///
+    /// Returns a deserializer error for a missing or extra element, or when a
+    /// field value cannot be decoded.
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
     {
+        // Struct sequences preserve the declared version, value field order
+        // and require exactly two elements.
         let version = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
         let value = seq.next_element()?.ok_or_else(|| Error::invalid_length(1, &self))?;
         if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
@@ -35,10 +47,15 @@ impl<'de> Visitor<'de> for WireEnvelopeOwnedVisitor {
         Ok(WireEnvelopeOwned { version, value })
     }
 
+    /// Reads the `version` and `value` map fields, in either order.
+    ///
+    /// Returns a deserializer error for an unknown, duplicate, or missing
+    /// field, or when a field value cannot be decoded.
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
     {
+        // Map representations require both recognized fields exactly once.
         let mut version = None;
         let mut value = None;
         while let Some(key) = map.next_key::<String>()? {

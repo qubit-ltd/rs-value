@@ -6,7 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-//! Serde visitor for a duration payload.
+//! Serde visitor for the seconds and nanoseconds fields of a duration payload.
 
 use serde::de::Error;
 use serde::de::MapAccess;
@@ -15,17 +15,33 @@ use serde::de::Visitor;
 
 use super::DurationPayload;
 
+/// Reads a duration payload with exactly one `secs` and one `nanos` field in
+/// maps, or those two components in that order in a sequence.
+///
+/// The nanosecond value is decoded here but its sub-billion range is checked
+/// when the payload is converted into [`std::time::Duration`].
 pub(super) struct DurationPayloadVisitor;
 
 impl<'de> Visitor<'de> for DurationPayloadVisitor {
     type Value = DurationPayload;
+
+    /// Describes the payload shape expected by this visitor.
+    ///
+    /// The deserializer uses this description when reporting a shape mismatch.
     fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("struct DurationPayload")
     }
+
+    /// Reads exactly two sequence elements, in `secs`, then `nanos` order.
+    ///
+    /// Returns a deserializer error for a missing element, an extra element,
+    /// or a value that cannot be decoded as its field type.
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
     {
+        // The tuple representation is ordered as secs, then nanos, and has
+        // exactly two elements.
         let secs = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
         let nanos = seq.next_element()?.ok_or_else(|| Error::invalid_length(1, &self))?;
         if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
@@ -33,10 +49,16 @@ impl<'de> Visitor<'de> for DurationPayloadVisitor {
         }
         Ok(DurationPayload { secs, nanos })
     }
+
+    /// Reads the `secs` and `nanos` map fields, in either order.
+    ///
+    /// Returns a deserializer error for an unknown, duplicate, or missing
+    /// field, or when a field value cannot be decoded as its field type.
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
     {
+        // Map representations require both recognized fields exactly once.
         let mut secs = None;
         let mut nanos = None;
         while let Some(key) = map.next_key::<String>()? {

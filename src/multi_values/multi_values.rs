@@ -2474,7 +2474,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// A reference to the vector containing all stored URLs.
+        /// A borrowed slice containing all stored URLs. The slice borrows from this
+        /// collection; no elements are cloned.
         #[cfg(feature = "url")]
         vec: get_urls, Url, Url, DataType::Url
     }
@@ -2484,7 +2485,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// A reference to the vector containing all stored string maps.
+        /// A borrowed slice containing all stored string maps. The slice borrows from
+        /// this collection; no maps or entries are cloned.
         vec: get_string_maps, StringMap, HashMap<String, String>, DataType::StringMap
     }
 
@@ -2493,7 +2495,8 @@ impl MultiValues {
         ///
         /// # Returns
         ///
-        /// A reference to the vector containing all stored JSON values.
+        /// A borrowed slice containing all stored JSON values. The slice borrows from
+        /// this collection; no JSON trees are cloned.
         #[cfg(feature = "json")]
         vec: get_jsons, Json, serde_json::Value, DataType::Json
     }
