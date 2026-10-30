@@ -155,6 +155,13 @@ The budget-aware hashing APIs preflight the complete JSON payload in a staged
 transaction. A budget error leaves both the caller's hasher and the committed
 budget unchanged.
 
+This iterative traversal applies to the stated equality and hashing operations,
+not to the complete value lifecycle. The containers directly hold
+`serde_json::Value` payloads, whose cloning, ordinary `Debug` formatting, and
+destruction retain recursive paths. Decode budgets constrain the operations
+that use them; they are not a general stack-safety guarantee for later
+lifecycle operations.
+
 The resulting `Hash` output is for in-memory Rust collections. It is not a
 persistent fingerprint, canonical protocol digest, or distributed-cache key;
 it may change with the hasher, target, dependency versions, features, or crate

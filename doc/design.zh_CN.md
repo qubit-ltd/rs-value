@@ -121,6 +121,10 @@ identity 语义：例如，`Int32(1)` 与 `Int64(1)` 在 `NumericComparisonPolic
 JSON 相等与 hash 使用迭代遍历，避免递归调用。带 budget 的 hash API 会在 staged transaction
 中预检查完整 JSON payload；若预算失败，调用方 hasher 与已提交 budget 都保持不变。
 
+这种迭代遍历只适用于上述相等与 hash 操作，不代表整个值的生命周期都不递归。容器直接持有
+`serde_json::Value` payload，其克隆、普通 `Debug` 格式化和析构仍沿用递归路径。解码 budget 约束使用它的
+相关操作，不是对后续生命周期操作的通用栈安全保证。
+
 `Hash` 输出只适用于进程内 Rust 集合，不能作为持久化 fingerprint、规范协议 digest 或分布式
 缓存 key。具体结果可能随 hasher、target、依赖版本、feature 或 crate 实现变化。
 

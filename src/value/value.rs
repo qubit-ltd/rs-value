@@ -101,6 +101,21 @@ use crate::value_error::ValueResult;
 /// numeric comparison. Hash output is intended for in-process collections and
 /// is not a persistent fingerprint.
 ///
+/// # JSON nesting and lifecycle
+///
+/// With the `json` feature, JSON equality and hashing use iterative traversal.
+/// This does not provide the same guarantee for the entire value lifecycle:
+/// cloning, ordinary `Debug` formatting, and dropping JSON payloads still
+/// follow recursive paths in the underlying `serde_json::Value`.
+/// Very deeply nested trees may exhaust the thread stack during those
+/// operations.
+///
+/// Keep untrusted JSON nesting bounded, and consider these lifecycle operations
+/// before raising decoder depth limits. Directly constructed in-memory JSON
+/// does not pass through those decoder limits. Borrowed reads avoid unnecessary
+/// clones but do not remove recursive destruction of the source value.
+/// There is no universal safe depth across platforms and thread configurations.
+///
 /// # Examples
 ///
 /// ```

@@ -516,6 +516,16 @@ deserializing the target type do not have original source coordinates. A
 130-level value succeeds when the configured depth allows it, while direct
 `serde_json::from_slice` may hit Serde's default recursion limit.
 
+The decoder's nesting limit does not mean that every later operation on a value
+is non-recursive. JSON equality and hashing use iterative traversal, while
+cloning, ordinary `Debug` formatting, and dropping JSON payloads still follow
+recursive paths in the underlying representation. Keep untrusted JSON nesting
+bounded, and consider the thread-stack cost of these lifecycle operations before
+raising a decoder depth limit. JSON constructed directly in memory does not pass
+through decoder limits. Borrowed reads avoid unnecessary clones but do not
+remove recursive destruction of the source value. There is no universal safe
+depth across platforms and thread configurations.
+
 ### Borrowed Wire encoding
 
 Use a borrowed adapter when the source value already lives long enough for the
