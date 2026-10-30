@@ -92,6 +92,9 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for an unsupported
     /// decimal scale, or [`ValueWireEncodeError::InstantYearOutOfRange`] when
     /// an Instant's UTC year is outside 0 through 9999.
+    /// With the `json` feature, returns `JsonNumberNotRoundTrippable` if a
+    /// runtime JSON number, including a nested number, cannot preserve its
+    /// `serde_json::Number` identity under the V1 number model.
     pub fn from_value(value: &'a Value) -> Result<Self, ValueWireEncodeError> {
         validate_value(value)?;
         Ok(Self {
@@ -117,6 +120,10 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// unsupported decimal scale, or
     /// [`ValueWireEncodeError::InstantYearOutOfRange`] when an Instant's
     /// UTC year is outside 0 through 9999.
+    /// With the `json` feature, returns `JsonNumberNotRoundTrippable` if any
+    /// runtime JSON number in the collection, including a nested number,
+    /// cannot preserve its `serde_json::Number` identity under the V1 number
+    /// model.
     pub fn from_values(values: &'a MultiValues) -> Result<Self, ValueWireEncodeError> {
         validate_values(values)?;
         Ok(Self {
@@ -141,6 +148,10 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// [`ValueWireEncodeError::BigDecimalScaleTooLarge`] for an unsupported
     /// decimal scale, or [`ValueWireEncodeError::InstantYearOutOfRange`] when
     /// an Instant's UTC year is outside 0 through 9999.
+    /// With the `json` feature, returns `JsonNumberNotRoundTrippable` if a
+    /// runtime JSON number in either the scalar or collection shape, including
+    /// a nested number, cannot preserve its `serde_json::Number` identity
+    /// under the V1 number model.
     pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
         match value {
             ValueContainer::Scalar(value) => Self::from_value(value),
@@ -321,6 +332,9 @@ impl<'a> ValueWirePayloadRefV1<'a> {
 /// arbitrary-precision decimal scale, or
 /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an Instant whose UTC
 /// year is outside 0 through 9999.
+/// With the `json` feature, returns `JsonNumberNotRoundTrippable` if a runtime
+/// JSON number, including a nested number, cannot preserve its
+/// `serde_json::Number` identity under the V1 number model.
 pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "json")]
     if let ValueRepr::Json(value) = &value.repr {
@@ -361,6 +375,9 @@ pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWi
 /// unsupported arbitrary-precision decimal scale, or
 /// [`ValueWireEncodeError::InstantYearOutOfRange`] for an Instant whose UTC
 /// year is outside 0 through 9999.
+/// With the `json` feature, returns `JsonNumberNotRoundTrippable` if any
+/// runtime JSON number in the collection, including a nested number, cannot
+/// preserve its `serde_json::Number` identity under the V1 number model.
 pub(in crate::value_wire) fn validate_values(values: &MultiValues) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "json")]
     if let MultiValuesRepr::Json(values) = &values.repr {
