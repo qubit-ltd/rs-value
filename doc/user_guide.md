@@ -931,17 +931,21 @@ only the Serde category and line/column metadata. It does not retain the
 original error message or input text. Target-type failures from the unique-key
 tree path have no source coordinates and report zero for line and column.
 
+This example converts a direct Serde error, which retains its source coordinates.
+
+<!-- example:safe-wire-json-error run -->
 ```rust
 use qubit_value::ValueWireDecodeError;
 use serde_json::error::Category;
 
-let source = serde_json::from_str::<u64>("\"not a number\"").unwrap_err();
+let source = serde_json::from_str::<u64>(r#""not a number""#).unwrap_err();
 let error = ValueWireDecodeError::from(source);
-if let ValueWireDecodeError::InvalidJson(json) = error {
-    assert_eq!(json.classify(), Category::Data);
-    assert!(json.line() > 0);
-    assert!(json.column() > 0);
-}
+let ValueWireDecodeError::InvalidJson(json) = error else {
+    panic!("direct Serde conversion must preserve safe metadata");
+};
+assert_eq!(json.classify(), Category::Data);
+assert!(json.line() > 0);
+assert!(json.column() > 0);
 ```
 
 This changes the `InvalidJson` payload from `serde_json::Error` to

@@ -817,17 +817,21 @@ assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
 不会保留原始错误消息或输入文本。通过唯一键中间树解码时发生的 target 类型错误没有原始源码位置，
 因此 line 和 column 为零。
 
+此例转换直接的 Serde 错误，因此会保留源码坐标。
+
+<!-- example:safe-wire-json-error run -->
 ```rust
 use qubit_value::ValueWireDecodeError;
 use serde_json::error::Category;
 
-let source = serde_json::from_str::<u64>("\"not a number\"").unwrap_err();
+let source = serde_json::from_str::<u64>(r#""not a number""#).unwrap_err();
 let error = ValueWireDecodeError::from(source);
-if let ValueWireDecodeError::InvalidJson(json) = error {
-    assert_eq!(json.classify(), Category::Data);
-    assert!(json.line() > 0);
-    assert!(json.column() > 0);
-}
+let ValueWireDecodeError::InvalidJson(json) = error else {
+    panic!("direct Serde conversion must preserve safe metadata");
+};
+assert_eq!(json.classify(), Category::Data);
+assert!(json.line() > 0);
+assert!(json.column() > 0);
 ```
 
 `InvalidJson` 的载荷类型已从 `serde_json::Error` 改为 `ValueWireJsonError`。下游代码若显式写出

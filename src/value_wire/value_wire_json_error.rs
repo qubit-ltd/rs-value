@@ -14,34 +14,87 @@ use serde_json::error::Category;
 
 /// Privacy-safe classification and source position for a JSON wire failure.
 ///
-/// This type retains only the Serde category and source coordinates. It does
-/// not retain the input, the original error, or its detailed message.
+/// Obtain this metadata from [`ValueWireDecodeError::InvalidJson`] rather than
+/// constructing it directly. It contains only the Serde category and source
+/// coordinates; it does not retain the input or detailed error message. A
+/// coordinate of zero means that the source position is unavailable, as can
+/// happen for target-type failures after decoding through a unique-key tree.
+/// Direct conversion from a Serde error preserves its source coordinates.
+///
+/// [`ValueWireDecodeError::InvalidJson`]: crate::ValueWireDecodeError::InvalidJson
+///
+/// # Examples
+///
+/// ```
+/// use qubit_value::ValueWireDecodeError;
+/// use qubit_value::ValueWireJsonError;
+/// use serde_json::error::Category;
+///
+/// fn check_metadata(metadata: &ValueWireJsonError) {
+///     assert_eq!(metadata.classify(), Category::Data);
+///     assert!(metadata.is_data());
+///     assert!(metadata.line() > 0);
+///     assert!(metadata.column() > 0);
+/// }
+///
+/// let source = serde_json::from_str::<u64>(r#""not a number""#).unwrap_err();
+/// let error = ValueWireDecodeError::from(source);
+/// let ValueWireDecodeError::InvalidJson(metadata) = error else {
+///     panic!("direct Serde conversion must preserve safe metadata");
+/// };
+/// check_metadata(&metadata);
+/// ```
 #[derive(Debug)]
 pub struct ValueWireJsonError {
+    /// Serde's category for the JSON decoding failure.
     category: Category,
+    /// One-based source line, or zero when unavailable.
     line: usize,
+    /// One-based source column, or zero when unavailable.
     column: usize,
 }
 
 impl ValueWireJsonError {
     /// Constructs safe JSON error metadata.
+    ///
+    /// # Parameters
+    ///
+    /// - `category`: Serde's category for the failure.
+    /// - `line`: one-based source line, or zero when unavailable.
+    /// - `column`: one-based source column, or zero when unavailable.
+    ///
+    /// # Returns
+    ///
+    /// The metadata containing only the supplied category and coordinates.
     pub(crate) fn new(category: Category, line: usize, column: usize) -> Self {
         Self { category, line, column }
     }
 
     /// Returns the Serde JSON failure category.
+    ///
+    /// # Returns
+    ///
+    /// The category associated with the failure.
     #[inline]
     pub fn classify(&self) -> Category {
         self.category
     }
 
     /// Returns the one-based input line, or zero when unavailable.
+    ///
+    /// # Returns
+    ///
+    /// The source line, or zero if no source position is available.
     #[inline]
     pub fn line(&self) -> usize {
         self.line
     }
 
     /// Returns the one-based input column, or zero when unavailable.
+    ///
+    /// # Returns
+    ///
+    /// The source column, or zero if no source position is available.
     #[inline]
     pub fn column(&self) -> usize {
         self.column
