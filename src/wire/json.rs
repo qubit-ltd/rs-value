@@ -22,7 +22,11 @@ use serde_json::Number;
 use serde_json::Value;
 
 use super::internal::CanonicalJson;
+#[cfg(feature = "json")]
+use super::internal::FixedNumberText;
 use super::internal::JsonNumberChildren;
+#[cfg(feature = "json")]
+use super::internal::NumberTextComparator;
 use crate::value_wire::ValueWireEncodeError;
 
 /// Serializes one JSON value with recursively ordered object keys.
@@ -109,76 +113,26 @@ pub(crate) fn validate_number(number: &Number) -> Result<(), ValueWireEncodeErro
     }
 }
 
-const MAX_INTEGER_TEXT_LENGTH: usize = 20;
-
-struct FixedNumberText {
-    bytes: [u8; MAX_INTEGER_TEXT_LENGTH],
-    length: usize,
-}
-
-impl FixedNumberText {
-    fn new() -> Self {
-        Self {
-            bytes: [0; MAX_INTEGER_TEXT_LENGTH],
-            length: 0,
-        }
-    }
-
-    fn as_bytes(&self) -> &[u8] {
-        &self.bytes[..self.length]
-    }
-}
-
-impl fmt::Write for FixedNumberText {
-    fn write_str(&mut self, value: &str) -> fmt::Result {
-        let Some(end) = self.length.checked_add(value.len()) else {
-            return Err(fmt::Error);
-        };
-        let Some(destination) = self.bytes.get_mut(self.length..end) else {
-            return Err(fmt::Error);
-        };
-        destination.copy_from_slice(value.as_bytes());
-        self.length = end;
-        Ok(())
-    }
-}
-
-struct NumberTextComparator<'a> {
-    expected: &'a [u8],
-    offset: usize,
-}
-
-impl NumberTextComparator<'_> {
-    fn is_equal(&self) -> bool {
-        self.offset == self.expected.len()
-    }
-}
-
-impl fmt::Write for NumberTextComparator<'_> {
-    fn write_str(&mut self, value: &str) -> fmt::Result {
-        let Some(end) = self.offset.checked_add(value.len()) else {
-            return Err(fmt::Error);
-        };
-        let Some(expected) = self.expected.get(self.offset..end) else {
-            return Err(fmt::Error);
-        };
-        if expected != value.as_bytes() {
-            return Err(fmt::Error);
-        }
-        self.offset = end;
-        Ok(())
-    }
-}
-
+/// Compares a JSON number's text with the decimal text of an integer.
+///
+/// The expected integer is formatted into a fixed-capacity stack buffer, then
+/// the JSON number is written into a comparator that checks each text fragment
+/// byte-for-byte. Equality requires every expected byte to be consumed.
+///
+/// # Parameters
+///
+/// * `number` - JSON number whose textual identity is checked.
+/// * `integer` - Integer value exposed by the JSON number API.
+///
+/// # Returns
+///
+/// `true` when formatting succeeds and the complete byte sequences match.
 fn number_matches_integer<T: fmt::Display>(number: &Number, integer: T) -> bool {
     let mut expected = FixedNumberText::new();
     if write!(&mut expected, "{integer}").is_err() {
         return false;
     }
-    let mut comparator = NumberTextComparator {
-        expected: expected.as_bytes(),
-        offset: 0,
-    };
+    let mut comparator = NumberTextComparator::new(expected.as_bytes());
     write!(&mut comparator, "{number}").is_ok() && comparator.is_equal()
 }
 

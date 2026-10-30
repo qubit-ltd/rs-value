@@ -18,7 +18,11 @@ mod canonical_string_map;
 mod duration_payload;
 mod duration_payload_visitor;
 #[cfg(feature = "json")]
+mod fixed_number_text;
+#[cfg(feature = "json")]
 mod json_number_children;
+#[cfg(feature = "json")]
+mod number_text_comparator;
 mod strict_string_map;
 mod strict_string_map_visitor;
 
@@ -29,5 +33,9 @@ pub(in crate::wire) use canonical_json::CanonicalJson;
 pub(in crate::wire) use canonical_string_map::CanonicalStringMap;
 pub(in crate::wire) use duration_payload::DurationPayload;
 #[cfg(feature = "json")]
+pub(in crate::wire) use fixed_number_text::FixedNumberText;
+#[cfg(feature = "json")]
 pub(in crate::wire) use json_number_children::JsonNumberChildren;
+#[cfg(feature = "json")]
+pub(in crate::wire) use number_text_comparator::NumberTextComparator;
 pub(in crate::wire) use strict_string_map::StrictStringMap;
