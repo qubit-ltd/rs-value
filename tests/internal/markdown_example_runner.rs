@@ -92,6 +92,10 @@ fn check_runner_behavior(root: &Path, runner: &Runner) -> Result<(), String> {
                         return Err(format!("synthetic diagnostic omitted {context:?}: {error}"));
                     }
                 }
+                if !error.contains(" failed\n") || !error.contains("stderr:\n") {
+                    return Err(format!("synthetic example did not reach rustdoc failure: {error}"));
+                }
+                runner.discard_expected_failure(&error)?;
             }
             _ => unreachable!(),
         }
@@ -356,16 +360,43 @@ impl Runner {
         if !stdout.contains(expected_summary) {
             temp.preserve_on_drop = true;
             return Err(format!(
-                "{}: example `{}` ({}) did not report exactly one expected doctest; stdout:\n{}\nstderr:\n{}\nsource:\n{}",
+                "{}: example `{}` ({}) did not report exactly one expected doctest; stdout:\n{}\nstderr:\n{}\nsource:\n{}\ntemporary output: {}",
                 document,
                 example.id,
                 example.mode.as_str(),
                 stdout,
                 String::from_utf8_lossy(&output.stderr),
                 example.source,
+                temp.path.display(),
             ));
         }
         Ok(())
+    }
+
+    fn discard_expected_failure(&self, error: &str) -> Result<(), String> {
+        let Some((_, directory)) = error.rsplit_once("\ntemporary output: ") else {
+            return Err(format!("expected failure has no temporary output path: {error}"));
+        };
+        let directory = Path::new(directory);
+        let expected_parent = std::env::temp_dir();
+        let expected_prefix = format!("qubit-value-markdown-{}-", std::process::id());
+        if directory.parent() != Some(expected_parent.as_path())
+            || !directory
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with(&expected_prefix))
+        {
+            return Err(format!(
+                "refusing to remove unexpected synthetic failure directory {}",
+                directory.display()
+            ));
+        }
+        fs::remove_dir_all(directory).map_err(|error| {
+            format!(
+                "could not remove expected synthetic failure directory {}: {error}",
+                directory.display()
+            )
+        })
     }
 }
 
