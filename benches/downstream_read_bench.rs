@@ -238,6 +238,51 @@ fn benchmark_preflight_and_encode(c: &mut Criterion) {
     }
 }
 
+/// Benchmarks the extra borrowed wire DTO validation between preflight and
+/// encoding.
+fn benchmark_repeated_wire_validation(c: &mut Criterion) {
+    let fixtures = [
+        ("strings", ValueContainer::from(vec!["item".to_owned(); 4096])),
+        (
+            "floats",
+            ValueContainer::from((0..4096).map(|index| index as f64 / 10.0).collect::<Vec<_>>()),
+        ),
+        (
+            "json",
+            ValueContainer::from(qubit_value::MultiValues::Json(
+                (0..4096)
+                    .map(|index| serde_json::json!({"outer": {"items": [index, index as f64 / 10.0]}}))
+                    .collect(),
+            )),
+        ),
+    ];
+    let limits = JsonEncodeLimits::builder().max_output_bytes(4 * 1024 * 1024).build();
+
+    for (name, values) in fixtures {
+        let single = || {
+            let mut preflight = ValueWireEncodePreflight::new(limits);
+            preflight.check_container(&values).expect("fixture must pass preflight");
+            let wire = ValueWireRefV1::try_from(&values).expect("fixture must be wire encodable");
+            wire.to_json_vec_with_limits(limits).expect("fixture must encode")
+        };
+        let repeated = || {
+            let mut preflight = ValueWireEncodePreflight::new(limits);
+            preflight.check_container(&values).expect("fixture must pass preflight");
+            let _ = black_box(ValueWireRefV1::try_from(black_box(&values)).expect("fixture must be wire encodable"));
+            let wire = ValueWireRefV1::try_from(&values).expect("fixture must be wire encodable");
+            wire.to_json_vec_with_limits(limits).expect("fixture must encode")
+        };
+        assert_eq!(single(), repeated(), "single and repeated output must match");
+
+        c.bench_function(&format!("repeated_validation/{name}/single"), |bencher| {
+            bencher.iter(|| black_box(single()));
+        });
+        c.bench_function(&format!("repeated_validation/{name}/repeated"), |bencher| {
+            bencher.iter(|| black_box(repeated()));
+        });
+    }
+}
+
 criterion_group!(
     benches,
     benchmark_config_conversions,
@@ -247,5 +292,6 @@ criterion_group!(
     benchmark_preflight,
     benchmark_borrowed_encode,
     benchmark_preflight_and_encode,
+    benchmark_repeated_wire_validation,
 );
 criterion_main!(benches);
