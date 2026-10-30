@@ -26,7 +26,7 @@ pub(crate) fn build_deep_json(depth: usize) -> JsonValue {
     (0..depth).fold(JsonValue::Bool(true), |value, _| JsonValue::Array(vec![value]))
 }
 
-#[cfg(feature = "all")]
+#[cfg(all(feature = "converter", feature = "json"))]
 pub(crate) fn dismantle_json(value: JsonValue) {
     let mut pending = vec![value];
     while let Some(value) = pending.pop() {

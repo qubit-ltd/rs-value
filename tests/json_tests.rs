@@ -94,8 +94,6 @@ fn test_natural_json_deep_projection() {
 #[test]
 #[ignore = "run only through test_natural_json_deep_projection"]
 fn test_natural_json_deep_projection_child() {
-    use std::mem::ManuallyDrop;
-
     use qubit_datatype::ConversionLimits;
     use qubit_datatype::ConversionOperationLimits;
     use qubit_datatype::ConversionPolicy;
@@ -103,7 +101,7 @@ fn test_natural_json_deep_projection_child() {
 
     assert!(std::env::var_os(DEEP_NATURAL_JSON_CHILD_ENV).is_some());
     const DEPTH: usize = 10_000;
-    let input = ManuallyDrop::new(Value::from_json_value(crate::deep_json_helpers::build_deep_json(DEPTH)));
+    let input = Value::from_json_value(crate::deep_json_helpers::build_deep_json(DEPTH));
     let limits = ConversionLimits::builder()
         .structured_limits(
             StructuredConversionLimits::builder()
@@ -145,12 +143,13 @@ fn test_natural_json_deep_projection_child() {
         }
     }
 
-    eprintln!("teardown output iteratively; retain input until child exit");
-    // `Value` has no safe consuming JSON getter; keeping it in `ManuallyDrop`
-    // lets the isolated child process reclaim the deep input at exit.
+    eprintln!("teardown output iteratively");
     assert_eq!(projected_nodes, DEPTH + 1, "projected JSON node count changed");
     assert_eq!(projected_depth, DEPTH, "projected JSON depth changed");
     assert_eq!(deepest_bool, Some((DEPTH, true)), "projected JSON leaf changed");
+    let input_json = JsonValue::try_from(input).expect("deep input retains its JSON type");
+    crate::deep_json_helpers::dismantle_json(input_json);
+    eprintln!("teardown input iteratively");
     eprintln!("done");
 }
 

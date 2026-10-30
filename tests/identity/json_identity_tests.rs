@@ -15,8 +15,6 @@ use std::hash::Hash;
 #[cfg(feature = "json")]
 use std::hash::Hasher;
 #[cfg(feature = "json")]
-use std::mem::ManuallyDrop;
-#[cfg(feature = "json")]
 use std::process::Command;
 
 #[cfg(feature = "json")]
@@ -133,16 +131,13 @@ fn test_deep_json_identity_hash_in_isolated_process() {
         "this helper test must run through its parent test"
     );
 
-    let value = ManuallyDrop::new(Value::Json(build_deep_json_value(1)));
+    let value = Value::Json(build_deep_json_value(1));
     let mut state = DefaultHasher::new();
     value.hash(&mut state);
     let _ = state.finish();
 
-    // SAFETY: the wrapper is manually dropped and its payload is moved out
-    // exactly once for iterative teardown.
-    unsafe {
-        dismantle_json_value(read_json_fixture(&value));
-    }
+    let json = serde_json::Value::try_from(value).expect("hash fixture retains its JSON type");
+    dismantle_json_value(json);
 }
 
 /// Verifies the root is counted as depth one by budgeted hashing.
@@ -409,22 +404,19 @@ fn test_deep_json_identity_equality_in_isolated_process() {
         "this helper test must run through its parent test"
     );
 
-    let left = ManuallyDrop::new(Value::Json(build_deep_json_value(1)));
-    let equal = ManuallyDrop::new(Value::Json(build_deep_json_value(1)));
-    let unequal = ManuallyDrop::new(Value::Json(build_deep_json_value(2)));
+    let left = Value::Json(build_deep_json_value(1));
+    let equal = Value::Json(build_deep_json_value(1));
+    let unequal = Value::Json(build_deep_json_value(2));
 
-    assert!(*left == *equal, "matching deeply nested JSON values must be equal");
+    assert!(left == equal, "matching deeply nested JSON values must be equal");
     assert!(
-        *left != *unequal,
+        left != unequal,
         "leaf differences in deeply nested JSON values must not be equal"
     );
 
-    // SAFETY: each wrapper is manually dropped and its payload is moved out
-    // exactly once for iterative teardown.
-    unsafe {
-        dismantle_json_value(read_json_fixture(&left));
-        dismantle_json_value(read_json_fixture(&equal));
-        dismantle_json_value(read_json_fixture(&unequal));
+    for value in [left, equal, unequal] {
+        let json = serde_json::Value::try_from(value).expect("equality fixture retains its JSON type");
+        dismantle_json_value(json);
     }
 }
 
@@ -463,20 +455,6 @@ fn build_deep_json_value(leaf: i64) -> serde_json::Value {
         value = serde_json::Value::Array(vec![value]);
     }
     value
-}
-
-/// Moves a JSON fixture out of a manually dropped value.
-///
-/// # Safety
-///
-/// Callers must ensure the value is never dropped normally after this function
-/// returns and that its payload is moved out exactly once, because this
-/// function transfers ownership of the JSON payload.
-#[cfg(feature = "json")]
-unsafe fn read_json_fixture(value: &ManuallyDrop<Value>) -> serde_json::Value {
-    // SAFETY: the caller keeps `value` manually dropped and moves the payload
-    // exactly once into `dismantle_json_value`.
-    unsafe { std::ptr::read(value.get_json_ref().expect("test fixture must retain its JSON payload")) }
 }
 
 /// Iteratively consumes a JSON fixture so its destructor cannot recurse.
