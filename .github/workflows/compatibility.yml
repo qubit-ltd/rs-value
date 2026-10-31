@@ -24,5 +24,7 @@ jobs:
         run: ./.infra/bin/prepare-local-path-dependencies.sh
       - name: Check minimal JSON API
         run: cargo +1.94.0 check --locked --no-default-features --features json --lib
+      - name: Test fuzz support regressions
+        run: cargo +1.94.0 test --locked --manifest-path fuzz/Cargo.toml --lib --tests
       - name: Test writer contracts
         run: cargo +1.94.0 test --locked --all-features --test integration_tests writer

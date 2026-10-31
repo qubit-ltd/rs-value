@@ -359,6 +359,12 @@ assert!(matches!(
 NaN。unset 不等于零。`Approximate` 不是通用容差或 epsilon 比较：有限浮点数可能使混合表示投影到
 `f64`，不同配对的结果可能不满足传递性。因此不能用它实现 `Ord`、排序、分组或有序集合键。
 
+数值比较独立于转换，`ConversionLimits` 和 `ConversionSession` 不会限制比较过程。
+固定宽度数值的比较无需堆分配；部分大数比较路径可能复制系数，或构造精确的有理数、小数，
+具体成本取决于操作数的表示。接收不可信输入时，应在输入边界约束大数系数的尺寸和 scale，
+批量元数据过滤还需考虑多次比较的累计成本。详见
+[底层比较契约](https://docs.rs/qubit-datatype/latest/qubit_datatype/numeric/struct.NumberRef.html#method.compare)。
+
 <a id="wire-v1"></a>
 ## Wire V1：通过 JSON 保留类型和形态
 

@@ -150,6 +150,14 @@ finite mixed representations to `f64`, making its result pair-dependent and
 non-transitive, so it must not define ordering, sorting, grouping, or ordered
 collection keys.
 
+Numeric comparison is independent of conversion: `ConversionLimits` and
+`ConversionSession` do not bound its work. Fixed-width comparisons do not
+require heap allocation, while some paths involving large numbers may clone
+coefficients or construct exact rational or decimal values. Cost depends on
+the operand representations. Bound untrusted coefficient sizes and scales at
+the input boundary, and account for cumulative comparison cost in batch
+metadata filters. See the [lower-level comparison contract](https://docs.rs/qubit-datatype/latest/qubit_datatype/numeric/struct.NumberRef.html#method.compare).
+
 JSON equality and hashing use iterative traversal instead of recursive calls.
 The budget-aware hashing APIs preflight the complete JSON payload in a staged
 transaction. A budget error leaves both the caller's hasher and the committed

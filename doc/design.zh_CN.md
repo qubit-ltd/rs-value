@@ -118,6 +118,12 @@ identity 语义：例如，`Int32(1)` 与 `Int64(1)` 在 `NumericComparisonPolic
 有限浮点参与时可能将混合表示投影到 `f64`，结果因此依赖比较对象且不满足传递性，不能用于定义
 排序、分组或有序集合键。
 
+数值比较独立于转换，`ConversionLimits` 和 `ConversionSession` 不会限制比较过程。
+固定宽度数值的比较无需堆分配；部分大数比较路径可能复制系数，或构造精确的有理数、小数，
+具体成本取决于操作数的表示。接收不可信输入时，应在输入边界约束大数系数的尺寸和 scale，
+批量元数据过滤还需考虑多次比较的累计成本。详见
+[底层比较契约](https://docs.rs/qubit-datatype/latest/qubit_datatype/numeric/struct.NumberRef.html#method.compare)。
+
 JSON 相等与 hash 使用迭代遍历，避免递归调用。带 budget 的 hash API 会在 staged transaction
 中预检查完整 JSON payload；若预算失败，调用方 hasher 与已提交 budget 都保持不变。
 

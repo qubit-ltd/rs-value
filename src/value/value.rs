@@ -1729,6 +1729,14 @@ impl Value {
     /// right, followed by concrete operand types from left to right, and then
     /// NaN positions.
     ///
+    /// Conversion limits and session budgets do not apply to this independent
+    /// comparison. Fixed-width comparisons do not require heap allocation;
+    /// some paths involving large numbers may clone coefficients or construct
+    /// exact rational or decimal values, with cost depending on the operand
+    /// representations. Constrain untrusted coefficient sizes and scales at
+    /// the input boundary, and consider cumulative cost in batch filters.
+    /// See the [lower-level comparison contract](https://docs.rs/qubit-datatype/latest/qubit_datatype/numeric/struct.NumberRef.html#method.compare).
+    ///
     /// # Parameters
     ///
     /// * `other` - Right numeric operand.

@@ -394,6 +394,14 @@ representations to be projected to `f64`, and those pair-dependent results may
 be non-transitive. Do not use it for `Ord`, sorting, grouping, or ordered
 collection keys.
 
+Numeric comparison is independent of conversion: `ConversionLimits` and
+`ConversionSession` do not bound its work. Fixed-width comparisons do not
+require heap allocation, while some paths involving large numbers may clone
+coefficients or construct exact rational or decimal values. Cost depends on
+the operand representations. Bound untrusted coefficient sizes and scales at
+the input boundary, and account for cumulative comparison cost in batch
+metadata filters. See the [lower-level comparison contract](https://docs.rs/qubit-datatype/latest/qubit_datatype/numeric/struct.NumberRef.html#method.compare).
+
 <a id="wire-v1"></a>
 ## Wire V1: preserve type and shape across JSON
 
