@@ -600,6 +600,8 @@ serialization call and cloning would be unnecessary.
 
 <!-- example:borrowed-wire run -->
 ```rust
+use std::io::BufWriter;
+use std::io::Write;
 use qubit_value::{Value, ValueWireRefV1};
 
 let value = Value::new("service-a".to_owned());
@@ -610,7 +612,22 @@ assert_eq!(
     encoded,
     br#"{"version":1,"value":{"scalar":{"string":"service-a"}}}"#
 );
+
+let mut writer = BufWriter::new(Vec::new());
+borrowed.to_json_writer(&mut writer)?;
+writer.flush()?;
+assert_eq!(writer.get_ref(), &encoded);
 ```
+
+Wire writer methods buffer and admit a complete document before writing it.
+Preflight, serialization, or budget rejection leaves this document unwritten;
+an I/O error can leave an accepted prefix, so do not blindly retry a complete
+document on the same destination. The methods do not explicitly flush. Success
+means the writer accepted all document bytes, not that they were flushed,
+persisted, or received by a remote peer. Pass `&mut writer` to retain a buffered
+writer, then call `flush()` and handle its error. Passing an owned writer may
+invoke its drop behavior; errors from an implicit drop-time flush are not
+returned by the encoder.
 
 For an already versioned outer protocol, use
 `ValueWirePayloadRefV1::from_value`, `from_values`, or `from_container` and

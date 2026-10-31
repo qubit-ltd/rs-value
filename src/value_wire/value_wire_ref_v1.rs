@@ -187,6 +187,20 @@ impl<'a> ValueWireRefV1<'a> {
     ///
     /// `Ok(())` after the complete envelope is written.
     ///
+    /// The complete document is buffered and admitted before this method writes
+    /// its bytes to the destination. Preflight, serialization, or budget
+    /// rejection does not write this document. An I/O error may leave an
+    /// accepted prefix in the writer; do not blindly retry a complete
+    /// document on the same destination.
+    ///
+    /// This method does not explicitly flush the writer. Success means the
+    /// writer accepted all document bytes, not that they were flushed,
+    /// persisted, or received by a remote peer. Pass `&mut writer` to
+    /// retain ownership of a buffered writer, then call `flush()` and
+    /// handle its error separately. Passing an owned writer may invoke that
+    /// writer's drop behavior; errors from an implicit drop-time flush are
+    /// not returned by this method.
+    ///
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError`] for resource, serialization, or writer
@@ -219,6 +233,20 @@ impl<'a> ValueWireRefV1<'a> {
     /// `limits` authoritatively while encoding the full envelope. The preflight
     /// may report a lower-bound budget error and does not bound every
     /// preparation allocation.
+    ///
+    /// The complete document is buffered and admitted before this method writes
+    /// its bytes to the destination. Preflight, serialization, or budget
+    /// rejection does not write this document. An I/O error may leave an
+    /// accepted prefix in the writer; do not blindly retry a complete
+    /// document on the same destination.
+    ///
+    /// This method does not explicitly flush the writer. Success means the
+    /// writer accepted all document bytes, not that they were flushed,
+    /// persisted, or received by a remote peer. Pass `&mut writer` to
+    /// retain ownership of a buffered writer, then call `flush()` and
+    /// handle its error separately. Passing an owned writer may invoke that
+    /// writer's drop behavior; errors from an implicit drop-time flush are
+    /// not returned by this method.
     ///
     /// # Errors
     ///

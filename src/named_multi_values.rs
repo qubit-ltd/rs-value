@@ -251,6 +251,20 @@ impl NamedMultiValues {
     ///
     /// `Ok(())` after the complete document is written.
     ///
+    /// The complete document is buffered and admitted before this method writes
+    /// its bytes to the destination. Preflight, serialization, or budget
+    /// rejection does not write this document. An I/O error may leave an
+    /// accepted prefix in the writer; do not blindly retry a complete
+    /// document on the same destination.
+    ///
+    /// This method does not explicitly flush the writer. Success means the
+    /// writer accepted all document bytes, not that they were flushed,
+    /// persisted, or received by a remote peer. Pass `&mut writer` to
+    /// retain ownership of a buffered writer, then call `flush()` and
+    /// handle its error separately. Passing an owned writer may invoke that
+    /// writer's drop behavior; errors from an implicit drop-time flush are
+    /// not returned by this method.
+    ///
     /// # Errors
     ///
     /// Returns [`ValueWireEncodeError`] for resource, serialization, or writer
@@ -278,6 +292,20 @@ impl NamedMultiValues {
     /// # Returns
     ///
     /// `Ok(())` after the complete document is written.
+    ///
+    /// The complete document is buffered and admitted before this method writes
+    /// its bytes to the destination. Preflight, serialization, or budget
+    /// rejection does not write this document. An I/O error may leave an
+    /// accepted prefix in the writer; do not blindly retry a complete
+    /// document on the same destination.
+    ///
+    /// This method does not explicitly flush the writer. Success means the
+    /// writer accepted all document bytes, not that they were flushed,
+    /// persisted, or received by a remote peer. Pass `&mut writer` to
+    /// retain ownership of a buffered writer, then call `flush()` and
+    /// handle its error separately. Passing an owned writer may invoke that
+    /// writer's drop behavior; errors from an implicit drop-time flush are
+    /// not returned by this method.
     ///
     /// # Errors
     ///

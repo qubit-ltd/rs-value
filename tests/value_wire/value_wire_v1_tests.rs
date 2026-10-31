@@ -15,10 +15,15 @@ use qubit_budget::BudgetError;
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
+use qubit_value::MultiValues;
+use qubit_value::NamedMultiValues;
+use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireEncodeError;
+use qubit_value::ValueWirePayloadRefV1;
+use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
 
@@ -35,6 +40,67 @@ impl Write for FailingWriter {
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
+}
+
+struct WriterProbe {
+    bytes: Vec<u8>,
+    remaining: Option<usize>,
+    flush_calls: usize,
+}
+
+impl Write for WriterProbe {
+    fn write(&mut self, input: &[u8]) -> io::Result<usize> {
+        if self.remaining == Some(0) {
+            return Err(io::Error::new(io::ErrorKind::BrokenPipe, "prefix accepted"));
+        }
+        let accepted = self.remaining.map_or(input.len(), |n| n.min(input.len()));
+        self.bytes.extend_from_slice(&input[..accepted]);
+        if let Some(remaining) = &mut self.remaining {
+            *remaining -= accepted;
+        }
+        Ok(accepted)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.flush_calls += 1;
+        Err(io::Error::new(io::ErrorKind::BrokenPipe, "explicit flush"))
+    }
+}
+
+fn assert_partial_writer<F>(expected: &[u8], encode: F)
+where
+    F: FnOnce(&mut WriterProbe) -> Result<(), ValueWireEncodeError>,
+{
+    let mut writer = WriterProbe {
+        bytes: Vec::new(),
+        remaining: Some(3),
+        flush_calls: 0,
+    };
+    let error = encode(&mut writer).expect_err("I/O failure must be returned");
+    match error {
+        ValueWireEncodeError::Io(source) => {
+            assert_eq!(source.kind(), io::ErrorKind::BrokenPipe);
+        }
+        other => panic!("unexpected encoding error: {other:?}"),
+    }
+    assert_eq!(writer.bytes, expected[..3]);
+    assert_eq!(writer.flush_calls, 0);
+}
+
+fn assert_writer_does_not_flush<F>(expected: &[u8], encode: F)
+where
+    F: FnOnce(&mut WriterProbe) -> Result<(), ValueWireEncodeError>,
+{
+    let mut writer = WriterProbe {
+        bytes: Vec::new(),
+        remaining: None,
+        flush_calls: 0,
+    };
+    encode(&mut writer).expect("accepting all bytes completes encoding");
+    assert_eq!(writer.bytes, expected);
+    assert_eq!(writer.flush_calls, 0);
+    assert_eq!(writer.flush().unwrap_err().kind(), io::ErrorKind::BrokenPipe);
+    assert_eq!(writer.flush_calls, 1);
 }
 
 #[test]
@@ -346,4 +412,38 @@ fn test_value_wire_v1_writer_budget_failure_does_not_write() {
         )
     ));
     assert!(output.is_empty());
+}
+
+#[test]
+fn test_public_wire_writers_preserve_io_and_flush_contracts() {
+    let scalar = Value::new(42_i32);
+    let values = MultiValues::new([1_i32, 2]);
+    let owned = ValueWireV1::try_from(scalar.clone()).unwrap();
+    let borrowed = ValueWireRefV1::from_value(&scalar).unwrap();
+    let payload = ValueWirePayloadV1::try_from(scalar.clone()).unwrap();
+    let payload_ref = ValueWirePayloadRefV1::from_value(&scalar).unwrap();
+    let named = NamedValue::new("answer", scalar.clone());
+    let named_values = NamedMultiValues::new("items", values);
+
+    macro_rules! check_writer {
+        ($dto:expr) => {{
+            let dto = &$dto;
+            let expected = dto.to_json_vec().unwrap();
+            assert_partial_writer(&expected, |writer| dto.to_json_writer(writer));
+            assert_partial_writer(&expected, |writer| {
+                dto.to_json_writer_with_limits(writer, JsonEncodeLimits::builder().max_output_bytes(4096).build())
+            });
+            assert_writer_does_not_flush(&expected, |writer| dto.to_json_writer(writer));
+            assert_writer_does_not_flush(&expected, |writer| {
+                dto.to_json_writer_with_limits(writer, JsonEncodeLimits::builder().max_output_bytes(4096).build())
+            });
+        }};
+    }
+
+    check_writer!(owned);
+    check_writer!(borrowed);
+    check_writer!(payload);
+    check_writer!(payload_ref);
+    check_writer!(named);
+    check_writer!(named_values);
 }

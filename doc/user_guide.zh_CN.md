@@ -524,6 +524,8 @@ map 编码。唯一键 decoder 会构造中间树，将对象键按普通用户�
 
 <!-- example:borrowed-wire run -->
 ```rust
+use std::io::BufWriter;
+use std::io::Write;
 use qubit_value::{Value, ValueWireRefV1};
 
 let value = Value::new("service-a".to_owned());
@@ -534,7 +536,18 @@ assert_eq!(
     encoded,
     br#"{"version":1,"value":{"scalar":{"string":"service-a"}}}"#
 );
+
+let mut writer = BufWriter::new(Vec::new());
+borrowed.to_json_writer(&mut writer)?;
+writer.flush()?;
+assert_eq!(writer.get_ref(), &encoded);
 ```
+
+Wire writer 方法会先缓冲并准入完整文档，再向目标写入。preflight、序列化或预算拒绝时不会写入本次文档；
+I/O 错误可能留下已接受的前缀，因此不要在同一目标上盲目重试完整文档。这些方法不会显式调用
+`flush()`。成功表示 writer 接受了全部文档字节，不表示数据已 flush、持久化或被远端收到。传入
+`&mut writer` 可保留缓冲 writer 的所有权，随后显式调用 `flush()` 并处理错误。传入拥有所有权的
+writer 可能触发其析构行为；析构时隐式 flush 的错误不会由编码器返回。
 
 对于已经版本化的外层协议，可以使用 `ValueWirePayloadRefV1::from_value`、`from_values` 或
 `from_container`，然后调用借用 payload 的 `to_json_vec()` 或 `to_json_writer()`。这些构造器会在返回可序列化 payload 前校验有限浮点和
