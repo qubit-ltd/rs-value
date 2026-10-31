@@ -822,6 +822,51 @@ fn test_natural_json_text_limit_applies_inside_json_and_maps() {
     }
 }
 
+/// Checks that the natural JSON text limit applies to values, not object keys
+/// or the combined length of individually admitted strings.
+#[test]
+fn test_natural_json_text_limit_numbers_keys_and_utf8() {
+    use qubit_datatype::ConversionLimits;
+    use qubit_datatype::ConversionPolicy;
+    use qubit_datatype::ConversionResource;
+    use qubit_datatype::StructuredConversionLimits;
+
+    let limits = ConversionLimits::builder()
+        .structured_limits(StructuredConversionLimits::builder().max_text_bytes(2).build())
+        .build();
+    let policy = ConversionPolicy::default();
+    for value in [Value::Int32(123), Value::from("中文")] {
+        let error = value
+            .to_json_value_with(&policy, &limits)
+            .expect_err("text exceeds two bytes");
+        let ValueError::JsonProjectionLimit { source, .. } = error else {
+            panic!("expected projection limit");
+        };
+        assert_eq!(*source.resource(), ConversionResource::StructuredTextBytes);
+        assert_eq!(source.budget_error().expect("budget facts").configured_limit(), 2);
+    }
+    assert_eq!(
+        Value::Int32(12).to_json_value_with(&policy, &limits).unwrap(),
+        json!(12)
+    );
+    assert_eq!(
+        Value::from("é").to_json_value_with(&policy, &limits).unwrap(),
+        json!("é")
+    );
+    let object = json!({"long-key": "ab"});
+    assert_eq!(
+        Value::Json(object.clone())
+            .to_json_value_with(&policy, &limits)
+            .unwrap(),
+        object
+    );
+    let values = MultiValues::String(vec!["ab".to_owned(), "cd".to_owned()]);
+    assert_eq!(
+        values.to_json_value_with(&policy, &limits).unwrap(),
+        json!(["ab", "cd"])
+    );
+}
+
 /// Natural projection errors retain the public resource identity and source
 /// position of the rejected value.
 #[test]

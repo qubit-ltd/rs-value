@@ -1011,6 +1011,13 @@ impl Value {
     ///
     /// The natural JSON representation of this value.
     ///
+    /// For natural JSON projection, `max_text_bytes` bounds each string value
+    /// and each formatted number or rich-value text by its UTF-8 byte length,
+    /// including strings inside materialized JSON. Object keys are excluded
+    /// from this per-item bound but still consume applicable key and
+    /// cumulative input, output, and payload budgets. This is neither a
+    /// cumulative text limit nor a limit on escaped JSON encoding size.
+    ///
     /// # Errors
     ///
     /// Returns a structured conversion error for values JSON cannot represent,

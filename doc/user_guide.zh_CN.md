@@ -668,6 +668,12 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
 `natural-json` 是 `converter` + `json` 的便捷组合。为兼容现有调用者，显式启用这两个
 feature 同样提供投影接口。
 
+结构化限额 `max_text_bytes` 分别限制每个字符串值和每个格式化后的数字或富类型文本，按
+UTF-8 字节计；已物化 JSON 中的字符串也受此单项限制。对象 key 不受该逐项文本限额限制，
+但仍计入适用的 key 限额以及累计输入、输出和载荷限额。它不是所有文本共用的累计额度，
+也不限制带引号、转义后的 JSON 编码字节数。自然 JSON 投影的此规则不同于
+qubit-datatype 普通转换会话对规范化源文本的解释。
+
 `to_json_value_with` 在构造最终 JSON 树之前检查整次操作。集合中所有元素共享 item、
 输入字节、输出载荷字节、结构节点和结构载荷限额；Duration 格式化使用一个共享转换会话。
 结构深度包含根节点，外层集合数组也占一个节点。输入字节计算借用字符串、map 键和值、

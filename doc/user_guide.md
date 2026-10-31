@@ -764,6 +764,15 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
 `natural-json` is a convenience alias for `converter` + `json`. Enabling both
 features explicitly also exposes projection methods for existing callers.
 
+The structured `max_text_bytes` limit applies separately to each string value
+and each formatted number or rich-value text, measured in UTF-8 bytes. It also
+applies to strings inside materialized JSON. Object keys do not use this
+per-item text limit, but remain subject to applicable key and cumulative
+input, output, and payload limits. This is not a cumulative allowance for all
+text and does not measure quoted, escaped JSON encoding bytes. This natural
+projection rule differs from the normalized source-text interpretation used
+by ordinary qubit-datatype conversion sessions.
+
 `to_json_value_with` checks the complete operation before constructing the final
 JSON tree. All collection elements share item, input-byte, output-payload,
 structural-node and structural-payload limits; duration formatting uses one
