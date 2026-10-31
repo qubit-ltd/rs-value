@@ -352,6 +352,16 @@ dependencies = [
 name = "qubit-datatype"
 version = "0.15.2"
 dependencies = [
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "qubit-datatype"
+version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13ee50328f95637a2689cd8c77fa3a4f8cdb7b2af3fda3b991001eb92b0df4d4"
+dependencies = [
  "bigdecimal",
  "chrono",
  "num-bigint",
@@ -405,7 +415,7 @@ name = "qubit-redact"
 version = "0.10.0"
 dependencies = [
  "qubit-budget",
- "qubit-json 0.12.1",
+ "qubit-json 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_json",
 ]
@@ -424,8 +434,8 @@ dependencies = [
  "chrono",
  "num-bigint",
  "qubit-budget",
- "qubit-datatype",
- "qubit-json 0.12.1",
+ "qubit-datatype 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "qubit-json 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "qubit-redact",
  "serde",
  "serde_json",
@@ -442,7 +452,7 @@ dependencies = [
  "libfuzzer-sys",
  "num-bigint",
  "qubit-budget",
- "qubit-datatype",
+ "qubit-datatype 0.15.2",
  "qubit-json 0.12.1",
  "qubit-value",
  "serde_json",

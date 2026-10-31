@@ -118,28 +118,23 @@ all = [
 [dependencies]
 serde = { version = "^1.0", features = ["derive"] }
 thiserror = "^2.0"
-qubit-budget = { version = "^0.10", features = ["json"], optional = true }
-
-qubit-json = { path = "../rs-json", version = "0.12", optional = true }
-
 serde_json = { version = "^1.0", features = ["float_roundtrip"], optional = true }
 chrono = { version = "^0.4", default-features = false, features = ["std", "serde"], optional = true }
 url = { version = "^2.5", features = ["serde"], optional = true }
 num-bigint = { version = "^0.4", optional = true }
 bigdecimal = { version = "^0.4", optional = true }
 
-qubit-datatype = { path = "../rs-datatype", version = "0.15", default-features = false }
-
-qubit-redact = { path = "../rs-redact", version = "0.10", default-features = false, optional = true }
-
+qubit-budget = { version = "^0.10", features = ["json"], optional = true }
+qubit-json = { version = "^0.12", optional = true }
+qubit-datatype = { version = "^0.15", default-features = false }
+qubit-redact = { path = "../rs-redact", version = "^0.10", default-features = false, optional = true }
 
 [dev-dependencies]
 criterion = { version = "^0.8", default-features = false }
 chrono = { version = "^0.4", default-features = false, features = ["std"] }
-qubit-budget = { version = "^0.10", features = ["json"] }
 ron = "^0.12"
-
 serde_json = "^1.0"
+qubit-budget = { version = "^0.10", features = ["json"] }
 
 [patch.crates-io]
 

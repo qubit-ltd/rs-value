@@ -490,6 +490,8 @@ dependencies = [
 [[package]]
 name = "qubit-datatype"
 version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13ee50328f95637a2689cd8c77fa3a4f8cdb7b2af3fda3b991001eb92b0df4d4"
 dependencies = [
  "bigdecimal",
  "chrono",
@@ -497,7 +499,7 @@ dependencies = [
  "num-rational",
  "num-traits",
  "qubit-budget",
- "qubit-json 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "qubit-json",
  "serde",
  "serde_json",
  "thiserror",
@@ -511,18 +513,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be15020e4d41c243b5ef1dd3f0965c10a05252e58fcbccf298fba87eafb45379"
 dependencies = [
  "qubit-utils",
-]
-
-[[package]]
-name = "qubit-json"
-version = "0.12.1"
-dependencies = [
- "qubit-budget",
- "qubit-io",
- "serde",
- "serde_json",
- "stacker",
- "thiserror",
 ]
 
 [[package]]
@@ -544,7 +534,7 @@ name = "qubit-redact"
 version = "0.10.0"
 dependencies = [
  "qubit-budget",
- "qubit-json 0.12.1",
+ "qubit-json",
  "serde",
  "serde_json",
 ]
@@ -565,7 +555,7 @@ dependencies = [
  "num-bigint",
  "qubit-budget",
  "qubit-datatype",
- "qubit-json 0.12.1",
+ "qubit-json",
  "qubit-redact",
  "ron",
  "serde",
