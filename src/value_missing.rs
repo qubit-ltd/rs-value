@@ -304,12 +304,18 @@ impl ValueMissing {
         }
     }
 
-    /// Allows strict fallback only for unset storage after the type check
-    /// passed. Concrete empty collections and type mismatches return `false`.
+    /// Reports whether the missing reason is unset storage.
+    ///
+    /// Strict readers must perform type admission before using this result
+    /// to select a default. This predicate does not compare `source_type`
+    /// with `target_type`; an unset descriptor constructed with different
+    /// source and target types still returns `true`.
+    /// Concrete empty collections and missing collection items return `false`.
     ///
     /// # Returns
     ///
-    /// `true` when a strict read may use its caller-supplied default.
+    /// `true` for unset storage, allowing a strict fallback only after the
+    /// caller has separately accepted the requested type.
     #[must_use]
     #[inline(always)]
     pub const fn is_defaultable_for_strict_read(&self) -> bool {
