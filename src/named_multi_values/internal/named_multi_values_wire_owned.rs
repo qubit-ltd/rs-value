@@ -27,14 +27,11 @@ impl<'de> Deserialize<'de> for NamedMultiValuesWireOwned {
     where
         D: Deserializer<'de>,
     {
-        if deserializer.is_human_readable() {
-            deserializer.deserialize_map(NamedMultiValuesWireOwnedVisitor)
-        } else {
-            deserializer.deserialize_struct(
-                "NamedMultiValuesWireOwned",
-                &["name", "value"],
-                NamedMultiValuesWireOwnedVisitor,
-            )
-        }
+        let allow_sequence = !deserializer.is_human_readable();
+        deserializer.deserialize_struct(
+            "NamedMultiValuesWireRef",
+            &["name", "value"],
+            NamedMultiValuesWireOwnedVisitor::new(allow_sequence),
+        )
     }
 }

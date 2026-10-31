@@ -16,11 +16,21 @@ use serde::de::Visitor;
 use super::DurationPayload;
 
 /// Reads a duration payload with exactly one `secs` and one `nanos` field in
-/// maps, or those two components in that order in a sequence.
+/// maps, or those two components in order in permitted sequences.
 ///
 /// The nanosecond value is decoded here but its sub-billion range is checked
 /// when the payload is converted into [`std::time::Duration`].
-pub(super) struct DurationPayloadVisitor;
+pub(super) struct DurationPayloadVisitor {
+    /// Whether ordered struct sequences are permitted by the format.
+    allow_sequence: bool,
+}
+
+impl DurationPayloadVisitor {
+    /// Creates a visitor with the sequence policy for the current format.
+    pub(super) fn new(allow_sequence: bool) -> Self {
+        Self { allow_sequence }
+    }
+}
 
 impl<'de> Visitor<'de> for DurationPayloadVisitor {
     type Value = DurationPayload;
@@ -29,7 +39,7 @@ impl<'de> Visitor<'de> for DurationPayloadVisitor {
     ///
     /// The deserializer uses this description when reporting a shape mismatch.
     fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("struct DurationPayload")
+        f.write_str("duration payload record with secs and nanos fields")
     }
 
     /// Reads exactly two sequence elements, in `secs`, then `nanos` order.
@@ -40,6 +50,9 @@ impl<'de> Visitor<'de> for DurationPayloadVisitor {
     where
         A: SeqAccess<'de>,
     {
+        if !self.allow_sequence {
+            return Err(Error::custom("human-readable record must use named fields"));
+        }
         // The tuple representation is ordered as secs, then nanos, and has
         // exactly two elements.
         let secs = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;

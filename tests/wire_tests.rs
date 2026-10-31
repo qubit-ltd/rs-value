@@ -29,11 +29,8 @@ use chrono::Utc;
 use num_bigint::BigInt;
 #[cfg(feature = "chrono")]
 use qubit_datatype::DataType;
-#[cfg(any(feature = "all", feature = "chrono"))]
 use qubit_value::MultiValues;
-#[cfg(any(feature = "all", feature = "chrono"))]
 use qubit_value::NamedMultiValues;
-#[cfg(any(feature = "all", feature = "chrono"))]
 use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
@@ -45,6 +42,150 @@ use qubit_value::ValueWirePayloadV1;
 #[cfg(feature = "chrono")]
 use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
+use qubit_value::ValueWireV1Seed;
+use serde::de::DeserializeSeed;
+
+#[test]
+fn test_ron_named_scalar_roundtrip() {
+    let original = NamedValue::new("port", Value::Int32(42));
+    let text = ron::to_string(&original).expect("serialize named scalar");
+    let restored: NamedValue = ron::from_str(&text).expect("decode named scalar");
+    assert_eq!(restored, original);
+}
+
+#[test]
+fn test_ron_named_collection_roundtrip() {
+    let original = NamedMultiValues::new("ports", MultiValues::Int32(vec![42]));
+    let text = ron::to_string(&original).expect("serialize named collection");
+    let restored: NamedMultiValues = ron::from_str(&text).expect("decode named collection");
+    assert_eq!(restored, original);
+}
+
+#[test]
+fn test_ron_wire_seed_roundtrip() {
+    let original = ValueContainer::Scalar(Value::Int32(42));
+    let wire = ValueWireV1::try_from(original.clone()).expect("construct wire");
+    let text = ron::to_string(&wire).expect("serialize wire");
+    let mut decoder = ron::Deserializer::from_str(&text).expect("RON input");
+    let restored = ValueWireV1Seed::new().deserialize(&mut decoder).expect("decode wire");
+    assert_eq!(restored.into_container(), original);
+}
+
+fn decode_ron_wire(input: &str) -> Result<ValueContainer, ron::Error> {
+    let mut decoder = ron::Deserializer::from_str(input)?;
+    ValueWireV1Seed::new()
+        .deserialize(&mut decoder)
+        .map(ValueWireV1::into_container)
+}
+
+fn assert_ron_wire_roundtrip(original: ValueContainer) {
+    let wire = ValueWireV1::try_from(original.clone()).expect("construct wire");
+    let plain = ron::to_string(&wire).expect("serialize wire");
+    assert_eq!(decode_ron_wire(&plain).expect("decode plain RON"), original);
+
+    let named = ron::ser::to_string_pretty(&wire, ron::ser::PrettyConfig::default().struct_names(true))
+        .expect("serialize named RON structs");
+    assert_eq!(decode_ron_wire(&named).expect("decode named RON structs"), original);
+}
+
+#[test]
+fn test_ron_wire_roundtrips_scalar_collection_and_typed_unset() {
+    use std::time::Duration;
+
+    use qubit_datatype::DataType;
+
+    for original in [
+        ValueContainer::Scalar(Value::Int32(42)),
+        ValueContainer::Collection(MultiValues::Int32(vec![42, 43])),
+        ValueContainer::new_unset_scalar(DataType::Int32),
+        ValueContainer::new_unset_collection(DataType::Int32),
+        ValueContainer::Scalar(Value::Duration(Duration::new(7, 123))),
+        ValueContainer::Collection(MultiValues::Duration(vec![Duration::new(7, 123)])),
+    ] {
+        assert_ron_wire_roundtrip(original);
+    }
+}
+
+#[test]
+fn test_ron_named_values_roundtrip_with_explicit_struct_names() {
+    use qubit_datatype::DataType;
+
+    let named_scalar = NamedValue::new("port", Value::Int32(42));
+    let encoded = ron::ser::to_string_pretty(&named_scalar, ron::ser::PrettyConfig::default().struct_names(true))
+        .expect("serialize named scalar with struct names");
+    assert_eq!(
+        ron::from_str::<NamedValue>(&encoded).expect("decode named scalar with struct names"),
+        named_scalar
+    );
+
+    let named_unset = NamedValue::new("unset", Value::Unset(DataType::Int32));
+    let encoded = ron::ser::to_string_pretty(&named_unset, ron::ser::PrettyConfig::default().struct_names(true))
+        .expect("serialize named typed unset with struct names");
+    assert_eq!(
+        ron::from_str::<NamedValue>(&encoded).expect("decode named typed unset"),
+        named_unset
+    );
+
+    for original in [
+        NamedMultiValues::new("ports", MultiValues::Int32(vec![42])),
+        NamedMultiValues::new("empty", MultiValues::Int32(Vec::new())),
+    ] {
+        let encoded = ron::ser::to_string_pretty(&original, ron::ser::PrettyConfig::default().struct_names(true))
+            .expect("serialize named collection with struct names");
+        assert_eq!(
+            ron::from_str::<NamedMultiValues>(&encoded).expect("decode named collection"),
+            original
+        );
+    }
+}
+
+#[test]
+fn test_ron_wire_rejects_invalid_envelope_fields_and_payloads() {
+    for input in [
+        "WireEnvelopeRef(version:2,value:scalar(int32(7)))",
+        "WireEnvelopeRef(version:1,version:1,value:scalar(int32(7)))",
+        "WireEnvelopeRef(version:1)",
+        "WireEnvelopeRef(version:1,value:scalar(int32(7)),extra:0)",
+        "WireEnvelopeRef(version:1,value:scalar(duration((secs:7,nanos:1000000000))))",
+    ] {
+        assert!(decode_ron_wire(input).is_err(), "must reject {input}");
+    }
+}
+
+#[cfg(feature = "big-decimal")]
+#[test]
+fn test_ron_big_decimal_roundtrip_preserves_coefficient_and_scale() {
+    use bigdecimal::BigDecimal;
+    use num_bigint::BigInt;
+
+    for original in [
+        ValueContainer::Scalar(Value::BigDecimal(BigDecimal::new(BigInt::from(12300), 4))),
+        ValueContainer::Collection(MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(12300), 4)])),
+    ] {
+        let wire = ValueWireV1::try_from(original.clone()).expect("construct decimal wire");
+        let encoded = ron::ser::to_string_pretty(&wire, ron::ser::PrettyConfig::default().struct_names(true))
+            .expect("serialize decimal wire with struct names");
+        let restored = decode_ron_wire(&encoded).expect("decode decimal wire");
+        let (coefficient, scale) = restored
+            .get_first_ref::<BigDecimal>()
+            .expect("restored wire should contain a decimal")
+            .as_bigint_and_scale();
+        assert_eq!(coefficient.as_ref(), &BigInt::from(12300));
+        assert_eq!(scale, 4);
+        assert_eq!(restored, original);
+    }
+}
+
+#[cfg(feature = "big-decimal")]
+#[test]
+fn test_ron_big_decimal_rejects_invalid_payload() {
+    for input in [
+        "WireEnvelopeRef(version:1,value:scalar(bigdecimal(BigDecimalPayload(coefficient:\"0123\",scale:4))))",
+        "WireEnvelopeRef(version:1,value:scalar(bigdecimal(BigDecimalPayload(coefficient:\"123\",scale:150001))))",
+    ] {
+        assert!(decode_ron_wire(input).is_err(), "must reject {input}");
+    }
+}
 
 #[cfg(feature = "chrono")]
 #[test]

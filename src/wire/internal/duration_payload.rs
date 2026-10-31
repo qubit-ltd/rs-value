@@ -32,9 +32,9 @@ pub(in crate::wire) struct DurationPayload {
 impl<'de> Deserialize<'de> for DurationPayload {
     /// Selects the payload representation from the deserializer's format hint.
     ///
-    /// Human-readable formats are requested as maps with `secs` and `nanos`;
-    /// other formats are requested as the named struct representation. The
-    /// visitor enforces the field and element constraints for either shape.
+    /// The named struct is requested in all formats. Human-readable formats
+    /// must provide named fields; other formats may use the ordered sequence
+    /// representation. The visitor enforces the field and element constraints.
     ///
     /// # Errors
     ///
@@ -46,11 +46,12 @@ impl<'de> Deserialize<'de> for DurationPayload {
     where
         D: Deserializer<'de>,
     {
-        if deserializer.is_human_readable() {
-            deserializer.deserialize_map(DurationPayloadVisitor)
-        } else {
-            deserializer.deserialize_struct("DurationPayload", &["secs", "nanos"], DurationPayloadVisitor)
-        }
+        let allow_sequence = !deserializer.is_human_readable();
+        deserializer.deserialize_struct(
+            "DurationPayload",
+            &["secs", "nanos"],
+            DurationPayloadVisitor::new(allow_sequence),
+        )
     }
 }
 

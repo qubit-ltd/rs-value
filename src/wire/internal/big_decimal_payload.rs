@@ -33,11 +33,12 @@ impl<'de> Deserialize<'de> for BigDecimalPayload {
     where
         D: Deserializer<'de>,
     {
-        if deserializer.is_human_readable() {
-            deserializer.deserialize_map(BigDecimalPayloadVisitor)
-        } else {
-            deserializer.deserialize_struct("BigDecimalPayload", &["coefficient", "scale"], BigDecimalPayloadVisitor)
-        }
+        let allow_sequence = !deserializer.is_human_readable();
+        deserializer.deserialize_struct(
+            "BigDecimalPayload",
+            &["coefficient", "scale"],
+            BigDecimalPayloadVisitor::new(allow_sequence),
+        )
     }
 }
 

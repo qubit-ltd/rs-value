@@ -23,13 +23,14 @@ pub(in crate::value_wire) struct WireEnvelopeOwned {
 }
 
 impl<'de> Deserialize<'de> for WireEnvelopeOwned {
-    /// Requests a map for human-readable formats and the named struct
-    /// representation for other formats.
+    /// Requests the named struct representation while preserving ordered
+    /// sequences only for non-human-readable formats.
     ///
-    /// The visitor requires one `version` and one `value` field in a map, or
-    /// exactly two sequence elements in version/value order. Errors decoding
-    /// either field are propagated from the nested deserializer. Support for
-    /// the decoded version is checked downstream.
+    /// The visitor requires one `version` and one `value` field in a map.
+    /// Human-readable sequences are rejected; other formats may use exactly
+    /// two sequence elements in version/value order. Errors decoding either
+    /// field are propagated from the nested deserializer. Support for the
+    /// decoded version is checked downstream.
     ///
     /// # Errors
     ///
@@ -40,10 +41,11 @@ impl<'de> Deserialize<'de> for WireEnvelopeOwned {
     where
         D: Deserializer<'de>,
     {
-        if deserializer.is_human_readable() {
-            deserializer.deserialize_map(WireEnvelopeOwnedVisitor)
-        } else {
-            deserializer.deserialize_struct("WireEnvelopeOwned", &["version", "value"], WireEnvelopeOwnedVisitor)
-        }
+        let allow_sequence = !deserializer.is_human_readable();
+        deserializer.deserialize_struct(
+            "WireEnvelopeRef",
+            &["version", "value"],
+            WireEnvelopeOwnedVisitor::new(allow_sequence),
+        )
     }
 }

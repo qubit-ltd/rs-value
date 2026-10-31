@@ -15,17 +15,32 @@ use serde::de::Visitor;
 
 use super::BigDecimalPayload;
 
-pub(super) struct BigDecimalPayloadVisitor;
+pub(super) struct BigDecimalPayloadVisitor {
+    /// Whether ordered struct sequences are permitted by the format.
+    allow_sequence: bool,
+}
+
+impl BigDecimalPayloadVisitor {
+    /// Creates a visitor with the sequence policy for the current format.
+    pub(super) fn new(allow_sequence: bool) -> Self {
+        Self { allow_sequence }
+    }
+}
 
 impl<'de> Visitor<'de> for BigDecimalPayloadVisitor {
     type Value = BigDecimalPayload;
+
+    /// Describes the decimal payload record expected by this visitor.
     fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("struct BigDecimalPayload")
+        f.write_str("decimal payload record with coefficient and scale fields")
     }
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
     {
+        if !self.allow_sequence {
+            return Err(Error::custom("human-readable record must use named fields"));
+        }
         let coefficient = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
         let scale = seq.next_element()?.ok_or_else(|| Error::invalid_length(1, &self))?;
         if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {

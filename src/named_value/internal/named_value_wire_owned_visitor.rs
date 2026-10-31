@@ -17,17 +17,34 @@ use super::NamedValueWireOwned;
 use crate::ValueWireV1;
 use crate::ValueWireV1Seed;
 
-pub(super) struct NamedValueWireOwnedVisitor;
+pub(super) struct NamedValueWireOwnedVisitor {
+    /// Whether ordered struct sequences are permitted by the format.
+    allow_sequence: bool,
+}
+
+impl NamedValueWireOwnedVisitor {
+    /// Creates a visitor with the sequence policy for the current format.
+    pub(super) fn new(allow_sequence: bool) -> Self {
+        Self { allow_sequence }
+    }
+}
 
 impl<'de> Visitor<'de> for NamedValueWireOwnedVisitor {
     type Value = NamedValueWireOwned;
+
+    /// Describes the named scalar record expected by this visitor.
     fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("struct NamedValueWireOwned")
+        f.write_str("named scalar record with name and value fields")
     }
+
+    /// Reads the `name` and `value` fields in order when sequences are allowed.
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
     {
+        if !self.allow_sequence {
+            return Err(Error::custom("human-readable record must use named fields"));
+        }
         let name = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
         let value = seq
             .next_element_seed(ValueWireV1Seed::new())?
