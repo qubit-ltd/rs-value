@@ -1974,7 +1974,6 @@ fn test_big_number_to_f32_and_f64_failures() {
     assert!(Value::BigDecimal(huge_big_decimal).to::<f64>().is_conversion_error());
 }
 
-#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_narrow_signed_integer_converters_accept_numeric_sources() {
     let lossy = ConversionPolicy::builder()
@@ -1997,7 +1996,9 @@ fn test_narrow_signed_integer_converters_accept_numeric_sources() {
         (Value::Float32(12.9), 12),
         (Value::Float64(-34.7), -34),
         (Value::String("-55".to_string()), -55),
+        #[cfg(feature = "big-integer")]
         (Value::BigInteger(BigInt::from(99)), 99),
+        #[cfg(feature = "big-decimal")]
         (Value::BigDecimal(BigDecimal::from(123)), 123),
     ];
 
@@ -2015,6 +2016,7 @@ fn test_narrow_signed_integer_converters_accept_numeric_sources() {
             .unwrap(),
         -12,
     );
+    #[cfg(feature = "big-decimal")]
     assert_eq!(Value::BigDecimal(BigDecimal::from(32_000)).to::<i16>().unwrap(), 32_000);
 }
 
