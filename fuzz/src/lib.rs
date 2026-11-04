@@ -10,4 +10,5 @@
 
 pub mod bounded_wire_input;
 pub mod preflight_input;
+pub mod preflight_sequence;
 pub mod structured_wire_input;

@@ -22,6 +22,8 @@ use qubit_value_fuzz::preflight_input::MAX_ITEMS;
 use qubit_value_fuzz::preflight_input::MAX_OUTPUT_BYTES;
 use qubit_value_fuzz::preflight_input::bounded_input;
 use qubit_value_fuzz::preflight_input::value_from_bytes;
+use qubit_value_fuzz::preflight_sequence::run_sequence;
+use qubit_value_fuzz::structured_wire_input::container_from_bytes;
 
 fn varied_limit(input: &[u8], index: usize, wide: usize) -> usize {
     match input.get(index).copied().unwrap_or_default() % 4 {
@@ -102,4 +104,8 @@ fuzz_target!(|data: &[u8]| {
         }
     }
     check_successful_encoding(&value, encode_limits(input));
+
+    let structured = container_from_bytes(input);
+    check_successful_encoding(&structured, encode_limits(input));
+    run_sequence(input);
 });

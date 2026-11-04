@@ -73,3 +73,42 @@ fn test_preflight_generator_bounds_and_decodes_input_deterministically() {
     assert!(collection.is_collection());
     assert!(!collection.get_slice::<i128>().unwrap().is_empty());
 }
+
+#[test]
+fn test_structured_generator_reaches_required_types_and_collection_variants() {
+    use qubit_value_fuzz::preflight_sequence::run_sequence;
+    use qubit_value_fuzz::structured_wire_input::container_from_bytes;
+
+    let expected = [
+        (15, DataType::BigDecimal, false),
+        (17, DataType::Date, false),
+        (18, DataType::Time, false),
+        (19, DataType::DateTime, false),
+        (20, DataType::Instant, false),
+        (22, DataType::Url, false),
+        (23, DataType::StringMap, false),
+        (41, DataType::BigDecimal, true),
+        (43, DataType::Date, true),
+        (44, DataType::Time, true),
+        (45, DataType::DateTime, true),
+        (46, DataType::Instant, true),
+        (48, DataType::Url, true),
+        (49, DataType::StringMap, true),
+    ];
+
+    for (tag, data_type, collection) in expected {
+        let mut input = vec![0_u8; 8];
+        input[0] = tag;
+        let value = container_from_bytes(&input);
+        assert_eq!(value.data_type(), data_type, "structured tag {tag}");
+        assert_eq!(value.is_collection(), collection, "structured tag {tag}");
+
+        let mut sequence_input = vec![0; 513];
+        sequence_input[1] = 2;
+        sequence_input[2] = tag;
+        let report = run_sequence(&sequence_input);
+        assert_eq!(report.operation_count, 1, "structured tag {tag}");
+        assert_eq!(report.checked_entries, 4, "structured tag {tag}");
+        assert_eq!(report.successes, 1, "structured tag {tag}");
+    }
+}
