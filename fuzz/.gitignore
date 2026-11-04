@@ -6,6 +6,8 @@ corpus/*
 !corpus/round_trip_value_container/**
 !corpus/bounded_value_wire_v1/
 !corpus/bounded_value_wire_v1/**
+!corpus/structured_value_wire_v1/
+!corpus/structured_value_wire_v1/**
 artifacts
 
 # Preserve locally generated SHA-1 corpus files without adding them to releases.

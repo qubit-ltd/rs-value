@@ -1,0 +1,275 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
+
+use bigdecimal::BigDecimal;
+use chrono::Datelike;
+use chrono::TimeZone;
+use chrono::Utc;
+use num_bigint::BigInt;
+use qubit_value::Value;
+use qubit_value::ValueContainer;
+use qubit_value::ValueRef;
+use qubit_value::ValueWireV1;
+use qubit_value_fuzz::structured_wire_input::container_from_bytes;
+use url::Url;
+
+fn round_trip(data: &[u8]) -> ValueContainer {
+    let value = container_from_bytes(data);
+    let wire = ValueWireV1::try_from(value.clone()).expect("generated value is V1 encodable");
+    let encoded = wire.to_json_vec().expect("generated value encodes");
+    assert!(encoded.len() <= 4096, "{} bytes", encoded.len());
+    let decoded = ValueWireV1::decode_json_slice(&encoded).expect("generated wire decodes");
+    assert_eq!(decoded, wire);
+    assert_eq!(decoded.into_container(), value);
+    value
+}
+
+#[test]
+fn all_52_tags_are_deterministic_encodable_and_round_trip() {
+    for tag in 0..52_u8 {
+        let input = [tag, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        assert_eq!(container_from_bytes(&input), container_from_bytes(&input), "tag {tag}");
+        let _ = round_trip(&input);
+    }
+}
+
+#[test]
+fn input_controls_collection_length_and_object_width() {
+    for tag in [26_u8, 42, 49, 50] {
+        let mut lengths = Vec::new();
+        for selector in 0..9_u8 {
+            let input = [tag, 0, 0, 0, 0, selector, selector, 0, 1, 2, 3, 4, 5, 6];
+            let value = round_trip(&input);
+            let len = match value {
+                ValueContainer::Collection(values) => values.len(),
+                _ => panic!("tag {tag} should be collection"),
+            };
+            lengths.push(len);
+        }
+        lengths.sort_unstable();
+        lengths.dedup();
+        assert!(lengths.len() > 1, "tag {tag} collection length did not vary");
+    }
+    let widths: Vec<_> = (0..5_u8)
+        .map(|width| {
+            let mut input = vec![23, 0, 0, 0, 0, 0, width];
+            input.extend([1, 2, 3, 4, 5, 6]);
+            match round_trip(&input) {
+                ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::StringMap(_)) => value
+                    .get_ref::<std::collections::HashMap<String, String>>()
+                    .expect("string map payload")
+                    .len(),
+                value => panic!("unexpected value: {value:?}"),
+            }
+        })
+        .collect();
+    assert_eq!(widths, [0, 1, 2, 3, 4]);
+}
+
+fn json_depth(value: &serde_json::Value) -> usize {
+    match value {
+        serde_json::Value::Array(items) => 1 + items.iter().map(json_depth).max().unwrap_or(0),
+        serde_json::Value::Object(items) => 1 + items.values().map(json_depth).max().unwrap_or(0),
+        _ => 0,
+    }
+}
+
+fn json_node_count(value: &serde_json::Value) -> usize {
+    match value {
+        serde_json::Value::Array(items) => 1 + items.iter().map(json_node_count).sum::<usize>(),
+        serde_json::Value::Object(items) => 1 + items.values().map(json_node_count).sum::<usize>(),
+        _ => 1,
+    }
+}
+
+#[test]
+fn input_controls_json_nesting_depth_within_budget() {
+    let shallow = vec![24, 0, 0, 0, 0, 0, 0, 2, 0, 0];
+    let mut deep = vec![24, 0, 0, 0, 0, 0, 0, 2, 5];
+    for _ in 0..8 {
+        deep.extend([8, 5]);
+    }
+    let depths: Vec<_> = [shallow.as_slice(), deep.as_slice()]
+        .into_iter()
+        .map(|input| match round_trip(input) {
+            ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::Json(_)) => {
+                json_depth(value.get_ref::<serde_json::Value>().expect("JSON payload"))
+            }
+            value => panic!("unexpected value: {value:?}"),
+        })
+        .collect();
+    assert!(depths[1] > depths[0]);
+    assert!(depths[1] <= 8);
+}
+
+#[test]
+fn json_generation_obeys_the_shared_node_budget() {
+    let mut input = vec![5; 4096];
+    input[0] = 24;
+    let value = round_trip(&input);
+    let ValueContainer::Scalar(value) = value else {
+        panic!("JSON tag must produce a scalar");
+    };
+    let json = value.get_ref::<serde_json::Value>().expect("JSON payload");
+    assert_eq!(json_node_count(json), 96);
+
+    let mut collection_input = vec![5; 4096];
+    collection_input[0] = 50;
+    let collection = round_trip(&collection_input);
+    let ValueContainer::Collection(values) = collection else {
+        panic!("JSON collection tag must produce a collection");
+    };
+    let json_values = values.get::<serde_json::Value>().expect("JSON values");
+    assert!(json_values.iter().map(json_node_count).sum::<usize>() <= 96);
+}
+
+#[test]
+fn url_component_selectors_produce_valid_distinct_urls() {
+    let urls: Vec<_> = (0..8_u8)
+        .map(|selector| {
+            let input = vec![22, 0, 0, 0, 0, 0, 0, 0, 0, selector, selector, selector, selector];
+            let value = round_trip(&input);
+            match value {
+                ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::Url(_)) => {
+                    value.get_ref::<Url>().expect("URL payload").clone()
+                }
+                value => panic!("unexpected value: {value:?}"),
+            }
+        })
+        .collect();
+    assert!(urls.windows(2).any(|pair| pair[0] != pair[1]));
+    assert!(urls.iter().all(|url| matches!(url.scheme(), "http" | "https")));
+}
+
+#[test]
+fn empty_truncated_and_oversized_inputs_are_bounded() {
+    for input in [&[][..], &[0][..], &[24, 255][..]] {
+        let _ = round_trip(input);
+    }
+    let maximum = vec![0x5a; 4096];
+    let oversized = vec![0x5a; 4097];
+    assert_eq!(container_from_bytes(&maximum), container_from_bytes(&oversized));
+    for tag in 0..52_u8 {
+        let mut input = vec![tag; 4096];
+        input[0] = tag;
+        let _ = round_trip(&input);
+    }
+}
+
+#[test]
+fn named_corpus_seeds_reach_expected_shapes_and_round_trip() {
+    let seeds: &[(&[u8], fn(&ValueContainer) -> bool)] = &[
+        (
+            include_bytes!("../corpus/structured_value_wire_v1/empty-collection"),
+            |v| matches!(v, ValueContainer::Collection(x) if x.is_empty()),
+        ),
+        (
+            include_bytes!("../corpus/structured_value_wire_v1/multi-item-collection"),
+            |v| matches!(v, ValueContainer::Collection(x) if x.len() > 1),
+        ),
+        (
+            include_bytes!("../corpus/structured_value_wire_v1/nested-json"),
+            |v| matches!(v, ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::Json(_))),
+        ),
+        (
+            include_bytes!("../corpus/structured_value_wire_v1/negative-scale"),
+            |v| matches!(v, ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::BigDecimal(x) if x.as_bigint_and_scale().1 < 0)),
+        ),
+        (
+            include_bytes!("../corpus/structured_value_wire_v1/scale-lower-bound"),
+            |v| matches!(v, ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::BigDecimal(x) if x.as_bigint_and_scale().1 == -150_000)),
+        ),
+        (
+            include_bytes!("../corpus/structured_value_wire_v1/scale-upper-bound"),
+            |v| matches!(v, ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::BigDecimal(x) if x.as_bigint_and_scale().1 == 150_000)),
+        ),
+        (
+            include_bytes!("../corpus/structured_value_wire_v1/date-boundary"),
+            |v| matches!(v, ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::Date(d) if d.year() == 0)),
+        ),
+    ];
+    for (seed, expected) in seeds {
+        let value = round_trip(seed);
+        assert!(expected(&value), "seed {seed:?} produced {value:?}");
+    }
+}
+
+#[test]
+fn scale_selector_covers_legal_boundaries_and_interior_values() {
+    let observed: Vec<_> = (0..5_u8)
+        .map(|selector| {
+            let input = [15, 0, 0, 0, 0, 0, 0, selector, 0];
+            match round_trip(&input) {
+                ValueContainer::Scalar(value) => match value.view() {
+                    ValueRef::BigDecimal(x) => x.as_bigint_and_scale().1,
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
+            }
+        })
+        .collect();
+    assert_eq!(observed, [-150_000, -1, 0, 1, 150_000]);
+}
+
+#[test]
+fn date_and_utc_instant_generators_cover_leap_and_year_boundaries() {
+    for (selector, expected_year) in [(0_u8, 2024), (1, 0), (2, 9999)] {
+        for tag in [17_u8, 20] {
+            let mut input = vec![tag, 0, 0, 0, 0, 0, 0, 0, selector];
+            input.extend([1, 2, 3, 4]);
+            let value = round_trip(&input);
+            let date = match value {
+                ValueContainer::Scalar(value) => match value.view() {
+                    ValueRef::Date(date) => *date,
+                    ValueRef::Instant(instant) => instant.date_naive(),
+                    _ => panic!("unexpected scalar type"),
+                },
+                value => panic!("unexpected value: {value:?}"),
+            };
+            assert_eq!(date.year(), expected_year);
+            if selector == 0 {
+                assert_eq!((date.month(), date.day()), (2, 29));
+            }
+        }
+    }
+}
+
+#[test]
+fn unsupported_numeric_and_instant_boundaries_are_rejected() {
+    for scale in [-150_001_i64, 150_001] {
+        let value = ValueContainer::Scalar(Value::BigDecimal(BigDecimal::new(BigInt::from(1), scale)));
+        assert!(matches!(
+            ValueWireV1::try_from(value),
+            Err(qubit_value::ValueWireEncodeError::BigDecimalScaleTooLarge {
+                scale: rejected,
+                ..
+            }) if rejected == scale
+        ));
+    }
+    for value in [
+        Value::Float32(f32::NAN),
+        Value::Float32(f32::INFINITY),
+        Value::Float64(f64::NEG_INFINITY),
+    ] {
+        assert!(matches!(
+            ValueWireV1::try_from(ValueContainer::Scalar(value)),
+            Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
+        ));
+    }
+    for year in [-1, 10_000] {
+        let instant = Utc
+            .with_ymd_and_hms(year, 1, 1, 0, 0, 0)
+            .single()
+            .expect("test year is representable");
+        assert!(matches!(
+            ValueWireV1::try_from(ValueContainer::Scalar(Value::Instant(instant))),
+            Err(qubit_value::ValueWireEncodeError::InstantYearOutOfRange { year: rejected })
+                if rejected == year
+        ));
+    }
+}
