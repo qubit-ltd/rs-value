@@ -99,6 +99,15 @@ feature 选择、错误以及序列化边界，并给出完整的往返示例。
 
 ## 安装与 feature 选择
 
+转换示例只需要以下直接依赖：
+
+<!-- minimal-dependencies: conversion -->
+```toml
+[dependencies]
+qubit-value = { version = "0.13", default-features = false, features = ["converter"] }
+qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
+```
+
 要运行本手册中的全部示例，请添加以下依赖。实战场景本身只需要启用 `converter` 的
 `qubit-value` 和 `qubit-datatype`；其余 crate 用于 Wire 与嵌入文档章节。
 
@@ -665,6 +674,15 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
 
 ## 自然 JSON
 
+自然 JSON 示例需要以下直接依赖：
+
+<!-- minimal-dependencies: natural-json -->
+```toml
+[dependencies]
+qubit-value = { version = "0.13", default-features = false, features = ["natural-json"] }
+qubit-datatype = { version = "0.15", default-features = false }
+```
+
 `natural-json` 是 `converter` + `json` 的便捷组合。为兼容现有调用者，显式启用这两个
 feature 同样提供投影接口。
 
@@ -693,6 +711,15 @@ Wire 的 `JsonEncodeLimits` 或 rs-json 的有界编码器；`ConversionLimits` 
 长度上限。
 
 ### 显示值之前先脱敏具名秘密
+
+此示例使用 `redact` feature 和直接依赖 `qubit-redact`：
+
+<!-- minimal-dependencies: redacted-output -->
+```toml
+[dependencies]
+qubit-value = { version = "0.13", default-features = false, features = ["redact"] }
+qubit-redact = { version = "0.10", default-features = false }
+```
 
 如果要在日志或诊断信息中显示一个值，应先明确哪些具名字段属于敏感信息，再用
 `qubit-redact` 生成展示文本。下面将 `api_key` 标为秘密，保留普通 label，并展示输出预算不足时

@@ -20,6 +20,9 @@ chrono = { version = "^0.4", default-features = false, features = ["std"] }
 num-bigint = "^0.4"
 url = "^2.5"
 
+[patch.crates-io]
+qubit-datatype = { path = "../../rs-datatype" }
+qubit-json = { path = "../../rs-json" }
 
 [[bin]]
 name = "bounded_value_wire_v1"

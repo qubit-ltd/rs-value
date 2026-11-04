@@ -262,4 +262,5 @@ fn test_bilingual_markdown_examples_execute() {
     let extracted: usize = documents.iter().map(|(_, examples)| examples.len()).sum();
     assert_eq!(extracted, 38, "baseline marked-example count");
     internal::markdown_example_runner::run_markdown_examples(root, &documents).unwrap();
+    internal::minimal_example_runner_tests::run_minimal_examples(root, &documents).unwrap();
 }

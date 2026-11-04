@@ -107,6 +107,15 @@ the serialization choices before showing that complete round trip.
 
 ## Installation and feature selection
 
+The conversion example needs only these direct dependencies:
+
+<!-- minimal-dependencies: conversion -->
+```toml
+[dependencies]
+qubit-value = { version = "0.13", default-features = false, features = ["converter"] }
+qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
+```
+
 Use the following dependencies to run every example in this guide. The scenario
 itself needs only `qubit-value` with `converter` plus `qubit-datatype`; the
 additional crates support the Wire and embedded-document sections.
@@ -761,6 +770,15 @@ assert_eq!(restored.data_type(), qubit_datatype::DataType::UInt64);
 
 ## Natural JSON
 
+The natural JSON example needs these direct dependencies:
+
+<!-- minimal-dependencies: natural-json -->
+```toml
+[dependencies]
+qubit-value = { version = "0.13", default-features = false, features = ["natural-json"] }
+qubit-datatype = { version = "0.15", default-features = false }
+```
+
 `natural-json` is a convenience alias for `converter` + `json`. Enabling both
 features explicitly also exposes projection methods for existing callers.
 
@@ -802,6 +820,15 @@ Wire `JsonEncodeLimits` or a bounded rs-json encoder to constrain final encoded
 bytes; `ConversionLimits` is not a JSON encoding length limit.
 
 ### Redact a named secret before displaying a value
+
+This example uses the `redact` feature and `qubit-redact` directly:
+
+<!-- minimal-dependencies: redacted-output -->
+```toml
+[dependencies]
+qubit-value = { version = "0.13", default-features = false, features = ["redact"] }
+qubit-redact = { version = "0.10", default-features = false }
+```
 
 When a value is shown in logs or diagnostics, define which named fields are
 sensitive and use `qubit-redact` to produce the display text. This example

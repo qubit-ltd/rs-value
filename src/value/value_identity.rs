@@ -10,13 +10,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
 
-#[cfg(feature = "json")]
-use qubit_budget::MeasuredBudgetError;
-#[cfg(feature = "json")]
-use qubit_budget::ResourceQuantity;
-#[cfg(feature = "json")]
-use qubit_budget::json::JsonValueBudget;
-
 use super::Value;
 use super::ValueRepr;
 use crate::identity::canonical_f32_bits;
@@ -69,7 +62,7 @@ macro_rules! hash_payload {
 
 /// Keeps JSON transaction handling in the caller while dispatching other types.
 #[cfg(feature = "json")]
-macro_rules! budgeted_hash_payload {
+macro_rules! non_json_hash_payload {
     (Json, $value:expr, $state:expr) => {{
         let _ = $value;
         unreachable!("JSON payload hashing is handled by Value::hash_with_json_budget")
@@ -81,53 +74,22 @@ macro_rules! budgeted_hash_payload {
 
 /// Generates the non-JSON payload dispatch from the storage type table.
 #[cfg(feature = "json")]
-macro_rules! budgeted_payload_match {
+macro_rules! non_json_payload_match {
     ($repr:expr, $state:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match $repr {
             ValueRepr::Unset(data_type) => data_type.hash($state),
             $($(#[$cfg])* ValueRepr::$variant(value) => {
-                budgeted_hash_payload!($variant, value, $state)
+                non_json_hash_payload!($variant, value, $state)
             },)+
         }
     };
 }
 
-/// Hashes one value payload while applying a budget to JSON payloads.
-///
-/// # Type Parameters
-///
-/// * `H` - Hasher receiving the semantic payload identity.
-/// * `R` - Resource identifier used by the JSON budget.
-/// * `Q` - Quantity type used by the JSON budget.
-///
-/// # Parameters
-///
-/// * `repr` - Private scalar representation whose payload is hashed.
-/// * `state` - Destination hasher.
-/// * `_budget` - Budget reserved for JSON payload accounting by the caller.
-///
-/// # Returns
-///
-/// `Ok(())` after the payload identity is hashed.
-///
-/// # Errors
-///
-/// This helper currently returns no error for non-JSON payloads; JSON payloads
-/// are preflighted by
+/// Hashes a non-JSON value payload. JSON is handled by
 /// [`Value::hash_with_json_budget`](crate::Value::hash_with_json_budget).
 #[cfg(feature = "json")]
-pub(crate) fn hash_value_payload_with_json_budget<H, R, Q>(
-    repr: &ValueRepr,
-    state: &mut H,
-    _budget: &mut JsonValueBudget<R, Q>,
-) -> Result<(), MeasuredBudgetError<R, Q>>
-where
-    H: Hasher,
-    R: Clone,
-    Q: ResourceQuantity,
-{
-    for_each_value_type!(budgeted_payload_match, repr, state);
-    Ok(())
+pub(crate) fn hash_non_json_value_payload<H: Hasher>(repr: &ValueRepr, state: &mut H) {
+    for_each_value_type!(non_json_payload_match, repr, state);
 }
 
 /// Implements equality and hashing for the private value representation.

@@ -104,10 +104,11 @@ assert_eq!((first, second), (8080, 8081));
 
 Add the core crate and its type vocabulary to `Cargo.toml`:
 
+<!-- minimal-dependencies: quick-start -->
 ```toml
 [dependencies]
-qubit-value = { version = "0.13", features = ["converter"] }
-qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
+qubit-value = { version = "0.13", default-features = false, features = ["converter"] }
+qubit-datatype = { version = "0.15", default-features = false }
 ```
 
 The quick-start example uses `Value::to`, so it enables `converter`. The

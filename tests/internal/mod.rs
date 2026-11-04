@@ -7,3 +7,4 @@
 // =============================================================================
 
 pub(crate) mod markdown_example_runner;
+pub(crate) mod minimal_example_runner_tests;

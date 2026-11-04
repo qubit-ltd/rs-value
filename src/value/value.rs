@@ -79,7 +79,7 @@ use crate::identity::hash_json;
 #[cfg(feature = "json")]
 use crate::identity::preflight_json;
 #[cfg(feature = "json")]
-use crate::value::value_identity::hash_value_payload_with_json_budget;
+use crate::value::value_identity::hash_non_json_value_payload;
 use crate::value_error::ValueResult;
 
 /// Single typed runtime value with private storage representation.
@@ -327,7 +327,8 @@ impl Value {
             }
             _ => {
                 std::mem::discriminant(&self.repr).hash(state);
-                hash_value_payload_with_json_budget(&self.repr, state, budget)
+                hash_non_json_value_payload(&self.repr, state);
+                Ok(())
             }
         }
     }

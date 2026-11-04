@@ -93,10 +93,11 @@ assert_eq!((first, second), (8080, 8081));
 
 在 `Cargo.toml` 中加入核心 crate 和类型定义 crate：
 
+<!-- minimal-dependencies: quick-start -->
 ```toml
 [dependencies]
-qubit-value = { version = "0.13", features = ["converter"] }
-qubit-datatype = { version = "0.15", default-features = false, features = ["converter"] }
+qubit-value = { version = "0.13", default-features = false, features = ["converter"] }
+qubit-datatype = { version = "0.15", default-features = false }
 ```
 
 快速开始使用了 `Value::to`，因此这里启用 `converter`。默认 feature 集为空，请只启用实际

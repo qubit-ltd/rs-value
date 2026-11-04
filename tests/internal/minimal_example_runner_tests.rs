@@ -1,0 +1,384 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
+
+use std::collections::BTreeMap;
+use std::fs;
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::Command;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+
+use super::super::MarkdownExample;
+
+struct Profile {
+    id: &'static str,
+    examples: [(&'static str, &'static str); 2],
+    dependencies: &'static [&'static str],
+}
+
+const PROFILES: &[Profile] = &[
+    Profile {
+        id: "quick-start",
+        examples: [("README.md", "quick-start"), ("README.zh_CN.md", "quick-start")],
+        dependencies: &["qubit-value|0.13|converter|false", "qubit-datatype|0.15||false"],
+    },
+    Profile {
+        id: "conversion",
+        examples: [
+            ("doc/user_guide.md", "conversion"),
+            ("doc/user_guide.zh_CN.md", "conversion"),
+        ],
+        dependencies: &[
+            "qubit-value|0.13|converter|false",
+            "qubit-datatype|0.15|converter|false",
+        ],
+    },
+    Profile {
+        id: "natural-json",
+        examples: [
+            ("doc/user_guide.md", "natural-json"),
+            ("doc/user_guide.zh_CN.md", "natural-json"),
+        ],
+        dependencies: &["qubit-value|0.13|natural-json|false", "qubit-datatype|0.15||false"],
+    },
+    Profile {
+        id: "redacted-output",
+        examples: [
+            ("doc/user_guide.md", "redacted-output"),
+            ("doc/user_guide.zh_CN.md", "redacted-output"),
+        ],
+        dependencies: &["qubit-value|0.13|redact|false", "qubit-redact|0.10||false"],
+    },
+];
+
+pub(crate) fn run_minimal_examples(
+    root: &Path,
+    documents: &[(&str, BTreeMap<String, MarkdownExample>)],
+) -> Result<(), String> {
+    let temp_root = temp_root();
+    fs::create_dir_all(&temp_root).map_err(|error| format!("cannot create {}: {error}", temp_root.display()))?;
+    let result: Result<(), String> = (|| {
+        for profile in PROFILES {
+            let declarations = profile_declarations(root, profile)?;
+            let mut examples = Vec::new();
+            for (document, example_id) in profile.examples {
+                let extracted = documents
+                    .iter()
+                    .find(|(path, _)| *path == document)
+                    .map(|(_, examples)| examples)
+                    .ok_or_else(|| format!("{document}: minimal profile `{}` has no extracted document", profile.id))?;
+                let example = extracted.get(example_id).ok_or_else(|| {
+                    format!(
+                        "{document}: minimal profile `{}` is missing example `{example_id}`",
+                        profile.id
+                    )
+                })?;
+                examples.push((document, example));
+            }
+            check_profile(root, &temp_root, profile.id, &examples, &declarations)?;
+        }
+        check_negative_examples(root, &temp_root)?;
+        Ok(())
+    })();
+    if let Err(error) = result {
+        // A failed fixture is intentionally retained for diagnosis.
+        return Err(format!("{error}\nfixture retained at {}", temp_root.display()));
+    }
+    fs::remove_dir_all(&temp_root).map_err(|error| format!("cannot remove {}: {error}", temp_root.display()))?;
+    Ok(())
+}
+
+fn profile_declarations(root: &Path, profile: &Profile) -> Result<String, String> {
+    let mut blocks = Vec::new();
+    for (document, _) in profile.examples {
+        let text = fs::read_to_string(root.join(document)).map_err(|error| format!("{document}: {error}"))?;
+        let block = marked_toml_block(&text, profile.id).ok_or_else(|| {
+            format!(
+                "{document}: missing marked TOML dependencies for profile `{}`",
+                profile.id
+            )
+        })?;
+        blocks.push(block);
+    }
+    let block = matching_blocks(profile.id, &blocks)?;
+    validate_declarations(profile, &block)?;
+    Ok(block)
+}
+
+fn matching_blocks(profile: &str, blocks: &[String]) -> Result<String, String> {
+    let first = blocks.first().ok_or("profile has no language documents")?;
+    if blocks.iter().any(|block| block != first) {
+        return Err(format!("bilingual dependency blocks differ for profile `{profile}`"));
+    }
+    Ok(first.clone())
+}
+
+fn marked_toml_block(document: &str, profile: &str) -> Option<String> {
+    let marker = format!("<!-- minimal-dependencies: {profile} -->");
+    let tail = document.split_once(&marker)?.1;
+    let fence = tail.find("```toml")? + "```toml".len();
+    let body = tail[fence..].trim_start_matches(['\r', '\n']);
+    Some(body.split_once("```")?.0.trim().to_owned())
+}
+
+fn validate_declarations(profile: &Profile, block: &str) -> Result<(), String> {
+    let mut parsed = BTreeMap::new();
+    let mut in_dependencies = false;
+    for line in block.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        if line == "[dependencies]" {
+            in_dependencies = true;
+            continue;
+        }
+        if !in_dependencies {
+            return Err(format!("profile `{}` TOML must begin with [dependencies]", profile.id));
+        }
+        let (name, value) = line
+            .split_once('=')
+            .ok_or_else(|| format!("profile `{}` has invalid dependency line `{line}`", profile.id))?;
+        let (version, features, default_features) = parse_inline_dependency(value.trim())
+            .ok_or_else(|| format!("profile `{}` has invalid inline dependency `{line}`", profile.id))?;
+        parsed.insert(name.trim().to_owned(), (version, features, default_features));
+    }
+    let expected: BTreeMap<String, (String, Vec<String>, bool)> = profile
+        .dependencies
+        .iter()
+        .map(|entry| {
+            let mut fields = entry.split('|');
+            let name = fields.next().unwrap().to_owned();
+            let version = fields.next().unwrap().to_owned();
+            let features = fields
+                .next()
+                .unwrap()
+                .split(',')
+                .filter(|feature| !feature.is_empty())
+                .map(str::to_owned)
+                .collect();
+            let defaults = fields.next().unwrap() == "true";
+            (name, (version, features, defaults))
+        })
+        .collect();
+    if parsed != expected {
+        return Err(format!(
+            "profile `{}` dependencies differ from the required package/version/feature set; got {parsed:?}, expected {expected:?}",
+            profile.id
+        ));
+    }
+    Ok(())
+}
+
+fn parse_inline_dependency(value: &str) -> Option<(String, Vec<String>, bool)> {
+    let body = value.strip_prefix('{')?.strip_suffix('}')?;
+    let mut version = None;
+    let mut features = Vec::new();
+    let mut default_features = true;
+    for field in body.split(',').map(str::trim) {
+        let (key, value) = field.split_once('=')?;
+        let value = value.trim();
+        match key.trim() {
+            "version" => version = Some(unquote(value)?.to_owned()),
+            "default-features" => default_features = value.parse().ok()?,
+            "features" => {
+                let values = value.strip_prefix('[')?.strip_suffix(']')?.trim();
+                if !values.is_empty() {
+                    features = values
+                        .split(',')
+                        .map(|feature| unquote(feature.trim()).map(str::to_owned))
+                        .collect::<Option<_>>()?;
+                }
+            }
+            _ => return None,
+        }
+    }
+    Some((version?, features, default_features))
+}
+
+fn unquote(value: &str) -> Option<&str> {
+    value.strip_prefix('"')?.strip_suffix('"')
+}
+
+fn check_consumer(
+    root: &Path,
+    temp_root: &Path,
+    profile: &str,
+    document: &str,
+    example: &MarkdownExample,
+    declarations: &str,
+) -> Result<(), String> {
+    let bin = format!("{}_{}", profile.replace('-', "_"), language_suffix(document));
+    let fixture = temp_root.join(profile).join(language_suffix(document));
+    fs::create_dir_all(fixture.join("src/bin")).map_err(|error| error.to_string())?;
+    let value_path = toml_string(root.to_str().ok_or("local qubit-value path is not UTF-8")?);
+    let dependency_block = declarations.replace("qubit-value = {", &format!("qubit-value = {{ path = {value_path},"));
+    let manifest = format!(
+        "[package]\nname = \"minimal-{bin}\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n{dependency_block}\n\n[workspace]\n"
+    );
+    fs::write(fixture.join("Cargo.toml"), manifest).map_err(|error| error.to_string())?;
+    let source = format!(
+        "fn main() -> Result<(), Box<dyn std::error::Error>> {{\n{}\nOk(())\n}}\n",
+        example.source
+    );
+    fs::write(fixture.join("src/bin/main.rs"), source).map_err(|error| error.to_string())?;
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    let target = fixture.join("target");
+    let output = Command::new(&cargo)
+        .args(["check", "--manifest-path"])
+        .arg(fixture.join("Cargo.toml"))
+        .args(["--bin", "main"])
+        .env("CARGO_TARGET_DIR", &target)
+        .current_dir(root)
+        .output()
+        .map_err(|error| {
+            format!(
+                "cannot run cargo for {document} example `{}` profile `{profile}`: {error}",
+                example.id
+            )
+        })?;
+    if !output.status.success() {
+        return Err(format!(
+            "{document}: example `{}` profile `{profile}` failed: cargo check --manifest-path {} --bin main\nstderr:\n{}",
+            example.id,
+            fixture.join("Cargo.toml").display(),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    Ok(())
+}
+
+fn check_profile(
+    root: &Path,
+    temp_root: &Path,
+    profile: &str,
+    examples: &[(&str, &MarkdownExample)],
+    declarations: &str,
+) -> Result<(), String> {
+    let fixture = temp_root.join(profile);
+    fs::create_dir_all(fixture.join("src/bin")).map_err(|error| error.to_string())?;
+    let value_path = toml_string(root.to_str().ok_or("local qubit-value path is not UTF-8")?);
+    let dependency_block = declarations.replace("qubit-value = {", &format!("qubit-value = {{ path = {value_path},"));
+    let mut manifest = format!(
+        "[package]\nname = \"minimal-{}\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n{}\n\n[workspace]\n",
+        profile.replace('-', "_"),
+        dependency_block
+    );
+    if profile == "redacted-output" {
+        // The documented qubit-redact 0.10 dependency is not yet available in
+        // the registry; compile this profile against the sibling workspace
+        // source while keeping the declared version/features unchanged.
+        let redact_path = root
+            .parent()
+            .ok_or("cannot locate sibling workspace crates")?
+            .join("rs-redact");
+        manifest.push_str(&format!(
+            "\n[patch.crates-io]\nqubit-redact = {{ path = {} }}\n",
+            toml_string(redact_path.to_str().ok_or("qubit-redact path is not UTF-8")?)
+        ));
+    }
+    fs::write(fixture.join("Cargo.toml"), manifest).map_err(|error| error.to_string())?;
+    for (document, example) in examples {
+        let bin = format!("{}_{}", profile.replace('-', "_"), language_suffix(document));
+        let source = format!(
+            "fn main() -> Result<(), Box<dyn std::error::Error>> {{\n{}\nOk(())\n}}\n",
+            example.source
+        );
+        fs::write(fixture.join("src/bin").join(format!("{bin}.rs")), source).map_err(|error| error.to_string())?;
+    }
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    let target = fixture.join("target");
+    let output = Command::new(&cargo)
+        .args(["check", "--manifest-path"])
+        .arg(fixture.join("Cargo.toml"))
+        .arg("--bins")
+        .env("CARGO_TARGET_DIR", &target)
+        .current_dir(root)
+        .output()
+        .map_err(|error| format!("cannot run cargo for profile `{profile}`: {error}"))?;
+    if !output.status.success() {
+        let source_examples = examples
+            .iter()
+            .map(|(document, example)| format!("{document} example `{}`", example.id))
+            .collect::<Vec<_>>();
+        return Err(format!(
+            "profile `{profile}` examples {source_examples:?} failed: cargo check --manifest-path {} --bins\nstderr:\n{}",
+            fixture.join("Cargo.toml").display(),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    Ok(())
+}
+
+fn check_negative_examples(root: &Path, temp_root: &Path) -> Result<(), String> {
+    const QUICK_START: &str = "[dependencies]\nqubit-value = { version = \"0.13\", default-features = false, features = [\"converter\"] }\nqubit-datatype = { version = \"0.15\", default-features = false }";
+    for (id, source, expected) in [
+        (
+            "undeclared-crate",
+            "let _: serde_json::Value = serde_json::Value::Null;",
+            "serde_json",
+        ),
+        (
+            "missing-feature",
+            "let _ = qubit_value::Value::new(1).to_json_value()?;",
+            "to_json_value",
+        ),
+    ] {
+        let example = MarkdownExample {
+            id: id.to_owned(),
+            mode: super::super::ExampleMode::Run,
+            source: source.to_owned(),
+        };
+        let error = check_consumer(root, temp_root, "quick-start", "README.md", &example, QUICK_START)
+            .expect_err("negative isolated consumers must fail to compile");
+        if !error.contains(expected) {
+            return Err(format!(
+                "negative example `{id}` failed for an unexpected reason: {error}"
+            ));
+        }
+        let _ = fs::remove_dir_all(temp_root.join("quick-start").join("en"));
+    }
+    Ok(())
+}
+
+fn language_suffix(document: &str) -> &'static str {
+    if document.ends_with("zh_CN.md") { "zh" } else { "en" }
+}
+
+fn toml_string(value: &str) -> String {
+    format!(
+        "\"{}\"",
+        value
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n")
+            .replace('\r', "\\r")
+            .replace('\t', "\\t")
+    )
+}
+
+fn temp_root() -> PathBuf {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    std::env::temp_dir().join(format!("qubit-value-minimal-examples-{}-{nanos}", std::process::id()))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_minimal_example_profiles_reject_missing_and_different_blocks() {
+        assert!(super::marked_toml_block("no marker", "quick-start").is_none());
+        assert!(super::matching_blocks("quick-start", &["a".into(), "b".into()]).is_err());
+        let profile = super::Profile {
+            id: "quick-start",
+            examples: [("README.md", "quick-start"), ("README.zh_CN.md", "quick-start")],
+            dependencies: &["qubit-value|0.13|converter|false", "qubit-datatype|0.15||false"],
+        };
+        let result = super::profile_declarations(std::path::Path::new(env!("CARGO_MANIFEST_DIR")), &profile);
+        assert!(result.is_ok(), "{result:?}");
+    }
+}

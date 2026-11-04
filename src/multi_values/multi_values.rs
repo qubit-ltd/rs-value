@@ -58,7 +58,7 @@ use url::Url;
 
 use super::internal::MultiValuesRepr;
 #[cfg(feature = "json")]
-use super::multi_values_identity::hash_multi_values_payload_with_json_budget;
+use super::multi_values_identity::hash_non_json_multi_values_payload;
 use super::multi_values_ref::MultiValuesRef;
 use crate::IntoValueDefault;
 use crate::StrictValueRead;
@@ -388,7 +388,8 @@ impl MultiValues {
             }
             _ => {
                 std::mem::discriminant(&self.repr).hash(state);
-                hash_multi_values_payload_with_json_budget(&self.repr, state, budget)
+                hash_non_json_multi_values_payload(&self.repr, state);
+                Ok(())
             }
         }
     }
