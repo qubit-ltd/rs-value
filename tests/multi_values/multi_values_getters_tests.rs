@@ -35,6 +35,26 @@ fn test_multi_values_getters_return_slices_without_copying() {
     let strings = values.get_strings().unwrap();
     assert_eq!(strings, &["red", "blue"]);
     assert_eq!(strings.len(), values.len());
+    let strings_again = values.get_strings().unwrap();
+    assert!(std::ptr::eq(strings.as_ptr(), strings_again.as_ptr()));
+
+    let integers = MultiValues::Int32(vec![1, 2]);
+    let first = integers.get_int32s().unwrap();
+    let second = integers.get_int32s().unwrap();
+    assert_eq!(first, &[1, 2]);
+    assert!(std::ptr::eq(first.as_ptr(), second.as_ptr()));
+    assert!(matches!(
+        integers.get_strings(),
+        Err(ValueError::TypeMismatch {
+            expected: DataType::String,
+            actual: DataType::Int32,
+        })
+    ));
+    assert_eq!(MultiValues::String(Vec::new()).get_strings(), Ok(&[][..]),);
+    assert!(matches!(
+        MultiValues::Unset(DataType::String).get_strings(),
+        Err(ValueError::Missing(_))
+    ));
 }
 
 #[test]

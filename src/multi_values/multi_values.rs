@@ -419,33 +419,8 @@ impl MultiValues {
 /// The macro automatically extracts preceding documentation comments, so you
 /// can add `///` comments before macro invocations.
 macro_rules! impl_get_multi_values {
-    // Simple type: return slice reference
+    // Every generated getter returns a borrowed slice.
     ($(#[$attr:meta])* slice: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
-        $(#[$attr])*
-        #[doc = ""]
-        #[doc = "# Errors"]
-        #[doc = ""]
-        #[doc = "Returns [`ValueError::Missing`] when the container is unset"]
-        #[doc = "with the requested type, or [`ValueError::TypeMismatch`] when"]
-        #[doc = "the stored data type differs. A concrete empty vector returns"]
-        #[doc = "an empty slice."]
-        #[inline(always)]
-        pub fn $method(&self) -> ValueResult<&[$type]> {
-            match &self.repr {
-                MultiValuesRepr::$variant(v) => Ok(v),
-                MultiValuesRepr::Unset(dt) if *dt == $data_type => {
-                    Err(ValueError::Missing($crate::ValueMissing::unset_collection(*dt, *dt)))
-                }
-                _ => Err(ValueError::TypeMismatch {
-                    expected: $data_type,
-                    actual: self.data_type(),
-                }),
-            }
-        }
-    };
-
-    // Complex type: return Vec reference (e.g., Vec<String>, Vec<Vec<u8>>)
-    ($(#[$attr:meta])* vec: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
         $(#[$attr])*
         #[doc = ""]
         #[doc = "# Errors"]
@@ -466,6 +441,14 @@ macro_rules! impl_get_multi_values {
                     actual: self.data_type(),
                 }),
             }
+        }
+    };
+
+    // Compatibility label for existing internal invocations; use the shared slice implementation.
+    ($(#[$attr:meta])* vec: $method:ident, $variant:ident, $type:ty, $data_type:expr) => {
+        impl_get_multi_values! {
+            $(#[$attr])*
+            slice: $method, $variant, $type, $data_type
         }
     };
 }
