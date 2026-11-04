@@ -5,6 +5,10 @@ edition = "2024"
 rust-version = "1.94"
 publish = false
 
+[features]
+json-arbitrary-precision = ["serde_json/arbitrary_precision"]
+json-preserve-order = ["serde_json/preserve_order"]
+
 [package.metadata]
 cargo-fuzz = true
 

@@ -49,6 +49,41 @@ fn test_preflight_generator_short_big_numbers_are_nonzero() {
 }
 
 #[test]
+fn test_preflight_json_number_choices_are_deterministic_and_numeric() {
+    // Tag 10 selects a JSON scalar. Byte 4 selects 1.2500, while byte 3
+    // keeps the value at the object leaf instead of wrapping it in arrays.
+    let input = [10, 0, 0, 0, 1, 0];
+    let first = value_from_bytes(&input);
+    let second = value_from_bytes(&input);
+    assert_eq!(first, second);
+
+    let json = first.as_scalar().unwrap().get_ref::<serde_json::Value>().unwrap();
+    let serde_json::Value::Number(number) = json.get("number").unwrap() else {
+        panic!("selected JSON value should contain a number");
+    };
+    #[cfg(feature = "json-arbitrary-precision")]
+    assert_eq!(number.to_string(), "1.2500");
+    #[cfg(not(feature = "json-arbitrary-precision"))]
+    assert_eq!(number.to_string(), "1.25");
+}
+
+#[test]
+fn test_preflight_json_object_order_choices_are_semantically_equal() {
+    let first = value_from_bytes(&[10, 0, 0, 0, 1, 0]);
+    let second = value_from_bytes(&[24, 0, 0, 0, 1, 0]);
+    let first = first.as_scalar().unwrap().get_ref::<serde_json::Value>().unwrap();
+    let second = second.as_scalar().unwrap().get_ref::<serde_json::Value>().unwrap();
+    assert_eq!(first, second);
+
+    let first_keys: Vec<_> = first.as_object().unwrap().keys().map(String::as_str).collect();
+    let second_keys: Vec<_> = second.as_object().unwrap().keys().map(String::as_str).collect();
+    #[cfg(feature = "json-preserve-order")]
+    assert_ne!(first_keys, second_keys);
+    #[cfg(not(feature = "json-preserve-order"))]
+    assert_eq!(first_keys, second_keys);
+}
+
+#[test]
 fn test_preflight_generator_bounds_and_decodes_input_deterministically() {
     for length in [0, 3, 258, 259, 4096, 4097] {
         let input = vec![0x5a; length];

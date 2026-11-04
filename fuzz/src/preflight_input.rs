@@ -60,13 +60,39 @@ fn text(data: &[u8]) -> String {
     String::from_utf8_lossy(data.get(1..data.len().min(65)).unwrap_or_default()).into_owned()
 }
 
+const JSON_NUMBER_TEXTS: [&str; 5] = [
+    "-0",
+    "1.2500",
+    "1e1",
+    "18446744073709551616",
+    "0.123456789012345678901234567890123456789",
+];
+
+fn json_number(data: &[u8]) -> serde_json::Value {
+    let number_text =
+        JSON_NUMBER_TEXTS[usize::from(data.get(4).copied().unwrap_or_default()) % JSON_NUMBER_TEXTS.len()];
+    serde_json::from_str(number_text).unwrap_or(serde_json::Value::Null)
+}
+
 /// Builds a JSON value whose nesting depth is selected by the input.
 fn nested_json(data: &[u8]) -> serde_json::Value {
     let depth = usize::from(data.get(3).copied().unwrap_or_default()) % (MAX_DEPTH + 1);
-    let leaf = serde_json::json!({
-        "text": text(data),
-        "finite": f64::from(data.get(1).copied().unwrap_or_default()) / 10.0,
-    });
+    let number = json_number(data);
+    let text = text(data);
+    let finite = serde_json::Value::from(f64::from(data.get(1).copied().unwrap_or_default()) / 10.0);
+    let mut leaf = serde_json::Map::new();
+    // Use the tag byte's quotient so order selection does not change the
+    // generated text, which is derived from the remaining input bytes.
+    if data.first().copied().unwrap_or_default() / 14 & 1 == 0 {
+        leaf.insert("number".to_owned(), number);
+        leaf.insert("text".to_owned(), serde_json::Value::String(text));
+        leaf.insert("finite".to_owned(), finite);
+    } else {
+        leaf.insert("finite".to_owned(), finite);
+        leaf.insert("text".to_owned(), serde_json::Value::String(text));
+        leaf.insert("number".to_owned(), number);
+    }
+    let leaf = serde_json::Value::Object(leaf);
     (0..depth).fold(leaf, |value, _| serde_json::json!([value]))
 }
 
