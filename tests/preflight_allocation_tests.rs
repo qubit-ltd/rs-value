@@ -278,6 +278,76 @@ fn test_direct_wire_helpers_reject_large_decimal_before_formatting() {
     check_helpers!("ValueWireV1 collection", &small_collection_wire, &large_collection_wire);
 }
 
+fn json_number_fixture(size: usize, floating: bool) -> Value {
+    let values = (0..size)
+        .map(|index| {
+            if floating {
+                serde_json::json!(index as f64 / 10.0)
+            } else {
+                serde_json::json!(index)
+            }
+        })
+        .collect::<Vec<_>>();
+    Value::Json(serde_json::Value::Array(values))
+}
+
+fn measured_json_payload_construction_bytes(value: &Value) -> usize {
+    let _ = ValueWirePayloadRefV1::from_value(value).expect("number fixture must be accepted");
+    let _ = ValueWirePayloadRefV1::from_value(value).expect("warm-up fixture must be accepted");
+    let (result, bytes) = measured_allocations(|| ValueWirePayloadRefV1::from_value(value));
+    let _ = result.expect("measured number fixture must be accepted");
+    bytes
+}
+
+#[test]
+fn test_json_number_payload_construction_avoids_per_float_string_allocation() {
+    let preserves_number_lexeme = serde_json::from_str::<serde_json::Number>("1.2500").expect("number must parse")
+        != serde_json::from_str::<serde_json::Number>("1.25").expect("number must parse");
+    let mut allocation_bytes = Vec::new();
+    for floating in [false, true] {
+        let label = if floating { "float" } else { "integer" };
+        for size in [1, 256, 4096] {
+            let value = json_number_fixture(size, floating);
+            let bytes = measured_json_payload_construction_bytes(&value);
+            eprintln!("json_number_allocation: {label} size={size} bytes={bytes}");
+            allocation_bytes.push((floating, size, bytes));
+        }
+    }
+    let allocation = |floating, size| {
+        allocation_bytes
+            .iter()
+            .find_map(|(matches_float, matches_size, bytes)| {
+                (*matches_float == floating && *matches_size == size).then_some(*bytes)
+            })
+            .expect("allocation sample must exist")
+    };
+    if preserves_number_lexeme {
+        // serde_json's arbitrary_precision representation allocates while
+        // validating each number. Preserve correctness and serialization
+        // coverage for that opt-in feature without conflating it with the
+        // standard Number formatter's allocation regression assertion.
+        for size in [1, 256, 4096] {
+            let value = json_number_fixture(size, true);
+            let payload =
+                ValueWirePayloadRefV1::from_value(&value).expect("arbitrary-precision number fixture must be accepted");
+            assert!(payload.to_json_vec().is_ok(), "number fixture must encode");
+        }
+    } else {
+        assert!(
+            allocation(true, 4096) <= allocation(true, 256).saturating_add(4096),
+            "float validation allocation grew with element count: 256={} bytes, 4096={} bytes",
+            allocation(true, 256),
+            allocation(true, 4096),
+        );
+    }
+    assert!(
+        allocation(false, 4096) <= allocation(false, 256).saturating_add(4096),
+        "integer control allocation grew with element count: 256={} bytes, 4096={} bytes",
+        allocation(false, 256),
+        allocation(false, 4096),
+    );
+}
+
 #[test]
 fn test_named_helpers_reject_large_decimal_before_formatting() {
     let small_digits = "9".repeat(4096);

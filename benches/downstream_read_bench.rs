@@ -21,6 +21,7 @@ use qubit_datatype::NumericComparisonPolicy;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodePreflight;
+use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
 
@@ -283,6 +284,43 @@ fn benchmark_repeated_wire_validation(c: &mut Criterion) {
     }
 }
 
+/// Benchmarks borrowed DTO validation for JSON trees containing ordinary
+/// floats.
+fn benchmark_nested_json_number_validation(c: &mut Criterion) {
+    let limits = JsonEncodeLimits::builder().max_output_bytes(4 * 1024 * 1024).build();
+    for size in [256, 4096] {
+        let value = Value::Json(serde_json::Value::Array(
+            (0..size).map(|index| serde_json::json!(index as f64 / 10.0)).collect(),
+        ));
+        let payload = ValueWirePayloadRefV1::from_value(&value).expect("JSON float fixture must validate");
+        let encoded = payload
+            .to_json_vec_with_limits(limits)
+            .expect("JSON float fixture must encode within the output limit");
+        assert!(!encoded.is_empty());
+
+        c.bench_function(&format!("nested_json_number_validation/dto/{size}"), |bencher| {
+            bencher.iter(|| {
+                let payload =
+                    ValueWirePayloadRefV1::from_value(black_box(&value)).expect("JSON float fixture must validate");
+                black_box(payload)
+            });
+        });
+        c.bench_function(
+            &format!("nested_json_number_validation/dto_and_encode/{size}"),
+            |bencher| {
+                bencher.iter(|| {
+                    let payload =
+                        ValueWirePayloadRefV1::from_value(black_box(&value)).expect("JSON float fixture must validate");
+                    let encoded = payload
+                        .to_json_vec_with_limits(black_box(limits))
+                        .expect("JSON float fixture must encode");
+                    black_box(encoded)
+                });
+            },
+        );
+    }
+}
+
 criterion_group!(
     benches,
     benchmark_config_conversions,
@@ -293,5 +331,6 @@ criterion_group!(
     benchmark_borrowed_encode,
     benchmark_preflight_and_encode,
     benchmark_repeated_wire_validation,
+    benchmark_nested_json_number_validation,
 );
 criterion_main!(benches);

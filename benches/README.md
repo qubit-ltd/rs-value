@@ -81,3 +81,57 @@ property serialization, and the surrounding JSON encoder session and budget
 accounting. Raw Criterion output for the final benchmark source was retained at
 `/tmp/rv-003-final-bench-1.txt`, `/tmp/rv-003-final-bench-2.txt`, and
 `/tmp/rv-003-final-bench-3.txt` on the measurement host.
+
+## JSON number DTO validation (2026-11-04)
+
+This comparison measures borrowed payload DTO validation for one JSON array of
+ordinary floating-point values, then the same DTO construction plus bounded
+encoding. Fixtures contain 256 or 4096 values (`index as f64 / 10.0`), are
+constructed outside the timed region, and use a 4 MiB output limit. The test
+asserts that the fixture encodes before timing. It uses standard `serde_json`
+number storage (`natural-json`, without `arbitrary_precision`).
+
+Each run used the same command before and after the implementation:
+
+```text
+cargo bench --locked --no-default-features --features natural-json --bench downstream_read_bench -- nested_json_number_validation --sample-size 50 --warm-up-time 3 --measurement-time 5
+```
+
+Measurements were made on an Intel Xeon E5-2680 v4, Ubuntu 24.04 x86_64, with
+Rust/Cargo 1.94.0. Values are Criterion lower–upper intervals; times below
+1 ms are shown in microseconds.
+
+| Fixture | Run | DTO construction | DTO construction + bounded encode |
+| --- | ---: | ---: | ---: |
+| 256 | baseline 1 | 25.517–31.761 µs | 84.463–100.97 µs |
+| 256 | baseline 2 | 22.742–22.868 µs | 74.507–77.384 µs |
+| 256 | baseline 3 | 23.242–23.814 µs | 73.632–73.856 µs |
+| 4096 | baseline 1 | 477.17–619.85 µs | 1.2429–1.3656 ms |
+| 4096 | baseline 2 | 459.10–583.86 µs | 1.5088–1.8669 ms |
+| 4096 | baseline 3 | 379.31–394.16 µs | 1.2042–1.3087 ms |
+
+| Fixture | Run | DTO construction | DTO construction + bounded encode |
+| --- | ---: | ---: | ---: |
+| 256 | optimized 1 | 21.737–21.931 µs | 97.947–129.18 µs |
+| 256 | optimized 2 | 21.787–21.926 µs | 71.713–71.995 µs |
+| 256 | optimized 3 | 22.312–27.521 µs | 74.369–79.914 µs |
+| 4096 | optimized 1 | 385.14–442.47 µs | 1.2025–1.2493 ms |
+| 4096 | optimized 2 | 370.02–455.47 µs | 1.1559–1.1571 ms |
+| 4096 | optimized 3 | 374.87–402.23 µs | 1.1684–1.1777 ms |
+
+Intervals overlap or improve in the DTO measurements. The combined measurements
+vary across runs, but do not show a greater-than-5% regression with separated
+intervals in two runs. This supports retaining the stack-buffer change under
+the design's decision gate; the timing data is noisy and does not establish an
+end-to-end downstream speedup.
+
+The thread-local allocation test measured payload DTO construction after
+fixture creation and warm-up. Before the change, integer arrays allocated 288 B
+at all three sizes; floating arrays allocated 296 B, 2,336 B, and 33,056 B at
+sizes 1, 256, and 4096. After the change, both integer and floating fixtures
+allocated 288 B at all three sizes. These numbers include the fixed iterator
+frame allocation and show that the per-number temporary string allocation is
+gone for ordinary values. `arbitrary_precision` behavior is checked separately;
+its number representation may still allocate internally, and long number text
+continues to use the allocating fallback. This is not a claim that Wire V1
+encoding as a whole is allocation-free.

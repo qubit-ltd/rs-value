@@ -96,7 +96,20 @@ pub(crate) fn validate_number(number: &Number) -> Result<(), ValueWireEncodeErro
     {
         return Ok(());
     }
-    let text = number.to_string();
+    let mut text = FixedNumberText::new();
+    if write!(&mut text, "{number}").is_ok() {
+        validate_number_text(number, text.as_str())
+    } else {
+        validate_number_text(number, &number.to_string())
+    }
+}
+
+/// Reconstructs the V1 number model from text and checks number identity.
+///
+/// # Errors
+///
+/// Returns `JsonNumberNotRoundTrippable` when the canonical model differs.
+fn validate_number_text(number: &Number, text: &str) -> Result<(), ValueWireEncodeError> {
     let canonical = if text == "-0" {
         Number::from_f64(-0.0)
     } else if text.bytes().any(|byte| matches!(byte, b'.' | b'e' | b'E')) {
