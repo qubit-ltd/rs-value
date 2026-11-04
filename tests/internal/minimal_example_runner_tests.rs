@@ -173,33 +173,31 @@ fn validate_declarations(profile: &Profile, block: &str) -> Result<(), String> {
 }
 
 fn parse_inline_dependency(value: &str) -> Option<(String, Vec<String>, bool)> {
-    let body = value.strip_prefix('{')?.strip_suffix('}')?;
-    let mut version = None;
-    let mut features = Vec::new();
-    let mut default_features = true;
-    for field in body.split(',').map(str::trim) {
-        let (key, value) = field.split_once('=')?;
-        let value = value.trim();
-        match key.trim() {
-            "version" => version = Some(unquote(value)?.to_owned()),
-            "default-features" => default_features = value.parse().ok()?,
-            "features" => {
-                let values = value.strip_prefix('[')?.strip_suffix(']')?.trim();
-                if !values.is_empty() {
-                    features = values
-                        .split(',')
-                        .map(|feature| unquote(feature.trim()).map(str::to_owned))
-                        .collect::<Option<_>>()?;
-                }
-            }
-            _ => return None,
-        }
+    let document = format!("dependency = {value}").parse::<toml::Table>().ok()?;
+    if document.len() != 1 {
+        return None;
     }
-    Some((version?, features, default_features))
-}
-
-fn unquote(value: &str) -> Option<&str> {
-    value.strip_prefix('"')?.strip_suffix('"')
+    let table = document.get("dependency")?.as_table()?;
+    if table
+        .keys()
+        .any(|key| !matches!(key.as_str(), "version" | "features" | "default-features"))
+    {
+        return None;
+    }
+    let version = table.get("version")?.as_str()?.to_owned();
+    let features = match table.get("features") {
+        None => Vec::new(),
+        Some(value) => value
+            .as_array()?
+            .iter()
+            .map(|item| item.as_str().map(str::to_owned))
+            .collect::<Option<Vec<_>>>()?,
+    };
+    let defaults = match table.get("default-features") {
+        None => true,
+        Some(value) => value.as_bool()?,
+    };
+    Some((version, features, defaults))
 }
 
 fn check_consumer(
@@ -369,6 +367,98 @@ fn temp_root() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_inline_dependency_table_cases() {
+        let cases = [
+            (
+                "empty feature array",
+                r#"{ version = "0.13", features = [] }"#,
+                Some(("0.13".to_owned(), vec![], true)),
+            ),
+            (
+                "single feature",
+                r#"{ version = "0.13", features = ["converter"] }"#,
+                Some(("0.13".to_owned(), vec!["converter".to_owned()], true)),
+            ),
+            (
+                "reordered fields",
+                r#"{ features = ["converter", "json"], default-features = false, version = "0.13" }"#,
+                Some((
+                    "0.13".to_owned(),
+                    vec!["converter".to_owned(), "json".to_owned()],
+                    false,
+                )),
+            ),
+            (
+                "default feature and default-features values",
+                r#"{ version = "0.13" }"#,
+                Some(("0.13".to_owned(), vec![], true)),
+            ),
+            (
+                "comma in feature string",
+                r#"{ version = "0.13", features = ["json,wire"] }"#,
+                Some(("0.13".to_owned(), vec!["json,wire".to_owned()], true)),
+            ),
+            ("missing version", r#"{ features = [] }"#, None),
+            ("non-string version", r#"{ version = 13 }"#, None),
+            (
+                "non-boolean default-features",
+                r#"{ version = "0.13", default-features = "false" }"#,
+                None,
+            ),
+            ("non-array features", r#"{ version = "0.13", features = "json" }"#, None),
+            (
+                "non-string feature",
+                r#"{ version = "0.13", features = ["json", 1] }"#,
+                None,
+            ),
+            ("unknown key", r#"{ version = "0.13", optional = true }"#, None),
+            (
+                "unterminated array",
+                r#"{ version = "0.13", features = ["json" }"#,
+                None,
+            ),
+        ];
+
+        for (name, input, expected) in cases {
+            assert_eq!(super::parse_inline_dependency(input), expected, "{name}");
+        }
+    }
+
+    #[test]
+    fn test_inline_dependency_multiple_features() {
+        let actual = super::parse_inline_dependency(
+            r#"{ version = "0.13", default-features = false, features = ["converter", "json"] }"#,
+        );
+        assert_eq!(
+            actual,
+            Some((
+                "0.13".to_owned(),
+                vec!["converter".to_owned(), "json".to_owned()],
+                false,
+            ))
+        );
+    }
+
+    #[test]
+    fn test_validate_declarations_multiple_features() {
+        let profile = super::Profile {
+            id: "multi-feature",
+            examples: [("README.md", "example"), ("README.zh_CN.md", "example")],
+            dependencies: &["qubit-value|0.13|converter,json|false"],
+        };
+        let valid = "[dependencies]\nqubit-value = { version = \"0.13\", default-features = false, features = [\"converter\", \"json\"] }";
+        assert!(super::validate_declarations(&profile, valid).is_ok());
+
+        let missing_feature = "[dependencies]\nqubit-value = { version = \"0.13\", default-features = false, features = [\"converter\"] }";
+        let error = super::validate_declarations(&profile, missing_feature).unwrap_err();
+        assert!(error.contains("dependencies differ"), "{error}");
+
+        let wrong_version = "[dependencies]\nqubit-value = { version = \"0.14\", default-features = false, features = [\"converter\", \"json\"] }";
+        let error = super::validate_declarations(&profile, wrong_version).unwrap_err();
+        assert!(error.contains("dependencies differ"), "{error}");
+    }
+
     #[test]
     fn test_minimal_example_profiles_reject_missing_and_different_blocks() {
         assert!(super::marked_toml_block("no marker", "quick-start").is_none());
