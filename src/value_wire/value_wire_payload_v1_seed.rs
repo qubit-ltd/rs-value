@@ -21,6 +21,13 @@ use super::WireShapeOwned;
 /// for the surrounding document. For complete JSON input, prefer the
 /// bounded JSON decode helpers on `ValueWirePayloadV1`.
 ///
+/// This generic Serde seed preserves the surrounding deserializer's error
+/// semantics; its diagnostics may contain input-derived text. Bounded helpers
+/// map target-deserialization failures to `InvalidJson` metadata containing
+/// only the Serde category and location. Resource limits do not sanitize
+/// diagnostics, and reader or writer I/O sources may contain
+/// application-defined details that require the application's logging policy.
+///
 /// With the `json` feature, use it when the surrounding protocol owns the
 /// version envelope and its decoder session:
 ///

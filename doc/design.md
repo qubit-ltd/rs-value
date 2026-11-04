@@ -447,14 +447,23 @@ still carry its original conversion failure. Callers use
 than assuming every missing result permits a fallback. A missing collection
 item and a first-item read from a concrete empty collection never default.
 
-Wire errors do not include raw input contents. Decode errors preserve safe
-location and category information. Both `ValueError` and Wire error enums are
-non-exhaustive where downstream code must tolerate future diagnostic variants;
-downstream matches therefore need a fallback arm.
+Bounded Wire decode helpers map target-deserialization failures to
+`ValueWireDecodeError::InvalidJson` metadata containing only the Serde category
+and location. Generic `Deserialize` implementations and seeds retain the
+surrounding deserializer's error semantics; their diagnostics may contain
+input-derived field names, keys, or other text. Reader and writer I/O sources
+may contain application-defined details and require the application's logging
+policy. Resource budgets constrain input and decoded work independently of
+diagnostic sanitization; the `redact` feature creates policy-aware views of
+values and is not a sanitizer for arbitrary errors. Both `ValueError` and Wire
+error enums are non-exhaustive where downstream code must tolerate future
+diagnostic variants; downstream matches therefore need a fallback arm.
 
 `ValueWireDecodeError::InvalidJson` now contains `ValueWireJsonError`, which
 retains only Serde category, line, and column—not the original error or input.
-Target-deserialization failures without source coordinates use zero values.
+This guarantee applies to bounded helpers' `InvalidJson` mapping, not to
+generic deserializer errors or I/O sources. Target-deserialization failures
+without source coordinates use zero values.
 This changes the payload type from `serde_json::Error`; callers that construct
 the variant or downcast its source must migrate to the safe metadata accessors.
 

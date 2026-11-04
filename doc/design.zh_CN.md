@@ -344,12 +344,16 @@ Fallback 遵循以下真值表：
 | 策略判定为 missing 的集合元素（包括第 0 项） | 错误 | 错误 |
 | 普通转换错误或类型错误 | 错误 | 错误 |
 
-Wire 错误不包含原始输入内容；decode 错误只保留安全的位置和类别信息。`ValueError` 和 Wire
-错误 enum 在需要允许未来增加诊断变体时使用 `non_exhaustive`，下游 match 因此必须有 fallback
-分支。
+有界 Wire decode helper 会将目标反序列化失败映射为 `ValueWireDecodeError::InvalidJson`，其中只含
+Serde 类别和位置元数据。通用 `Deserialize` 实现及 seed 保留外层 deserializer 的错误语义；其诊断可能
+包含由输入派生的字段名、键或其他文本。reader 和 writer 的 I/O 错误源可能包含应用自定义详情，应按
+应用的日志策略处理。资源预算独立限制输入和解码工作，不会净化诊断；`redact` feature 生成的是按策略处理的
+值视图，不是任意错误的净化器。`ValueError` 和 Wire 错误 enum 在需要允许未来增加诊断变体时使用
+`non_exhaustive`，下游 match 因此必须有 fallback 分支。
 
 `ValueWireDecodeError::InvalidJson` 现在携带 `ValueWireJsonError`，只保留 Serde 类别、行和列，
-不保留原始错误或输入。无法获得源码位置的目标反序列化失败使用零值。这会把载荷类型从
+不保留原始错误或输入。此保证针对有界 helper 的 `InvalidJson` 映射，不适用于通用 deserializer 错误或
+I/O 错误源。无法获得源码位置的目标反序列化失败使用零值。这会把载荷类型从
 `serde_json::Error` 改为安全元数据；直接构造该变体或向下转型错误源的调用方需要迁移到这些访问器。
 
 <a id="downstream-integration"></a>

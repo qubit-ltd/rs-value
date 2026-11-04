@@ -76,7 +76,13 @@ use self::internal::NamedMultiValuesWireRef;
 /// untrusted JSON document, use `NamedMultiValues::decode_json_slice` or
 /// `NamedMultiValues::decode_json_slice_with_limits`. When this type is
 /// embedded in a larger document, deserialize it through a resource-bounded
-/// outer decoder.
+/// outer decoder. Bounded helpers report target-deserialization failures as
+/// `InvalidJson` metadata containing only the Serde category and location.
+/// Generic Serde errors retain the surrounding deserializer's semantics and
+/// may include input-derived text, such as field names. Reader and writer I/O
+/// error sources may also contain application-defined details. Resource limits
+/// do not sanitize diagnostics; apply the application's logging policy to all
+/// error sources.
 ///
 /// # Examples
 ///
@@ -485,6 +491,9 @@ impl<'de> Deserialize<'de> for NamedMultiValues {
     /// inherits resource accounting from `deserializer`. Callers handling a
     /// complete, untrusted JSON document should use the bounded JSON helpers on
     /// [`NamedMultiValues`] instead of an unbounded Serde entry point.
+    /// Generic deserializer errors may contain input-derived text. The bounded
+    /// helpers instead expose only Serde category and location for target
+    /// deserialization failures; resource limits do not sanitize other errors.
     ///
     /// # Type Parameters
     ///

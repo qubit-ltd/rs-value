@@ -983,14 +983,22 @@ The important categories are:
 
 Handle missing values separately from invalid values. A default is appropriate
 for an intentionally absent configuration property, not for a malformed port or
-a type mismatch. For diagnostics containing string maps or JSON objects, use
-the explicit `redact` view when the application has sensitive fields; ordinary
-`Debug` formatting is not implicitly redacted.
+a type mismatch. Bounded Wire decode helpers map target-deserialization
+failures to `ValueWireDecodeError::InvalidJson` metadata containing only the
+Serde category and location. Generic `Deserialize` implementations and seeds
+retain the surrounding deserializer's error semantics; their diagnostics may
+contain input-derived field names, keys, or other text. Reader and writer I/O
+sources may contain application-defined details and require the application's
+logging policy. Resource budgets do not sanitize diagnostics. For values
+containing string maps or JSON objects, use the explicit `redact` view when the
+application has sensitive fields; it is not a sanitizer for arbitrary errors,
+and ordinary `Debug` formatting is not implicitly redacted.
 
 `ValueWireDecodeError::InvalidJson` carries `ValueWireJsonError`, which exposes
 only the Serde category and line/column metadata. It does not retain the
 original error message or input text. Target-type failures from the unique-key
-tree path have no source coordinates and report zero for line and column.
+tree path have no source coordinates and report zero for line and column. This
+guarantee does not extend to generic Serde errors or reader/writer I/O sources.
 
 This example converts a direct Serde error, which retains its source coordinates.
 
