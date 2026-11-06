@@ -31,6 +31,7 @@ macro_rules! impl_value_from_table {
     ) => {
         $(
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl From<$type> for Value {
                 /// Wraps an owned payload in its matching runtime value type.
                 ///

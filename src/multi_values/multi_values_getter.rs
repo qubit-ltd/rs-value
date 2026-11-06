@@ -37,6 +37,7 @@ macro_rules! impl_multi_values_try_from_table {
     ) => {
         $(
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl TryFrom<&MultiValues> for $type {
                 /// Reports a missing value or an exact runtime type mismatch.
                 type Error = ValueError;
@@ -74,6 +75,7 @@ macro_rules! impl_multi_values_try_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl TryFrom<&MultiValues> for Vec<$type> {
                 /// Reports a missing value or an exact runtime type mismatch.
                 type Error = ValueError;
@@ -136,6 +138,7 @@ macro_rules! impl_multi_values_borrowed_and_owned_table {
     ) => {
         $(
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl<'a> TryFrom<&'a MultiValues> for &'a $type {
                 /// Reports a missing value or an exact runtime type mismatch.
                 type Error = ValueError;
@@ -172,6 +175,7 @@ macro_rules! impl_multi_values_borrowed_and_owned_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl<'a> TryFrom<&'a MultiValues> for &'a [$type] {
                 /// Reports a missing value or an exact runtime type mismatch.
                 type Error = ValueError;
@@ -206,6 +210,7 @@ macro_rules! impl_multi_values_borrowed_and_owned_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl TryFrom<MultiValues> for Vec<$type> {
                 /// Reports a missing value or an exact runtime type mismatch.
                 type Error = ValueError;

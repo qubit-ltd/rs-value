@@ -119,6 +119,7 @@ impl ValueWireV1 {
     /// cannot be decoded as a V1 wire value.
     #[cfg(feature = "json")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, Self::default_json_decode_limits())
     }
@@ -148,6 +149,7 @@ impl ValueWireV1 {
     /// cannot be decoded as a V1 wire value.
     #[cfg(feature = "json")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         super::decode_wire_json_slice_with_session(input, session)
@@ -161,6 +163,7 @@ impl ValueWireV1 {
     #[cfg(feature = "json")]
     #[must_use = "the V1 JSON profile should be applied to a budget"]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn default_json_decode_limits() -> JsonDecodeLimits {
         super::default_json_decode_limits()
     }
@@ -173,6 +176,7 @@ impl ValueWireV1 {
     #[cfg(feature = "json")]
     #[must_use = "the V1 JSON profile should be applied to an encode session"]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn default_json_encode_limits() -> JsonEncodeLimits {
         super::default_json_encode_limits()
     }
@@ -200,6 +204,7 @@ impl ValueWireV1 {
     /// default JSON resource profile.
     #[cfg(feature = "json")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(Self::default_json_encode_limits())
     }
@@ -224,6 +229,7 @@ impl ValueWireV1 {
     /// Returns [`ValueWireEncodeError`] when preflight or final encoding
     /// exceeds `limits`, or the document cannot be serialized.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
         ValueWireEncodePreflight::new(limits)
             .check_container(self.container())
@@ -268,6 +274,7 @@ impl ValueWireV1 {
     /// [`ValueWireEncodeError::Io`] when `writer` rejects output.
     #[cfg(feature = "json")]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
@@ -315,6 +322,7 @@ impl ValueWireV1 {
     /// exceeds `limits`, the document cannot be serialized, or `writer`
     /// rejects output.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_writer_with_limits<W>(
         &self,
         mut writer: W,

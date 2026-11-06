@@ -53,6 +53,7 @@ macro_rules! impl_multi_values_from_table {
     ) => {
         $(
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl From<$type> for MultiValues {
                 /// Creates a one-item collection by taking ownership of `value`.
                 ///
@@ -70,6 +71,7 @@ macro_rules! impl_multi_values_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl From<Vec<$type>> for MultiValues {
                 /// Takes ownership of the vector and its element storage without cloning elements.
                 /// An empty vector creates a concrete empty collection.
@@ -88,6 +90,7 @@ macro_rules! impl_multi_values_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl From<&[$type]> for MultiValues {
                 /// Clones the elements into an owned collection, preserving order.
                 /// An empty slice creates a concrete empty collection.
@@ -106,6 +109,7 @@ macro_rules! impl_multi_values_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl From<&Vec<$type>> for MultiValues {
                 /// Clones the elements into an owned collection, preserving order.
                 /// An empty vector creates a concrete empty collection.
@@ -124,6 +128,7 @@ macro_rules! impl_multi_values_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl<const N: usize> From<[$type; N]> for MultiValues {
                 /// Moves the array elements into a newly allocated vector, preserving order.
                 /// An empty array creates a concrete empty collection.
@@ -142,6 +147,7 @@ macro_rules! impl_multi_values_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl<const N: usize> From<&[$type; N]> for MultiValues {
                 /// Clones the elements into an owned collection, preserving order.
                 /// An empty array creates a concrete empty collection.

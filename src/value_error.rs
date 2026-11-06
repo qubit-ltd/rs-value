@@ -53,6 +53,7 @@ use crate::ValueMissing;
 pub enum ValueError {
     /// Resource rejection before materializing a natural JSON projection.
     #[cfg(all(feature = "converter", feature = "json"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "converter", feature = "json"))))]
     #[error("JSON projection limit for {data_type} at collection index {source_index:?}: {source}")]
     JsonProjectionLimit {
         /// Runtime scalar or collection element type being projected.
@@ -83,6 +84,7 @@ pub enum ValueError {
 
     /// Error returned by the shared single-value conversion layer.
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     #[error("Conversion error: {0}")]
     Conversion(
         /// Structured conversion failure from `qubit-datatype`.
@@ -92,6 +94,7 @@ pub enum ValueError {
 
     /// Error returned by the shared list conversion layer.
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     #[error("List conversion error: {0}")]
     ListConversion(
         /// Structured list conversion failure, including the source index.

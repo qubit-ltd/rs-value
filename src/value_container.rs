@@ -88,6 +88,7 @@ macro_rules! impl_value_container_from_table {
     ) => {
         $(
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl From<$type> for ValueContainer {
                 /// Creates a scalar container by taking ownership of `value`.
                 ///
@@ -105,6 +106,7 @@ macro_rules! impl_value_container_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl From<Vec<$type>> for ValueContainer {
                 /// Takes ownership of the vector and its element storage without cloning elements.
                 /// An empty vector creates a concrete empty collection.
@@ -123,6 +125,7 @@ macro_rules! impl_value_container_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl From<&[$type]> for ValueContainer {
                 /// Clones the elements into an owned collection, preserving order.
                 /// An empty slice creates a concrete empty collection.
@@ -141,6 +144,7 @@ macro_rules! impl_value_container_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl From<&Vec<$type>> for ValueContainer {
                 /// Clones the elements into an owned collection, preserving order.
                 /// An empty vector creates a concrete empty collection.
@@ -159,6 +163,7 @@ macro_rules! impl_value_container_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl<const N: usize> From<[$type; N]> for ValueContainer {
                 /// Moves the array elements into a newly allocated vector, preserving order.
                 /// An empty array creates a concrete empty collection.
@@ -181,6 +186,7 @@ macro_rules! impl_value_container_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl<const N: usize> From<&[$type; N]> for ValueContainer {
                 /// Clones the elements into an owned collection, preserving order.
                 /// An empty array creates a concrete empty collection.
@@ -697,6 +703,7 @@ impl ValueContainer {
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_first<T>(&self) -> ValueResult<T>
     where
         T: DataConversionTarget,
@@ -725,6 +732,7 @@ impl ValueContainer {
     /// Returns the mapped `qubit-datatype` conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_first_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
     where
         T: DataConversionTarget,
@@ -755,6 +763,7 @@ impl ValueContainer {
     /// Returns the mapped missing, conversion, or budget error.
     #[cfg(feature = "converter")]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_first_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
     where
         T: DataConversionTarget,
@@ -783,6 +792,7 @@ impl ValueContainer {
     /// Returns the mapped single-value or indexed list conversion error.
     #[cfg(feature = "converter")]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_list<T>(&self) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
@@ -809,6 +819,7 @@ impl ValueContainer {
     ///
     /// Returns the mapped single-value or indexed list conversion error.
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_list_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
@@ -842,6 +853,7 @@ impl ValueContainer {
     ///
     /// Returns the mapped missing, conversion, indexed-list, or budget error.
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_list_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
@@ -997,6 +1009,7 @@ impl ValueContainer {
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "converter", feature = "json"))))]
 impl ValueContainer {
     /// Projects this container while preserving concrete collection shape.
     ///

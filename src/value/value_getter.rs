@@ -37,6 +37,7 @@ macro_rules! impl_value_try_from_table {
     ) => {
         $(
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl TryFrom<&Value> for $type {
                 /// Reports an unset value of the requested type or a runtime type mismatch.
                 type Error = ValueError;
@@ -98,6 +99,7 @@ macro_rules! impl_value_borrowed_try_from_table {
     ) => {
         $(
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl<'a> TryFrom<&'a Value> for &'a $type {
                 /// Reports an unset value of the requested type or a runtime type mismatch.
                 type Error = ValueError;
@@ -132,6 +134,7 @@ macro_rules! impl_value_borrowed_try_from_table {
             }
 
             $(#[$cfg])*
+            $(#[cfg_attr(docsrs, doc($cfg))])*
             impl TryFrom<Value> for $type {
                 /// Reports an unset value of the requested type or a runtime type mismatch.
                 type Error = ValueError;

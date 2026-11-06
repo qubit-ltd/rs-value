@@ -41,6 +41,7 @@ macro_rules! define_view {
             $(
                 #[doc = $value_doc]
                 $(#[$cfg])*
+                $(#[cfg_attr(docsrs, doc($cfg))])*
                 $variant(#[doc = "Borrowed or copied source payload."] value_view_payload_type!($variant, $number_projection, 'a, $type)),
             )+
         }

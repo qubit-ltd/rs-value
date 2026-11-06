@@ -57,11 +57,14 @@ use self::internal::WireEnvelopeRef;
 use self::internal::WireShapeOwned;
 use self::internal::WireShapeRef;
 #[cfg(feature = "json")]
+#[cfg_attr(docsrs, doc(cfg(feature = "json")))]
 pub use self::value_wire_decode_error::ValueWireDecodeError;
 pub use self::value_wire_encode_error::ValueWireEncodeError;
 #[cfg(feature = "json")]
+#[cfg_attr(docsrs, doc(cfg(feature = "json")))]
 pub use self::value_wire_encode_preflight::ValueWireEncodePreflight;
 #[cfg(feature = "json")]
+#[cfg_attr(docsrs, doc(cfg(feature = "json")))]
 pub use self::value_wire_json_error::ValueWireJsonError;
 pub use self::value_wire_payload_ref_v1::ValueWirePayloadRefV1;
 pub use self::value_wire_payload_v1::ValueWirePayloadV1;

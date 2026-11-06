@@ -112,6 +112,8 @@
 //! assert!(collection.is_collection());
 //! ```
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 // Sub-modules
 mod finite_float;
 mod identity;
@@ -153,11 +155,14 @@ pub use self::value_error::ValueResult;
 pub use self::value_missing::ValueMissing;
 pub use self::value_missing_reason::ValueMissingReason;
 #[cfg(feature = "json")]
+#[cfg_attr(docsrs, doc(cfg(feature = "json")))]
 pub use self::value_wire::ValueWireDecodeError;
 pub use self::value_wire::ValueWireEncodeError;
 #[cfg(feature = "json")]
+#[cfg_attr(docsrs, doc(cfg(feature = "json")))]
 pub use self::value_wire::ValueWireEncodePreflight;
 #[cfg(feature = "json")]
+#[cfg_attr(docsrs, doc(cfg(feature = "json")))]
 pub use self::value_wire::ValueWireJsonError;
 pub use self::value_wire::ValueWirePayloadRefV1;
 pub use self::value_wire::ValueWirePayloadV1;

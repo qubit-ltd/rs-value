@@ -62,6 +62,7 @@ macro_rules! redact_multi_values_match {
     };
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "redact")))]
 impl Redact for Value {
     /// Writes one value through the shared structured writer.
     ///
@@ -89,6 +90,7 @@ impl Redact for Value {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "redact")))]
 impl Redact for MultiValues {
     /// Writes a typed collection through the shared structured writer.
     ///
@@ -106,6 +108,7 @@ impl Redact for MultiValues {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "redact")))]
 impl Redact for ValueContainer {
     /// Writes the selected container payload through the shared session.
     ///
@@ -129,6 +132,7 @@ impl Redact for ValueContainer {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "redact")))]
 impl Redact for NamedValue {
     /// Writes the name and policy-selected value through one session.
     ///
@@ -144,6 +148,7 @@ impl Redact for NamedValue {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "redact")))]
 impl Redact for NamedMultiValues {
     /// Writes the name and policy-selected collection through one session.
     ///

@@ -176,6 +176,7 @@ impl NamedMultiValues {
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn decode_json_slice(input: &[u8]) -> Result<Self, ValueWireDecodeError> {
         Self::decode_json_slice_with_limits(input, ValueWireV1::default_json_decode_limits())
     }
@@ -198,6 +199,7 @@ impl NamedMultiValues {
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
@@ -217,6 +219,7 @@ impl NamedMultiValues {
     /// Returns [`ValueWireEncodeError`] for resource or serialization failures.
     #[cfg(feature = "json")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(ValueWireV1::default_json_encode_limits())
     }
@@ -236,6 +239,7 @@ impl NamedMultiValues {
     /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits` or the
     /// named collection cannot be serialized.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
         ValueWireEncodePreflight::new(limits).check_values(self.values())?;
         let session = JsonEncodeSession::from_limits(limits);
@@ -279,6 +283,7 @@ impl NamedMultiValues {
     /// failures.
     #[cfg(feature = "json")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
@@ -320,6 +325,7 @@ impl NamedMultiValues {
     /// Returns [`ValueWireEncodeError`] when encoding exceeds `limits`, the
     /// named collection cannot be serialized, or `writer` rejects output.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_writer_with_limits<W>(
         &self,
         mut writer: W,

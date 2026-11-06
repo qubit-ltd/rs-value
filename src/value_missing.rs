@@ -225,6 +225,7 @@ impl ValueMissing {
     #[cfg(feature = "converter")]
     #[must_use]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub const fn conversion_error(&self) -> Option<&DataConversionError> {
         self.conversion_error.as_ref()
     }

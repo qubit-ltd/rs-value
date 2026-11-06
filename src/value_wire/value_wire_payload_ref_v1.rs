@@ -172,6 +172,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// resource profile or Serde rejects the payload.
     #[cfg(feature = "json")]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_vec(&self) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.to_json_vec_with_limits(super::default_json_encode_limits())
     }
@@ -197,6 +198,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// encoding exceeds `limits`, or Serde rejects the payload.
     #[cfg(feature = "json")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.check_encode_preflight(limits)?;
         let session = JsonEncodeSession::from_limits(limits);
@@ -239,6 +241,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// failures.
     #[cfg(feature = "json")]
     #[inline(always)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_writer<W>(&self, writer: W) -> Result<(), ValueWireEncodeError>
     where
         W: Write,
@@ -287,6 +290,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// rejects output.
     #[cfg(feature = "json")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn to_json_writer_with_limits<W>(
         &self,
         mut writer: W,

@@ -213,6 +213,7 @@ macro_rules! impl_multi_values_constructors {
                 ///
                 /// A typed collection containing `values` in their original order.
                 $(#[$cfg])*
+                $(#[cfg_attr(docsrs, doc($cfg))])*
                 #[allow(non_snake_case)]
                 #[inline(always)]
                 pub fn $variant(values: Vec<$type>) -> Self {
@@ -382,6 +383,7 @@ impl MultiValues {
     /// // The rejected values did not consume committed budget state.
     /// ```
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn hash_with_json_budget<H, R, Q>(
         &self,
         state: &mut H,
@@ -541,6 +543,7 @@ macro_rules! impl_get_first_value {
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "converter", feature = "json"))))]
 impl MultiValues {
     /// Projects this collection to its natural JSON representation.
     ///
@@ -2182,6 +2185,7 @@ impl MultiValues {
 
     #[cfg(feature = "chrono")]
     impl_get_first_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get the first date value
         ///
         /// # Returns
@@ -2192,6 +2196,7 @@ impl MultiValues {
 
     #[cfg(feature = "chrono")]
     impl_get_first_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get the first time value
         ///
         /// # Returns
@@ -2202,6 +2207,7 @@ impl MultiValues {
 
     #[cfg(feature = "chrono")]
     impl_get_first_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get the first datetime value
         ///
         /// # Returns
@@ -2212,6 +2218,7 @@ impl MultiValues {
 
     #[cfg(feature = "chrono")]
     impl_get_first_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get the first UTC instant value
         ///
         /// # Returns
@@ -2223,6 +2230,7 @@ impl MultiValues {
 
     #[cfg(feature = "big-integer")]
     impl_get_first_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "big-integer")))]
         /// Get the first big integer value
         ///
         /// # Returns
@@ -2234,6 +2242,7 @@ impl MultiValues {
 
     #[cfg(feature = "big-decimal")]
     impl_get_first_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "big-decimal")))]
         /// Get the first big decimal value
         ///
         /// # Returns
@@ -2254,6 +2263,7 @@ impl MultiValues {
 
     #[cfg(feature = "url")]
     impl_get_first_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "url")))]
         /// Get the first Url value
         ///
         /// # Returns
@@ -2273,6 +2283,7 @@ impl MultiValues {
 
     #[cfg(feature = "json")]
     impl_get_first_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
         /// Get the first Json value
         ///
         /// # Returns
@@ -2432,6 +2443,7 @@ impl MultiValues {
 
     #[cfg(feature = "chrono")]
     impl_get_multi_values! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get reference to all date values
         ///
         /// # Returns
@@ -2442,6 +2454,7 @@ impl MultiValues {
 
     #[cfg(feature = "chrono")]
     impl_get_multi_values! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get reference to all time values
         ///
         /// # Returns
@@ -2452,6 +2465,7 @@ impl MultiValues {
 
     #[cfg(feature = "chrono")]
     impl_get_multi_values! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get reference to all datetime values
         ///
         /// # Returns
@@ -2462,6 +2476,7 @@ impl MultiValues {
 
     #[cfg(feature = "chrono")]
     impl_get_multi_values! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get reference to all UTC instant values
         ///
         /// # Returns
@@ -2472,6 +2487,7 @@ impl MultiValues {
 
     #[cfg(feature = "big-integer")]
     impl_get_multi_values! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "big-integer")))]
         /// Get reference to all big integers
         ///
         /// # Returns
@@ -2482,6 +2498,7 @@ impl MultiValues {
 
     #[cfg(feature = "big-decimal")]
     impl_get_multi_values! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "big-decimal")))]
         /// Get reference to all big decimals
         ///
         /// # Returns
@@ -2501,6 +2518,7 @@ impl MultiValues {
 
     #[cfg(feature = "url")]
     impl_get_multi_values! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "url")))]
         /// Get reference to all Url values
         ///
         /// # Returns
@@ -2522,6 +2540,7 @@ impl MultiValues {
 
     #[cfg(feature = "json")]
     impl_get_multi_values! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
         /// Get reference to all Json values
         ///
         /// # Returns

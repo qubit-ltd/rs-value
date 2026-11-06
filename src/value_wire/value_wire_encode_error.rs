@@ -49,6 +49,7 @@ pub enum ValueWireEncodeError {
     /// A JSON number cannot be restored with the V1 number model without
     /// changing its `serde_json::Number` identity.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     #[error("V1 JSON wire cannot preserve this JSON number representation")]
     JsonNumberNotRoundTrippable,
     /// A JSON V1 float must be finite.
@@ -73,6 +74,7 @@ pub enum ValueWireEncodeError {
     },
     /// The JSON output exceeded one configured resource budget.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     #[error("V1 JSON wire resource budget exceeded: {0}")]
     Budget(
         /// Budget violation reported by the bounded JSON encoder.
@@ -82,6 +84,7 @@ pub enum ValueWireEncodeError {
     /// A native JSON measurement could not be represented by the budget
     /// quantity type.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     #[error("V1 JSON wire resource quantity conversion failed for {resource:?}: {source}")]
     Quantity {
         /// Resource whose measurement failed.
@@ -92,6 +95,7 @@ pub enum ValueWireEncodeError {
     },
     /// The encoded value contains invalid JSON syntax.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     #[error("invalid V1 JSON wire syntax: {0}")]
     Syntax(
         /// Syntax error found in an embedded raw JSON payload.
@@ -100,6 +104,7 @@ pub enum ValueWireEncodeError {
     ),
     /// Strict JSON serialization rejected the value during bounded encoding.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     #[error("failed to encode V1 JSON wire value: {0}")]
     Json(
         /// Stable, privacy-safe JSON serialization failure.
@@ -108,6 +113,7 @@ pub enum ValueWireEncodeError {
     ),
     /// The destination writer rejected bounded JSON output.
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     #[error("failed to write V1 JSON wire value: {0}")]
     Io(
         /// Destination-writer failure.

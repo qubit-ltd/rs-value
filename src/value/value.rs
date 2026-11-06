@@ -226,6 +226,7 @@ macro_rules! impl_value_constructors {
                 ///
                 /// A typed scalar containing `value`.
                 $(#[$cfg])*
+                $(#[cfg_attr(docsrs, doc($cfg))])*
                 #[allow(non_snake_case)]
                 #[inline(always)]
                 pub fn $variant(value: $type) -> Self {
@@ -335,6 +336,7 @@ impl Value {
     /// // The rejected value did not consume committed budget state.
     /// ```
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn hash_with_json_budget<H, R, Q>(
         &self,
         state: &mut H,
@@ -611,6 +613,7 @@ impl Value {
     /// ```
     #[inline(always)]
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to<T>(&self) -> ValueResult<T>
     where
         T: DataConversionTarget,
@@ -643,6 +646,7 @@ impl Value {
     /// converted to `T`.
     #[inline]
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_or<T>(&self, default: impl IntoValueDefault<T>) -> ValueResult<T>
     where
         T: DataConversionTarget,
@@ -679,6 +683,7 @@ impl Value {
     /// callback.
     #[inline]
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_or_else<T, F>(&self, default: F) -> ValueResult<T>
     where
         T: DataConversionTarget,
@@ -717,6 +722,7 @@ impl Value {
     /// or invalid for `T` under the provided policy and limits.
     #[inline(always)]
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
     where
         T: DataConversionTarget,
@@ -745,6 +751,7 @@ impl Value {
     /// unsupported, invalid, or exceeds the session budget.
     #[inline(always)]
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_in<T>(&self, session: &mut ConversionSession<'_>) -> ValueResult<T>
     where
         T: DataConversionTarget,
@@ -780,6 +787,7 @@ impl Value {
     /// converted under the provided policy and limits.
     #[inline]
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_or_with<T>(
         &self,
         default: impl IntoValueDefault<T>,
@@ -823,6 +831,7 @@ impl Value {
     /// callback.
     #[inline]
     #[cfg(feature = "converter")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
     pub fn to_or_else_with<T, F>(
         &self,
         default: F,
@@ -1008,6 +1017,7 @@ impl Value {
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "converter", feature = "json"))))]
 impl Value {
     /// Projects this typed value to its natural JSON representation.
     ///
@@ -1131,6 +1141,7 @@ impl Value {
     /// A `Value::Json` wrapping the given JSON value.
     #[inline]
     #[cfg(feature = "json")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn from_json_value(json: JsonValue) -> Self {
         Value::Json(json)
     }
@@ -1162,6 +1173,7 @@ impl Value {
     /// not constrain this materialization; use `JsonValueEncoder` with a
     /// caller-owned `JsonValueBudget` when a bounded projection is required.
     #[cfg(all(feature = "converter", feature = "json"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "converter", feature = "json"))))]
     pub fn from_serializable<T: ?Sized + Serialize>(value: &T) -> ValueResult<Self> {
         let json = JsonValueEncoder::new().encode(value).map_err(|error| {
             let reason = match error.kind() {
@@ -1344,6 +1356,7 @@ impl Value {
 
     #[cfg(feature = "chrono")]
     impl_get_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get date value
         ///
         /// # Returns
@@ -1354,6 +1367,7 @@ impl Value {
 
     #[cfg(feature = "chrono")]
     impl_get_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get time value
         ///
         /// # Returns
@@ -1364,6 +1378,7 @@ impl Value {
 
     #[cfg(feature = "chrono")]
     impl_get_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get datetime value
         ///
         /// # Returns
@@ -1374,6 +1389,7 @@ impl Value {
 
     #[cfg(feature = "chrono")]
     impl_get_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
         /// Get UTC instant value
         ///
         /// # Returns
@@ -1384,6 +1400,7 @@ impl Value {
 
     #[cfg(feature = "big-integer")]
     impl_get_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "big-integer")))]
         /// Get big integer value.
         ///
         /// This method returns a cloned [`BigInt`]. Use
@@ -1408,6 +1425,7 @@ impl Value {
 
     #[cfg(feature = "big-decimal")]
     impl_get_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "big-decimal")))]
         /// Get big decimal value.
         ///
         /// This method returns a cloned [`BigDecimal`]. Use
@@ -1444,6 +1462,7 @@ impl Value {
 
     #[cfg(feature = "url")]
     impl_get_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "url")))]
         /// Get URL value.
         ///
         /// This method returns a cloned [`Url`]. Use [`Value::get_url_ref`] to
@@ -1471,6 +1490,7 @@ impl Value {
 
     #[cfg(feature = "json")]
     impl_get_value! {
+        #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
         /// Get JSON value.
         ///
         /// This method returns a cloned [`serde_json::Value`]. Use
@@ -1496,6 +1516,7 @@ impl Value {
     /// data type differs.
     #[cfg(feature = "big-integer")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "big-integer")))]
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
         self.get_ref()
     }
@@ -1513,6 +1534,7 @@ impl Value {
     /// data type differs.
     #[cfg(feature = "big-decimal")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "big-decimal")))]
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
         self.get_ref()
     }
@@ -1530,6 +1552,7 @@ impl Value {
     /// type differs.
     #[cfg(feature = "url")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "url")))]
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
         self.get_ref()
     }
@@ -1563,6 +1586,7 @@ impl Value {
     /// type differs.
     #[cfg(feature = "json")]
     #[inline]
+    #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
     pub fn get_json_ref(&self) -> ValueResult<&JsonValue> {
         self.get_ref()
     }
@@ -1586,6 +1610,7 @@ impl Value {
     /// [`ValueError::TypeMismatch`] when this value has a non-JSON data type,
     /// or [`ValueError::Conversion`] when JSON deserialization fails.
     #[cfg(all(feature = "converter", feature = "json"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "converter", feature = "json"))))]
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {
         match &self.repr {
             ValueRepr::Json(v) => Deserialize::deserialize(v).map_err(|_| {
