@@ -31,6 +31,9 @@ jobs:
           - target: bounded_value_wire_v1
             profile: unified
             features: json-arbitrary-precision,json-preserve-order
+          - target: structured_value_wire_v1
+            profile: unified
+            features: json-arbitrary-precision,json-preserve-order
           - target: preflight_soundness
             profile: unified
             features: json-arbitrary-precision,json-preserve-order
