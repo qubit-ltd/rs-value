@@ -281,26 +281,7 @@ fn check_profile(
 ) -> Result<(), String> {
     let fixture = temp_root.join(profile);
     fs::create_dir_all(fixture.join("src/bin")).map_err(|error| error.to_string())?;
-    let value_path = toml_string(root.to_str().ok_or("local qubit-value path is not UTF-8")?);
-    let dependency_block = declarations.replace("qubit-value = {", &format!("qubit-value = {{ path = {value_path},"));
-    let mut manifest = format!(
-        "[package]\nname = \"minimal-{}\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n{}\n\n[workspace]\n",
-        profile.replace('-', "_"),
-        dependency_block
-    );
-    if profile == "redacted-output" {
-        // The documented qubit-redact 0.10 dependency is not yet available in
-        // the registry; compile this profile against the sibling workspace
-        // source while keeping the declared version/features unchanged.
-        let redact_path = root
-            .parent()
-            .ok_or("cannot locate sibling workspace crates")?
-            .join("rs-redact");
-        manifest.push_str(&format!(
-            "\n[patch.crates-io]\nqubit-redact = {{ path = {} }}\n",
-            toml_string(redact_path.to_str().ok_or("qubit-redact path is not UTF-8")?)
-        ));
-    }
+    let manifest = consumer_manifest(root, profile, declarations)?;
     fs::write(fixture.join("Cargo.toml"), manifest).map_err(|error| error.to_string())?;
     for (document, example) in examples {
         let bin = format!("{}_{}", profile.replace('-', "_"), language_suffix(document));
@@ -332,6 +313,18 @@ fn check_profile(
         ));
     }
     Ok(())
+}
+
+/// Builds an isolated consumer manifest with the candidate qubit-value source.
+fn consumer_manifest(root: &Path, profile: &str, declarations: &str) -> Result<String, String> {
+    let value_path = toml_string(root.to_str().ok_or("local qubit-value path is not UTF-8")?);
+    let dependency_block = declarations.replace("qubit-value = {", &format!("qubit-value = {{ path = {value_path},"));
+    let manifest = format!(
+        "[package]\nname = \"minimal-{}\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n{}\n\n[workspace]\n",
+        profile.replace('-', "_"),
+        dependency_block
+    );
+    Ok(manifest)
 }
 
 /// Confirms isolated consumers cannot use undeclared crates or disabled feature
@@ -401,6 +394,42 @@ fn temp_root() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_consumer_manifest_registry_dependencies() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let declarations = "[dependencies]\nqubit-value = { version = \"0.13\", default-features = false, features = [\"redact\"] }\nqubit-redact = { version = \"0.10\", default-features = false }";
+        let manifest = super::consumer_manifest(root, "redacted-output", declarations).unwrap();
+        let parsed = manifest.parse::<toml::Table>().unwrap();
+        assert!(
+            !parsed.contains_key("patch"),
+            "manifest must not patch crates.io: {manifest}"
+        );
+        let dependencies = parsed["dependencies"].as_table().unwrap();
+        let value = dependencies["qubit-value"].as_table().unwrap();
+        assert_eq!(value["path"].as_str(), Some(root.to_str().unwrap()));
+        let redact = dependencies["qubit-redact"].as_table().unwrap();
+        assert_eq!(redact["version"].as_str(), Some("0.10"));
+        assert_eq!(redact["default-features"].as_bool(), Some(false));
+        assert!(!redact.contains_key("features"));
+        assert!(!redact.contains_key("path"));
+        assert!(!redact.contains_key("git"));
+    }
+
+    #[test]
+    fn test_consumer_manifest_candidate_path() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let declarations = "[dependencies]\nqubit-value = { version = \"0.13\", default-features = false, features = [\"converter\"] }\nqubit-datatype = { version = \"0.15\", default-features = false }";
+        let manifest = super::consumer_manifest(root, "quick-start", declarations).unwrap();
+        let parsed = manifest.parse::<toml::Table>().unwrap();
+        let dependencies = parsed["dependencies"].as_table().unwrap();
+        let value = dependencies["qubit-value"].as_table().unwrap();
+        assert_eq!(value["path"].as_str(), Some(root.to_str().unwrap()));
+        assert_eq!(value["version"].as_str(), Some("0.13"));
+        assert_eq!(value["default-features"].as_bool(), Some(false));
+        assert_eq!(value["features"].as_array().unwrap()[0].as_str(), Some("converter"));
+        assert!(!parsed.contains_key("patch"));
+    }
+
     #[test]
     fn test_inline_dependency_table_cases() {
         let cases = [
