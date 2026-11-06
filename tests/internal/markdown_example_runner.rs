@@ -120,7 +120,7 @@ pub(crate) struct Runner {
 }
 
 impl Runner {
-    /// Resolves offline Cargo metadata and builds the library artifacts passed
+    /// Resolves Cargo metadata and builds the library artifacts passed
     /// to rustdoc.
     pub(crate) fn build(root: &Path) -> Result<Self, String> {
         let manifest = root.join("Cargo.toml");
@@ -132,7 +132,6 @@ impl Runner {
                 manifest.to_str().ok_or("manifest path is not UTF-8")?,
                 "--all-features",
                 "--locked",
-                "--offline",
                 "--format-version",
                 "1",
             ])
