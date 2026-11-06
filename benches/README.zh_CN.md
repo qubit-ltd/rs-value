@@ -106,3 +106,32 @@ DTO 构造耗时区间重叠或有所改善。构造加编码耗时轮次间波�
 fixture 在三个尺寸下均分配 288 B。该数据包含遍历帧的固定分配，说明普通数字不再逐个临时分配字符串。
 `arbitrary_precision` 行为另行验证；其数字表示可能仍有内部堆分配，长数字文本仍使用有分配的回退路径。
 这不表示整个 Wire V1 编码过程都无分配。
+
+## 规范 JSON 对象（RV-002）
+
+`canonical_object/{flat,nested}/{ordered,reverse,shuffled}/{0,1,16,1024}/{wire,natural}` 测量不同键值对象的 Wire V1 JSON 序列化和自然 JSON 物化。确定性输入和 Wire DTO 均在计时前构建。`shuffled` 使用固定置换；默认 `serde_json` map 后端会规范化插入顺序，而启用 `preserve_order` 时会覆盖非规范遍历。`nested` 将每个值置于两层对象中。
+
+默认配置与统一启用 `preserve_order`、`arbitrary_precision` 的配置分别保存并比较：
+
+```text
+cargo bench --locked --no-default-features --features natural-json --bench downstream_read_bench -- canonical_object --sample-size 10 --warm-up-time 1 --measurement-time 1 --save-baseline rv002-default-before
+cargo bench --locked --no-default-features --features 'natural-json,serde_json/preserve_order,serde_json/arbitrary_precision' --bench downstream_read_bench -- canonical_object --sample-size 10 --warm-up-time 1 --measurement-time 1 --save-baseline rv002-unified-before
+# 实现后分别将 --save-baseline 改为 --baseline，并使用相应基线名。
+```
+
+保持工具链、机器、profile、输入和 Criterion 参数（`--sample-size 10 --warm-up-time 1 --measurement-time 1`）一致。Criterion 有噪声且这里只覆盖合成 JSON 树操作；孤立的小幅变化应视为不确定，稳定超过 5% 的回退需要重复调查。分配证据应与吞吐量分开报告。
+
+## RV-002 结果与限制（2026-11-06）
+
+前后测量使用 Rust 1.94.0、Criterion 优化 bench profile，以及 Intel Xeon E5-2680 v4（56 个逻辑 CPU，Ubuntu 24.04 x86_64）。部分样本期间同一主机还运行了其他 Cargo 构建，因此短测存在较大离群值和跨轮波动。两种配置均采用 10 个样本、1 秒预热和 1 秒测量。对疑似 default 配置 flat/ordered/1024 Wire 回退，另以 30 个样本、3 秒预热和 5 秒测量复跑。
+
+| 配置与场景 | 修改前区间 | 修改后区间 | 解释 |
+| --- | ---: | ---: | --- |
+| Default，flat ordered 1024 Wire（首次） | 97.6–101.7 µs | 102.8–111.2 µs | 表面回退约 6.5%；延长复跑为 100.7–105.8 µs，Criterion change 区间 −1.5% 至 +4.9%、p=0.40，未确认回退。 |
+| 统一 features，flat ordered 1024 Wire | 92.2–94.9 µs | 88.4–89.1 µs | 短测约快 5%；结果有参考意义，但不能外推为端到端性能结论。 |
+| 统一 features，nested ordered 1024 Natural JSON（复跑） | 1.25–1.35 ms | 1.25–1.42 ms | 未确认变化（p=0.98）。 |
+| 统一 features，flat shuffled 1024 Natural JSON（复跑） | 434–455 µs | 447–513 µs | 无序对象仍显示超过 5% 的回退信号（Criterion change 区间 +20% 至 +44%、p<0.001）。 |
+
+分配观测隔离了 1024 键 Wire 对象序列化，fixture 构造不计时。统一 `preserve_order` + `arbitrary_precision` 下，有序输入累计分配从 52,290 降至 35,906 bytes，减少 16,384 bytes；逆序输入仍为 52,290 bytes，并走排序回退。两者输出均为 16,319 bytes。默认 `serde_json` 下，两种插入顺序的 map 遍历都已排序，因此修改前两者均为 49,544 bytes、修改后均为 33,160 bytes；此配置无法覆盖无序回退。
+
+保留 Wire 快速路径：它确实移除了已排序对象的排序索引分配，原预算拒绝测试仍通过，也未发现确认的吞吐回退。撤回 Natural JSON 快速路径：复测无序对象时仍有回退，且尚无足以抵偿的分配收益证据。这些都是合成对象测量，不能代表完整下游应用性能。原始 Criterion 报告和采样数据保存在测量主机的 `target/criterion` 下。

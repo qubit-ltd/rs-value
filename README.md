@@ -192,8 +192,12 @@ document is:
 
 Choose `to_json_value()` when the boundary is ordinary application JSON and
 the receiver only needs JSON semantics. Wire V1 is a closed, versioned format;
-Natural JSON intentionally omits runtime type tags, unset state, and
-scalar-versus-collection shape. Wire V1 rejects non-finite floats, unsupported
+Natural JSON omits explicit runtime type and shape tags. Concrete collections
+still project to arrays, including one-item collections, while scalar and
+collection unset values both project to `null`. JSON alone cannot uniquely
+recover the original runtime shape: a scalar `Value::Json` may itself contain
+an array. Use Wire V1 when runtime type, shape, and unset declarations must be
+reconstructed. Wire V1 rejects non-finite floats, unsupported
 types, malformed payloads, and runtime JSON numbers that cannot round trip
 with the same Number identity instead of guessing. With
 `serde_json/arbitrary_precision`, nonstandard or over-precise number forms may

@@ -501,6 +501,51 @@ fn test_json_feature_unification_enforces_strict_number_ranges() {
 
 #[cfg(feature = "converter")]
 #[test]
+fn test_json_feature_unification_canonical_object_shape_contract() {
+    fn object(pairs: &[(&str, JsonValue)]) -> JsonValue {
+        JsonValue::Object(
+            pairs
+                .iter()
+                .map(|(key, value)| ((*key).to_owned(), value.clone()))
+                .collect(),
+        )
+    }
+    fn assert_pair(value: JsonValue, expected: &str) {
+        let value = Value::Json(value);
+        assert_eq!(to_vec(&value.to_json_value().unwrap()).unwrap(), expected.as_bytes());
+        let wire = ValueWireRefV1::from_value(&value).unwrap();
+        let bytes = wire.to_json_vec().unwrap();
+        let expected_wire = format!(r#"{{"version":1,"value":{{"scalar":{{"json":{expected}}}}}}}"#);
+        assert_eq!(bytes, expected_wire.as_bytes());
+    }
+    assert_pair(object(&[]), "{}");
+    assert_pair(object(&[("only", json!(91))]), r#"{"only":91}"#);
+    for pairs in [
+        vec![("a", json!(11)), ("b", json!(22)), ("c", json!(33))],
+        vec![("c", json!(33)), ("a", json!(11)), ("b", json!(22))],
+        vec![("b", json!(22)), ("c", json!(33)), ("a", json!(11))],
+    ] {
+        assert_pair(object(&pairs), r#"{"a":11,"b":22,"c":33}"#);
+    }
+    let nested = object(&[("outer", object(&[("z", json!(90)), ("a", json!(10))]))]);
+    assert_pair(nested, r#"{"outer":{"a":10,"z":90}}"#);
+    let array = JsonValue::Array(vec![object(&[("z", json!(70)), ("a", json!(7))])]);
+    let value = Value::Json(array);
+    let expected = br#"[{"a":7,"z":70}]"#;
+    assert_eq!(to_vec(&value.to_json_value().unwrap()).unwrap(), expected);
+    let wire = ValueWireRefV1::from_value(&value).unwrap();
+    assert_eq!(
+        wire.to_json_vec().unwrap(),
+        format!(
+            r#"{{"version":1,"value":{{"scalar":{{"json":{}}}}}}}"#,
+            std::str::from_utf8(expected).unwrap()
+        )
+        .as_bytes()
+    );
+}
+
+#[cfg(feature = "converter")]
+#[test]
 fn test_json_feature_unification_canonicalizes_nested_object_order() {
     /// Checks the relative positions of the two fixture keys in serialized
     /// output.

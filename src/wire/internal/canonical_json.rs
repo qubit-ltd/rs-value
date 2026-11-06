@@ -66,10 +66,16 @@ impl Serialize for CanonicalJson<'_> {
             }
             Value::Object(values) => {
                 let mut map = serializer.serialize_map(Some(values.len()))?;
-                let mut entries: Vec<_> = values.iter().collect();
-                entries.sort_unstable_by_key(|(left, _)| *left);
-                for (key, value) in entries {
-                    map.serialize_entry(key, &Self(value))?;
+                if values.keys().zip(values.keys().skip(1)).all(|(a, b)| a < b) {
+                    for (key, value) in values {
+                        map.serialize_entry(key, &Self(value))?;
+                    }
+                } else {
+                    let mut entries: Vec<_> = values.iter().collect();
+                    entries.sort_unstable_by_key(|(left, _)| *left);
+                    for (key, value) in entries {
+                        map.serialize_entry(key, &Self(value))?;
+                    }
                 }
                 map.end()
             }

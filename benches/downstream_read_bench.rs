@@ -187,6 +187,47 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
     );
 }
 
+/// Builds a deterministic JSON object whose insertion order can be varied.
+fn canonical_object_fixture(size: usize, order: &str, nested: bool) -> Value {
+    let mut indexes: Vec<_> = (0..size).collect();
+    match order {
+        "reverse" => indexes.reverse(),
+        "shuffled" => indexes.sort_unstable_by_key(|index| (index * 37 + 11) % size.max(1)),
+        _ => {}
+    }
+    let mut object = serde_json::Map::new();
+    for index in indexes {
+        let key = format!("key-{index:04}");
+        let value = if nested {
+            json!({"inner": {"leaf": index, "label": format!("value-{index:04}")}})
+        } else {
+            json!(index)
+        };
+        object.insert(key, value);
+    }
+    Value::Json(JsonValue::Object(object))
+}
+
+/// Benchmarks canonical object serialization and natural JSON materialization.
+fn benchmark_canonical_objects(c: &mut Criterion) {
+    for order in ["ordered", "reverse", "shuffled"] {
+        for size in [0, 1, 16, 1024] {
+            for nested in [false, true] {
+                let value = canonical_object_fixture(size, order, nested);
+                let wire = ValueWireRefV1::from_value(&value).expect("object fixture must be wire encodable");
+                let shape = if nested { "nested" } else { "flat" };
+                let label = format!("canonical_object/{shape}/{order}/{size}");
+                c.bench_function(&format!("{label}/wire"), |b| {
+                    b.iter(|| black_box(to_vec(black_box(&wire)).expect("wire object should serialize")));
+                });
+                c.bench_function(&format!("{label}/natural"), |b| {
+                    b.iter(|| black_box(black_box(&value).to_json_value().expect("object should project")));
+                });
+            }
+        }
+    }
+}
+
 /// Builds the three fixture sizes used to compare preparation and encoding.
 fn wire_read_fixture(size: usize) -> ValueContainer {
     ValueContainer::from((0..size).map(|index| format!("item-{index:04}")).collect::<Vec<_>>())
@@ -336,5 +377,6 @@ criterion_group!(
     benchmark_preflight_and_encode,
     benchmark_repeated_wire_validation,
     benchmark_nested_json_number_validation,
+    benchmark_canonical_objects,
 );
 criterion_main!(benches);

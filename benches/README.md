@@ -135,3 +135,32 @@ gone for ordinary values. `arbitrary_precision` behavior is checked separately;
 its number representation may still allocate internally, and long number text
 continues to use the allocating fallback. This is not a claim that Wire V1
 encoding as a whole is allocation-free.
+
+## Canonical JSON objects (RV-002)
+
+`canonical_object/{flat,nested}/{ordered,reverse,shuffled}/{0,1,16,1024}/{wire,natural}` measures Wire V1 JSON serialization and Natural JSON materialization for objects with distinct values. The deterministic fixture and Wire DTO are built before timing. `shuffled` uses a fixed permutation; with default `serde_json` maps, insertion order is canonicalized by the map backend, while `preserve_order` exercises noncanonical traversal. `nested` places each value in a two-level object.
+
+Capture before/after results separately for default and unified `preserve_order` plus `arbitrary_precision`:
+
+```text
+cargo bench --locked --no-default-features --features natural-json --bench downstream_read_bench -- canonical_object --sample-size 10 --warm-up-time 1 --measurement-time 1 --save-baseline rv002-default-before
+cargo bench --locked --no-default-features --features 'natural-json,serde_json/preserve_order,serde_json/arbitrary_precision' --bench downstream_read_bench -- canonical_object --sample-size 10 --warm-up-time 1 --measurement-time 1 --save-baseline rv002-unified-before
+# After the implementation, use --baseline rv002-default-before and --baseline rv002-unified-before respectively.
+```
+
+Use the same toolchain, machine, profile, input, and Criterion parameters. Criterion timing is noisy and only covers these synthetic JSON-tree operations; treat a small isolated change as inconclusive and investigate repeated stable regressions above 5%. Allocation evidence is reported separately from throughput.
+
+## RV-002 outcome and limits (2026-11-06)
+
+The before/after runs used Rust 1.94.0, Criterion's optimized bench profile, and an Intel Xeon E5-2680 v4 (56 logical CPUs, Ubuntu 24.04 x86_64). The host also ran other Cargo builds during some samples, so short-run outliers and cross-run variance were substantial. Both configurations used 10 samples, 1-second warm-up, and 1-second measurement. A suspected default flat/ordered/1024 Wire regression was repeated with 30 samples, 3-second warm-up, and 5-second measurement.
+
+| Configuration and case | Before interval | After interval | Interpretation |
+| --- | ---: | ---: | --- |
+| Default, flat ordered 1024 Wire (initial) | 97.6–101.7 µs | 102.8–111.2 µs | Apparent 6.5% median regression; longer repeat was 100.7–105.8 µs, Criterion change interval −1.5% to +4.9%, p=0.40, so not confirmed. |
+| Unified features, flat ordered 1024 Wire | 92.2–94.9 µs | 88.4–89.1 µs | About 5% faster in the short comparison; evidence is suggestive, not a broad end-to-end claim. |
+| Unified features, nested ordered 1024 Natural JSON (repeat) | 1.25–1.35 ms | 1.25–1.42 ms | No confirmed change (p=0.98). |
+| Unified features, flat shuffled 1024 Natural JSON (repeat) | 434–455 µs | 447–513 µs | Confirmed >5% regression signal (Criterion change interval +20% to +44%, p<0.001) on this unordered case. |
+
+The allocation observation isolated the 1024-entry Wire object serialization while keeping fixture construction outside measurement. Under unified `preserve_order` + `arbitrary_precision`, sorted input fell from 52,290 to 35,906 cumulative allocated bytes, a 16,384-byte reduction; reverse input remained 52,290 bytes and took the sorting fallback. Both emitted exactly 16,319 bytes. Under default `serde_json`, both constructed maps iterate in sorted order, so the comparison measured 49,544 bytes before and 33,160 after for both inputs; it cannot exercise the unordered fallback.
+
+The Wire fast path is retained: it removes the measured sort-index allocation for sorted objects, preserves the existing budget rejection tests, and showed no confirmed throughput regression. The Natural JSON fast path was withdrawn: the repeated unordered-object regression outweighed an unproven allocation benefit. These are synthetic object measurements; they do not predict full downstream application performance. Raw Criterion reports and samples remain under `target/criterion` on the measurement host.

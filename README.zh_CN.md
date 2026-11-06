@@ -163,7 +163,9 @@ key。完整类型表、JSON 数字契约、错误、资源限制和 feature 兼
 ```
 
 当边界只是普通业务 JSON，接收方只需要 JSON 语义时，选择 `to_json_value()`。Wire V1 是封闭的、
-带版本的格式；自然 JSON 刻意不包含运行时类型标签、unset 状态或标量/集合形态。Wire V1 会拒绝
+带版本的格式；自然 JSON 省略显式运行时类型和形态标签。具体集合仍投影为数组，包括单元素集合；
+标量 unset 与集合 unset 都投影为 `null`。由于标量 `Value::Json` 本身也可以包含数组，仅凭 JSON
+无法唯一恢复原始运行时形态。需要还原类型、形态和 unset 声明时，应使用 Wire V1。Wire V1 会拒绝
 非有限浮点、不支持的类型、非法 payload，以及无法以相同 Number identity 往返的运行时 JSON
 数字，不会猜测输入含义。依赖统一启用 `serde_json/arbitrary_precision` 时，非标准或精度过高的
 数字形式可能被拒绝；需要精确值时应使用显式大数类型或应用约定的字符串 schema。

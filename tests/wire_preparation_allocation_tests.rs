@@ -211,6 +211,44 @@ fn test_borrowed_wire_preparation_allocation_does_not_scale_with_string_collecti
 }
 
 #[test]
+fn test_canonical_json_sorted_object_allocation_observation() {
+    let size = 1024;
+    let sorted_json = JsonValue::Object(
+        (0..size)
+            .map(|index| (format!("key-{index:05}"), json!(index)))
+            .collect(),
+    );
+    let reverse_json = JsonValue::Object(
+        (0..size)
+            .rev()
+            .map(|index| (format!("key-{index:05}"), json!(index)))
+            .collect(),
+    );
+    let sorted_value = Value::Json(sorted_json.clone());
+    let reverse_value = Value::Json(reverse_json.clone());
+    let sorted = ValueWirePayloadRefV1::from_value(&sorted_value).unwrap();
+    let reverse = ValueWirePayloadRefV1::from_value(&reverse_value).unwrap();
+    let _ = sorted.to_json_vec();
+    let _ = reverse.to_json_vec();
+
+    let keys_are_sorted = |value: &JsonValue| match value {
+        JsonValue::Object(values) => values.keys().zip(values.keys().skip(1)).all(|(a, b)| a < b),
+        _ => unreachable!(),
+    };
+    let sorted_keys_ordered = keys_are_sorted(&sorted_json);
+    let reverse_keys_ordered = keys_are_sorted(&reverse_json);
+    let (sorted_result, sorted_bytes) = measured_allocations(|| sorted.to_json_vec());
+    let (reverse_result, reverse_bytes) = measured_allocations(|| reverse.to_json_vec());
+    let sorted_output = sorted_result.unwrap();
+    let reverse_output = reverse_result.unwrap();
+    assert_eq!(sorted_output, reverse_output, "canonical bytes must match");
+    eprintln!(
+        "canonical JSON allocation observation: sorted={sorted_bytes} bytes, reverse={reverse_bytes} bytes, sorted_input_ordered={sorted_keys_ordered}, reverse_input_ordered={reverse_keys_ordered}, output={} bytes",
+        sorted_output.len()
+    );
+}
+
+#[test]
 fn test_canonical_json_rejection_admits_object_before_sorting_entries() {
     let small_value = object(16);
     let small = ValueWirePayloadRefV1::from_value(&small_value).unwrap();
