@@ -15,7 +15,6 @@ use std::alloc::Layout;
 use std::alloc::System;
 use std::cell::Cell;
 use std::collections::HashMap;
-#[cfg(feature = "url")]
 use std::io::sink;
 
 use qubit_budget::BudgetError;
@@ -30,7 +29,6 @@ use qubit_value::ValueWirePayloadRefV1;
 use serde_json::Value as JsonValue;
 use serde_json::json;
 use serde_json::to_string;
-#[cfg(feature = "url")]
 use serde_json::to_writer;
 #[cfg(feature = "url")]
 use url::Url;
@@ -228,8 +226,12 @@ fn test_canonical_json_sorted_object_allocation_observation() {
     let reverse_value = Value::Json(reverse_json.clone());
     let sorted = ValueWirePayloadRefV1::from_value(&sorted_value).unwrap();
     let reverse = ValueWirePayloadRefV1::from_value(&reverse_value).unwrap();
-    let _ = sorted.to_json_vec();
-    let _ = reverse.to_json_vec();
+
+    // Validate canonical bytes and their output-buffer allocations outside the
+    // measurement, so only writer-side allocations are counted below.
+    let sorted_output = sorted.to_json_vec().unwrap();
+    let reverse_output = reverse.to_json_vec().unwrap();
+    assert_eq!(sorted_output, reverse_output, "canonical bytes must match");
 
     let keys_are_sorted = |value: &JsonValue| match value {
         JsonValue::Object(values) => values.keys().zip(values.keys().skip(1)).all(|(a, b)| a < b),
@@ -237,13 +239,24 @@ fn test_canonical_json_sorted_object_allocation_observation() {
     };
     let sorted_keys_ordered = keys_are_sorted(&sorted_json);
     let reverse_keys_ordered = keys_are_sorted(&reverse_json);
-    let (sorted_result, sorted_bytes) = measured_allocations(|| sorted.to_json_vec());
-    let (reverse_result, reverse_bytes) = measured_allocations(|| reverse.to_json_vec());
-    let sorted_output = sorted_result.unwrap();
-    let reverse_output = reverse_result.unwrap();
-    assert_eq!(sorted_output, reverse_output, "canonical bytes must match");
+    // Warm both paths before enabling allocation counting.
+    to_writer(sink(), &sorted).unwrap();
+    to_writer(sink(), &reverse).unwrap();
+
+    let (sorted_result, sorted_bytes) = measured_allocations(|| to_writer(sink(), &sorted));
+    let (reverse_result, reverse_bytes) = measured_allocations(|| to_writer(sink(), &reverse));
+    sorted_result.unwrap();
+    reverse_result.unwrap();
+    if sorted_keys_ordered && reverse_keys_ordered {
+        assert_eq!(sorted_bytes, reverse_bytes, "both traversals should take the sorted path");
+    } else if sorted_keys_ordered && !reverse_keys_ordered {
+        assert!(
+            sorted_bytes < reverse_bytes,
+            "ordered input should avoid sort-index allocation: sorted={sorted_bytes}, reverse={reverse_bytes}"
+        );
+    }
     eprintln!(
-        "canonical JSON allocation observation: sorted={sorted_bytes} bytes, reverse={reverse_bytes} bytes, sorted_input_ordered={sorted_keys_ordered}, reverse_input_ordered={reverse_keys_ordered}, output={} bytes",
+        "canonical JSON sink allocation observation: sorted={sorted_bytes} bytes, reverse={reverse_bytes} bytes, sorted_input_ordered={sorted_keys_ordered}, reverse_input_ordered={reverse_keys_ordered}, canonical_output={} bytes",
         sorted_output.len()
     );
 }

@@ -129,9 +129,9 @@ cargo bench --locked --no-default-features --features 'natural-json,serde_json/p
 | --- | ---: | ---: | --- |
 | Default，flat ordered 1024 Wire（首次） | 97.6–101.7 µs | 102.8–111.2 µs | 表面回退约 6.5%；延长复跑为 100.7–105.8 µs，Criterion change 区间 −1.5% 至 +4.9%、p=0.40，未确认回退。 |
 | 统一 features，flat ordered 1024 Wire | 92.2–94.9 µs | 88.4–89.1 µs | 短测约快 5%；结果有参考意义，但不能外推为端到端性能结论。 |
-| 统一 features，nested ordered 1024 Natural JSON（复跑） | 1.25–1.35 ms | 1.25–1.42 ms | 未确认变化（p=0.98）。 |
-| 统一 features，flat shuffled 1024 Natural JSON（复跑） | 434–455 µs | 447–513 µs | 无序对象仍显示超过 5% 的回退信号（Criterion change 区间 +20% 至 +44%、p<0.001）。 |
+| 统一 features，nested ordered 1024 Natural JSON（临时实验，已撤回） | 1.25–1.35 ms | 1.25–1.42 ms | 未确认变化（p=0.98）。 |
+| 统一 features，flat shuffled 1024 Natural JSON（临时实验，已撤回） | 434–455 µs | 447–513 µs | 无序对象仍显示超过 5% 的回退信号（Criterion change 区间 +20% 至 +44%、p<0.001）。 |
 
-分配观测隔离了 1024 键 Wire 对象序列化，fixture 构造不计时。统一 `preserve_order` + `arbitrary_precision` 下，有序输入累计分配从 52,290 降至 35,906 bytes，减少 16,384 bytes；逆序输入仍为 52,290 bytes，并走排序回退。两者输出均为 16,319 bytes。默认 `serde_json` 下，两种插入顺序的 map 遍历都已排序，因此修改前两者均为 49,544 bytes、修改后均为 33,160 bytes；此配置无法覆盖无序回退。
+分配观测隔离了 1024 键 Wire 对象序列化，fixture、DTO 构造和 canonical 输出校验均在计时外。测量使用 `serde_json::to_writer(sink(), &wire)`，不包含输出缓冲分配。默认 `serde_json` 下两种 map 遍历都已排序，sink 分配均为 0 bytes；统一 `preserve_order` + `arbitrary_precision` 下，有序输入为 0 bytes，逆序输入为 16,384 bytes，正好是排序索引向量的分配。两种输入在计时外都验证为相同的 16,319-byte canonical 输出。此前用 `to_json_vec()` 得到的分配总数包含返回的输出 Vec，不能作为此隔离测量的对比数据，已从此处移除。
 
-保留 Wire 快速路径：它确实移除了已排序对象的排序索引分配，原预算拒绝测试仍通过，也未发现确认的吞吐回退。撤回 Natural JSON 快速路径：复测无序对象时仍有回退，且尚无足以抵偿的分配收益证据。这些都是合成对象测量，不能代表完整下游应用性能。原始 Criterion 报告和采样数据保存在测量主机的 `target/criterion` 下。
+保留 Wire 快速路径：它确实移除了已排序对象的排序索引分配，原预算拒绝测试仍通过，也未发现确认的吞吐回退。Natural JSON 快速路径曾作为 `canonicalize_json_value` 的本地临时实验；上表数据测量了该原型。由于无序对象复测仍有回退，该路径在最终提交前已撤回，当前提交代码不含此路径。这些都是合成对象测量，不能代表完整下游应用性能。原始 Criterion 报告和采样数据保存在测量主机的 `target/criterion` 下。
