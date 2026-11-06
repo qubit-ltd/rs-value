@@ -1,6 +1,6 @@
 [package]
 name = "qubit-value"
-version = "0.13.1"
+version = "0.13.0"
 edition = "2024"
 rust-version = "1.94"
 autotests = false
@@ -127,15 +127,16 @@ bigdecimal = { version = "^0.4", optional = true }
 qubit-budget = { version = "^0.10", features = ["json"], optional = true }
 qubit-json = { version = "^0.12", optional = true }
 qubit-datatype = { version = "^0.15", default-features = false }
-qubit-redact = { path = "../rs-redact", version = "^0.10", default-features = false, optional = true }
+qubit-redact = { version = "^0.10", default-features = false, optional = true }
 
 [dev-dependencies]
 criterion = { version = "^0.8", default-features = false }
 chrono = { version = "^0.4", default-features = false, features = ["std"] }
 ron = "^0.12"
 serde_json = "^1.0"
-qubit-budget = { version = "^0.10", features = ["json"] }
 toml = { version = "^1.1", default-features = false, features = ["parse", "serde", "std"] }
+
+qubit-budget = { version = "^0.10", features = ["json"] }
 
 [patch.crates-io]
 
