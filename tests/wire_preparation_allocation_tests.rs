@@ -248,7 +248,10 @@ fn test_canonical_json_sorted_object_allocation_observation() {
     sorted_result.unwrap();
     reverse_result.unwrap();
     if sorted_keys_ordered && reverse_keys_ordered {
-        assert_eq!(sorted_bytes, reverse_bytes, "both traversals should take the sorted path");
+        assert_eq!(
+            sorted_bytes, reverse_bytes,
+            "both traversals should take the sorted path"
+        );
     } else if sorted_keys_ordered && !reverse_keys_ordered {
         assert!(
             sorted_bytes < reverse_bytes,
