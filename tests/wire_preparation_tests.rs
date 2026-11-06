@@ -6,7 +6,15 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+//! Checks bounded wire encoding parity, exact budgets, and writer rollback.
+
+#[cfg(feature = "big-decimal")]
+use bigdecimal::BigDecimal;
+#[cfg(feature = "big-decimal")]
+use num_bigint::BigInt;
 use qubit_budget::json::JsonEncodeLimits;
+use qubit_datatype::DataType;
+use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodeError;
@@ -14,6 +22,7 @@ use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
+use serde_json::to_vec;
 
 #[test]
 fn test_bounded_wire_entry_still_serializes_valid_values() {
@@ -28,8 +37,8 @@ fn test_bounded_wire_entry_still_serializes_valid_values() {
 fn test_direct_wire_helpers_preserve_success_bytes_and_budget_boundaries() {
     let cases = [
         ValueContainer::from(42_i32),
-        ValueContainer::Collection(qubit_value::MultiValues::Int32(Vec::new())),
-        ValueContainer::Scalar(Value::Unset(qubit_datatype::DataType::String)),
+        ValueContainer::Collection(MultiValues::Int32(Vec::new())),
+        ValueContainer::Scalar(Value::Unset(DataType::String)),
     ];
     for value in cases {
         assert_all_wire_helpers_match_serde_and_limits(&value);
@@ -37,13 +46,14 @@ fn test_direct_wire_helpers_preserve_success_bytes_and_budget_boundaries() {
 
     #[cfg(feature = "big-decimal")]
     {
-        use bigdecimal::BigDecimal;
-        use num_bigint::BigInt;
         let decimal = ValueContainer::from(Value::BigDecimal(BigDecimal::new(BigInt::from(12345_i32), 2)));
         assert_all_wire_helpers_match_serde_and_limits(&decimal);
     }
 }
 
+/// Checks all owned/borrowed payload and envelope helpers against Serde bytes,
+/// including exact output budgets and preservation of a writer prefix on
+/// failure.
 fn assert_all_wire_helpers_match_serde_and_limits(value: &ValueContainer) {
     let payload_ref = ValueWirePayloadRefV1::from_container(value).expect("borrowed payload validates");
     let wire_ref = ValueWireRefV1::from_container(value).expect("borrowed envelope validates");
@@ -52,7 +62,7 @@ fn assert_all_wire_helpers_match_serde_and_limits(value: &ValueContainer) {
 
     macro_rules! verify {
         ($dto:expr, $label:literal) => {{
-            let expected = serde_json::to_vec($dto).expect("Serde encoding succeeds");
+            let expected = to_vec($dto).expect("Serde encoding succeeds");
             assert_eq!($dto.to_json_vec().unwrap(), expected, "{} default bytes", $label);
             let exact = JsonEncodeLimits::builder().max_output_bytes(expected.len()).build();
             assert_eq!(

@@ -9,13 +9,8 @@
 
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
-use std::hash::BuildHasher;
-use std::hash::BuildHasherDefault;
 use std::hash::Hash;
 use std::hash::Hasher;
-
-/// Standard-library hasher used for each order-independent map entry.
-type IdentityHasher = BuildHasherDefault<DefaultHasher>;
 
 /// Hashes a string map independently of its iteration order.
 ///
@@ -35,7 +30,7 @@ pub(crate) fn hash_string_map<H: Hasher>(value: &HashMap<String, String>, state:
     let mut sum = 0_u64;
     let mut xor = 0_u64;
     for (key, value) in value {
-        let mut entry = IdentityHasher::default().build_hasher();
+        let mut entry = DefaultHasher::new();
         key.hash(&mut entry);
         value.hash(&mut entry);
         let hash = entry.finish();

@@ -32,11 +32,26 @@ impl<'de> Deserialize<'de> for WireEnvelopeOwned {
     /// field are propagated from the nested deserializer. Support for the
     /// decoded version is checked downstream.
     ///
+    /// # Type Parameters
+    ///
+    /// - `D`: The Serde deserializer providing input with lifetime `'de`.
+    ///
+    /// # Parameters
+    ///
+    /// - `deserializer`: Consumed to decode the envelope; its human-readable
+    ///   flag determines whether ordered sequence input is permitted.
+    ///
+    /// # Returns
+    ///
+    /// Returns the decoded version and owned payload on success, without
+    /// checking whether the version is supported.
+    ///
     /// # Errors
     ///
     /// Returns the deserializer's error for a malformed envelope shape, an
     /// unknown, duplicate, or missing map field, or a field value that cannot
     /// be decoded.
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

@@ -32,6 +32,7 @@ where
     T: FromStr + fmt::Display,
     T::Err: fmt::Display,
 {
+    /// Integer produced after parsing and validating canonical decimal text.
     type Value = T;
 
     /// Describes the canonical input accepted by this visitor.
@@ -65,6 +66,7 @@ where
     ///
     /// Returns an error if `value` is invalid or is not in canonical decimal
     /// form.
+    #[inline]
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
     where
         E: de::Error,
@@ -90,6 +92,7 @@ where
     ///
     /// Returns an error if `value` is invalid or is not in canonical decimal
     /// form.
+    #[inline]
     fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
     where
         E: de::Error,

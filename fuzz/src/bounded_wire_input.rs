@@ -22,9 +22,19 @@ const ROUND_TRIP_BYTES: usize = 65_536;
 
 /// Checks all three profiles without truncating or consuming any input bytes.
 ///
-/// Returns whether the wide default profile decoded successfully. Expected
+/// # Parameters
+///
+/// * `data` - The complete borrowed Wire V1 JSON input to exercise.
+///
+/// # Returns
+///
+/// Whether the wide default profile decoded successfully. Expected
 /// syntax, schema, budget and version rejections return false for that profile;
-/// every profile is still exercised. Panics on unexpected errors, incorrect
+/// every profile is still exercised.
+///
+/// # Panics
+///
+/// Panics on unexpected errors, incorrect
 /// input-budget classification, failed round trips or identity differences.
 pub fn check_input(data: &[u8]) -> bool {
     check_profile(data, decode_limits(SMALL_INPUT_BYTES));
@@ -34,6 +44,8 @@ pub fn check_input(data: &[u8]) -> bool {
 }
 
 /// Retains the default value profile while replacing the byte budget.
+#[must_use]
+#[inline]
 fn decode_limits(max_input_bytes: usize) -> JsonDecodeLimits {
     ValueWireV1::default_json_decode_limits()
         .into_builder()
@@ -42,6 +54,7 @@ fn decode_limits(max_input_bytes: usize) -> JsonDecodeLimits {
 }
 
 /// Selects a dimension from all input bytes in its interleaved group.
+#[must_use]
 fn selector(data: &[u8], offset: usize) -> usize {
     usize::from(
         data.iter()
@@ -52,6 +65,7 @@ fn selector(data: &[u8], offset: usize) -> usize {
 }
 
 /// Varies structural limits while preserving the remaining default resources.
+#[must_use]
 fn varied_decode_limits(data: &[u8]) -> JsonDecodeLimits {
     let depth = [0_usize, 1, 4, 8, 16, 64];
     let nodes = [0_usize, 1, 8, 32, 128, 4096];

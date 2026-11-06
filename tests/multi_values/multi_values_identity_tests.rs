@@ -12,6 +12,10 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::hash::Hasher;
+#[cfg(feature = "json")]
+use std::panic::AssertUnwindSafe;
+#[cfg(feature = "json")]
+use std::panic::catch_unwind;
 use std::time::Duration;
 
 #[cfg(feature = "big-decimal")]
@@ -36,9 +40,12 @@ use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
+#[cfg(feature = "json")]
+use serde_json::json;
 #[cfg(feature = "url")]
 use url::Url;
 
+/// Records bytes to detect writes that escape a rejected hashing transaction.
 #[cfg(feature = "json")]
 #[derive(Default)]
 struct RecordingHasher(Vec<u8>);
@@ -54,6 +61,7 @@ impl Hasher for RecordingHasher {
     }
 }
 
+/// Panics on writes to exercise budget rollback during unwinding.
 #[cfg(feature = "json")]
 struct PanickingHasher;
 
@@ -139,8 +147,8 @@ fn test_multi_values_unordered_payloads_hash_structurally() {
     );
     #[cfg(feature = "json")]
     assert_equal_hash(
-        &MultiValues::Json(vec![serde_json::json!({"b": {"y": 2, "x": 1}, "a": 0})]),
-        &MultiValues::Json(vec![serde_json::json!({"a": 0, "b": {"x": 1, "y": 2}})]),
+        &MultiValues::Json(vec![json!({"b": {"y": 2, "x": 1}, "a": 0})]),
+        &MultiValues::Json(vec![json!({"a": 0, "b": {"x": 1, "y": 2}})]),
     );
 }
 
@@ -208,7 +216,7 @@ fn test_multi_values_identity_covers_every_variant() {
         Url::parse("https://example.com/path").expect("the test fixture URL must be valid"),
     ]));
     #[cfg(feature = "json")]
-    values.extend([MultiValues::Json(vec![serde_json::json!({"items": [null, true, 42]})])]);
+    values.extend([MultiValues::Json(vec![json!({"items": [null, true, 42]})])]);
 
     for value in &values {
         assert_eq!(value, value);
@@ -223,7 +231,7 @@ fn test_multi_values_identity_covers_every_variant() {
 #[cfg(feature = "json")]
 #[test]
 fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
-    let values = MultiValues::Json(vec![serde_json::json!(null), serde_json::json!(null)]);
+    let values = MultiValues::Json(vec![json!(null), json!(null)]);
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
         .max_nodes(1_usize)
         .budget();
@@ -251,7 +259,7 @@ fn test_multi_values_hash_with_json_budget_accumulates_json_node_budget() {
 #[cfg(feature = "json")]
 #[test]
 fn test_multi_values_hash_with_json_budget_preserves_identity() {
-    let values = MultiValues::Json(vec![serde_json::json!({"items": [null]}), serde_json::json!(true)]);
+    let values = MultiValues::Json(vec![json!({"items": [null]}), json!(true)]);
     let expected = hash(&values);
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder().budget();
     let mut state = DefaultHasher::new();
@@ -267,10 +275,10 @@ fn test_multi_values_hash_with_json_budget_preserves_identity() {
 #[cfg(feature = "json")]
 #[test]
 fn test_multi_values_hash_with_json_budget_panic_rolls_back_and_reuses_budget() {
-    let values = MultiValues::Json(vec![serde_json::json!(null)]);
+    let values = MultiValues::Json(vec![json!(null)]);
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
 
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    let result = catch_unwind(AssertUnwindSafe(|| {
         values.hash_with_json_budget(&mut PanickingHasher, &mut budget)
     }));
     assert!(result.is_err());

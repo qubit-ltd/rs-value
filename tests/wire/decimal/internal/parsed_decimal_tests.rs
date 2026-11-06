@@ -25,7 +25,7 @@ fn test_big_integer_wire_decodes_canonical_string() {
             "version": 1,
             "value": {"scalar": {"biginteger": "42"}},
         }))
-        .unwrap()
+        .expect("canonical big integer scalar must decode")
         .into_container(),
         Value::BigInteger(42.into()).into()
     );

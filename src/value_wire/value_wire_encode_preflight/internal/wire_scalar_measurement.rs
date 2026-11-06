@@ -17,6 +17,14 @@ use super::json_length_writer::JsonLengthWriter;
 
 /// Returns the UTF-8 byte length of an integer's base-10 representation,
 /// including its minus sign when the value is negative.
+///
+/// # Parameters
+///
+/// - `value`: The signed integer to measure, including `i128::MIN`.
+///
+/// # Returns
+///
+/// The number of decimal digits plus one byte for a negative sign.
 #[must_use]
 #[inline]
 pub(crate) fn decimal_len(value: i128) -> usize {
@@ -31,6 +39,14 @@ pub(crate) fn decimal_len(value: i128) -> usize {
 
 /// Returns the UTF-8 byte length of an unsigned integer's base-10
 /// representation.
+///
+/// # Parameters
+///
+/// - `value`: The unsigned integer to measure.
+///
+/// # Returns
+///
+/// The number of decimal digits, with zero occupying one byte.
 #[must_use]
 #[inline]
 pub(crate) fn unsigned_decimal_len(value: u128) -> usize {
@@ -42,6 +58,18 @@ pub(crate) fn unsigned_decimal_len(value: u128) -> usize {
 ///
 /// The caller must handle non-finite values separately because JSON has no
 /// numeric representation for them.
+///
+/// # Parameters
+///
+/// - `value`: A finite `f32` to measure with the compact JSON formatter.
+///
+/// # Returns
+///
+/// The number of bytes in the formatted JSON number.
+///
+/// # Panics
+///
+/// Panics in debug builds if `value` is not finite.
 #[must_use]
 #[cfg(feature = "json")]
 pub(crate) fn json_float32_len(value: f32) -> usize {
@@ -58,6 +86,18 @@ pub(crate) fn json_float32_len(value: f32) -> usize {
 ///
 /// The caller must handle non-finite values separately because JSON has no
 /// numeric representation for them.
+///
+/// # Parameters
+///
+/// - `value`: A finite `f64` to measure with the compact JSON formatter.
+///
+/// # Returns
+///
+/// The number of bytes in the formatted JSON number.
+///
+/// # Panics
+///
+/// Panics in debug builds if `value` is not finite.
 #[must_use]
 #[cfg(feature = "json")]
 pub(crate) fn json_float64_len(value: f64) -> usize {

@@ -79,6 +79,10 @@ use qubit_value::ValueContainer;
     feature = "json"
 ))]
 use qubit_value::ValueWirePayloadV1;
+#[cfg(feature = "json")]
+use serde_json::Value as JsonValue;
+#[cfg(feature = "json")]
+use serde_json::json;
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -87,10 +91,13 @@ use qubit_value::ValueWirePayloadV1;
     feature = "url",
     feature = "json",
 ))]
+use serde_json::to_string;
 #[cfg(feature = "url")]
 use url::Url;
 
+/// Renders a complete redaction result and rejects truncated test output.
 #[cfg(feature = "redact")]
+#[must_use]
 fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
     Redactor::new(policy.clone())
         .redact_text(value)
@@ -99,6 +106,8 @@ fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
         .into_string()
 }
 
+/// Checks wire serialization and, when JSON is enabled, exact decoding
+/// equality.
 #[cfg(any(
     feature = "converter",
     feature = "chrono",
@@ -109,7 +118,7 @@ fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
 ))]
 fn assert_wire_serialization(value: impl Into<ValueContainer>) {
     let wire = ValueWirePayloadV1::try_from(value.into()).expect("construct wire payload");
-    let _encoded = serde_json::to_string(&wire).expect("serialize wire payload");
+    let _encoded = to_string(&wire).expect("serialize wire payload");
     #[cfg(feature = "json")]
     {
         let decoded = ValueWirePayloadV1::decode_json_slice(_encoded.as_bytes()).expect("deserialize wire payload");
@@ -140,6 +149,7 @@ impl DataTypeOf for Port {
 
 #[cfg(feature = "converter")]
 impl DataConversionTarget for Port {
+    #[inline]
     fn convert(input: AdmittedConversion<'_, '_, '_>) -> Result<Self, DataConversionError> {
         input.convert::<u16>().map(Self)
     }
@@ -224,11 +234,11 @@ fn test_url_feature_preserves_values_and_wire_payloads() {
 #[cfg(feature = "json")]
 #[test]
 fn test_json_feature_preserves_values_and_wire_payloads() {
-    let json = serde_json::json!({"nested": [true, 42]});
+    let json = json!({"nested": [true, 42]});
     let scalar = Value::Json(json.clone());
     let collection = MultiValues::Json(vec![json.clone()]);
 
-    assert_eq!(scalar.get::<serde_json::Value>().expect("read JSON value"), json);
+    assert_eq!(scalar.get::<JsonValue>().expect("read JSON value"), json);
     assert_eq!(collection.get_jsons().expect("read JSON values"), &[json]);
     assert_wire_serialization(scalar);
     assert_wire_serialization(collection);
@@ -251,8 +261,8 @@ fn test_redact_feature_masks_sensitive_string_map_entries() {
 
     let output = redacted_text(&value, &policy);
 
-    assert!(!output.contains("raw-secret"));
-    assert!(output.contains("visible"));
+    assert!(!output.contains("raw-secret"), "{output}");
+    assert!(output.contains("visible"), "{output}");
 }
 
 #[cfg(feature = "redact")]
@@ -278,7 +288,7 @@ fn test_redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
 #[cfg(all(feature = "redact", feature = "json"))]
 #[test]
 fn test_redact_feature_recursively_masks_sensitive_json_object_entries() {
-    let value = Value::Json(serde_json::json!({
+    let value = Value::Json(json!({
         "profile": {
             "api_key": "nested-secret",
             "label": "visible"
@@ -301,13 +311,13 @@ fn test_redact_feature_recursively_masks_sensitive_json_object_entries() {
     let debug = redacted_text(&value, &policy);
     let display = debug.clone();
 
-    assert!(!debug.contains("nested-secret"));
-    assert!(!debug.contains("array-secret"));
-    assert!(debug.contains("visible"));
-    assert!(debug.contains("unkeyed-value"));
-    assert!(!display.contains("nested-secret"));
-    assert!(!display.contains("array-secret"));
-    assert!(!display.contains('\n'));
+    assert!(!debug.contains("nested-secret"), "{debug}");
+    assert!(!debug.contains("array-secret"), "{debug}");
+    assert!(debug.contains("visible"), "{debug}");
+    assert!(debug.contains("unkeyed-value"), "{debug}");
+    assert!(!display.contains("nested-secret"), "{display}");
+    assert!(!display.contains("array-secret"), "{display}");
+    assert!(!display.contains('\n'), "{display}");
 }
 
 #[cfg(feature = "redact")]
@@ -344,8 +354,8 @@ fn test_redact_primitive_collection_obeys_item_budget() {
     let result = Redactor::new(policy).redact_text(&MultiValues::Int32(vec![17, 934751]));
 
     assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
-    assert!(result.text().as_str().contains("17"));
-    assert!(!result.text().as_str().contains("934751"));
+    assert!(result.text().as_str().contains("17"), "{}", result.text().as_str());
+    assert!(!result.text().as_str().contains("934751"), "{}", result.text().as_str());
 }
 
 #[cfg(feature = "redact")]
@@ -361,8 +371,8 @@ fn test_redact_boolean_collection_obeys_item_budget() {
     let result = Redactor::new(policy).redact_text(&MultiValues::Bool(vec![true, false]));
 
     assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
-    assert!(result.text().as_str().contains("true"));
-    assert!(!result.text().as_str().contains("false"));
+    assert!(result.text().as_str().contains("true"), "{}", result.text().as_str());
+    assert!(!result.text().as_str().contains("false"), "{}", result.text().as_str());
 }
 
 #[cfg(feature = "redact")]
@@ -386,7 +396,7 @@ fn test_redact_primitive_collection_preserves_shape_and_empty_unset() {
 
     let unset = Redactor::new(policy).redact_text(&MultiValues::Unset(DataType::Int32));
     assert_eq!(unset.summary().completion(), RedactionCompletion::Complete);
-    assert!(unset.text().as_str().contains("Int32"));
+    assert!(unset.text().as_str().contains("Int32"), "{}", unset.text().as_str());
 }
 
 #[cfg(feature = "redact")]
@@ -402,8 +412,16 @@ fn test_redact_primitive_collection_obeys_node_and_depth_limits() {
         .expect("valid policy");
     let node_result = Redactor::new(node_policy).redact_text(&values);
     assert_eq!(node_result.summary().completion(), RedactionCompletion::Truncated);
-    assert!(!node_result.text().as_str().contains("17"));
-    assert!(!node_result.text().as_str().contains("934751"));
+    assert!(
+        !node_result.text().as_str().contains("17"),
+        "{}",
+        node_result.text().as_str()
+    );
+    assert!(
+        !node_result.text().as_str().contains("934751"),
+        "{}",
+        node_result.text().as_str()
+    );
 
     let depth_policy = RedactionPolicy::builder()
         .limits(|limits| {
@@ -414,8 +432,16 @@ fn test_redact_primitive_collection_obeys_node_and_depth_limits() {
         .expect("valid policy");
     let depth_result = Redactor::new(depth_policy).redact_text(&values);
     assert_eq!(depth_result.summary().completion(), RedactionCompletion::Truncated);
-    assert!(!depth_result.text().as_str().contains("17"));
-    assert!(!depth_result.text().as_str().contains("934751"));
+    assert!(
+        !depth_result.text().as_str().contains("17"),
+        "{}",
+        depth_result.text().as_str()
+    );
+    assert!(
+        !depth_result.text().as_str().contains("934751"),
+        "{}",
+        depth_result.text().as_str()
+    );
 }
 
 #[cfg(all(feature = "converter", feature = "chrono"))]
@@ -469,9 +495,9 @@ fn test_converter_url_features_convert_text_to_url() {
 fn test_converter_json_features_convert_text_to_json() {
     assert_eq!(
         Value::from(r#"{"answer":42}"#)
-            .to::<serde_json::Value>()
+            .to::<JsonValue>()
             .expect("convert text to JSON"),
-        serde_json::json!({"answer": 42})
+        json!({"answer": 42})
     );
 }
 
@@ -482,12 +508,9 @@ fn test_converter_json_features_convert_text_to_json() {
 fn test_natural_json_feature_combination_preserves_shape() {
     let scalar = ValueContainer::from("one");
     let collection = ValueContainer::from(vec!["one".to_owned()]);
-    assert_eq!(
-        scalar.to_json_value().expect("scalar projection"),
-        serde_json::json!("one")
-    );
+    assert_eq!(scalar.to_json_value().expect("scalar projection"), json!("one"));
     assert_eq!(
         collection.to_json_value().expect("collection projection"),
-        serde_json::json!(["one"])
+        json!(["one"])
     );
 }

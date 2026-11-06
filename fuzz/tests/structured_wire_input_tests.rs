@@ -6,6 +6,11 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+//! Checks deterministic structured fuzz inputs, resource bounds, and Wire V1
+//! round trips.
+
+use std::collections::HashMap;
+
 use bigdecimal::BigDecimal;
 use chrono::Datelike;
 use chrono::TimeZone;
@@ -14,10 +19,14 @@ use num_bigint::BigInt;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueRef;
+use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWireV1;
 use qubit_value_fuzz::structured_wire_input::container_from_bytes;
+use serde_json::Value as JsonValue;
 use url::Url;
 
+/// Asserts the generated value fits the wire size bound and survives both
+/// decoding steps.
 fn round_trip(data: &[u8]) -> ValueContainer {
     let value = container_from_bytes(data);
     let wire = ValueWireV1::try_from(value.clone()).expect("generated value is V1 encodable");
@@ -30,7 +39,7 @@ fn round_trip(data: &[u8]) -> ValueContainer {
 }
 
 #[test]
-fn all_52_tags_are_deterministic_encodable_and_round_trip() {
+fn test_all_52_tags_are_deterministic_encodable_and_round_trip() {
     for tag in 0..52_u8 {
         let input = [tag, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         assert_eq!(container_from_bytes(&input), container_from_bytes(&input), "tag {tag}");
@@ -39,7 +48,7 @@ fn all_52_tags_are_deterministic_encodable_and_round_trip() {
 }
 
 #[test]
-fn input_controls_collection_length_and_object_width() {
+fn test_input_controls_collection_length_and_object_width() {
     for tag in [26_u8, 42, 49, 50] {
         let mut lengths = Vec::new();
         for selector in 0..9_u8 {
@@ -61,7 +70,7 @@ fn input_controls_collection_length_and_object_width() {
             input.extend([1, 2, 3, 4, 5, 6]);
             match round_trip(&input) {
                 ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::StringMap(_)) => value
-                    .get_ref::<std::collections::HashMap<String, String>>()
+                    .get_ref::<HashMap<String, String>>()
                     .expect("string map payload")
                     .len(),
                 value => panic!("unexpected value: {value:?}"),
@@ -71,24 +80,28 @@ fn input_controls_collection_length_and_object_width() {
     assert_eq!(widths, [0, 1, 2, 3, 4]);
 }
 
-fn json_depth(value: &serde_json::Value) -> usize {
+/// Counts nested JSON containers, treating scalar leaves as depth zero.
+#[must_use]
+fn json_depth(value: &JsonValue) -> usize {
     match value {
-        serde_json::Value::Array(items) => 1 + items.iter().map(json_depth).max().unwrap_or(0),
-        serde_json::Value::Object(items) => 1 + items.values().map(json_depth).max().unwrap_or(0),
+        JsonValue::Array(items) => 1 + items.iter().map(json_depth).max().unwrap_or(0),
+        JsonValue::Object(items) => 1 + items.values().map(json_depth).max().unwrap_or(0),
         _ => 0,
     }
 }
 
-fn json_node_count(value: &serde_json::Value) -> usize {
+/// Counts every JSON container and scalar toward the shared generation budget.
+#[must_use]
+fn json_node_count(value: &JsonValue) -> usize {
     match value {
-        serde_json::Value::Array(items) => 1 + items.iter().map(json_node_count).sum::<usize>(),
-        serde_json::Value::Object(items) => 1 + items.values().map(json_node_count).sum::<usize>(),
+        JsonValue::Array(items) => 1 + items.iter().map(json_node_count).sum::<usize>(),
+        JsonValue::Object(items) => 1 + items.values().map(json_node_count).sum::<usize>(),
         _ => 1,
     }
 }
 
 #[test]
-fn input_controls_json_nesting_depth_within_budget() {
+fn test_input_controls_json_nesting_depth_within_budget() {
     let shallow = vec![24, 0, 0, 0, 0, 0, 0, 2, 0, 0];
     let mut deep = vec![24, 0, 0, 0, 0, 0, 0, 2, 5];
     for _ in 0..8 {
@@ -98,7 +111,7 @@ fn input_controls_json_nesting_depth_within_budget() {
         .into_iter()
         .map(|input| match round_trip(input) {
             ValueContainer::Scalar(value) if matches!(value.view(), ValueRef::Json(_)) => {
-                json_depth(value.get_ref::<serde_json::Value>().expect("JSON payload"))
+                json_depth(value.get_ref::<JsonValue>().expect("JSON payload"))
             }
             value => panic!("unexpected value: {value:?}"),
         })
@@ -108,14 +121,14 @@ fn input_controls_json_nesting_depth_within_budget() {
 }
 
 #[test]
-fn json_generation_obeys_the_shared_node_budget() {
+fn test_json_generation_obeys_the_shared_node_budget() {
     let mut input = vec![5; 4096];
     input[0] = 24;
     let value = round_trip(&input);
     let ValueContainer::Scalar(value) = value else {
         panic!("JSON tag must produce a scalar");
     };
-    let json = value.get_ref::<serde_json::Value>().expect("JSON payload");
+    let json = value.get_ref::<JsonValue>().expect("JSON payload");
     assert_eq!(json_node_count(json), 96);
 
     let mut collection_input = vec![5; 4096];
@@ -124,12 +137,12 @@ fn json_generation_obeys_the_shared_node_budget() {
     let ValueContainer::Collection(values) = collection else {
         panic!("JSON collection tag must produce a collection");
     };
-    let json_values = values.get::<serde_json::Value>().expect("JSON values");
+    let json_values = values.get::<JsonValue>().expect("JSON values");
     assert!(json_values.iter().map(json_node_count).sum::<usize>() <= 96);
 }
 
 #[test]
-fn url_component_selectors_produce_valid_distinct_urls() {
+fn test_url_component_selectors_produce_valid_distinct_urls() {
     let urls: Vec<_> = (0..8_u8)
         .map(|selector| {
             let input = vec![22, 0, 0, 0, 0, 0, 0, 0, 0, selector, selector, selector, selector];
@@ -147,7 +160,7 @@ fn url_component_selectors_produce_valid_distinct_urls() {
 }
 
 #[test]
-fn empty_truncated_and_oversized_inputs_are_bounded() {
+fn test_empty_truncated_and_oversized_inputs_are_bounded() {
     for input in [&[][..], &[0][..], &[24, 255][..]] {
         let _ = round_trip(input);
     }
@@ -162,7 +175,7 @@ fn empty_truncated_and_oversized_inputs_are_bounded() {
 }
 
 #[test]
-fn named_corpus_seeds_reach_expected_shapes_and_round_trip() {
+fn test_named_corpus_seeds_reach_expected_shapes_and_round_trip() {
     let seeds: &[(&[u8], fn(&ValueContainer) -> bool)] = &[
         (
             include_bytes!("../corpus/structured_value_wire_v1/empty-collection"),
@@ -200,7 +213,7 @@ fn named_corpus_seeds_reach_expected_shapes_and_round_trip() {
 }
 
 #[test]
-fn scale_selector_covers_legal_boundaries_and_interior_values() {
+fn test_scale_selector_covers_legal_boundaries_and_interior_values() {
     let observed: Vec<_> = (0..5_u8)
         .map(|selector| {
             let input = [15, 0, 0, 0, 0, 0, 0, selector, 0];
@@ -217,7 +230,7 @@ fn scale_selector_covers_legal_boundaries_and_interior_values() {
 }
 
 #[test]
-fn date_and_utc_instant_generators_cover_leap_and_year_boundaries() {
+fn test_date_and_utc_instant_generators_cover_leap_and_year_boundaries() {
     for (selector, expected_year) in [(0_u8, 2024), (1, 0), (2, 9999)] {
         for tag in [17_u8, 20] {
             let mut input = vec![tag, 0, 0, 0, 0, 0, 0, 0, selector];
@@ -240,12 +253,12 @@ fn date_and_utc_instant_generators_cover_leap_and_year_boundaries() {
 }
 
 #[test]
-fn unsupported_numeric_and_instant_boundaries_are_rejected() {
+fn test_unsupported_numeric_and_instant_boundaries_are_rejected() {
     for scale in [-150_001_i64, 150_001] {
         let value = ValueContainer::Scalar(Value::BigDecimal(BigDecimal::new(BigInt::from(1), scale)));
         assert!(matches!(
             ValueWireV1::try_from(value),
-            Err(qubit_value::ValueWireEncodeError::BigDecimalScaleTooLarge {
+            Err(ValueWireEncodeError::BigDecimalScaleTooLarge {
                 scale: rejected,
                 ..
             }) if rejected == scale
@@ -258,7 +271,7 @@ fn unsupported_numeric_and_instant_boundaries_are_rejected() {
     ] {
         assert!(matches!(
             ValueWireV1::try_from(ValueContainer::Scalar(value)),
-            Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
+            Err(ValueWireEncodeError::NonFiniteFloat { .. })
         ));
     }
     for year in [-1, 10_000] {
@@ -268,7 +281,7 @@ fn unsupported_numeric_and_instant_boundaries_are_rejected() {
             .expect("test year is representable");
         assert!(matches!(
             ValueWireV1::try_from(ValueContainer::Scalar(Value::Instant(instant))),
-            Err(qubit_value::ValueWireEncodeError::InstantYearOutOfRange { year: rejected })
+            Err(ValueWireEncodeError::InstantYearOutOfRange { year: rejected })
                 if rejected == year
         ));
     }

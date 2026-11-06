@@ -8,5 +8,6 @@
 
 //! Private helpers for Wire V1 preflight measurements.
 
+pub(super) mod frame;
 pub(super) mod json_length_writer;
 pub(super) mod wire_scalar_measurement;

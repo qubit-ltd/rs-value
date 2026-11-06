@@ -7,6 +7,8 @@
 // =============================================================================
 
 use std::collections::HashMap;
+use std::ptr::eq as ptr_eq;
+use std::slice::from_ref;
 use std::time::Duration;
 
 #[cfg(feature = "big-decimal")]
@@ -36,13 +38,13 @@ fn test_multi_values_getters_return_slices_without_copying() {
     assert_eq!(strings, &["red", "blue"]);
     assert_eq!(strings.len(), values.len());
     let strings_again = values.get_strings().unwrap();
-    assert!(std::ptr::eq(strings.as_ptr(), strings_again.as_ptr()));
+    assert!(ptr_eq(strings.as_ptr(), strings_again.as_ptr()));
 
     let integers = MultiValues::Int32(vec![1, 2]);
     let first = integers.get_int32s().unwrap();
     let second = integers.get_int32s().unwrap();
     assert_eq!(first, &[1, 2]);
-    assert!(std::ptr::eq(first.as_ptr(), second.as_ptr()));
+    assert!(ptr_eq(first.as_ptr(), second.as_ptr()));
     assert!(matches!(
         integers.get_strings(),
         Err(ValueError::TypeMismatch {
@@ -76,6 +78,7 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
     let values = MultiValues::Char(vec!['a', 'b']);
     assert_eq!(values.get_chars().unwrap(), &['a', 'b']);
     assert_eq!(values.get_first_char().unwrap(), 'a');
+    // Checks both slice and first-element getters for each numeric variant.
     macro_rules! check_numeric {
         ($variant:ident, $all:ident, $first:ident, $ty:ty, $a:expr, $b:expr) => {{
             let values = MultiValues::$variant(vec![$a, $b]);
@@ -103,7 +106,7 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
     assert_eq!(values.get_first_duration().unwrap(), Duration::from_secs(1));
     let map = HashMap::from([("key".to_string(), "value".to_string())]);
     let values = MultiValues::StringMap(vec![map.clone()]);
-    assert_eq!(values.get_string_maps().unwrap(), std::slice::from_ref(&map));
+    assert_eq!(values.get_string_maps().unwrap(), from_ref(&map));
     assert_eq!(values.get_first_string_map().unwrap(), map);
 
     #[cfg(feature = "chrono")]
@@ -130,28 +133,28 @@ fn test_multi_values_typed_getters_cover_builtin_variants() {
     {
         let value = BigInt::from(7);
         let values = MultiValues::BigInteger(vec![value.clone()]);
-        assert_eq!(values.get_bigintegers().unwrap(), std::slice::from_ref(&value));
+        assert_eq!(values.get_bigintegers().unwrap(), from_ref(&value));
         assert_eq!(values.get_first_biginteger().unwrap(), value);
     }
     #[cfg(feature = "big-decimal")]
     {
         let value = "7.5".parse::<BigDecimal>().unwrap();
         let values = MultiValues::BigDecimal(vec![value.clone()]);
-        assert_eq!(values.get_bigdecimals().unwrap(), std::slice::from_ref(&value));
+        assert_eq!(values.get_bigdecimals().unwrap(), from_ref(&value));
         assert_eq!(values.get_first_bigdecimal().unwrap(), value);
     }
     #[cfg(feature = "url")]
     {
         let value = Url::parse("https://example.com").unwrap();
         let values = MultiValues::Url(vec![value.clone()]);
-        assert_eq!(values.get_urls().unwrap(), std::slice::from_ref(&value));
+        assert_eq!(values.get_urls().unwrap(), from_ref(&value));
         assert_eq!(values.get_first_url().unwrap(), value);
     }
     #[cfg(feature = "json")]
     {
         let value = json!({"key": 1});
         let values = MultiValues::Json(vec![value.clone()]);
-        assert_eq!(values.get_jsons().unwrap(), std::slice::from_ref(&value));
+        assert_eq!(values.get_jsons().unwrap(), from_ref(&value));
         assert_eq!(values.get_first_json().unwrap(), value);
     }
 }

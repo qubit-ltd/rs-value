@@ -8,11 +8,34 @@
 
 //! Tests that the complete runtime type set remains available.
 
+use std::collections::HashMap;
+#[cfg(feature = "all")]
+use std::slice::from_ref;
+use std::time::Duration;
+
+#[cfg(feature = "all")]
+use bigdecimal::BigDecimal;
+#[cfg(feature = "all")]
+use chrono::DateTime;
+#[cfg(feature = "all")]
+use chrono::NaiveDate;
+#[cfg(feature = "all")]
+use chrono::NaiveDateTime;
+#[cfg(feature = "all")]
+use chrono::NaiveTime;
+#[cfg(feature = "all")]
+use chrono::Utc;
+#[cfg(feature = "all")]
+use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 #[cfg(feature = "all")]
 use qubit_value::ValueContainer;
+#[cfg(feature = "all")]
+use serde_json::json;
+#[cfg(feature = "all")]
+use url::Url;
 
 #[test]
 fn test_all_core_types_have_scalar_and_collection_constructors() {
@@ -32,8 +55,8 @@ fn test_all_core_types_have_scalar_and_collection_constructors() {
         Value::Float32(1.0).data_type(),
         Value::Float64(1.0).data_type(),
         Value::String(String::from("x")).data_type(),
-        Value::Duration(std::time::Duration::from_secs(1)).data_type(),
-        Value::StringMap(std::collections::HashMap::new()).data_type(),
+        Value::Duration(Duration::from_secs(1)).data_type(),
+        Value::StringMap(HashMap::new()).data_type(),
     ];
     let collections = [
         MultiValues::Bool(vec![true]).data_type(),
@@ -41,8 +64,8 @@ fn test_all_core_types_have_scalar_and_collection_constructors() {
         MultiValues::Int32(vec![1]).data_type(),
         MultiValues::Float64(vec![1.0]).data_type(),
         MultiValues::String(vec![String::from("x")]).data_type(),
-        MultiValues::Duration(vec![std::time::Duration::from_secs(1)]).data_type(),
-        MultiValues::StringMap(vec![std::collections::HashMap::new()]).data_type(),
+        MultiValues::Duration(vec![Duration::from_secs(1)]).data_type(),
+        MultiValues::StringMap(vec![HashMap::new()]).data_type(),
     ];
 
     assert!(
@@ -68,17 +91,6 @@ fn test_all_core_types_have_scalar_and_collection_constructors() {
 #[cfg(feature = "all")]
 #[test]
 fn test_all_type_table_rows_construct_value_containers_from_owned_and_borrowed_inputs() {
-    use std::collections::HashMap;
-    use std::time::Duration;
-
-    use bigdecimal::BigDecimal;
-    use chrono::DateTime;
-    use chrono::NaiveDate;
-    use chrono::NaiveDateTime;
-    use chrono::NaiveTime;
-    use chrono::Utc;
-    use num_bigint::BigInt;
-
     macro_rules! assert_constructors {
         ($value:expr, $data_type:expr) => {{
             let value = $value;
@@ -90,38 +102,93 @@ fn test_all_type_table_rows_construct_value_containers_from_owned_and_borrowed_i
             let array_value = [value.clone()];
             let borrowed_array = ValueContainer::from(&array_value);
 
-            assert_eq!(scalar.data_type(), $data_type);
+            assert_eq!(
+                scalar.data_type(),
+                $data_type,
+                "scalar constructor must preserve type metadata"
+            );
             for container in [owned, borrowed_slice, borrowed_vec, array, borrowed_array] {
-                assert_eq!(container.data_type(), $data_type);
-                assert!(container.is_collection());
-                assert_eq!(container.len(), 1);
+                assert_eq!(
+                    container.data_type(),
+                    $data_type,
+                    "collection constructor must preserve type metadata"
+                );
+                assert!(
+                    container.is_collection(),
+                    "collection input must retain collection shape"
+                );
+                assert_eq!(container.len(), 1, "collection constructor must retain its single item");
             }
 
             let mut promoted = ValueContainer::from(value.clone());
             promoted.add(value.clone()).expect("same-type scalar should promote");
-            assert_eq!(promoted.data_type(), $data_type);
-            assert_eq!(promoted.len(), 2);
+            assert_eq!(
+                promoted.data_type(),
+                $data_type,
+                "scalar promotion must preserve type metadata"
+            );
+            assert_eq!(
+                promoted.len(),
+                2,
+                "scalar promotion must retain the expected item count"
+            );
 
             let mut extended = ValueContainer::from(vec![value.clone()]);
             extended.add(value.clone()).expect("same-type item should append");
-            assert_eq!(extended.data_type(), $data_type);
-            assert_eq!(extended.len(), 2);
+            assert_eq!(
+                extended.data_type(),
+                $data_type,
+                "collection append must preserve type metadata"
+            );
+            assert_eq!(
+                extended.len(),
+                2,
+                "collection append must retain the expected item count"
+            );
 
             let mut replaced = ValueContainer::from(0_i32);
             replaced.set(vec![value.clone()]);
-            assert_eq!(replaced.data_type(), $data_type);
-            assert_eq!(replaced.len(), 1);
+            assert_eq!(
+                replaced.data_type(),
+                $data_type,
+                "collection replacement must preserve type metadata"
+            );
+            assert_eq!(
+                replaced.len(),
+                1,
+                "collection replacement must retain the expected item count"
+            );
 
             let mut multi_values = MultiValues::new(vec![value.clone()]);
-            assert_eq!(multi_values.data_type(), $data_type);
-            assert_eq!(multi_values.get(), Ok(vec![value.clone()]));
-            assert_eq!(multi_values.get_first(), Ok(value.clone()));
-            assert_eq!(multi_values.get_first_ref(), Ok(&value));
-            assert_eq!(multi_values.get_slice(), Ok(std::slice::from_ref(&value)));
+            assert_eq!(
+                multi_values.data_type(),
+                $data_type,
+                "construction must preserve type metadata"
+            );
+            assert_eq!(
+                multi_values.get(),
+                Ok(vec![value.clone()]),
+                "owned access must return the original item"
+            );
+            assert_eq!(
+                multi_values.get_first(),
+                Ok(value.clone()),
+                "first-item access must return the original item"
+            );
+            assert_eq!(
+                multi_values.get_first_ref(),
+                Ok(&value),
+                "borrowed first-item access must return the original item"
+            );
+            assert_eq!(
+                multi_values.get_slice(),
+                Ok(from_ref(&value)),
+                "slice access must return the original item"
+            );
             multi_values.add(value.clone()).expect("same-type value should append");
-            assert_eq!(multi_values.len(), 2);
+            assert_eq!(multi_values.len(), 2, "append must retain both items");
             multi_values.set(vec![value]);
-            assert_eq!(multi_values.len(), 1);
+            assert_eq!(multi_values.len(), 1, "replacement must retain one item");
         }};
     }
 
@@ -152,13 +219,10 @@ fn test_all_type_table_rows_construct_value_containers_from_owned_and_borrowed_i
     assert_constructors!(datetime, DataType::DateTime);
     assert_constructors!(instant, DataType::Instant);
     assert_constructors!(Duration::from_secs(1), DataType::Duration);
-    assert_constructors!(
-        url::Url::parse("https://example.com").expect("valid URL"),
-        DataType::Url
-    );
+    assert_constructors!(Url::parse("https://example.com").expect("valid URL"), DataType::Url);
     assert_constructors!(
         HashMap::from([(String::from("key"), String::from("value"))]),
         DataType::StringMap
     );
-    assert_constructors!(serde_json::json!({"key": "value"}), DataType::Json);
+    assert_constructors!(json!({"key": "value"}), DataType::Json);
 }

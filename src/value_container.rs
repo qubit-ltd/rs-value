@@ -8,6 +8,9 @@
 
 //! Explicit scalar-or-collection value storage.
 
+use std::mem::replace;
+use std::slice::from_ref;
+
 #[cfg(feature = "converter")]
 use qubit_datatype::ConversionLimits;
 #[cfg(feature = "converter")]
@@ -19,6 +22,8 @@ use qubit_datatype::DataConversionTarget;
 use qubit_datatype::DataType;
 #[cfg(feature = "converter")]
 use qubit_datatype::ScalarStringDataConverters;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde_json::Value as JsonValue;
 
 use crate::MultiValues;
 use crate::StrictValueRead;
@@ -85,6 +90,14 @@ macro_rules! impl_value_container_from_table {
             $(#[$cfg])*
             impl From<$type> for ValueContainer {
                 /// Creates a scalar container by taking ownership of `value`.
+                ///
+                /// # Parameters
+                ///
+                /// * `value` - Input converted with the ownership behavior described above.
+                ///
+                /// # Returns
+                ///
+                /// A container preserving the input data type and scalar or collection shape.
                 #[inline(always)]
                 fn from(value: $type) -> Self {
                     Self::Scalar(Value::$variant(value))
@@ -95,6 +108,14 @@ macro_rules! impl_value_container_from_table {
             impl From<Vec<$type>> for ValueContainer {
                 /// Takes ownership of the vector and its element storage without cloning elements.
                 /// An empty vector creates a concrete empty collection.
+                ///
+                /// # Parameters
+                ///
+                /// * `values` - Input converted with the ownership behavior described above.
+                ///
+                /// # Returns
+                ///
+                /// A container preserving the input data type and scalar or collection shape.
                 #[inline(always)]
                 fn from(values: Vec<$type>) -> Self {
                     Self::Collection(MultiValues::$variant(values))
@@ -105,6 +126,14 @@ macro_rules! impl_value_container_from_table {
             impl From<&[$type]> for ValueContainer {
                 /// Clones the elements into an owned collection, preserving order.
                 /// An empty slice creates a concrete empty collection.
+                ///
+                /// # Parameters
+                ///
+                /// * `values` - Input converted with the ownership behavior described above.
+                ///
+                /// # Returns
+                ///
+                /// A container preserving the input data type and scalar or collection shape.
                 #[inline]
                 fn from(values: &[$type]) -> Self {
                     Self::Collection(MultiValues::$variant(values.to_vec()))
@@ -115,6 +144,14 @@ macro_rules! impl_value_container_from_table {
             impl From<&Vec<$type>> for ValueContainer {
                 /// Clones the elements into an owned collection, preserving order.
                 /// An empty vector creates a concrete empty collection.
+                ///
+                /// # Parameters
+                ///
+                /// * `values` - Input converted with the ownership behavior described above.
+                ///
+                /// # Returns
+                ///
+                /// A container preserving the input data type and scalar or collection shape.
                 #[inline]
                 fn from(values: &Vec<$type>) -> Self {
                     Self::Collection(MultiValues::$variant(values.clone()))
@@ -125,6 +162,18 @@ macro_rules! impl_value_container_from_table {
             impl<const N: usize> From<[$type; N]> for ValueContainer {
                 /// Moves the array elements into a newly allocated vector, preserving order.
                 /// An empty array creates a concrete empty collection.
+                ///
+                /// # Type Parameters
+                ///
+                /// * `N` - Number of input array elements.
+                ///
+                /// # Parameters
+                ///
+                /// * `values` - Input converted with the ownership behavior described above.
+                ///
+                /// # Returns
+                ///
+                /// A container preserving the input data type and scalar or collection shape.
                 #[inline]
                 fn from(values: [$type; N]) -> Self {
                     Self::Collection(MultiValues::$variant(Vec::from(values)))
@@ -135,6 +184,18 @@ macro_rules! impl_value_container_from_table {
             impl<const N: usize> From<&[$type; N]> for ValueContainer {
                 /// Clones the elements into an owned collection, preserving order.
                 /// An empty array creates a concrete empty collection.
+                ///
+                /// # Type Parameters
+                ///
+                /// * `N` - Number of input array elements.
+                ///
+                /// # Parameters
+                ///
+                /// * `values` - Input converted with the ownership behavior described above.
+                ///
+                /// # Returns
+                ///
+                /// A container preserving the input data type and scalar or collection shape.
                 #[inline]
                 fn from(values: &[$type; N]) -> Self {
                     Self::Collection(MultiValues::$variant(values.to_vec()))
@@ -193,6 +254,15 @@ macro_rules! value_container_push_match {
 
 impl From<&str> for ValueContainer {
     /// Copies the text into an owned scalar string.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Input converted with the ownership behavior described above.
+    ///
+    /// # Returns
+    ///
+    /// A container preserving the input data type and scalar or collection
+    /// shape.
     #[inline]
     fn from(value: &str) -> Self {
         Self::Scalar(Value::String(value.to_string()))
@@ -202,6 +272,16 @@ impl From<&str> for ValueContainer {
 impl<'a> From<Vec<&'a str>> for ValueContainer {
     /// Copies each string into an owned collection, preserving order.
     /// An empty vector creates a concrete empty collection.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Input converted with the ownership behavior described
+    ///   above.
+    ///
+    /// # Returns
+    ///
+    /// A container preserving the input data type and scalar or collection
+    /// shape.
     #[inline]
     fn from(values: Vec<&'a str>) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -211,6 +291,16 @@ impl<'a> From<Vec<&'a str>> for ValueContainer {
 impl<'a, 'b> From<&'a [&'b str]> for ValueContainer {
     /// Copies each string into an owned collection, preserving order.
     /// An empty slice creates a concrete empty collection.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Input converted with the ownership behavior described
+    ///   above.
+    ///
+    /// # Returns
+    ///
+    /// A container preserving the input data type and scalar or collection
+    /// shape.
     #[inline]
     fn from(values: &'a [&'b str]) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -220,6 +310,16 @@ impl<'a, 'b> From<&'a [&'b str]> for ValueContainer {
 impl<'a, 'b> From<&'a Vec<&'b str>> for ValueContainer {
     /// Copies each string into an owned collection, preserving order.
     /// An empty vector creates a concrete empty collection.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Input converted with the ownership behavior described
+    ///   above.
+    ///
+    /// # Returns
+    ///
+    /// A container preserving the input data type and scalar or collection
+    /// shape.
     #[inline]
     fn from(values: &'a Vec<&'b str>) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -229,6 +329,20 @@ impl<'a, 'b> From<&'a Vec<&'b str>> for ValueContainer {
 impl<'a, const N: usize> From<[&'a str; N]> for ValueContainer {
     /// Copies each string into an owned collection, preserving order.
     /// An empty array creates a concrete empty collection.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `N` - Number of input array elements.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Input converted with the ownership behavior described
+    ///   above.
+    ///
+    /// # Returns
+    ///
+    /// A container preserving the input data type and scalar or collection
+    /// shape.
     #[inline]
     fn from(values: [&'a str; N]) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -238,6 +352,20 @@ impl<'a, const N: usize> From<[&'a str; N]> for ValueContainer {
 impl<'a, 'b, const N: usize> From<&'a [&'b str; N]> for ValueContainer {
     /// Copies each string into an owned collection, preserving order.
     /// An empty array creates a concrete empty collection.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `N` - Number of input array elements.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Input converted with the ownership behavior described
+    ///   above.
+    ///
+    /// # Returns
+    ///
+    /// A container preserving the input data type and scalar or collection
+    /// shape.
     #[inline]
     fn from(values: &'a [&'b str; N]) -> Self {
         Self::Collection(MultiValues::from(values))
@@ -246,6 +374,15 @@ impl<'a, 'b, const N: usize> From<&'a [&'b str; N]> for ValueContainer {
 
 impl From<Value> for ValueContainer {
     /// Wraps the value as a scalar without cloning it.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Input converted with the ownership behavior described above.
+    ///
+    /// # Returns
+    ///
+    /// A container preserving the input data type and scalar or collection
+    /// shape.
     #[inline]
     fn from(value: Value) -> Self {
         Self::Scalar(value)
@@ -254,6 +391,16 @@ impl From<Value> for ValueContainer {
 
 impl From<MultiValues> for ValueContainer {
     /// Wraps the collection without cloning its elements.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Input converted with the ownership behavior described
+    ///   above.
+    ///
+    /// # Returns
+    ///
+    /// A container preserving the input data type and scalar or collection
+    /// shape.
     #[inline]
     fn from(values: MultiValues) -> Self {
         Self::Collection(values)
@@ -310,7 +457,8 @@ impl ValueContainer {
     /// # Examples
     ///
     /// ```
-    /// use qubit_value::{ValueContainer, ValueError};
+    /// use qubit_value::ValueContainer;
+    /// use qubit_value::ValueError;
     ///
     /// let values = ValueContainer::from(vec![String::from("a"), String::from("b")]);
     /// let first: &String = values.get_first_ref().unwrap();
@@ -352,8 +500,9 @@ impl ValueContainer {
     /// # Examples
     ///
     /// ```
-    /// use qubit_value::ValueContainer;
     /// use qubit_datatype::DataType;
+    ///
+    /// use qubit_value::ValueContainer;
     /// use qubit_value::ValueError;
     ///
     /// let values = ValueContainer::from(vec![String::from("a"), String::from("b")]);
@@ -373,7 +522,7 @@ impl ValueContainer {
         &'a [T]: TryFrom<&'a MultiValues, Error = ValueError>,
     {
         match self {
-            Self::Scalar(value) => value.get_ref().map(std::slice::from_ref),
+            Self::Scalar(value) => value.get_ref().map(from_ref),
             Self::Collection(values) => values.get_slice(),
         }
     }
@@ -384,7 +533,6 @@ impl ValueContainer {
     ///
     /// The scalar or collection element type, including the declared type of
     /// unset storage.
-    #[must_use = "the runtime data type should be used"]
     #[inline]
     pub fn data_type(&self) -> DataType {
         match self {
@@ -409,28 +557,12 @@ impl ValueContainer {
     /// # Returns
     ///
     /// `Some` for scalar storage, or `None` for collection storage.
+    #[must_use]
     #[inline]
     pub const fn as_scalar(&self) -> Option<&Value> {
         match self {
             Self::Scalar(value) => Some(value),
             Self::Collection(_) => None,
-        }
-    }
-
-    /// Consumes this container and returns its scalar value.
-    ///
-    /// # Returns
-    ///
-    /// The contained scalar value when this container has scalar shape.
-    ///
-    /// # Errors
-    ///
-    /// Returns the original container unchanged when it has collection shape.
-    #[inline(always)]
-    pub fn into_scalar(self) -> Result<Value, Self> {
-        match self {
-            Self::Scalar(value) => Ok(value),
-            Self::Collection(_) => Err(self),
         }
     }
 
@@ -450,28 +582,12 @@ impl ValueContainer {
     /// # Returns
     ///
     /// `Some` for collection storage, or `None` for scalar storage.
+    #[must_use]
     #[inline]
     pub const fn as_collection(&self) -> Option<&MultiValues> {
         match self {
             Self::Scalar(_) => None,
             Self::Collection(values) => Some(values),
-        }
-    }
-
-    /// Consumes this container and returns its collection values.
-    ///
-    /// # Returns
-    ///
-    /// The contained values when this container has collection shape.
-    ///
-    /// # Errors
-    ///
-    /// Returns the original container unchanged when it has scalar shape.
-    #[inline(always)]
-    pub fn into_collection(self) -> Result<MultiValues, Self> {
-        match self {
-            Self::Scalar(_) => Err(self),
-            Self::Collection(values) => Ok(values),
         }
     }
 
@@ -563,84 +679,6 @@ impl ValueContainer {
         match self {
             Self::Scalar(value) => T::read_scalar(value).map(|item| vec![item]),
             Self::Collection(values) => T::read_collection_list(values),
-        }
-    }
-
-    /// Replaces this container, including its shape, from a supported input.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `S` - Input type convertible into [`ValueContainer`].
-    ///
-    /// # Parameters
-    ///
-    /// * `value` - New scalar or collection value.
-    #[inline(always)]
-    pub fn set<S>(&mut self, value: S)
-    where
-        S: Into<Self>,
-    {
-        *self = value.into();
-    }
-
-    /// Appends values, promoting scalar storage to collection storage when the
-    /// input contains at least one concrete value. Same-typed empty and unset
-    /// input is a no-op.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `S` - Input type convertible into [`ValueContainer`].
-    ///
-    /// # Parameters
-    ///
-    /// * `values` - Scalar or collection values to append.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` after appending or accepting an empty same-typed input.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`ValueError::TypeMismatch`] when the appended values have a
-    /// different data type.
-    pub fn add<S>(&mut self, values: S) -> ValueResult<()>
-    where
-        S: Into<Self>,
-    {
-        let other = values.into();
-        let expected = self.data_type();
-        let actual = other.data_type();
-        if expected != actual {
-            return Err(ValueError::TypeMismatch { expected, actual });
-        }
-        if other.is_empty() {
-            return Ok(());
-        }
-
-        match other {
-            Self::Scalar(value) => {
-                self.add_scalar(value, expected);
-                Ok(())
-            }
-            Self::Collection(other) => match self {
-                Self::Scalar(value) => {
-                    let value = std::mem::replace(value, Value::new_unset(expected));
-                    let mut collection = MultiValues::from(value);
-                    collection.add(other)?;
-                    *self = Self::Collection(collection);
-                    Ok(())
-                }
-                Self::Collection(collection) => collection.add(other),
-            },
-        }
-    }
-
-    /// Removes concrete storage while preserving its shape and data type.
-    #[inline(always)]
-    pub fn unset(&mut self) {
-        match self {
-            Self::Scalar(value) => value.unset(),
-            Self::Collection(values) => values.unset(),
         }
     }
 
@@ -819,6 +857,118 @@ impl ValueContainer {
         }
     }
 
+    /// Consumes this container and returns its scalar value.
+    ///
+    /// # Returns
+    ///
+    /// The contained scalar value when this container has scalar shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns the original container unchanged when it has collection shape.
+    #[inline(always)]
+    pub fn into_scalar(self) -> Result<Value, Self> {
+        match self {
+            Self::Scalar(value) => Ok(value),
+            Self::Collection(_) => Err(self),
+        }
+    }
+
+    /// Consumes this container and returns its collection values.
+    ///
+    /// # Returns
+    ///
+    /// The contained values when this container has collection shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns the original container unchanged when it has scalar shape.
+    #[inline(always)]
+    pub fn into_collection(self) -> Result<MultiValues, Self> {
+        match self {
+            Self::Scalar(_) => Err(self),
+            Self::Collection(values) => Ok(values),
+        }
+    }
+
+    /// Replaces this container, including its shape, from a supported input.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Input type convertible into [`ValueContainer`].
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - New scalar or collection value.
+    #[inline(always)]
+    pub fn set<S>(&mut self, value: S)
+    where
+        S: Into<Self>,
+    {
+        *self = value.into();
+    }
+
+    /// Appends values, promoting scalar storage to collection storage when the
+    /// input contains at least one concrete value. Same-typed empty and unset
+    /// input is a no-op.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Input type convertible into [`ValueContainer`].
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Scalar or collection values to append.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after appending or accepting an empty same-typed input.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::TypeMismatch`] when the appended values have a
+    /// different data type.
+    pub fn add<S>(&mut self, values: S) -> ValueResult<()>
+    where
+        S: Into<Self>,
+    {
+        let other = values.into();
+        let expected = self.data_type();
+        let actual = other.data_type();
+        if expected != actual {
+            return Err(ValueError::TypeMismatch { expected, actual });
+        }
+        if other.is_empty() {
+            return Ok(());
+        }
+
+        match other {
+            Self::Scalar(value) => {
+                self.add_scalar(value, expected);
+                Ok(())
+            }
+            Self::Collection(other) => match self {
+                Self::Scalar(value) => {
+                    let value = replace(value, Value::new_unset(expected));
+                    let mut collection = MultiValues::from(value);
+                    collection.add(other)?;
+                    *self = Self::Collection(collection);
+                    Ok(())
+                }
+                Self::Collection(collection) => collection.add(other),
+            },
+        }
+    }
+
+    /// Removes concrete storage while preserving its shape and data type.
+    #[inline(always)]
+    pub fn unset(&mut self) {
+        match self {
+            Self::Scalar(value) => value.unset(),
+            Self::Collection(values) => values.unset(),
+        }
+    }
+
     /// Appends a concrete scalar, promoting scalar storage to a collection.
     ///
     /// # Parameters
@@ -835,7 +985,7 @@ impl ValueContainer {
     fn add_scalar(&mut self, value: Value, data_type: DataType) {
         match self {
             Self::Scalar(current) => {
-                let current = std::mem::replace(current, Value::new_unset(data_type));
+                let current = replace(current, Value::new_unset(data_type));
                 let collection = for_each_value_type!(value_container_pair_match, current, value);
                 *self = Self::Collection(collection);
             }
@@ -869,7 +1019,7 @@ impl ValueContainer {
     ///
     /// Returns the same structured projection error as the contained value.
     #[inline(always)]
-    pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
+    pub fn to_json_value(&self) -> ValueResult<JsonValue> {
         self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
@@ -889,11 +1039,7 @@ impl ValueContainer {
     ///
     /// Returns the same structured projection error as the contained value.
     #[inline]
-    pub fn to_json_value_with(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<serde_json::Value> {
+    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
         crate::json::value_container_to_json_value_with(self, policy, limits)
     }
 }

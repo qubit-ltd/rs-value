@@ -10,10 +10,11 @@
 
 #[cfg(feature = "all")]
 use std::collections::HashMap;
-#[cfg(feature = "all")]
+#[cfg(all(feature = "chrono", feature = "json"))]
+use std::str::from_utf8;
 use std::time::Duration;
 
-#[cfg(feature = "all")]
+#[cfg(feature = "big-decimal")]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "all")]
 use chrono::DateTime;
@@ -23,17 +24,20 @@ use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 #[cfg(feature = "all")]
 use chrono::NaiveTime;
-#[cfg(feature = "all")]
-use chrono::Utc;
-#[cfg(feature = "all")]
-use num_bigint::BigInt;
 #[cfg(feature = "chrono")]
+use chrono::TimeZone;
+#[cfg(feature = "chrono")]
+use chrono::Utc;
+#[cfg(feature = "big-decimal")]
+use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::NamedMultiValues;
 use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
+#[cfg(feature = "all")]
+use qubit_value::ValueWireDecodeError;
 #[cfg(feature = "chrono")]
 use qubit_value::ValueWireEncodeError;
 #[cfg(feature = "chrono")]
@@ -43,21 +47,38 @@ use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
 use qubit_value::ValueWireV1Seed;
+use ron::Deserializer as RonDeserializer;
+use ron::Error as RonError;
+use ron::from_str as from_ron_str;
+use ron::ser::PrettyConfig;
+use ron::ser::to_string_pretty;
+use ron::to_string as to_ron_string;
 use serde::de::DeserializeSeed;
+#[cfg(feature = "all")]
+use serde_json::from_slice;
+use serde_json::json;
+use serde_json::to_value;
+#[cfg(feature = "chrono")]
+use serde_json::to_vec;
+#[cfg(feature = "all")]
+use url::Url;
+
+use crate::decode_value_wire_str;
+use crate::decode_value_wire_value;
 
 #[test]
 fn test_ron_named_scalar_roundtrip() {
     let original = NamedValue::new("port", Value::Int32(42));
-    let text = ron::to_string(&original).expect("serialize named scalar");
-    let restored: NamedValue = ron::from_str(&text).expect("decode named scalar");
+    let text = to_ron_string(&original).expect("serialize named scalar");
+    let restored: NamedValue = from_ron_str(&text).expect("decode named scalar");
     assert_eq!(restored, original);
 }
 
 #[test]
 fn test_ron_named_collection_roundtrip() {
     let original = NamedMultiValues::new("ports", MultiValues::Int32(vec![42]));
-    let text = ron::to_string(&original).expect("serialize named collection");
-    let restored: NamedMultiValues = ron::from_str(&text).expect("decode named collection");
+    let text = to_ron_string(&original).expect("serialize named collection");
+    let restored: NamedMultiValues = from_ron_str(&text).expect("decode named collection");
     assert_eq!(restored, original);
 }
 
@@ -65,35 +86,33 @@ fn test_ron_named_collection_roundtrip() {
 fn test_ron_wire_seed_roundtrip() {
     let original = ValueContainer::Scalar(Value::Int32(42));
     let wire = ValueWireV1::try_from(original.clone()).expect("construct wire");
-    let text = ron::to_string(&wire).expect("serialize wire");
-    let mut decoder = ron::Deserializer::from_str(&text).expect("RON input");
+    let text = to_ron_string(&wire).expect("serialize wire");
+    let mut decoder = RonDeserializer::from_str(&text).expect("RON input");
     let restored = ValueWireV1Seed::new().deserialize(&mut decoder).expect("decode wire");
     assert_eq!(restored.into_container(), original);
 }
 
-fn decode_ron_wire(input: &str) -> Result<ValueContainer, ron::Error> {
-    let mut decoder = ron::Deserializer::from_str(input)?;
+/// Decodes a RON envelope through the public seed and extracts its container.
+fn decode_ron_wire(input: &str) -> Result<ValueContainer, RonError> {
+    let mut decoder = RonDeserializer::from_str(input)?;
     ValueWireV1Seed::new()
         .deserialize(&mut decoder)
         .map(ValueWireV1::into_container)
 }
 
+/// Checks the same container with plain and explicitly named RON struct syntax.
 fn assert_ron_wire_roundtrip(original: ValueContainer) {
     let wire = ValueWireV1::try_from(original.clone()).expect("construct wire");
-    let plain = ron::to_string(&wire).expect("serialize wire");
+    let plain = to_ron_string(&wire).expect("serialize wire");
     assert_eq!(decode_ron_wire(&plain).expect("decode plain RON"), original);
 
-    let named = ron::ser::to_string_pretty(&wire, ron::ser::PrettyConfig::default().struct_names(true))
-        .expect("serialize named RON structs");
+    let named =
+        to_string_pretty(&wire, PrettyConfig::default().struct_names(true)).expect("serialize named RON structs");
     assert_eq!(decode_ron_wire(&named).expect("decode named RON structs"), original);
 }
 
 #[test]
 fn test_ron_wire_roundtrips_scalar_collection_and_typed_unset() {
-    use std::time::Duration;
-
-    use qubit_datatype::DataType;
-
     for original in [
         ValueContainer::Scalar(Value::Int32(42)),
         ValueContainer::Collection(MultiValues::Int32(vec![42, 43])),
@@ -108,21 +127,19 @@ fn test_ron_wire_roundtrips_scalar_collection_and_typed_unset() {
 
 #[test]
 fn test_ron_named_values_roundtrip_with_explicit_struct_names() {
-    use qubit_datatype::DataType;
-
     let named_scalar = NamedValue::new("port", Value::Int32(42));
-    let encoded = ron::ser::to_string_pretty(&named_scalar, ron::ser::PrettyConfig::default().struct_names(true))
+    let encoded = to_string_pretty(&named_scalar, PrettyConfig::default().struct_names(true))
         .expect("serialize named scalar with struct names");
     assert_eq!(
-        ron::from_str::<NamedValue>(&encoded).expect("decode named scalar with struct names"),
+        from_ron_str::<NamedValue>(&encoded).expect("decode named scalar with struct names"),
         named_scalar
     );
 
     let named_unset = NamedValue::new("unset", Value::Unset(DataType::Int32));
-    let encoded = ron::ser::to_string_pretty(&named_unset, ron::ser::PrettyConfig::default().struct_names(true))
+    let encoded = to_string_pretty(&named_unset, PrettyConfig::default().struct_names(true))
         .expect("serialize named typed unset with struct names");
     assert_eq!(
-        ron::from_str::<NamedValue>(&encoded).expect("decode named typed unset"),
+        from_ron_str::<NamedValue>(&encoded).expect("decode named typed unset"),
         named_unset
     );
 
@@ -130,10 +147,10 @@ fn test_ron_named_values_roundtrip_with_explicit_struct_names() {
         NamedMultiValues::new("ports", MultiValues::Int32(vec![42])),
         NamedMultiValues::new("empty", MultiValues::Int32(Vec::new())),
     ] {
-        let encoded = ron::ser::to_string_pretty(&original, ron::ser::PrettyConfig::default().struct_names(true))
+        let encoded = to_string_pretty(&original, PrettyConfig::default().struct_names(true))
             .expect("serialize named collection with struct names");
         assert_eq!(
-            ron::from_str::<NamedMultiValues>(&encoded).expect("decode named collection"),
+            from_ron_str::<NamedMultiValues>(&encoded).expect("decode named collection"),
             original
         );
     }
@@ -155,15 +172,12 @@ fn test_ron_wire_rejects_invalid_envelope_fields_and_payloads() {
 #[cfg(feature = "big-decimal")]
 #[test]
 fn test_ron_big_decimal_roundtrip_preserves_coefficient_and_scale() {
-    use bigdecimal::BigDecimal;
-    use num_bigint::BigInt;
-
     for original in [
         ValueContainer::Scalar(Value::BigDecimal(BigDecimal::new(BigInt::from(12300), 4))),
         ValueContainer::Collection(MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(12300), 4)])),
     ] {
         let wire = ValueWireV1::try_from(original.clone()).expect("construct decimal wire");
-        let encoded = ron::ser::to_string_pretty(&wire, ron::ser::PrettyConfig::default().struct_names(true))
+        let encoded = to_string_pretty(&wire, PrettyConfig::default().struct_names(true))
             .expect("serialize decimal wire with struct names");
         let restored = decode_ron_wire(&encoded).expect("decode decimal wire");
         let (coefficient, scale) = restored
@@ -190,9 +204,6 @@ fn test_ron_big_decimal_rejects_invalid_payload() {
 #[cfg(feature = "chrono")]
 #[test]
 fn test_wire_instant_rejects_extended_years() {
-    use chrono::TimeZone;
-    use chrono::Utc;
-
     for year in [-1, 10000] {
         let instant = Utc.with_ymd_and_hms(year, 1, 1, 0, 0, 0).unwrap();
         let value = Value::Instant(instant);
@@ -222,17 +233,14 @@ fn test_wire_instant_rejects_extended_years() {
         assert!(
             matches!(ValueWirePayloadRefV1::try_from(&ValueContainer::Collection(values.clone())), Err(ValueWireEncodeError::InstantYearOutOfRange { year: actual }) if actual == year)
         );
-        assert!(serde_json::to_vec(&NamedValue::new("field", value)).is_err());
-        assert!(serde_json::to_vec(&NamedMultiValues::new("field", values)).is_err());
+        assert!(to_vec(&NamedValue::new("field", value)).is_err());
+        assert!(to_vec(&NamedMultiValues::new("field", values)).is_err());
     }
 }
 
 #[cfg(feature = "chrono")]
 #[test]
 fn test_wire_instant_rejects_mixed_out_of_range_collection_and_accepts_empty() {
-    use chrono::TimeZone;
-    use chrono::Utc;
-
     let valid = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
     let invalid = Utc.with_ymd_and_hms(10000, 1, 1, 0, 0, 0).unwrap();
     let values = MultiValues::Instant(vec![valid, invalid]);
@@ -262,15 +270,12 @@ fn test_wire_instant_rejects_mixed_out_of_range_collection_and_accepts_empty() {
 #[cfg(all(feature = "chrono", feature = "json"))]
 #[test]
 fn test_wire_instant_year_boundaries_round_trip() {
-    use chrono::TimeZone;
-    use chrono::Utc;
-
     for year in [0, 2026, 9999] {
         let value = Value::Instant(Utc.with_ymd_and_hms(year, 1, 1, 0, 0, 0).unwrap());
         let wire = ValueWireV1::try_from(value).expect("in-range instant should encode");
-        let bytes = serde_json::to_vec(&wire).expect("in-range instant should serialize");
+        let bytes = to_vec(&wire).expect("in-range instant should serialize");
         assert_eq!(
-            std::str::from_utf8(&bytes).expect("wire JSON should be UTF-8"),
+            from_utf8(&bytes).expect("wire JSON should be UTF-8"),
             format!("{{\"version\":1,\"value\":{{\"scalar\":{{\"instant\":\"{year:04}-01-01T00:00:00Z\"}}}}}}")
         );
         let decoded = ValueWireV1::decode_json_slice(&bytes).expect("in-range instant should decode");
@@ -285,7 +290,7 @@ fn test_wire_string_map_rejects_sequence_shape() {
 
     let error =
         ValueWirePayloadV1::decode_json_slice(input.as_bytes()).expect_err("a string map must reject a sequence");
-    assert!(matches!(error, qubit_value::ValueWireDecodeError::InvalidJson(_)));
+    assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
 }
 
 #[cfg(feature = "all")]
@@ -295,12 +300,14 @@ fn test_wire_instant_rejects_invalid_timestamp() {
 
     let error =
         ValueWirePayloadV1::decode_json_slice(input.as_bytes()).expect_err("an instant must use RFC 3339 syntax");
-    assert!(matches!(error, qubit_value::ValueWireDecodeError::InvalidJson(_)));
+    assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
 }
 
+/// Removes input coordinates so malformed collection fixtures can compare error
+/// precedence.
 fn collection_payload_error_without_location(payload: &str) -> String {
     let input = format!(r#"{{"version":1,"value":{payload}}}"#);
-    crate::decode_value_wire_str(&input)
+    decode_value_wire_str(&input)
         .expect_err("invalid collection payload must be rejected")
         .to_string()
         .split(" at line ")
@@ -313,11 +320,11 @@ fn collection_payload_error_without_location(payload: &str) -> String {
 #[test]
 fn test_wire_date_collection_reports_first_item_error_before_tail_error() {
     let valid = r#"{"version":1,"value":{"collection":{"date":["2026-07-14"]}}}"#;
-    let restored = crate::decode_value_wire_str(valid)
+    let restored = decode_value_wire_str(valid)
         .expect("valid date collection must reach the typed adapter")
         .into_container();
     assert!(restored.is_collection());
-    assert_eq!(restored.data_type(), qubit_datatype::DataType::Date);
+    assert_eq!(restored.data_type(), DataType::Date);
     assert_eq!(restored.len(), 1);
 
     let first_only = r#"{"collection":{"date":["not-a-date"]}}"#;
@@ -335,11 +342,11 @@ fn test_wire_date_collection_reports_first_item_error_before_tail_error() {
 #[test]
 fn test_wire_duration_collection_reports_first_item_error_before_tail_error() {
     let valid = r#"{"version":1,"value":{"collection":{"duration":[{"secs":0,"nanos":999999999}]}}}"#;
-    let restored = crate::decode_value_wire_str(valid)
+    let restored = decode_value_wire_str(valid)
         .expect("valid duration collection must reach the typed adapter")
         .into_container();
     assert!(restored.is_collection());
-    assert_eq!(restored.data_type(), qubit_datatype::DataType::Duration);
+    assert_eq!(restored.data_type(), DataType::Duration);
     assert_eq!(restored.len(), 1);
 
     let first_only = r#"{"collection":{"duration":[{"secs":0,"nanos":1000000000}]}}"#;
@@ -356,11 +363,11 @@ fn test_wire_duration_collection_reports_first_item_error_before_tail_error() {
 #[test]
 fn test_wire_decimal_collection_reports_first_item_error_before_tail_error() {
     let valid = r#"{"version":1,"value":{"collection":{"bigdecimal":[{"coefficient":"1","scale":150000}]}}}"#;
-    let restored = crate::decode_value_wire_str(valid)
+    let restored = decode_value_wire_str(valid)
         .expect("valid decimal collection must reach the typed adapter")
         .into_container();
     assert!(restored.is_collection());
-    assert_eq!(restored.data_type(), qubit_datatype::DataType::BigDecimal);
+    assert_eq!(restored.data_type(), DataType::BigDecimal);
     assert_eq!(restored.len(), 1);
 
     let first_only = r#"{"collection":{"bigdecimal":[{"coefficient":"1","scale":150001}]}}"#;
@@ -406,9 +413,9 @@ fn test_wire_payload_adapters_cover_every_value_type() {
         Value::DateTime(datetime),
         Value::Instant(instant),
         Value::Duration(Duration::from_millis(1234)),
-        Value::Url(url::Url::parse("https://example.com/path").expect("valid URL")),
+        Value::Url(Url::parse("https://example.com/path").expect("valid URL")),
         Value::StringMap(map),
-        Value::Json(serde_json::json!({"b": 2, "a": 1})),
+        Value::Json(json!({"b": 2, "a": 1})),
     ];
 
     for value in values {
@@ -418,8 +425,8 @@ fn test_wire_payload_adapters_cover_every_value_type() {
         assert_eq!(decoded, payload);
 
         let named = NamedValue::new("field", value.clone());
-        let named_bytes = serde_json::to_vec(&named).expect("named value should serialize");
-        let decoded_named = serde_json::from_slice::<NamedValue>(&named_bytes).expect("named value should decode");
+        let named_bytes = to_vec(&named).expect("named value should serialize");
+        let decoded_named = from_slice::<NamedValue>(&named_bytes).expect("named value should decode");
         assert_eq!(decoded_named, named);
     }
 
@@ -435,9 +442,9 @@ fn test_wire_payload_adapters_cover_every_value_type() {
             );
 
             let named = NamedMultiValues::new("field", values);
-            let bytes = serde_json::to_vec(&named).expect("named collection should serialize");
+            let bytes = to_vec(&named).expect("named collection should serialize");
             assert_eq!(
-                serde_json::from_slice::<NamedMultiValues>(&bytes).expect("named collection should decode"),
+                from_slice::<NamedMultiValues>(&bytes).expect("named collection should decode"),
                 named
             );
         }};
@@ -469,20 +476,20 @@ fn test_wire_payload_adapters_cover_every_value_type() {
     assert_collection_round_trip!(MultiValues::Instant(vec![instant]));
     assert_collection_round_trip!(MultiValues::Duration(vec![Duration::from_secs(1)]));
     assert_collection_round_trip!(MultiValues::Url(vec![
-        url::Url::parse("https://example.com").expect("valid URL")
+        Url::parse("https://example.com").expect("valid URL")
     ]));
     assert_collection_round_trip!(MultiValues::StringMap(vec![HashMap::from([(
         String::from("key"),
         String::from("value")
     )])]));
-    assert_collection_round_trip!(MultiValues::Json(vec![serde_json::json!({"a": 1})]));
+    assert_collection_round_trip!(MultiValues::Json(vec![json!({"a": 1})]));
 }
 
 /// Verifies the public wire facade preserves scalar values.
 #[test]
 fn test_wire_round_trips_scalar_value() {
     let wire = ValueWireV1::try_from(Value::Int32(7)).expect("construct V1 wire");
-    let decoded = crate::decode_value_wire_value(serde_json::to_value(wire).expect("wire value should serialize"))
+    let decoded = decode_value_wire_value(to_value(wire).expect("wire value should serialize"))
         .expect("wire value should decode");
     assert_eq!(
         decoded,
@@ -496,7 +503,7 @@ fn test_wire_payload_preserves_shape_without_version() {
     let payload = ValueWirePayloadV1::try_from(ValueContainer::from(vec![7_i32])).expect("construct V1 payload");
 
     assert_eq!(
-        serde_json::to_value(payload).expect("serialize V1 payload"),
-        serde_json::json!({"collection": {"int32": [7]}}),
+        to_value(payload).expect("serialize V1 payload"),
+        json!({"collection": {"int32": [7]}}),
     );
 }

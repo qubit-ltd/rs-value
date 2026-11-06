@@ -19,9 +19,18 @@ use qubit_datatype::NumericComparisonPolicy;
 use qubit_value::NumericComparisonError;
 use qubit_value::Value;
 
+/// Checks the expected order and its reverse under the same numeric policy.
 fn assert_numeric_order(left: Value, right: Value, policy: NumericComparisonPolicy, expected: Ordering) {
-    assert_eq!(left.numeric_cmp(&right, policy), Ok(expected));
-    assert_eq!(right.numeric_cmp(&left, policy), Ok(expected.reverse()));
+    assert_eq!(
+        left.numeric_cmp(&right, policy),
+        Ok(expected),
+        "forward comparison of {left:?} and {right:?} under {policy:?}",
+    );
+    assert_eq!(
+        right.numeric_cmp(&left, policy),
+        Ok(expected.reverse()),
+        "reverse comparison of {right:?} and {left:?} under {policy:?}",
+    );
 }
 
 /// Verifies numeric equality is distinct from representation identity.

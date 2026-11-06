@@ -18,7 +18,11 @@ use serde::ser::SerializeSeq;
 use super::internal::CanonicalStringMap;
 use super::internal::StrictStringMap;
 
-/// Serializes string maps in a collection with dictionary-ordered keys.
+/// Serializes string maps in collection order with lexicographically ordered
+/// keys.
+///
+/// Borrows each map without modifying it. Canonical serialization allocates a
+/// temporary list of borrowed entries for each map and sorts it by key.
 ///
 /// # Type Parameters
 ///
@@ -47,10 +51,16 @@ where
     sequence.end()
 }
 
-/// Deserializes a collection of string maps.
+/// Deserializes an owned collection of string maps while rejecting duplicate
+/// keys.
+///
+/// Preserves sequence order and moves each validated map into the output
+/// without cloning its keys or values. Keys and values are owned, so the result
+/// does not borrow from the deserializer's input.
 ///
 /// # Type Parameters
 ///
+/// * `'de` - Lifetime of the input provided by the deserializer.
 /// * `D` - Source deserializer type.
 ///
 /// # Parameters

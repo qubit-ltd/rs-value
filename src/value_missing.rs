@@ -51,10 +51,18 @@ use crate::ValueMissingReason;
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValueMissing {
+    /// Storage state or conversion-policy classification of the missing read.
     reason: ValueMissingReason,
+    /// Runtime source type, absent when the originating operation did not
+    /// retain it.
     source_type: Option<DataType>,
+    /// Requested target type, absent when no target information is available.
     target_type: Option<DataType>,
+    /// Zero-based original collection position, absent for scalar or outer
+    /// failures.
     source_index: Option<usize>,
+    /// Owned conversion cause, absent for descriptors created by strict storage
+    /// reads.
     #[cfg(feature = "converter")]
     conversion_error: Option<DataConversionError>,
 }
@@ -156,42 +164,6 @@ impl ValueMissing {
         }
     }
 
-    /// Enriches a conversion failure with facts known by its owning container.
-    ///
-    /// Only called after conversion admission has produced a missing error.
-    ///
-    /// # Parameters
-    ///
-    /// * `source` - Runtime type supplied by the owning container.
-    /// * `reason` - Storage classification supplied by that container.
-    ///
-    /// # Returns
-    ///
-    /// This descriptor with its source type and reason replaced.
-    #[cfg(feature = "converter")]
-    #[inline(always)]
-    pub(crate) fn with_storage(mut self, source: DataType, reason: ValueMissingReason) -> Self {
-        self.source_type = Some(source);
-        self.reason = reason;
-        self
-    }
-
-    /// Records the first collection item's original index when conversion lost
-    /// it.
-    ///
-    /// # Returns
-    ///
-    /// This descriptor with index zero recorded when it represents an
-    /// unindexed conversion failure; all other descriptors are unchanged.
-    #[cfg(feature = "converter")]
-    #[inline]
-    pub(crate) fn with_first_index(mut self) -> Self {
-        if self.reason == ValueMissingReason::Conversion && self.source_index.is_none() {
-            self.source_index = Some(0);
-        }
-        self
-    }
-
     /// Returns the storage or policy reason for this missing result.
     ///
     /// This value is always present, including when the source or target type
@@ -212,6 +184,7 @@ impl ValueMissing {
     /// # Returns
     ///
     /// `Some` with the stored source type when known; otherwise `None`.
+    #[must_use]
     #[inline(always)]
     pub const fn source_type(&self) -> Option<DataType> {
         self.source_type
@@ -223,6 +196,7 @@ impl ValueMissing {
     /// # Returns
     ///
     /// `Some` with the requested type when known; otherwise `None`.
+    #[must_use]
     #[inline(always)]
     pub const fn target_type(&self) -> Option<DataType> {
         self.target_type
@@ -235,6 +209,7 @@ impl ValueMissing {
     ///
     /// `Some` with the zero-based source index for an item failure; otherwise
     /// `None`.
+    #[must_use]
     #[inline(always)]
     pub const fn source_index(&self) -> Option<usize> {
         self.source_index
@@ -248,6 +223,7 @@ impl ValueMissing {
     /// `Some` with the preserved conversion error for conversion failures;
     /// otherwise `None`.
     #[cfg(feature = "converter")]
+    #[must_use]
     #[inline(always)]
     pub const fn conversion_error(&self) -> Option<&DataConversionError> {
         self.conversion_error.as_ref()
@@ -334,10 +310,59 @@ impl ValueMissing {
     pub const fn is_defaultable_for_conversion(&self) -> bool {
         self.is_unset() || (matches!(self.reason, ValueMissingReason::Conversion) && self.source_index.is_none())
     }
+
+    /// Enriches a conversion failure with facts known by its owning container.
+    ///
+    /// Only called after conversion admission has produced a missing error.
+    ///
+    /// # Parameters
+    ///
+    /// * `source` - Runtime type supplied by the owning container.
+    /// * `reason` - Storage classification supplied by that container.
+    ///
+    /// # Returns
+    ///
+    /// This descriptor with its source type and reason replaced.
+    #[cfg(feature = "converter")]
+    #[inline(always)]
+    pub(crate) fn with_storage(mut self, source: DataType, reason: ValueMissingReason) -> Self {
+        self.source_type = Some(source);
+        self.reason = reason;
+        self
+    }
+
+    /// Records the first collection item's original index when conversion lost
+    /// it.
+    ///
+    /// # Returns
+    ///
+    /// This descriptor with index zero recorded when it represents an
+    /// unindexed conversion failure; all other descriptors are unchanged.
+    #[cfg(feature = "converter")]
+    #[inline]
+    pub(crate) fn with_first_index(mut self) -> Self {
+        if self.reason == ValueMissingReason::Conversion && self.source_index.is_none() {
+            self.source_index = Some(0);
+        }
+        self
+    }
 }
 
 impl fmt::Display for ValueMissing {
     /// Formats diagnostic types and indices without exposing source payloads.
+    ///
+    /// # Parameters
+    ///
+    /// * `formatter` - Destination and formatting options supplied by the
+    ///   caller.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the diagnostic was written successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the destination rejects a formatted write.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             formatter,
@@ -354,6 +379,12 @@ impl fmt::Display for ValueMissing {
 impl std::error::Error for ValueMissing {
     /// Exposes the preserved conversion error, or terminates a strict-read
     /// chain.
+    ///
+    /// # Returns
+    ///
+    /// `Some` borrowing the retained conversion cause when present; `None` for
+    /// strict storage reads or when the `converter` feature is disabled.
+    #[inline]
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         #[cfg(feature = "converter")]
         {

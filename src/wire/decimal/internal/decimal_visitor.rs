@@ -32,14 +32,46 @@ where
     T: FromStr + fmt::Display,
     T::Err: fmt::Display,
 {
+    /// Decimal-backed value produced after canonical-text validation.
     type Value = T;
 
     /// Describes the textual input accepted by this visitor.
+    ///
+    /// # Parameters
+    ///
+    /// * `formatter` - Destination for the expected-input description.
+    ///
+    /// # Returns
+    ///
+    /// Success after writing the description.
+    ///
+    /// # Errors
+    ///
+    /// Returns the destination's formatting error if writing fails.
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a decimal string")
     }
 
     /// Parses one borrowed canonical decimal string.
+    ///
+    /// The parsed value must render back to exactly the input text.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `E` - Deserializer error type used to report invalid input.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Candidate canonical decimal representation.
+    ///
+    /// # Returns
+    ///
+    /// The parsed decimal-backed value.
+    ///
+    /// # Errors
+    ///
+    /// Returns `E` when parsing fails or the representation is not canonical.
+    #[inline]
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
     where
         E: de::Error,
@@ -48,6 +80,26 @@ where
     }
 
     /// Parses one owned canonical decimal string.
+    ///
+    /// The parsed value must render back to exactly the input text. The owned
+    /// string is dropped after parsing.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `E` - Deserializer error type used to report invalid input.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Candidate canonical decimal representation.
+    ///
+    /// # Returns
+    ///
+    /// The parsed decimal-backed value.
+    ///
+    /// # Errors
+    ///
+    /// Returns `E` when parsing fails or the representation is not canonical.
+    #[inline]
     fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
     where
         E: de::Error,

@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use bigdecimal::BigDecimal;
+use chrono::Days;
 use chrono::NaiveDate;
 use chrono::NaiveTime;
 use chrono::TimeZone;
@@ -20,6 +21,9 @@ use num_bigint::BigInt;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
+use serde_json::Map as JsonMap;
+use serde_json::Value as JsonValue;
+use serde_json::json;
 use url::Url;
 
 const TAG_COUNT: u8 = 52;
@@ -27,28 +31,36 @@ const MAX_INPUT: usize = 4096;
 const MAX_NODES: usize = 96;
 const MAX_TEXT: usize = 24;
 
+/// Reads bounded fuzz bytes, zero-filling exhausted scalar reads and advancing
+/// monotonically even when a requested slice extends past the input.
 struct Cursor<'a> {
     data: &'a [u8],
     at: usize,
 }
 impl<'a> Cursor<'a> {
+    #[must_use]
+    #[inline]
     fn new(data: &'a [u8]) -> Self {
         Self {
             data: &data[..data.len().min(MAX_INPUT)],
             at: 0,
         }
     }
+    #[inline]
     fn byte(&mut self) -> u8 {
         let b = self.data.get(self.at).copied().unwrap_or(0);
         self.at = self.at.saturating_add(1);
         b
     }
+    #[inline]
     fn take(&mut self, n: usize) -> &'a [u8] {
         let start = self.at.min(self.data.len());
         let end = start.saturating_add(n).min(self.data.len());
         self.at = self.at.saturating_add(n);
         &self.data[start..end]
     }
+    /// Consumes a length selector and charges available input bytes to the
+    /// shared text budget before replacing invalid UTF-8 sequences.
     fn text(&mut self, budget: &mut usize) -> String {
         let requested = usize::from(self.byte()) % (MAX_TEXT + 1);
         let bytes = self.take(requested.min(*budget));
@@ -57,22 +69,19 @@ impl<'a> Cursor<'a> {
     }
 }
 
-fn json_value(
-    cursor: &mut Cursor<'_>,
-    depth: usize,
-    nodes: &mut usize,
-    text_bytes_left: &mut usize,
-) -> serde_json::Value {
+/// Generates JSON with a shared node and input-text budget, limiting nesting
+/// to eight levels without parsing or validating production wire syntax.
+fn json_value(cursor: &mut Cursor<'_>, depth: usize, nodes: &mut usize, text_bytes_left: &mut usize) -> JsonValue {
     if *nodes == 0 {
-        return serde_json::Value::Null;
+        return JsonValue::Null;
     }
     *nodes -= 1;
     match cursor.byte() % if depth >= 8 { 5 } else { 7 } {
-        0 => serde_json::Value::Null,
-        1 => serde_json::Value::Bool(cursor.byte() & 1 != 0),
-        2 => serde_json::json!(i64::from(cursor.byte()) - 128),
-        3 => serde_json::json!((i16::from(cursor.byte()) - 128) as f64 / 10.0),
-        4 => serde_json::Value::String(cursor.text(text_bytes_left)),
+        0 => JsonValue::Null,
+        1 => JsonValue::Bool(cursor.byte() & 1 != 0),
+        2 => json!(i64::from(cursor.byte()) - 128),
+        3 => json!((i16::from(cursor.byte()) - 128) as f64 / 10.0),
+        4 => JsonValue::String(cursor.text(text_bytes_left)),
         5 if depth < 8 => {
             let len = usize::from(cursor.byte() % 9);
             let mut out = Vec::new();
@@ -82,11 +91,11 @@ fn json_value(
                 }
                 out.push(json_value(cursor, depth + 1, nodes, text_bytes_left));
             }
-            serde_json::Value::Array(out)
+            JsonValue::Array(out)
         }
         6 if depth < 8 => {
             let len = usize::from(cursor.byte() % 5);
-            let mut out = serde_json::Map::new();
+            let mut out = JsonMap::new();
             for i in 0..len {
                 if *nodes == 0 {
                     break;
@@ -94,13 +103,15 @@ fn json_value(
                 let key = format!("{}-{i}", cursor.text(text_bytes_left));
                 out.insert(key, json_value(cursor, depth + 1, nodes, text_bytes_left));
             }
-            serde_json::Value::Object(out)
+            JsonValue::Object(out)
         }
-        _ => serde_json::Value::Null,
+        _ => JsonValue::Null,
     }
 }
 
 /// Copies at most `N` fuzz bytes into a fixed-width little-endian buffer.
+#[must_use]
+#[inline]
 fn padded_bytes<const N: usize>(data: &[u8]) -> [u8; N] {
     let mut bytes = [0_u8; N];
     let copy_len = data.len().min(N);
@@ -109,24 +120,31 @@ fn padded_bytes<const N: usize>(data: &[u8]) -> [u8; N] {
 }
 
 /// Derives a deterministic scalar seed from the first fuzz bytes.
+#[must_use]
+#[inline]
 fn seed(data: &[u8]) -> u64 {
     u64::from_le_bytes(padded_bytes(data))
 }
 
 /// Converts a bounded suffix of fuzz input into valid UTF-8 text.
+#[must_use]
 fn text(data: &[u8]) -> String {
     String::from_utf8_lossy(data.get(1..data.len().min(25)).unwrap_or_default()).into_owned()
 }
 
 /// Maps a seed to a date inside a fixed one-year fuzzing window.
+#[must_use]
+#[inline]
 fn date(seed: u64) -> NaiveDate {
     NaiveDate::from_ymd_opt(2026, 1, 1)
         .expect("fixed fuzz date must be valid")
-        .checked_add_days(chrono::Days::new(seed % 365))
+        .checked_add_days(Days::new(seed % 365))
         .expect("fuzz date offset must remain in range")
 }
 
 /// Maps a seed to a valid time-of-day value.
+#[must_use]
+#[inline]
 fn time(seed: u64) -> NaiveTime {
     NaiveTime::from_hms_nano_opt(
         (seed % 24) as u32,
@@ -138,6 +156,7 @@ fn time(seed: u64) -> NaiveTime {
 }
 
 /// Builds a normalized URL from bounded selectors over known valid components.
+#[must_use]
 fn url(data: &[u8]) -> Url {
     let pick = |index: usize| data.get(index).copied().unwrap_or_default();
     let scheme = if pick(9) & 1 == 0 { "http" } else { "https" };

@@ -41,7 +41,10 @@ pub(crate) use url::Url;
 ///
 /// The materialization strategy is consumed by generated owned accessors and
 /// scalar projection code. `copy` dereferences borrowed storage, while `clone`
-/// clones it.
+/// clones it. Feature attributes are passed to the callback as tokens; the
+/// callback must apply them to every generated item or match arm that uses the
+/// corresponding optional type. Extra expressions precede the rows and are
+/// evaluated only where the callback expansion uses them.
 macro_rules! for_each_value_type {
     ($macro:ident $(, $arg:expr)*) => {
         $macro! {
@@ -76,6 +79,9 @@ macro_rules! for_each_value_type {
 }
 
 /// Materializes an owned value from borrowed variant storage.
+///
+/// The table selects `copy` only for copyable payloads. The `clone` strategy
+/// preserves the source and may allocate according to the payload type.
 macro_rules! materialize_stored {
     (copy, $value:expr) => {
         *$value
@@ -86,6 +92,9 @@ macro_rules! materialize_stored {
 }
 
 /// Resolves the scalar enum storage type for a public value family.
+///
+/// URL payloads use `Box` to keep scalar storage compact; all other families
+/// store their public payload type directly.
 macro_rules! value_storage_type {
     (Url, $type:ty) => {
         Box<$type>
@@ -96,6 +105,9 @@ macro_rules! value_storage_type {
 }
 
 /// Moves a public payload into its scalar enum storage representation.
+///
+/// Consumes the payload once. URL storage allocates a box; other families move
+/// directly without cloning.
 macro_rules! value_storage_new {
     (Url, $value:expr) => {
         Box::new($value)
@@ -106,6 +118,9 @@ macro_rules! value_storage_new {
 }
 
 /// Borrows the public payload stored by a scalar enum variant.
+///
+/// The input is a storage reference. URL storage borrows through its box; other
+/// families retain the input reference. No payload is cloned or allocated.
 macro_rules! value_storage_ref {
     (Url, $value:expr) => {
         $value.as_ref()
@@ -116,6 +131,9 @@ macro_rules! value_storage_ref {
 }
 
 /// Projects a table row into the payload type used by a borrowed view.
+///
+/// Boolean, character, and `number_copy` payloads are held by value. Strings
+/// become string slices; other payloads are borrowed for the supplied lifetime.
 macro_rules! value_view_payload_type {
     (Bool, $projection:ident, $lt:lifetime, $ty:ty) => { bool };
     (Char, $projection:ident, $lt:lifetime, $ty:ty) => { char };
@@ -125,6 +143,10 @@ macro_rules! value_view_payload_type {
 }
 
 /// Projects table storage into the corresponding borrowed-view payload.
+///
+/// Accepts a reference to the public payload, after removing any scalar storage
+/// wrapper. Copies scalar primitives and borrows strings as slices; other
+/// references pass through unchanged and cannot outlive the source storage.
 macro_rules! value_view_payload {
     (Bool, $projection:ident, $value:expr) => {
         *$value
@@ -144,6 +166,10 @@ macro_rules! value_view_payload {
 }
 
 /// Materializes an owned public payload from scalar enum storage.
+///
+/// Borrows the source and clones the URL payload through its box. Other
+/// families use the table-selected copy or clone strategy; cloning may
+/// allocate.
 macro_rules! materialize_value_storage {
     (Url, $materialization:ident, $value:expr) => {
         $value.as_ref().clone()
@@ -154,6 +180,9 @@ macro_rules! materialize_value_storage {
 }
 
 /// Moves scalar enum storage into its public payload type.
+///
+/// Consumes storage once, moving URL payloads out of their box and passing
+/// other payloads through unchanged. No payload is cloned.
 macro_rules! move_value_storage {
     (Url, $value:expr) => {
         *$value
@@ -164,6 +193,10 @@ macro_rules! move_value_storage {
 }
 
 /// Moves scalar enum storage into a matching multi-value element.
+///
+/// Multi-value elements store public payloads directly, so URL payloads move
+/// out of their scalar box. Other families pass through unchanged without
+/// cloning.
 macro_rules! value_storage_into_multi {
     (Url, $value:expr) => {
         *$value

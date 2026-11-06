@@ -76,6 +76,7 @@ pub use self::value_wire_v1_seed::ValueWireV1Seed;
 ///
 /// Structural and textual limits shared by V1 JSON encoders and decoders.
 #[cfg(feature = "json")]
+#[must_use]
 #[inline]
 pub(crate) fn default_json_value_limits() -> JsonValueLimits {
     JsonValueLimits::<JsonResource, usize>::builder()
@@ -96,6 +97,7 @@ pub(crate) fn default_json_value_limits() -> JsonValueLimits {
 ///
 /// Input-byte and decoded-value limits for one standalone V1 document.
 #[cfg(feature = "json")]
+#[must_use]
 #[inline]
 pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
     JsonDecodeLimits::builder()
@@ -110,6 +112,7 @@ pub(crate) fn default_json_decode_limits() -> JsonDecodeLimits {
 ///
 /// Output-byte and value limits for one standalone V1 document.
 #[cfg(feature = "json")]
+#[must_use]
 #[inline]
 pub(crate) fn default_json_encode_limits() -> JsonEncodeLimits {
     JsonEncodeLimits::builder()
@@ -123,8 +126,8 @@ pub(crate) fn default_json_encode_limits() -> JsonEncodeLimits {
 /// # Parameters
 ///
 /// * `input` - Complete UTF-8 JSON document to decode.
-/// * `session` - Caller-owned decode session charged for the complete envelope
-///   and its payload.
+/// * `session` - Decode session consumed by this operation and charged for the
+///   complete envelope and its payload; it may borrow caller-owned budgets.
 ///
 /// # Returns
 ///
@@ -133,7 +136,9 @@ pub(crate) fn default_json_encode_limits() -> JsonEncodeLimits {
 /// # Errors
 ///
 /// Returns [`ValueWireDecodeError::Budget`] when the document exceeds the
-/// budget, [`ValueWireDecodeError::UnsupportedVersion`] when the decoded
+/// budget, [`ValueWireDecodeError::Quantity`] when a resource measurement
+/// cannot be represented, [`ValueWireDecodeError::Syntax`] for malformed JSON,
+/// [`ValueWireDecodeError::UnsupportedVersion`] when the decoded
 /// envelope declares another `u8` version, or
 /// [`ValueWireDecodeError::InvalidJson`] when typed decoding fails.
 #[cfg(feature = "json")]

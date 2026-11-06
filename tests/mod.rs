@@ -18,7 +18,11 @@ pub(crate) use helpers_tests::decode_value_wire_str;
 pub(crate) use helpers_tests::decode_value_wire_value;
 mod contracts;
 #[cfg(all(feature = "converter", feature = "json"))]
-mod deep_json_helpers;
+pub(crate) use self::internal::deep_json_helpers;
+#[cfg(all(feature = "converter", feature = "json"))]
+mod internal {
+    pub(crate) mod deep_json_helpers;
+}
 mod finite_float_tests;
 mod identity;
 mod into_value_default_tests;

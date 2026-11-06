@@ -20,11 +20,28 @@ pub(in crate::wire) struct NumberTextComparator<'a> {
 
 impl<'a> NumberTextComparator<'a> {
     /// Creates a comparator borrowing the complete expected text.
+    ///
+    /// # Parameters
+    ///
+    /// * `expected` - Bytes to match, borrowed for the comparator's lifetime.
+    ///
+    /// # Returns
+    ///
+    /// A comparator with no expected bytes matched yet.
+    #[must_use]
+    #[inline]
     pub(in crate::wire) fn new(expected: &'a [u8]) -> Self {
         Self { expected, offset: 0 }
     }
 
     /// Returns whether all expected bytes have been matched.
+    ///
+    /// # Returns
+    ///
+    /// `true` when the matched byte count equals the expected length, including
+    /// when the expected slice is empty; `false` while bytes remain unmatched.
+    #[must_use]
+    #[inline]
     pub(in crate::wire) fn is_equal(&self) -> bool {
         self.offset == self.expected.len()
     }
@@ -33,8 +50,19 @@ impl<'a> NumberTextComparator<'a> {
 impl fmt::Write for NumberTextComparator<'_> {
     /// Compares one formatted fragment at the current byte offset.
     ///
-    /// Returns `fmt::Error` when the fragment differs or exceeds the expected
-    /// slice. A successful write advances the comparison offset.
+    /// # Parameters
+    ///
+    /// * `value` - Next text fragment to compare byte-for-byte.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after matching the fragment and advancing the comparison
+    /// offset.
+    ///
+    /// # Errors
+    ///
+    /// Returns `fmt::Error` without advancing the offset when the fragment
+    /// differs, exceeds the expected slice, or its end offset overflows.
     fn write_str(&mut self, value: &str) -> fmt::Result {
         let Some(end) = self.offset.checked_add(value.len()) else {
             return Err(fmt::Error);

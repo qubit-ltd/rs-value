@@ -13,9 +13,12 @@ use qubit_value::MultiValuesRef;
 fn test_multi_values_ref_borrows_collection_payload_without_changing_it() {
     let values = MultiValues::Int32(vec![1, 2, 3]);
 
-    assert!(matches!(
-        values.view(),
-        MultiValuesRef::Int32(items) if items == [1, 2, 3]
-    ));
+    assert!(
+        matches!(
+            values.view(),
+            MultiValuesRef::Int32(items) if items == [1, 2, 3]
+        ),
+        "the borrowed view must preserve the Int32 variant and all collection elements"
+    );
     assert_eq!(values.get_int32s().expect("read integers"), &[1, 2, 3]);
 }

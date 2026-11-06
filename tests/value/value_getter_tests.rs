@@ -116,6 +116,10 @@ fn test_value_try_from_borrowed_string_reports_each_storage_state() {
     );
 }
 
+/// Checks a scalar getter's value, matching unset state, and mismatched unset
+/// type.
+///
+/// A mismatched type must report a type error rather than a missing value.
 macro_rules! assert_scalar_getter_contract {
     ($value:expr, $getter:ident, $expected:expr, $data_type:expr, $wrong_type:expr) => {{
         let value = $value;

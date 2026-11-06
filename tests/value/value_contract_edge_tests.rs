@@ -8,12 +8,17 @@
 //! Boundary and error-path tests for the public [`Value`] contract.
 
 use std::collections::HashMap;
+use std::time::Duration;
 
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::DataConversionErrorKind;
 use qubit_datatype::DataType;
 use qubit_value::Value;
 use qubit_value::ValueError;
 use qubit_value::ValueMissing;
 use qubit_value::ValueRef;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde_json::json;
 
 #[test]
 fn test_value_get_or_only_falls_back_for_unset_storage() {
@@ -60,7 +65,7 @@ fn test_value_get_ref_matches_owned_strict_reads() {
 #[test]
 fn test_value_view_preserves_scalar_and_collection_semantics() {
     let map = HashMap::from([(String::from("key"), String::from("value"))]);
-    let duration = std::time::Duration::from_secs(3);
+    let duration = Duration::from_secs(3);
     assert!(matches!(
         Value::new_unset(DataType::Bool).view(),
         ValueRef::Unset(DataType::Bool)
@@ -102,13 +107,11 @@ fn test_value_view_preserves_scalar_and_collection_semantics() {
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_value_json_projection_and_serialization_errors_are_structured() {
-    use qubit_datatype::DataConversionErrorKind;
-
     assert_eq!(
-        Value::from_json_value(serde_json::json!({"answer": 42}))
+        Value::from_json_value(json!({"answer": 42}))
             .to_json_value()
             .expect("JSON values should project unchanged"),
-        serde_json::json!({"answer": 42})
+        json!({"answer": 42})
     );
     assert!(matches!(
         Value::Float64(f64::NAN).to_json_value(),

@@ -10,6 +10,7 @@
 
 use qubit_value::Value;
 use qubit_value::ValueWireRefV1;
+use serde_json::json;
 use serde_json::to_value;
 
 #[test]
@@ -17,5 +18,9 @@ fn test_borrowed_scalar_wire_serializes() {
     let value = Value::Int32(1);
     let wire = ValueWireRefV1::try_from(&value).expect("construct borrowed scalar wire");
 
-    to_value(wire).expect("serialize borrowed scalar wire");
+    assert_eq!(
+        to_value(wire).expect("serialize borrowed scalar wire"),
+        json!({"version": 1, "value": {"scalar": {"int32": 1}}}),
+        "borrowed scalar wire must preserve the V1 envelope and scalar type",
+    );
 }

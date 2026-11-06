@@ -46,7 +46,8 @@ pub enum ValueWireDecodeError {
     Read {
         /// Stable standard I/O failure category.
         kind: io::ErrorKind,
-        /// Original error retained for detailed diagnostics.
+        /// Reference-counted original error retained under detailed diagnostics
+        /// (`Some`), or absent under privacy-safe diagnostics (`None`).
         #[source]
         source: Option<Arc<io::Error>>,
     },
@@ -109,6 +110,7 @@ impl ValueWireDecodeError {
     /// # Returns
     ///
     /// An invalid-JSON error that retains diagnostics without input contents.
+    #[inline]
     fn deserialize(category: Category, line: usize, column: usize) -> Self {
         Self::InvalidJson(ValueWireJsonError::new(category, line, column))
     }

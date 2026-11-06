@@ -18,10 +18,15 @@ macro_rules! define_view {
         /// The lifetime is that of the source storage; copying this view does
         /// not clone strings, maps, JSON, or other rich payloads.
         ///
+        /// # Type Parameters
+        ///
+        /// - `'a`: lifetime of the source storage borrowed by payload references.
+        ///
         /// # Examples
         ///
         /// ```
-        /// use qubit_value::{Value, ValueRef};
+        /// use qubit_value::Value;
+        /// use qubit_value::ValueRef;
         ///
         /// let value = Value::from(42_i32);
         /// let view: ValueRef<'_> = value.view();
@@ -34,8 +39,8 @@ macro_rules! define_view {
             /// Unset storage retaining its declared type.
             Unset(#[doc = "Declared source type."] DataType),
             $(
-                $(#[$cfg])*
                 #[doc = $value_doc]
+                $(#[$cfg])*
                 $variant(#[doc = "Borrowed or copied source payload."] value_view_payload_type!($variant, $number_projection, 'a, $type)),
             )+
         }

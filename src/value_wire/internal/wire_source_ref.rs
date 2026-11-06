@@ -20,7 +20,15 @@ use crate::Value;
 #[derive(Clone, Copy)]
 pub(in crate::value_wire) enum WireSourceRef<'a> {
     /// One runtime scalar value.
-    Scalar(&'a Value),
+    Scalar(
+        /// Runtime scalar borrowed for `'a` without cloning or taking
+        /// ownership.
+        &'a Value,
+    ),
     /// One homogeneous runtime collection.
-    Collection(&'a MultiValues),
+    Collection(
+        /// Homogeneous collection borrowed for `'a` without copying its
+        /// elements.
+        &'a MultiValues,
+    ),
 }

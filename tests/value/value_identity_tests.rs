@@ -12,6 +12,10 @@ use std::collections::HashSet;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hash;
 use std::hash::Hasher;
+#[cfg(feature = "json")]
+use std::panic::AssertUnwindSafe;
+#[cfg(feature = "json")]
+use std::panic::catch_unwind;
 #[cfg(all(
     feature = "chrono",
     feature = "big-integer",
@@ -74,6 +78,10 @@ use qubit_budget::json::JsonValueLimits;
 ))]
 use qubit_datatype::DataType;
 use qubit_value::Value;
+#[cfg(feature = "json")]
+use serde_json::from_str;
+#[cfg(feature = "json")]
+use serde_json::json;
 #[cfg(all(
     feature = "chrono",
     feature = "big-integer",
@@ -83,6 +91,7 @@ use qubit_value::Value;
 ))]
 use url::Url;
 
+/// Records every written byte so rejected hashes can be checked for atomicity.
 #[cfg(feature = "json")]
 #[derive(Default)]
 struct RecordingHasher(Vec<u8>);
@@ -98,6 +107,7 @@ impl Hasher for RecordingHasher {
     }
 }
 
+/// Panics on writes to exercise rollback while unwinding from a hash callback.
 #[cfg(feature = "json")]
 struct PanickingHasher;
 
@@ -158,14 +168,11 @@ fn test_value_map_and_json_identity_is_order_independent() {
     assert_eq!(left, right);
     assert_eq!(hash(&left), hash(&right));
 
-    let left = Value::Json(serde_json::from_str(r#"{"b":{"y":2,"x":1},"a":0}"#).unwrap());
-    let right = Value::Json(serde_json::from_str(r#"{"a":0,"b":{"x":1,"y":2}}"#).unwrap());
+    let left = Value::Json(from_str(r#"{"b":{"y":2,"x":1},"a":0}"#).unwrap());
+    let right = Value::Json(from_str(r#"{"a":0,"b":{"x":1,"y":2}}"#).unwrap());
     assert_eq!(left, right);
     assert_eq!(hash(&left), hash(&right));
-    assert_ne!(
-        Value::Json(serde_json::json!([1, 2])),
-        Value::Json(serde_json::json!([2, 1]))
-    );
+    assert_ne!(Value::Json(json!([1, 2])), Value::Json(json!([2, 1])));
 }
 
 /// Verifies variants remain representation-distinct and usable as hash keys.
@@ -222,7 +229,7 @@ fn test_value_identity_covers_every_variant() {
         Value::Duration(Duration::new(8, 9)),
         Value::new(Url::parse("https://example.com/path").unwrap()),
         Value::StringMap(HashMap::from([("key".to_owned(), "value".to_owned())])),
-        Value::Json(serde_json::json!({
+        Value::Json(json!({
             "items": [null, true, 42, "text", [], {}]
         })),
     ];
@@ -277,7 +284,7 @@ fn test_value_big_decimal_hash_handles_extreme_scales() {
 #[cfg(feature = "json")]
 #[test]
 fn test_value_hash_with_json_budget_rejects_json_exceeding_node_budget() {
-    let value = Value::Json(serde_json::json!([null]));
+    let value = Value::Json(json!([null]));
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
         .max_nodes(1_usize)
         .budget();
@@ -303,7 +310,7 @@ fn test_value_hash_with_json_budget_rejects_json_exceeding_node_budget() {
 #[cfg(feature = "json")]
 #[test]
 fn test_value_hash_with_json_budget_error_is_atomic() {
-    let value = Value::Json(serde_json::json!([null]));
+    let value = Value::Json(json!([null]));
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
     let mut state = RecordingHasher::default();
 
@@ -316,7 +323,7 @@ fn test_value_hash_with_json_budget_error_is_atomic() {
 #[cfg(feature = "json")]
 #[test]
 fn test_value_hash_with_json_budget_preserves_identity() {
-    let value = Value::Json(serde_json::json!({"items": [null, 1]}));
+    let value = Value::Json(json!({"items": [null, 1]}));
     let expected = hash(&value);
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder().budget();
     let mut state = DefaultHasher::new();
@@ -331,10 +338,10 @@ fn test_value_hash_with_json_budget_preserves_identity() {
 #[cfg(feature = "json")]
 #[test]
 fn test_value_hash_with_json_budget_panic_rolls_back_budget() {
-    let value = Value::Json(serde_json::json!(null));
+    let value = Value::Json(json!(null));
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
 
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    let result = catch_unwind(AssertUnwindSafe(|| {
         value.hash_with_json_budget(&mut PanickingHasher, &mut budget)
     }));
     assert!(result.is_err());

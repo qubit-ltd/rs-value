@@ -13,6 +13,8 @@ use std::str::FromStr;
 use bigdecimal::BigDecimal;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
+#[cfg(feature = "url")]
+use qubit_datatype::DataType;
 use qubit_value::Value;
 #[cfg(feature = "url")]
 use url::Url;
@@ -42,8 +44,6 @@ fn test_value_constructor_handles_owned_reference_and_special_types() {
 
     #[cfg(feature = "url")]
     {
-        use qubit_datatype::DataType;
-
         let url = Url::parse("https://example.com/a").expect("test URL should parse");
         assert_eq!(
             Value::new(url.clone())

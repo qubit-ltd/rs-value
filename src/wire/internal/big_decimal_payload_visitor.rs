@@ -8,13 +8,22 @@
 
 //! Serde visitor for an arbitrary-precision decimal payload.
 
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
+
 use serde::de::Error;
+use serde::de::IgnoredAny;
 use serde::de::MapAccess;
 use serde::de::SeqAccess;
 use serde::de::Visitor;
 
 use super::BigDecimalPayload;
 
+/// Decodes coefficient and scale records without validating decimal
+/// canonicality.
+///
+/// Named fields are always accepted; ordered fields are accepted only for
+/// formats whose deserializer reports a non-human-readable representation.
 pub(super) struct BigDecimalPayloadVisitor {
     /// Whether ordered struct sequences are permitted by the format.
     allow_sequence: bool,
@@ -22,18 +31,62 @@ pub(super) struct BigDecimalPayloadVisitor {
 
 impl BigDecimalPayloadVisitor {
     /// Creates a visitor with the sequence policy for the current format.
+    ///
+    /// # Parameters
+    ///
+    /// * `allow_sequence` - Whether coefficient-then-scale sequences are
+    ///   accepted.
+    ///
+    /// # Returns
+    ///
+    /// A visitor enforcing the supplied representation policy.
+    #[must_use]
+    #[inline]
     pub(super) fn new(allow_sequence: bool) -> Self {
         Self { allow_sequence }
     }
 }
 
 impl<'de> Visitor<'de> for BigDecimalPayloadVisitor {
+    /// The decoded record, before canonical coefficient and scale validation.
     type Value = BigDecimalPayload;
 
     /// Describes the decimal payload record expected by this visitor.
-    fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    ///
+    /// # Parameters
+    ///
+    /// * `f` - Formatter receiving the expected record description.
+    ///
+    /// # Returns
+    ///
+    /// Success after writing the description.
+    ///
+    /// # Errors
+    ///
+    /// Returns the formatter's error if writing fails.
+    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.write_str("decimal payload record with coefficient and scale fields")
     }
+
+    /// Consumes an ordered coefficient and scale record when sequences are
+    /// allowed.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `A` - Sequence access supplied by the deserializer.
+    ///
+    /// # Parameters
+    ///
+    /// * `seq` - Owned access to the coefficient followed by the scale.
+    ///
+    /// # Returns
+    ///
+    /// The decoded payload without canonical decimal validation.
+    ///
+    /// # Errors
+    ///
+    /// Rejects forbidden sequences, missing or extra elements, and element
+    /// deserialization failures.
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
@@ -43,11 +96,31 @@ impl<'de> Visitor<'de> for BigDecimalPayloadVisitor {
         }
         let coefficient = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
         let scale = seq.next_element()?.ok_or_else(|| Error::invalid_length(1, &self))?;
-        if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
+        if seq.next_element::<IgnoredAny>()?.is_some() {
             return Err(Error::invalid_length(3, &self));
         }
         Ok(BigDecimalPayload { coefficient, scale })
     }
+
+    /// Consumes a named record containing exactly one coefficient and one
+    /// scale.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `A` - Map access supplied by the deserializer.
+    ///
+    /// # Parameters
+    ///
+    /// * `map` - Owned access to named fields in any order.
+    ///
+    /// # Returns
+    ///
+    /// The decoded payload without canonical decimal validation.
+    ///
+    /// # Errors
+    ///
+    /// Rejects unknown, duplicate, or missing fields and propagates key or
+    /// value deserialization failures.
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,

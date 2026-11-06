@@ -24,8 +24,19 @@ pub(crate) struct JsonLengthWriter {
 impl Write for JsonLengthWriter {
     /// Adds the input length to the byte count without storing the input.
     ///
-    /// Returns an error if the updated count would exceed `usize::MAX`; in
-    /// that case, the existing count is preserved.
+    /// # Parameters
+    ///
+    /// - `bytes`: Borrowed input whose full length is counted; no bytes are
+    ///   retained.
+    ///
+    /// # Returns
+    ///
+    /// Returns the full input length on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the updated count would exceed `usize::MAX`, leaving
+    /// the existing count unchanged.
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         self.len = self
             .len
@@ -35,6 +46,11 @@ impl Write for JsonLengthWriter {
     }
 
     /// Completes a no-op flush because this sink retains no buffered data.
+    ///
+    /// # Returns
+    ///
+    /// Always returns `Ok(())` without changing the byte count.
+    #[inline]
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }

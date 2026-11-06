@@ -16,6 +16,9 @@ use std::fmt;
 use std::hash::Hash;
 #[cfg(feature = "json")]
 use std::hash::Hasher;
+#[cfg(feature = "json")]
+use std::mem::discriminant;
+use std::mem::replace;
 use std::time::Duration;
 
 #[cfg(feature = "big-decimal")]
@@ -53,6 +56,8 @@ use qubit_datatype::DataConverter;
 #[cfg(feature = "converter")]
 use qubit_datatype::DataConverters;
 use qubit_datatype::DataType;
+#[cfg(feature = "json")]
+use serde_json::Value as JsonValue;
 #[cfg(feature = "url")]
 use url::Url;
 
@@ -129,6 +134,20 @@ pub struct MultiValues {
 }
 
 impl fmt::Debug for MultiValues {
+    /// Formats the borrowed semantic view without cloning stored elements.
+    ///
+    /// # Parameters
+    ///
+    /// * `formatter` - Destination and formatting options.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the view is written.
+    ///
+    /// # Errors
+    ///
+    /// Propagates an error from the formatting destination.
+    #[inline]
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.view().fmt(formatter)
     }
@@ -379,7 +398,7 @@ impl MultiValues {
                 for value in values {
                     preflight_json(value, &mut transaction)?;
                 }
-                std::mem::discriminant(&self.repr).hash(state);
+                discriminant(&self.repr).hash(state);
                 values.len().hash(state);
                 for value in values {
                     hash_json(value, state);
@@ -387,7 +406,7 @@ impl MultiValues {
                 transaction.commit()
             }
             _ => {
-                std::mem::discriminant(&self.repr).hash(state);
+                discriminant(&self.repr).hash(state);
                 hash_non_json_multi_values_payload(&self.repr, state);
                 Ok(())
             }
@@ -544,7 +563,7 @@ impl MultiValues {
     /// Returns a list conversion error containing the zero-based source index
     /// when an item cannot be represented as JSON.
     #[inline]
-    pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
+    pub fn to_json_value(&self) -> ValueResult<JsonValue> {
         self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
@@ -568,11 +587,7 @@ impl MultiValues {
     /// represented under the requested policy, or another structured
     /// conversion error for unsupported values.
     #[inline(always)]
-    pub fn to_json_value_with(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<serde_json::Value> {
+    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
         crate::json::multi_values_to_json_value_with(self, policy, limits)
     }
 }
@@ -618,7 +633,7 @@ macro_rules! multi_values_append_match {
                 }
             )+
             (slot @ MultiValuesRepr::Unset(_), other_values) => {
-                *slot = std::mem::replace(other_values, MultiValuesRepr::Unset(DataType::String));
+                *slot = replace(other_values, MultiValuesRepr::Unset(DataType::String));
             }
             _ => unreachable!(),
         }
@@ -691,7 +706,7 @@ impl MultiValues {
     /// Generic constructor method
     ///
     /// Creates `MultiValues` from any supported input form, avoiding direct
-    /// use of enum variants at call sites.
+    /// use of type-specific named constructors at call sites.
     ///
     /// Supported input forms include single values, vectors, slices, arrays,
     /// borrowed vectors, and borrowed string collections for supported element
@@ -844,14 +859,6 @@ impl MultiValues {
     /// Reads the first stored value as `T`, performing strict type checking.
     ///
     /// `get_first<T>()` does not do cross-type conversion.
-    #[cfg_attr(
-        feature = "converter",
-        doc = "When the `converter` feature is enabled, use [`Self::to_first`] for compatible cross-type conversion."
-    )]
-    #[cfg_attr(
-        not(feature = "converter"),
-        doc = "With the `converter` feature enabled, `to_first` provides compatible cross-type conversion."
-    )]
     ///
     /// # Type Parameters
     ///
@@ -897,6 +904,14 @@ impl MultiValues {
     /// let values = MultiValues::Int32(vec![1, 2]);
     /// let _: Vec<i32> = values.get_first::<Vec<i32>>().unwrap();
     /// ```
+    #[cfg_attr(
+        feature = "converter",
+        doc = "When the `converter` feature is enabled, use [`Self::to_first`] for compatible cross-type conversion."
+    )]
+    #[cfg_attr(
+        not(feature = "converter"),
+        doc = "With the `converter` feature enabled, `to_first` provides compatible cross-type conversion."
+    )]
     #[inline(always)]
     pub fn get_first<T>(&self) -> ValueResult<T>
     where
@@ -983,6 +998,131 @@ impl MultiValues {
             Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => Ok(default()),
             result => result,
         }
+    }
+
+    /// Get the data type of the values
+    ///
+    /// # Returns
+    ///
+    /// Returns the data type corresponding to these multiple values
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qubit_datatype::DataType;
+    /// use qubit_value::MultiValues;
+    ///
+    /// let values = MultiValues::Int32(vec![1, 2, 3]);
+    /// assert_eq!(values.data_type(), DataType::Int32);
+    /// ```
+    #[must_use = "the collection element type should be used"]
+    #[inline(always)]
+    pub fn data_type(&self) -> DataType {
+        for_each_value_type!(multi_values_data_type_match, self)
+    }
+
+    /// Returns the number of values.
+    ///
+    /// # Returns
+    ///
+    /// The number of values contained in these multiple values. An unset
+    /// collection has length zero.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qubit_datatype::DataType;
+    /// use qubit_value::MultiValues;
+    ///
+    /// let values = MultiValues::Int32(vec![1, 2, 3]);
+    /// assert_eq!(values.len(), 3);
+    ///
+    /// let empty = MultiValues::Unset(DataType::String);
+    /// assert_eq!(empty.len(), 0);
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        for_each_value_type!(multi_values_count_match, self)
+    }
+
+    /// Tests whether this collection contains no values.
+    ///
+    /// An unset collection and a concrete empty vector both have length zero.
+    /// Use [`MultiValues::is_unset`] when the distinction between no collection
+    /// and a concrete empty collection matters.
+    ///
+    /// # Returns
+    ///
+    /// `true` when [`Self::len`] is zero; otherwise, `false`.
+    #[inline(always)]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Tests whether this container has no concrete vector.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` only for [`MultiValues::Unset`]. A concrete empty vector
+    /// returns `false`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qubit_datatype::DataType;
+    /// use qubit_value::MultiValues;
+    ///
+    /// let values = MultiValues::Int32(vec![]);
+    /// assert!(!values.is_unset());
+    ///
+    /// let empty = MultiValues::Unset(DataType::String);
+    /// assert!(empty.is_unset());
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn is_unset(&self) -> bool {
+        matches!(self.repr, MultiValuesRepr::Unset(_))
+    }
+
+    /// Tests whether a concrete collection belongs to the numeric type family.
+    ///
+    /// A concrete empty numeric vector returns `true`; an unset collection
+    /// returns `false`, even when its declared type is numeric.
+    ///
+    /// # Returns
+    ///
+    /// `true` for concrete collections with a numeric element type.
+    #[inline]
+    #[must_use]
+    pub fn is_numeric(&self) -> bool {
+        !self.is_unset() && self.data_type().is_numeric()
+    }
+
+    /// Converts the first element to a single [`Value`].
+    ///
+    /// Returns `Value::Unset` with the same declared type when no element is
+    /// stored.
+    ///
+    /// # Returns
+    ///
+    /// A cloned first item, or a typed unset value when no item exists.
+    #[inline(always)]
+    pub fn first_value(&self) -> Value {
+        for_each_value_type!(multi_values_first_value_match, self)
+    }
+
+    /// Consumes this collection and returns its first item as a [`Value`].
+    ///
+    /// Empty and unset collections become [`Value::Unset`] with the same data
+    /// type. Owned element storage is moved instead of cloned.
+    ///
+    /// # Returns
+    ///
+    /// The owned first item, or a typed unset value when no item exists.
+    pub fn into_first_value(self) -> Value {
+        for_each_value_type!(multi_values_into_first_value_match, self)
     }
 
     /// Generic setter method
@@ -1117,132 +1257,6 @@ impl MultiValues {
         Ok(())
     }
 
-    /// Get the data type of the values
-    ///
-    /// # Returns
-    ///
-    /// Returns the data type corresponding to these multiple values
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use qubit_datatype::DataType;
-    /// use qubit_value::MultiValues;
-    ///
-    /// let values = MultiValues::Int32(vec![1, 2, 3]);
-    /// assert_eq!(values.data_type(), DataType::Int32);
-    /// ```
-    #[must_use = "the collection element type should be used"]
-    #[inline(always)]
-    pub fn data_type(&self) -> DataType {
-        for_each_value_type!(multi_values_data_type_match, self)
-    }
-
-    /// Returns the number of values.
-    ///
-    /// # Returns
-    ///
-    /// The number of values contained in these multiple values. An unset
-    /// collection has length zero.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use qubit_datatype::DataType;
-    /// use qubit_value::MultiValues;
-    ///
-    /// let values = MultiValues::Int32(vec![1, 2, 3]);
-    /// assert_eq!(values.len(), 3);
-    ///
-    /// let empty = MultiValues::Unset(DataType::String);
-    /// assert_eq!(empty.len(), 0);
-    /// ```
-    #[inline(always)]
-    #[must_use]
-    pub fn len(&self) -> usize {
-        for_each_value_type!(multi_values_count_match, self)
-    }
-
-    /// Tests whether this collection contains no values.
-    ///
-    /// An unset collection and a concrete empty vector both have length zero.
-    /// Use [`MultiValues::is_unset`] when the distinction between no collection
-    /// and a concrete empty collection matters.
-    ///
-    /// # Returns
-    ///
-    /// `true` when [`Self::len`] is zero; otherwise, `false`.
-    #[inline(always)]
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    /// Tests whether this container has no concrete vector.
-    ///
-    /// # Returns
-    ///
-    /// Returns `true` only for [`MultiValues::Unset`]. A concrete empty vector
-    /// returns `false`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use qubit_datatype::DataType;
-    /// use qubit_value::MultiValues;
-    ///
-    /// let values = MultiValues::Int32(vec![]);
-    /// assert!(!values.is_unset());
-    ///
-    /// let empty = MultiValues::Unset(DataType::String);
-    /// assert!(empty.is_unset());
-    /// ```
-    #[inline(always)]
-    #[must_use]
-    pub fn is_unset(&self) -> bool {
-        matches!(self.repr, MultiValuesRepr::Unset(_))
-    }
-
-    /// Tests whether a concrete collection belongs to the numeric type family.
-    ///
-    /// A concrete empty numeric vector returns `true`; an unset collection
-    /// returns `false`, even when its declared type is numeric.
-    ///
-    /// # Returns
-    ///
-    /// `true` for concrete collections with a numeric element type.
-    #[inline]
-    #[must_use]
-    pub fn is_numeric(&self) -> bool {
-        !self.is_unset() && self.data_type().is_numeric()
-    }
-
-    /// Removes the concrete vector while preserving its declared data type.
-    #[inline]
-    pub fn unset(&mut self) {
-        *self = MultiValues::new_unset(self.data_type());
-    }
-
-    /// Clears all values while preserving a concrete collection and its type.
-    /// An unset collection remains unset because it has no concrete vector to
-    /// clear.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use qubit_datatype::DataType;
-    /// use qubit_value::MultiValues;
-    ///
-    /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
-    /// values.clear();
-    /// assert_eq!(values.len(), 0);
-    /// assert_eq!(values.data_type(), DataType::Int32);
-    /// ```
-    #[inline]
-    pub fn clear(&mut self) {
-        for_each_value_type!(multi_values_clear_match, self)
-    }
-
     /// Set the data type
     ///
     /// If the new type differs from the current type, clears all values and
@@ -1268,31 +1282,6 @@ impl MultiValues {
         if self.data_type() != data_type {
             *self = MultiValues::new_unset(data_type);
         }
-    }
-
-    /// Converts the first element to a single [`Value`].
-    ///
-    /// Returns `Value::Unset` with the same declared type when no element is
-    /// stored.
-    ///
-    /// # Returns
-    ///
-    /// A cloned first item, or a typed unset value when no item exists.
-    #[inline(always)]
-    pub fn first_value(&self) -> Value {
-        for_each_value_type!(multi_values_first_value_match, self)
-    }
-
-    /// Consumes this collection and returns its first item as a [`Value`].
-    ///
-    /// Empty and unset collections become [`Value::Unset`] with the same data
-    /// type. Owned element storage is moved instead of cloned.
-    ///
-    /// # Returns
-    ///
-    /// The owned first item, or a typed unset value when no item exists.
-    pub fn into_first_value(self) -> Value {
-        for_each_value_type!(multi_values_into_first_value_match, self)
     }
 
     /// Appends all values from another container with the same data type.
@@ -1322,9 +1311,46 @@ impl MultiValues {
         for_each_value_type!(multi_values_merge_match, self, other);
         Ok(())
     }
+
+    /// Removes the concrete vector while preserving its declared data type.
+    #[inline]
+    pub fn unset(&mut self) {
+        *self = MultiValues::new_unset(self.data_type());
+    }
+
+    /// Clears all values while preserving a concrete collection and its type.
+    /// An unset collection remains unset because it has no concrete vector to
+    /// clear.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qubit_datatype::DataType;
+    /// use qubit_value::MultiValues;
+    ///
+    /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
+    /// values.clear();
+    /// assert_eq!(values.len(), 0);
+    /// assert_eq!(values.data_type(), DataType::Int32);
+    /// ```
+    #[inline]
+    pub fn clear(&mut self) {
+        for_each_value_type!(multi_values_clear_match, self)
+    }
 }
 
 impl From<Value> for MultiValues {
+    /// Moves a scalar payload into a one-item collection, preserving its type.
+    ///
+    /// An unset scalar becomes an unset collection with the same declared type.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Scalar whose owned storage is transferred to the collection.
+    ///
+    /// # Returns
+    ///
+    /// A one-item collection, or a typed unset collection for an unset scalar.
     fn from(value: Value) -> Self {
         for_each_value_type!(value_into_multi_values_match, value)
     }
@@ -1485,23 +1511,6 @@ where
 
 #[cfg(feature = "converter")]
 impl MultiValues {
-    /// Enriches only missing failures after conversion, retaining
-    /// resource-error priority.
-    fn contextual_conversion_error(&self, error: ValueError, first: bool) -> ValueError {
-        let ValueError::Missing(missing) = error else {
-            return error;
-        };
-        let reason = if self.is_unset() {
-            crate::ValueMissingReason::UnsetCollection
-        } else if self.is_empty() {
-            crate::ValueMissingReason::EmptyCollection
-        } else {
-            crate::ValueMissingReason::Conversion
-        };
-        let missing = missing.with_storage(self.data_type(), reason);
-        ValueError::Missing(if first { missing.with_first_index() } else { missing })
-    }
-
     /// Converts the first stored value to `T`.
     ///
     /// Unlike [`Self::get_first`], this method uses shared `DataConverter`
@@ -1779,6 +1788,7 @@ impl MultiValues {
     ///
     /// Returns the first conversion error encountered while converting an
     /// element.
+    #[inline]
     pub fn to_list<T>(&self) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
@@ -1989,6 +1999,35 @@ impl MultiValues {
             result => result,
         }
     }
+
+    /// Enriches only missing failures after conversion, retaining
+    /// resource-error priority.
+    ///
+    /// # Parameters
+    ///
+    /// * `error` - Conversion failure to enrich only when it denotes a missing
+    ///   value.
+    /// * `first` - Whether to attach the first-item index to missing-value
+    ///   context.
+    ///
+    /// # Returns
+    ///
+    /// The missing failure with storage context, or the original non-missing
+    /// failure.
+    fn contextual_conversion_error(&self, error: ValueError, first: bool) -> ValueError {
+        let ValueError::Missing(missing) = error else {
+            return error;
+        };
+        let reason = if self.is_unset() {
+            crate::ValueMissingReason::UnsetCollection
+        } else if self.is_empty() {
+            crate::ValueMissingReason::EmptyCollection
+        } else {
+            crate::ValueMissingReason::Conversion
+        };
+        let missing = missing.with_storage(self.data_type(), reason);
+        ValueError::Missing(if first { missing.with_first_index() } else { missing })
+    }
 }
 
 impl MultiValues {
@@ -2141,36 +2180,37 @@ impl MultiValues {
         ref: get_first_string, String, &str, DataType::String, |s: &String| s.as_str()
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_first_value! {
         /// Get the first date value
         ///
         /// # Returns
         ///
         /// If types match and a value exists, returns the first date value; see `# Errors`.
-        #[cfg(feature = "chrono")]
         copy: get_first_date, Date, NaiveDate, DataType::Date
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_first_value! {
         /// Get the first time value
         ///
         /// # Returns
         ///
         /// If types match and a value exists, returns the first time value; see `# Errors`.
-        #[cfg(feature = "chrono")]
         copy: get_first_time, Time, NaiveTime, DataType::Time
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_first_value! {
         /// Get the first datetime value
         ///
         /// # Returns
         ///
         /// If types match and a value exists, returns the first datetime value; see `# Errors`.
-        #[cfg(feature = "chrono")]
         copy: get_first_datetime, DateTime, NaiveDateTime, DataType::DateTime
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_first_value! {
         /// Get the first UTC instant value
         ///
@@ -2178,10 +2218,10 @@ impl MultiValues {
         ///
         /// If types match and a value exists, returns the first UTC instant
         /// value; see `# Errors`.
-        #[cfg(feature = "chrono")]
         copy: get_first_instant, Instant, DateTime<Utc>, DataType::Instant
     }
 
+    #[cfg(feature = "big-integer")]
     impl_get_first_value! {
         /// Get the first big integer value
         ///
@@ -2189,10 +2229,10 @@ impl MultiValues {
         ///
         /// If types match and a value exists, returns the first big integer
         /// value; see `# Errors`.
-        #[cfg(feature = "big-integer")]
         ref: get_first_biginteger, BigInteger, BigInt, DataType::BigInteger, |v: &BigInt| v.clone()
     }
 
+    #[cfg(feature = "big-decimal")]
     impl_get_first_value! {
         /// Get the first big decimal value
         ///
@@ -2200,7 +2240,6 @@ impl MultiValues {
         ///
         /// If types match and a value exists, returns the first big decimal
         /// value; see `# Errors`.
-        #[cfg(feature = "big-decimal")]
         ref: get_first_bigdecimal, BigDecimal, BigDecimal, DataType::BigDecimal, |v: &BigDecimal| v.clone()
     }
 
@@ -2213,13 +2252,13 @@ impl MultiValues {
         copy: get_first_duration, Duration, Duration, DataType::Duration
     }
 
+    #[cfg(feature = "url")]
     impl_get_first_value! {
         /// Get the first Url value
         ///
         /// # Returns
         ///
         /// A clone of the first URL when the stored type matches.
-        #[cfg(feature = "url")]
         ref: get_first_url, Url, Url, DataType::Url, |v: &Url| v.clone()
     }
 
@@ -2232,14 +2271,14 @@ impl MultiValues {
         ref: get_first_string_map, StringMap, HashMap<String, String>, DataType::StringMap, |v: &HashMap<String, String>| v.clone()
     }
 
+    #[cfg(feature = "json")]
     impl_get_first_value! {
         /// Get the first Json value
         ///
         /// # Returns
         ///
         /// A clone of the first JSON value when the stored type matches.
-        #[cfg(feature = "json")]
-        ref: get_first_json, Json, serde_json::Value, DataType::Json, |v: &serde_json::Value| v.clone()
+        ref: get_first_json, Json, JsonValue, DataType::Json, |v: &JsonValue| v.clone()
     }
 
     // ========================================================================
@@ -2391,63 +2430,63 @@ impl MultiValues {
         vec: get_strings, String, String, DataType::String
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_multi_values! {
         /// Get reference to all date values
         ///
         /// # Returns
         ///
         /// If types match, returns a reference to the date value array; see `# Errors`.
-        #[cfg(feature = "chrono")]
         slice: get_dates, Date, NaiveDate, DataType::Date
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_multi_values! {
         /// Get reference to all time values
         ///
         /// # Returns
         ///
         /// If types match, returns a reference to the time value array; see `# Errors`.
-        #[cfg(feature = "chrono")]
         slice: get_times, Time, NaiveTime, DataType::Time
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_multi_values! {
         /// Get reference to all datetime values
         ///
         /// # Returns
         ///
         /// If types match, returns a reference to the datetime value array; see `# Errors`.
-        #[cfg(feature = "chrono")]
         slice: get_datetimes, DateTime, NaiveDateTime, DataType::DateTime
     }
 
+    #[cfg(feature = "chrono")]
     impl_get_multi_values! {
         /// Get reference to all UTC instant values
         ///
         /// # Returns
         ///
         /// If types match, returns a reference to the UTC instant value array; see `# Errors`.
-        #[cfg(feature = "chrono")]
         slice: get_instants, Instant, DateTime<Utc>, DataType::Instant
     }
 
+    #[cfg(feature = "big-integer")]
     impl_get_multi_values! {
         /// Get reference to all big integers
         ///
         /// # Returns
         ///
         /// If types match, returns a reference to the big integer array; see `# Errors`.
-        #[cfg(feature = "big-integer")]
         vec: get_bigintegers, BigInteger, BigInt, DataType::BigInteger
     }
 
+    #[cfg(feature = "big-decimal")]
     impl_get_multi_values! {
         /// Get reference to all big decimals
         ///
         /// # Returns
         ///
         /// If types match, returns a reference to the big decimal array; see `# Errors`.
-        #[cfg(feature = "big-decimal")]
         vec: get_bigdecimals, BigDecimal, BigDecimal, DataType::BigDecimal
     }
 
@@ -2460,6 +2499,7 @@ impl MultiValues {
         slice: get_durations, Duration, Duration, DataType::Duration
     }
 
+    #[cfg(feature = "url")]
     impl_get_multi_values! {
         /// Get reference to all Url values
         ///
@@ -2467,7 +2507,6 @@ impl MultiValues {
         ///
         /// A borrowed slice containing all stored URLs. The slice borrows from this
         /// collection; no elements are cloned.
-        #[cfg(feature = "url")]
         vec: get_urls, Url, Url, DataType::Url
     }
 
@@ -2481,6 +2520,7 @@ impl MultiValues {
         vec: get_string_maps, StringMap, HashMap<String, String>, DataType::StringMap
     }
 
+    #[cfg(feature = "json")]
     impl_get_multi_values! {
         /// Get reference to all Json values
         ///
@@ -2488,7 +2528,6 @@ impl MultiValues {
         ///
         /// A borrowed slice containing all stored JSON values. The slice borrows from
         /// this collection; no JSON trees are cloned.
-        #[cfg(feature = "json")]
-        vec: get_jsons, Json, serde_json::Value, DataType::Json
+        vec: get_jsons, Json, JsonValue, DataType::Json
     }
 }

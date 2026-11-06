@@ -27,6 +27,26 @@ pub(in crate::wire) struct CanonicalStringMap<'a>(
 
 impl Serialize for CanonicalStringMap<'_> {
     /// Serializes the borrowed map through the canonical string-map adapter.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Destination serializer type.
+    ///
+    /// # Parameters
+    ///
+    /// * `serializer` - Destination serializer, consumed to emit the borrowed
+    ///   map.
+    ///
+    /// # Returns
+    ///
+    /// The destination serializer's success value after emitting entries in key
+    /// order.
+    ///
+    /// # Errors
+    ///
+    /// Returns `S::Error` when the destination cannot serialize the map or an
+    /// entry.
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

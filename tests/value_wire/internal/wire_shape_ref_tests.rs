@@ -16,8 +16,8 @@ use serde_json::to_value;
 #[test]
 fn test_borrowed_wire_shape_preserves_collection() {
     let values = MultiValues::Int32(vec![1]);
-    let wire = ValueWireRefV1::try_from(&values).unwrap();
-    let value = to_value(wire).unwrap();
+    let wire = ValueWireRefV1::try_from(&values).expect("construct borrowed collection wire shape");
+    let value = to_value(wire).expect("serialize borrowed collection wire shape");
 
     assert_eq!(value["value"]["collection"]["int32"], json!([1]));
 }

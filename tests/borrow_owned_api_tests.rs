@@ -6,13 +6,35 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+use std::cell::Cell;
+#[cfg(feature = "converter")]
+use std::collections::HashMap;
+use std::ptr::eq;
+#[cfg(feature = "converter")]
+use std::time::Duration;
+
+#[cfg(all(feature = "converter", feature = "big-decimal"))]
+use bigdecimal::BigDecimal;
+#[cfg(all(feature = "converter", feature = "chrono"))]
+use chrono::NaiveDate;
+#[cfg(all(feature = "converter", feature = "big-integer"))]
+use num_bigint::BigInt;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConverter;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::StrictValueRead;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueError;
+use qubit_value::ValueMissingReason;
 use qubit_value::ValueRef;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde_json::Value as JsonValue;
+#[cfg(all(feature = "converter", feature = "json"))]
+use serde_json::json;
+#[cfg(all(feature = "converter", feature = "url"))]
+use url::Url;
 
 #[test]
 fn test_collection_view_borrows_indexed_text_and_preserves_shape() {
@@ -40,7 +62,6 @@ fn test_collection_view_borrows_indexed_text_and_preserves_shape() {
 #[cfg(feature = "converter")]
 #[test]
 fn test_borrowed_view_converts_without_materializing_value() {
-    use qubit_datatype::DataConverter;
     let value = Value::from("123");
     assert_eq!(DataConverter::from(value.view()).to::<i32>().unwrap(), 123);
     let values = MultiValues::UInt64(vec![42]);
@@ -48,12 +69,10 @@ fn test_borrowed_view_converts_without_materializing_value() {
         DataConverter::from(values.view().get(0).unwrap()).to::<i32>().unwrap(),
         42
     );
-    let duration = Value::Duration(std::time::Duration::from_secs(2));
+    let duration = Value::Duration(Duration::from_secs(2));
     assert_eq!(
-        DataConverter::from(duration.view())
-            .to::<std::time::Duration>()
-            .unwrap(),
-        std::time::Duration::from_secs(2)
+        DataConverter::from(duration.view()).to::<Duration>().unwrap(),
+        Duration::from_secs(2)
     );
     let unset = Value::Unset(DataType::String);
     assert!(DataConverter::from(unset.view()).to::<i32>().unwrap_err().is_missing());
@@ -62,86 +81,65 @@ fn test_borrowed_view_converts_without_materializing_value() {
 #[cfg(feature = "converter")]
 #[test]
 fn test_rich_collection_views_keep_original_payloads() {
-    use qubit_datatype::DataConverter;
-    use qubit_value::ValueRef;
-    let map = std::collections::HashMap::from([("key".to_owned(), "value".to_owned())]);
+    let map = HashMap::from([("key".to_owned(), "value".to_owned())]);
     let values = MultiValues::StringMap(vec![map]);
     let item = values.view().get(0).unwrap();
     let ValueRef::StringMap(map) = item else {
         panic!("map view")
     };
-    assert!(std::ptr::eq(
-        map,
-        &values.get_slice::<std::collections::HashMap<String, String>>().unwrap()[0]
-    ));
-    assert_eq!(
-        DataConverter::from(item)
-            .to::<std::collections::HashMap<String, String>>()
-            .unwrap(),
-        *map
-    );
+    assert!(eq(map, &values.get_slice::<HashMap<String, String>>().unwrap()[0]));
+    assert_eq!(DataConverter::from(item).to::<HashMap<String, String>>().unwrap(), *map);
     #[cfg(feature = "json")]
     {
-        let values = MultiValues::Json(vec![serde_json::json!({"items": [1, 2]})]);
+        let values = MultiValues::Json(vec![json!({"items": [1, 2]})]);
         let item = values.view().get(0).unwrap();
         let ValueRef::Json(json) = item else {
             panic!("JSON view")
         };
-        assert!(std::ptr::eq(json, &values.get_slice::<serde_json::Value>().unwrap()[0]));
-        assert_eq!(DataConverter::from(item).to::<serde_json::Value>().unwrap(), *json);
+        assert!(eq(json, &values.get_slice::<JsonValue>().unwrap()[0]));
+        assert_eq!(DataConverter::from(item).to::<JsonValue>().unwrap(), *json);
     }
     #[cfg(feature = "url")]
     {
-        let values = MultiValues::Url(vec![url::Url::parse("https://example.com/").unwrap()]);
+        let values = MultiValues::Url(vec![Url::parse("https://example.com/").unwrap()]);
         let item = values.view().get(0).unwrap();
         let ValueRef::Url(url) = item else { panic!("URL view") };
-        assert!(std::ptr::eq(url, &values.get_slice::<url::Url>().unwrap()[0]));
-        assert_eq!(DataConverter::from(item).to::<url::Url>().unwrap(), *url);
+        assert!(eq(url, &values.get_slice::<Url>().unwrap()[0]));
+        assert_eq!(DataConverter::from(item).to::<Url>().unwrap(), *url);
         assert_eq!(
-            DataConverter::from(Value::Url(url.clone()).view())
-                .to::<url::Url>()
-                .unwrap(),
+            DataConverter::from(Value::Url(url.clone()).view()).to::<Url>().unwrap(),
             *url
         );
     }
     #[cfg(feature = "chrono")]
     {
-        let date = chrono::NaiveDate::from_ymd_opt(2026, 9, 10).unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 9, 10).unwrap();
         let values = MultiValues::Date(vec![date]);
         let item = values.view().get(0).unwrap();
         let ValueRef::Date(borrowed) = item else {
             panic!("date view")
         };
-        assert!(std::ptr::eq(
-            borrowed,
-            &values.get_slice::<chrono::NaiveDate>().unwrap()[0]
-        ));
-        assert_eq!(DataConverter::from(item).to::<chrono::NaiveDate>().unwrap(), date);
+        assert!(eq(borrowed, &values.get_slice::<NaiveDate>().unwrap()[0]));
+        assert_eq!(DataConverter::from(item).to::<NaiveDate>().unwrap(), date);
     }
     #[cfg(feature = "big-integer")]
     {
-        let values = MultiValues::BigInteger(vec![num_bigint::BigInt::from(123)]);
+        let values = MultiValues::BigInteger(vec![BigInt::from(123)]);
         let item = values.view().get(0).unwrap();
         let ValueRef::BigInteger(number) = item else {
             panic!("big integer view")
         };
-        assert!(std::ptr::eq(
-            number,
-            &values.get_slice::<num_bigint::BigInt>().unwrap()[0]
-        ));
+        assert!(eq(number, &values.get_slice::<BigInt>().unwrap()[0]));
         assert_eq!(DataConverter::from(item).to::<i32>().unwrap(), 123);
     }
     #[cfg(feature = "big-decimal")]
     {
-        let values = MultiValues::BigDecimal(vec![bigdecimal::BigDecimal::from(123)]);
+        let values = MultiValues::BigDecimal(vec![BigDecimal::from(123)]);
         let item = values.view().get(0).unwrap();
         let ValueRef::BigDecimal(number) = item else {
             panic!("decimal view")
         };
-        assert!(std::ptr::eq(
-            number,
-            &values.get_slice::<bigdecimal::BigDecimal>().unwrap()[0]
-        ));
+        assert!(eq(number, &values.get_slice::<BigDecimal>().unwrap()[0]));
         assert_eq!(DataConverter::from(item).to::<i32>().unwrap(), 123);
     }
 }
@@ -194,10 +192,7 @@ fn test_strict_first_reads_preserve_scalar_collection_and_fallback_contracts() {
 
     let empty = MultiValues::Int32(Vec::new());
     let error = empty.get_first::<i32>().unwrap_err();
-    assert_eq!(
-        error.missing().unwrap().reason(),
-        qubit_value::ValueMissingReason::EmptyCollection
-    );
+    assert_eq!(error.missing().unwrap().reason(), ValueMissingReason::EmptyCollection);
 
     let unset = MultiValues::Unset(DataType::Int32);
     assert_eq!(unset.get_first_or::<i32>(7).unwrap(), 7);
@@ -208,12 +203,12 @@ fn test_strict_first_reads_preserve_scalar_collection_and_fallback_contracts() {
 
     let strings = MultiValues::String(vec![String::from("first"), String::from("second")]);
     assert_eq!(strings.get_first_ref::<str>().unwrap(), "first");
-    assert!(std::ptr::eq(
+    assert!(eq(
         strings.get_first_ref::<String>().unwrap(),
         &strings.get_slice::<String>().unwrap()[0]
     ));
 
-    let calls = std::cell::Cell::new(0);
+    let calls = Cell::new(0);
     assert_eq!(
         unset
             .get_first_or_else::<i32, _>(|| {

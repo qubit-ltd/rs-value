@@ -19,11 +19,15 @@ use qubit_json::decode::JsonDecoder;
 use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireJsonError;
 use qubit_value::ValueWireV1;
+use serde_json::Value as JsonValue;
+use serde_json::error::Category;
+use serde_json::from_slice;
+use serde_json::from_str;
 
 #[test]
 fn test_safe_wire_json_error_preserves_category_and_position() {
     for input in ["{", "[1,", "not-json"] {
-        let source = serde_json::from_str::<serde_json::Value>(input).unwrap_err();
+        let source = from_str::<JsonValue>(input).unwrap_err();
         let expected = (source.classify(), source.line(), source.column());
         let mapped = ValueWireDecodeError::from(source);
         let ValueWireDecodeError::InvalidJson(safe) = mapped else {
@@ -31,17 +35,17 @@ fn test_safe_wire_json_error_preserves_category_and_position() {
         };
         assert_eq!((safe.classify(), safe.line(), safe.column()), expected);
         match expected.0 {
-            serde_json::error::Category::Io => assert!(safe.is_io()),
-            serde_json::error::Category::Syntax => assert!(safe.is_syntax()),
-            serde_json::error::Category::Data => assert!(safe.is_data()),
-            serde_json::error::Category::Eof => assert!(safe.is_eof()),
+            Category::Io => assert!(safe.is_io()),
+            Category::Syntax => assert!(safe.is_syntax()),
+            Category::Data => assert!(safe.is_data()),
+            Category::Eof => assert!(safe.is_eof()),
         }
     }
 }
 
 #[test]
 fn test_safe_wire_json_data_error_preserves_facts_without_input() {
-    let source = serde_json::from_str::<u64>("\"TOP_SECRET\"").unwrap_err();
+    let source = from_str::<u64>("\"TOP_SECRET\"").unwrap_err();
     let expected = (source.classify(), source.line(), source.column());
     let mapped = ValueWireDecodeError::from(source);
     let ValueWireDecodeError::InvalidJson(safe) = &mapped else {
@@ -97,8 +101,7 @@ fn test_value_wire_decode_error_preserves_budget_source() {
 
 #[test]
 fn test_value_wire_decode_error_preserves_json_source() {
-    let source =
-        serde_json::from_slice::<u64>(br#""TOP_SECRET""#).expect_err("a JSON string cannot deserialize into u64");
+    let source = from_slice::<u64>(br#""TOP_SECRET""#).expect_err("a JSON string cannot deserialize into u64");
     let error = ValueWireDecodeError::from(source);
 
     assert!(

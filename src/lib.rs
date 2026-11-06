@@ -92,7 +92,8 @@
 //! ## Named Value Operations
 //!
 //! ```rust
-//! use qubit_value::{NamedValue, Value};
+//! use qubit_value::NamedValue;
+//! use qubit_value::Value;
 //!
 //! // Create a named value
 //! let config = NamedValue::new("port", Value::Int32(8080));
@@ -132,6 +133,9 @@ mod value_missing_reason;
 mod value_wire;
 mod wide_integer;
 mod wire;
+
+#[cfg(test)]
+mod tests;
 
 // Public exports
 pub use self::into_value_default::IntoValueDefault;

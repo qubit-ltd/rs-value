@@ -272,24 +272,74 @@ impl<'a> ValueWireRefV1<'a> {
 }
 
 impl<'a> TryFrom<&'a Value> for ValueWireRefV1<'a> {
+    /// Validation failure when the borrowed input cannot be represented in V1.
     type Error = ValueWireEncodeError;
-    /// Borrows and validates a scalar.
+
+    /// Validates and borrows the input without cloning its payload.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Scalar runtime value to validate and borrow for `'a`.
+    ///
+    /// # Returns
+    ///
+    /// A borrowed V1 envelope preserving the input shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same representational validation errors as
+    /// [`Self::from_value`].
+    #[inline]
     fn try_from(value: &'a Value) -> Result<Self, Self::Error> {
         Self::from_value(value)
     }
 }
 
 impl<'a> TryFrom<&'a MultiValues> for ValueWireRefV1<'a> {
+    /// Validation failure when the borrowed input cannot be represented in V1.
     type Error = ValueWireEncodeError;
-    /// Borrows and validates a collection.
+
+    /// Validates and borrows the input without cloning its payload.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Homogeneous runtime collection to validate and borrow for
+    ///   `'a`.
+    ///
+    /// # Returns
+    ///
+    /// A borrowed V1 envelope preserving the input shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same representational validation errors as
+    /// [`Self::from_values`].
+    #[inline]
     fn try_from(values: &'a MultiValues) -> Result<Self, Self::Error> {
         Self::from_values(values)
     }
 }
 
 impl<'a> TryFrom<&'a ValueContainer> for ValueWireRefV1<'a> {
+    /// Validation failure when the borrowed input cannot be represented in V1.
     type Error = ValueWireEncodeError;
-    /// Borrows and validates an explicit shape.
+
+    /// Validates and borrows the input without cloning its payload.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Explicit scalar-or-collection value to validate and borrow
+    ///   for `'a`.
+    ///
+    /// # Returns
+    ///
+    /// A borrowed V1 envelope preserving the input shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same representational validation errors as
+    /// [`Self::from_container`].
+    #[inline]
     fn try_from(value: &'a ValueContainer) -> Result<Self, Self::Error> {
         Self::from_container(value)
     }
@@ -297,6 +347,24 @@ impl<'a> TryFrom<&'a ValueContainer> for ValueWireRefV1<'a> {
 
 impl Serialize for ValueWireRefV1<'_> {
     /// Serializes the borrowed runtime shape through the V1 envelope.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Serde serializer defining the output format and error type.
+    ///
+    /// # Parameters
+    ///
+    /// * `serializer` - Consumed serializer receiving the version and payload.
+    ///
+    /// # Returns
+    ///
+    /// The serializer's success value after encoding the complete V1 envelope.
+    ///
+    /// # Errors
+    ///
+    /// Returns the serializer's error if encoding the envelope or payload
+    /// fails.
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

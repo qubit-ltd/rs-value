@@ -50,6 +50,7 @@ where
     ///
     /// Returns `D::Error` when the input is invalid or is not in canonical
     /// decimal form.
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

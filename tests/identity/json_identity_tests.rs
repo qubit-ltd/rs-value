@@ -11,9 +11,17 @@
 #[cfg(feature = "json")]
 use std::collections::hash_map::DefaultHasher;
 #[cfg(feature = "json")]
+use std::env::current_exe;
+#[cfg(feature = "json")]
+use std::env::var_os;
+#[cfg(feature = "json")]
 use std::hash::Hash;
 #[cfg(feature = "json")]
 use std::hash::Hasher;
+#[cfg(feature = "json")]
+use std::panic::AssertUnwindSafe;
+#[cfg(feature = "json")]
+use std::panic::catch_unwind;
 #[cfg(feature = "json")]
 use std::process::Command;
 
@@ -28,6 +36,9 @@ use qubit_budget::json::JsonResource;
 #[cfg(feature = "json")]
 use qubit_budget::json::JsonValueLimits;
 use qubit_value::Value;
+use serde_json::Map;
+use serde_json::Value as JsonValue;
+use serde_json::json;
 
 #[cfg(feature = "json")]
 #[derive(Default)]
@@ -68,8 +79,8 @@ const DEEP_JSON_DEPTH: usize = 10_000;
 /// Verifies JSON object key order does not affect public value identity.
 #[test]
 fn test_json_identity_ignores_object_key_order() {
-    let left = Value::Json(serde_json::json!({"first": 1, "second": 2}));
-    let right = Value::Json(serde_json::json!({"second": 2, "first": 1}));
+    let left = Value::Json(json!({"first": 1, "second": 2}));
+    let right = Value::Json(json!({"second": 2, "first": 1}));
     assert_eq!(left, right);
 }
 
@@ -77,16 +88,16 @@ fn test_json_identity_ignores_object_key_order() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_ignores_object_insertion_order() {
-    let mut left = serde_json::Map::new();
-    left.insert("first".into(), serde_json::json!([1, 2]));
-    left.insert("second".into(), serde_json::json!({"nested": true}));
-    let mut right = serde_json::Map::new();
-    right.insert("second".into(), serde_json::json!({"nested": true}));
-    right.insert("first".into(), serde_json::json!([1, 2]));
+    let mut left = Map::new();
+    left.insert("first".into(), json!([1, 2]));
+    left.insert("second".into(), json!({"nested": true}));
+    let mut right = Map::new();
+    right.insert("second".into(), json!({"nested": true}));
+    right.insert("first".into(), json!([1, 2]));
 
     assert_eq!(
-        calculate_json_hash(&serde_json::Value::Object(left)),
-        calculate_json_hash(&serde_json::Value::Object(right)),
+        calculate_json_hash(&JsonValue::Object(left)),
+        calculate_json_hash(&JsonValue::Object(right)),
     );
 }
 
@@ -95,8 +106,8 @@ fn test_hash_json_ignores_object_insertion_order() {
 #[test]
 fn test_hash_json_distinguishes_array_order() {
     assert_ne!(
-        calculate_json_hash(&serde_json::json!([1, 2, 3])),
-        calculate_json_hash(&serde_json::json!([3, 2, 1])),
+        calculate_json_hash(&json!([1, 2, 3])),
+        calculate_json_hash(&json!([3, 2, 1])),
     );
 }
 
@@ -104,7 +115,7 @@ fn test_hash_json_distinguishes_array_order() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_hash_does_not_recurse() {
-    let output = Command::new(std::env::current_exe().expect("locate test binary"))
+    let output = Command::new(current_exe().expect("locate test binary"))
         .arg("--exact")
         .arg("identity::json_identity_tests::test_deep_json_identity_hash_in_isolated_process")
         .arg("--ignored")
@@ -134,7 +145,7 @@ fn test_deep_json_identity_hash_does_not_recurse() {
 #[ignore = "run only through test_deep_json_identity_hash_does_not_recurse"]
 fn test_deep_json_identity_hash_in_isolated_process() {
     assert!(
-        std::env::var_os(DEEP_JSON_HASH_CHILD_ENV).is_some(),
+        var_os(DEEP_JSON_HASH_CHILD_ENV).is_some(),
         "this helper test must run through its parent test"
     );
 
@@ -143,7 +154,7 @@ fn test_deep_json_identity_hash_in_isolated_process() {
     value.hash(&mut state);
     let _ = state.finish();
 
-    let json = serde_json::Value::try_from(value).expect("hash fixture retains its JSON type");
+    let json = JsonValue::try_from(value).expect("hash fixture retains its JSON type");
     dismantle_json_value(json);
     eprintln!("QUBIT_VALUE_DEEP_HASH_DONE");
 }
@@ -152,10 +163,7 @@ fn test_deep_json_identity_hash_in_isolated_process() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_checks_root_inclusive_depth() {
-    let error = hash_json_with_limits(
-        &serde_json::json!([null]),
-        JsonValueLimits::builder().max_depth(1).build(),
-    );
+    let error = hash_json_with_limits(&json!([null]), JsonValueLimits::builder().max_depth(1).build());
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -171,7 +179,7 @@ fn test_hash_json_with_budget_checks_root_inclusive_depth() {
 #[test]
 fn test_hash_json_with_budget_charges_nodes() {
     let error = hash_json_with_limits(
-        &serde_json::json!([null]),
+        &json!([null]),
         JsonValueLimits::<JsonResource, usize>::builder()
             .max_nodes(1_usize)
             .build(),
@@ -191,7 +199,7 @@ fn test_hash_json_with_budget_charges_nodes() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
-    let value = serde_json::Value::Array((0..10_000).map(|_| serde_json::Value::Null).collect());
+    let value = JsonValue::Array((0..10_000).map(|_| JsonValue::Null).collect());
     let error = hash_json_with_limits(
         &value,
         JsonValueLimits::<JsonResource, usize>::builder()
@@ -213,9 +221,9 @@ fn test_hash_json_with_budget_rejects_wide_array_by_node_budget() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
-    let value = serde_json::Value::Object(
+    let value = JsonValue::Object(
         (0..10_000)
-            .map(|index| (format!("key-{index}"), serde_json::Value::Null))
+            .map(|index| (format!("key-{index}"), JsonValue::Null))
             .collect(),
     );
     let error = hash_json_with_limits(
@@ -240,7 +248,7 @@ fn test_hash_json_with_budget_rejects_wide_object_by_node_budget() {
 #[test]
 fn test_hash_json_with_budget_checks_sequence_items() {
     let error = hash_json_with_limits(
-        &serde_json::json!([null, null]),
+        &json!([null, null]),
         JsonValueLimits::builder().max_sequence_items(1).build(),
     );
     assert!(matches!(
@@ -258,7 +266,7 @@ fn test_hash_json_with_budget_checks_sequence_items() {
 #[test]
 fn test_hash_json_with_budget_checks_map_entries() {
     let error = hash_json_with_limits(
-        &serde_json::json!({"first": null, "second": null}),
+        &json!({"first": null, "second": null}),
         JsonValueLimits::builder().max_map_entries(1).build(),
     );
     assert!(matches!(
@@ -275,10 +283,7 @@ fn test_hash_json_with_budget_checks_map_entries() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_checks_key_bytes() {
-    let error = hash_json_with_limits(
-        &serde_json::json!({"é": null}),
-        JsonValueLimits::builder().max_key_bytes(1).build(),
-    );
+    let error = hash_json_with_limits(&json!({"é": null}), JsonValueLimits::builder().max_key_bytes(1).build());
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -293,10 +298,7 @@ fn test_hash_json_with_budget_checks_key_bytes() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_checks_string_bytes() {
-    let error = hash_json_with_limits(
-        &serde_json::json!("é"),
-        JsonValueLimits::builder().max_string_bytes(1).build(),
-    );
+    let error = hash_json_with_limits(&json!("é"), JsonValueLimits::builder().max_string_bytes(1).build());
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -311,10 +313,7 @@ fn test_hash_json_with_budget_checks_string_bytes() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_checks_number_bytes() {
-    let error = hash_json_with_limits(
-        &serde_json::json!(1234),
-        JsonValueLimits::builder().max_number_bytes(3).build(),
-    );
+    let error = hash_json_with_limits(&json!(1234), JsonValueLimits::builder().max_number_bytes(3).build());
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -329,7 +328,7 @@ fn test_hash_json_with_budget_checks_number_bytes() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_error_is_atomic() {
-    let value = serde_json::json!([null]);
+    let value = json!([null]);
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
     let mut state = RecordingHasher::default();
 
@@ -347,10 +346,10 @@ fn test_hash_json_with_budget_error_is_atomic() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_panic_rolls_back_and_reuses_budget() {
-    let value = serde_json::json!(null);
+    let value = json!(null);
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
 
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    let result = catch_unwind(AssertUnwindSafe(|| {
         Value::Json(value.clone()).hash_with_json_budget(&mut PanickingHasher, &mut budget)
     }));
     assert!(result.is_err());
@@ -368,7 +367,7 @@ fn test_hash_json_with_budget_panic_rolls_back_and_reuses_budget() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_matches_unbounded_hash() {
-    let value = serde_json::json!({
+    let value = json!({
         "array": [1, {"nested": "text"}],
         "flag": false
     });
@@ -385,7 +384,7 @@ fn test_hash_json_with_budget_matches_unbounded_hash() {
 #[cfg(feature = "json")]
 #[test]
 fn test_deep_json_identity_equality_does_not_recurse() {
-    let output = Command::new(std::env::current_exe().expect("locate test binary"))
+    let output = Command::new(current_exe().expect("locate test binary"))
         .arg("--exact")
         .arg("identity::json_identity_tests::test_deep_json_identity_equality_in_isolated_process")
         .arg("--ignored")
@@ -415,7 +414,7 @@ fn test_deep_json_identity_equality_does_not_recurse() {
 #[ignore = "run only through test_deep_json_identity_equality_does_not_recurse"]
 fn test_deep_json_identity_equality_in_isolated_process() {
     assert!(
-        std::env::var_os(DEEP_JSON_IDENTITY_CHILD_ENV).is_some(),
+        var_os(DEEP_JSON_IDENTITY_CHILD_ENV).is_some(),
         "this helper test must run through its parent test"
     );
 
@@ -430,7 +429,7 @@ fn test_deep_json_identity_equality_in_isolated_process() {
     );
 
     for value in [left, equal, unequal] {
-        let json = serde_json::Value::try_from(value).expect("equality fixture retains its JSON type");
+        let json = JsonValue::try_from(value).expect("equality fixture retains its JSON type");
         dismantle_json_value(json);
     }
     eprintln!("QUBIT_VALUE_DEEP_EQUALITY_DONE");
@@ -438,7 +437,7 @@ fn test_deep_json_identity_equality_in_isolated_process() {
 
 /// Hashes a JSON value with the public value identity contract.
 #[cfg(feature = "json")]
-fn calculate_json_hash(value: &serde_json::Value) -> u64 {
+fn calculate_json_hash(value: &JsonValue) -> u64 {
     let mut state = DefaultHasher::new();
     Value::Json(value.clone()).hash(&mut state);
     state.finish()
@@ -446,10 +445,7 @@ fn calculate_json_hash(value: &serde_json::Value) -> u64 {
 
 /// Hashes a JSON value with one limit set and returns the expected failure.
 #[cfg(feature = "json")]
-fn hash_json_with_limits(
-    value: &serde_json::Value,
-    limits: JsonValueLimits,
-) -> MeasuredBudgetError<JsonResource, usize> {
+fn hash_json_with_limits(value: &JsonValue, limits: JsonValueLimits) -> MeasuredBudgetError<JsonResource, usize> {
     let mut budget = limits.budget();
     let mut state = DefaultHasher::new();
     match Value::Json(value.clone())
@@ -465,26 +461,23 @@ fn hash_json_with_limits(
 
 /// Builds an array chain whose innermost value is the supplied integer.
 #[cfg(feature = "json")]
-fn build_deep_json_value(leaf: i64) -> serde_json::Value {
-    let mut value = serde_json::Value::Number(leaf.into());
+fn build_deep_json_value(leaf: i64) -> JsonValue {
+    let mut value = JsonValue::Number(leaf.into());
     for _ in 0..DEEP_JSON_DEPTH {
-        value = serde_json::Value::Array(vec![value]);
+        value = JsonValue::Array(vec![value]);
     }
     value
 }
 
 /// Iteratively consumes a JSON fixture so its destructor cannot recurse.
 #[cfg(feature = "json")]
-fn dismantle_json_value(value: serde_json::Value) {
+fn dismantle_json_value(value: JsonValue) {
     let mut pending = vec![value];
     while let Some(value) = pending.pop() {
         match value {
-            serde_json::Value::Array(values) => pending.extend(values),
-            serde_json::Value::Object(values) => pending.extend(values.into_values()),
-            serde_json::Value::Null
-            | serde_json::Value::Bool(_)
-            | serde_json::Value::Number(_)
-            | serde_json::Value::String(_) => {}
+            JsonValue::Array(values) => pending.extend(values),
+            JsonValue::Object(values) => pending.extend(values.into_values()),
+            JsonValue::Null | JsonValue::Bool(_) | JsonValue::Number(_) | JsonValue::String(_) => {}
         }
     }
 }
@@ -492,10 +485,10 @@ fn dismantle_json_value(value: serde_json::Value) {
 /// Equality preserves early and late mismatches in wide nested containers.
 #[test]
 fn test_json_equality_wide_containers() {
-    let array = serde_json::Value::Array((0..8192).map(serde_json::Value::from).collect());
-    let object = serde_json::Value::Object(
+    let array = JsonValue::Array((0..8192).map(JsonValue::from).collect());
+    let object = JsonValue::Object(
         (0..8192)
-            .map(|index| (index.to_string(), serde_json::Value::from(index)))
+            .map(|index| (index.to_string(), JsonValue::from(index)))
             .collect(),
     );
     for json in [array, object] {
@@ -503,9 +496,9 @@ fn test_json_equality_wide_containers() {
         assert_eq!(left, Value::Json(json.clone()));
         let mut changed = json;
         match &mut changed {
-            serde_json::Value::Array(items) => items[8191] = serde_json::Value::Null,
-            serde_json::Value::Object(items) => {
-                items.insert("8191".into(), serde_json::Value::Null);
+            JsonValue::Array(items) => items[8191] = JsonValue::Null,
+            JsonValue::Object(items) => {
+                items.insert("8191".into(), JsonValue::Null);
             }
             _ => unreachable!("wide container fixture"),
         }

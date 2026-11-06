@@ -25,10 +25,17 @@ use super::internal::hash_frame::HashFrame;
 use super::internal::json_equality_frame::JsonEqualityFrame;
 use super::internal::object_hash::ObjectHash;
 
-/// Stable standard hasher used for each order-independent object entry.
+/// Deterministic within this build, non-randomized hasher for each object
+/// entry.
+///
+/// The standard hasher algorithm is not a persistent identity format across
+/// Rust releases.
 type IdentityHasher = BuildHasherDefault<DefaultHasher>;
 
 /// Compares two JSON trees using structural JSON semantics without recursion.
+///
+/// Borrows both inputs without mutation. Continuation storage grows with tree
+/// depth, and object children are matched by key lookup rather than order.
 ///
 /// # Parameters
 ///
@@ -88,6 +95,9 @@ pub(crate) fn json_eq(left: &Value, right: &Value) -> bool {
 
 /// Hashes a JSON tree using structural, object-order-independent semantics.
 ///
+/// Appends to `state` without mutating `value`. Traversal allocates
+/// continuation and object-entry state proportional to nesting depth.
+///
 /// # Type Parameters
 ///
 /// * `H` - Hasher receiving the structural JSON identity.
@@ -96,11 +106,21 @@ pub(crate) fn json_eq(left: &Value, right: &Value) -> bool {
 ///
 /// * `value` - JSON tree to hash.
 /// * `state` - Destination hasher.
+///
+/// # Panics
+///
+/// Propagates panics from the caller-provided hasher; writes already made to
+/// `state` are not rolled back.
+#[inline]
 pub(crate) fn hash_json<H: Hasher>(value: &Value, state: &mut H) {
     hash_json_iterative(value, state);
 }
 
 /// Hashes a JSON tree while enforcing one mutable JSON budget.
+///
+/// Preflights the tree before writing to the hasher, then publishes staged
+/// accounting only after hashing succeeds. Both traversals borrow `value` and
+/// use continuation storage proportional to nesting depth when traversing.
 ///
 /// # Type Parameters
 ///
@@ -124,6 +144,11 @@ pub(crate) fn hash_json<H: Hasher>(value: &Value, state: &mut H) {
 /// number text exceeds the corresponding budget constraint. On error, neither
 /// `state` nor the committed portion of `budget` is modified. If hashing panics
 /// after preflight, the staged budget is also discarded.
+///
+/// # Panics
+///
+/// Propagates panics from the caller-provided hasher. The budget remains
+/// uncommitted, but writes already made to `state` are not rolled back.
 #[allow(dead_code)]
 pub(crate) fn hash_json_with_budget<H, R, Q>(
     value: &Value,
@@ -145,6 +170,10 @@ where
 ///
 /// No caller-owned hasher or committed budget state is touched. Dropping the
 /// transaction after an error therefore leaves both external states unchanged.
+/// Successful charges remain staged for the caller to commit. A budget
+/// rejection poisons the transaction, preventing publication of earlier staged
+/// charges. With no configured limits, accounting returns without traversing
+/// the tree; otherwise its continuation storage grows with nesting depth.
 ///
 /// # Type Parameters
 ///
@@ -164,6 +193,7 @@ where
 ///
 /// Returns [`MeasuredBudgetError`] for the first resource measurement or
 /// configured limit that cannot be satisfied.
+#[inline]
 pub(crate) fn preflight_json<R, Q>(
     value: &Value,
     transaction: &mut JsonValueTransaction<'_, R, Q>,
@@ -189,6 +219,12 @@ where
 ///
 /// * `value` - JSON tree to traverse without recursion.
 /// * `state` - Destination hasher.
+///
+/// # Panics
+///
+/// Panics if an internal continuation lacks its matching destination or object
+/// aggregate, or if the caller-provided hasher panics. Hasher writes are not
+/// rolled back.
 fn hash_json_iterative<H>(value: &Value, state: &mut H)
 where
     H: Hasher,

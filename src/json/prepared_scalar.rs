@@ -16,11 +16,21 @@ use crate::ValueRef;
 /// One admitted scalar; formatting results are moved into the output.
 pub(super) enum PreparedScalar<'a> {
     /// Primitive or borrowed storage requiring no formatting cache.
-    Borrowed(ValueRef<'a>),
+    Borrowed(
+        /// Source view valid for `'a`; only directly materializable families
+        /// admitted by scalar preparation may be stored here.
+        ValueRef<'a>,
+    ),
     /// Text already rendered within the projection budget.
-    Formatted(String),
+    Formatted(
+        /// Owned rendering moved into the output without formatting again.
+        String,
+    ),
     /// Floating-point number prepared with the required natural precision.
-    Number(Number),
+    Number(
+        /// Owned numeric representation moved into the output unchanged.
+        Number,
+    ),
 }
 
 /// Materializes only the families admitted as borrowing their original storage.
@@ -65,6 +75,16 @@ macro_rules! borrowed_match {
 impl PreparedScalar<'_> {
     /// Produces the final JSON scalar; cached text and numbers are moved, not
     /// re-rendered.
+    ///
+    /// # Returns
+    ///
+    /// The admitted JSON value, copying borrowed strings and map entries into
+    /// owned output and preserving cached renderings and numeric precision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `Borrowed` contains a family requiring a prepared rendering
+    /// or number, violating the scalar preparation invariant.
     #[must_use]
     pub(super) fn materialize(self) -> JsonValue {
         match self {

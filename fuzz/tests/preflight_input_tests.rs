@@ -6,11 +6,17 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+//! Checks deterministic fuzz input generation and its public sequence
+//! integration.
+
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value_fuzz::preflight_input::bounded_input;
 use qubit_value_fuzz::preflight_input::value_from_bytes;
+use qubit_value_fuzz::preflight_sequence::run_sequence;
+use qubit_value_fuzz::structured_wire_input::container_from_bytes;
+use serde_json::Value as JsonValue;
 
 #[test]
 fn test_preflight_generator_reaches_all_tags() {
@@ -57,8 +63,8 @@ fn test_preflight_json_number_choices_are_deterministic_and_numeric() {
     let second = value_from_bytes(&input);
     assert_eq!(first, second);
 
-    let json = first.as_scalar().unwrap().get_ref::<serde_json::Value>().unwrap();
-    let serde_json::Value::Number(number) = json.get("number").unwrap() else {
+    let json = first.as_scalar().unwrap().get_ref::<JsonValue>().unwrap();
+    let JsonValue::Number(number) = json.get("number").unwrap() else {
         panic!("selected JSON value should contain a number");
     };
     #[cfg(feature = "json-arbitrary-precision")]
@@ -71,8 +77,8 @@ fn test_preflight_json_number_choices_are_deterministic_and_numeric() {
 fn test_preflight_json_object_order_choices_are_semantically_equal() {
     let first = value_from_bytes(&[10, 0, 0, 0, 1, 0]);
     let second = value_from_bytes(&[24, 0, 0, 0, 1, 0]);
-    let first = first.as_scalar().unwrap().get_ref::<serde_json::Value>().unwrap();
-    let second = second.as_scalar().unwrap().get_ref::<serde_json::Value>().unwrap();
+    let first = first.as_scalar().unwrap().get_ref::<JsonValue>().unwrap();
+    let second = second.as_scalar().unwrap().get_ref::<JsonValue>().unwrap();
     assert_eq!(first, second);
 
     let first_keys: Vec<_> = first.as_object().unwrap().keys().map(String::as_str).collect();
@@ -88,14 +94,21 @@ fn test_preflight_generator_bounds_and_decodes_input_deterministically() {
     for length in [0, 3, 258, 259, 4096, 4097] {
         let input = vec![0x5a; length];
         let bounded = bounded_input(&input);
-        assert!(bounded.len() <= 4096);
-        assert_eq!(value_from_bytes(bounded), value_from_bytes(bounded));
+        assert!(bounded.len() <= 4096, "input length {length} exceeds the byte bound");
+        assert_eq!(
+            value_from_bytes(bounded),
+            value_from_bytes(bounded),
+            "input length {length} must decode deterministically"
+        );
         if length >= 3 {
             let mut integer_input = vec![1; length];
             integer_input[0] = 6;
             let integer = value_from_bytes(&integer_input);
             let integer = integer.as_scalar().unwrap().get_ref::<BigInt>().unwrap();
-            assert!(integer.bits() <= 256 * 8);
+            assert!(
+                integer.bits() <= 256 * 8,
+                "input length {length} exceeds the integer bit bound"
+            );
         }
     }
 
@@ -111,9 +124,6 @@ fn test_preflight_generator_bounds_and_decodes_input_deterministically() {
 
 #[test]
 fn test_structured_generator_reaches_required_types_and_collection_variants() {
-    use qubit_value_fuzz::preflight_sequence::run_sequence;
-    use qubit_value_fuzz::structured_wire_input::container_from_bytes;
-
     let expected = [
         (15, DataType::BigDecimal, false),
         (17, DataType::Date, false),

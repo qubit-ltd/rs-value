@@ -50,6 +50,7 @@ impl Write for RejectingWriter {
         Err(io::Error::other("rejected"))
     }
 
+    #[inline]
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
@@ -60,12 +61,15 @@ impl Write for RejectingWriter {
 fn test_value_wire_encode_error_rejects_non_finite_float() {
     let result = ValueWirePayloadV1::try_from(Value::Float64(f64::NAN));
 
-    assert!(matches!(
-        result,
-        Err(ValueWireEncodeError::NonFiniteFloat {
-            data_type: DataType::Float64,
-        })
-    ));
+    assert!(
+        matches!(
+            result,
+            Err(ValueWireEncodeError::NonFiniteFloat {
+                data_type: DataType::Float64,
+            })
+        ),
+        "non-finite Float64 must preserve its data type in the wire error"
+    );
 }
 
 /// Verifies wire conversion preserves the shared structured serialization
@@ -77,13 +81,16 @@ fn test_value_wire_encode_error_preserves_serialization_kind() {
         .expect_err("wide integer must fail JSON serialization");
     let error = ValueWireEncodeError::from(source);
 
-    assert!(matches!(
-        error,
-        ValueWireEncodeError::Json(source)
-            if source.kind() == JsonSerializationErrorKind::IntegerOutOfRange {
-                signedness: JsonIntegerSignedness::Unsigned,
-            }
-    ));
+    assert!(
+        matches!(
+            error,
+            ValueWireEncodeError::Json(source)
+                if source.kind() == JsonSerializationErrorKind::IntegerOutOfRange {
+                    signedness: JsonIntegerSignedness::Unsigned,
+                }
+        ),
+        "wire conversion must preserve the unsigned integer range error kind"
+    );
 }
 
 /// Verifies every non-budget owned encoder source keeps its wire-error shape.
@@ -97,14 +104,14 @@ fn test_value_wire_encode_error_maps_owned_encoder_sources() {
         .write_buffered(&mut rejecting, &true)
         .expect_err("rejecting writer must fail");
 
-    assert!(matches!(
-        ValueWireEncodeError::from(invalid_raw),
-        ValueWireEncodeError::Syntax(_)
-    ));
-    assert!(matches!(
-        ValueWireEncodeError::from(writer),
-        ValueWireEncodeError::Io(_)
-    ));
+    assert!(
+        matches!(ValueWireEncodeError::from(invalid_raw), ValueWireEncodeError::Syntax(_)),
+        "invalid raw JSON must map to the syntax error variant"
+    );
+    assert!(
+        matches!(ValueWireEncodeError::from(writer), ValueWireEncodeError::Io(_)),
+        "writer failure must map to the I/O error variant"
+    );
 }
 
 #[test]
@@ -115,14 +122,17 @@ fn test_value_wire_encode_error_maps_measured_budget_failure_precisely() {
         maximum: 1_usize,
     });
     let budget_error = ValueWireEncodeError::from(budget);
-    assert!(matches!(
-        budget_error,
-        ValueWireEncodeError::Budget(BudgetError::LimitExceeded {
-            resource: JsonResource::OutputBytes,
-            observed: Observation::Exact(2),
-            maximum: 1,
-        })
-    ));
+    assert!(
+        matches!(
+            budget_error,
+            ValueWireEncodeError::Budget(BudgetError::LimitExceeded {
+                resource: JsonResource::OutputBytes,
+                observed: Observation::Exact(2),
+                maximum: 1,
+            })
+        ),
+        "budget conversion must preserve the resource, observation, and maximum"
+    );
 }
 
 #[test]
@@ -130,13 +140,16 @@ fn test_value_wire_encode_error_maps_quantity_failure_precisely() {
     let source = QuantityConversionError::new(QuantityMeasurement::U64(u64::MAX), "usize");
     let quantity = MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::NumberBytes, source);
     let quantity_error = ValueWireEncodeError::from(quantity);
-    assert!(matches!(
-        quantity_error,
-        ValueWireEncodeError::Quantity {
-            resource: JsonResource::NumberBytes,
-            source: actual,
-        } if actual == source
-    ));
+    assert!(
+        matches!(
+            quantity_error,
+            ValueWireEncodeError::Quantity {
+                resource: JsonResource::NumberBytes,
+                source: actual,
+            } if actual == source
+        ),
+        "measured quantity conversion must preserve the resource and source"
+    );
 }
 
 #[test]
@@ -147,11 +160,14 @@ fn test_value_wire_encode_error_maps_encoder_quantity_failure_precisely() {
 
     let wire_error = ValueWireEncodeError::from(encoder_error);
 
-    assert!(matches!(
-        wire_error,
-        ValueWireEncodeError::Quantity {
-            resource: JsonResource::StringBytes,
-            source: actual,
-        } if actual == source
-    ));
+    assert!(
+        matches!(
+            wire_error,
+            ValueWireEncodeError::Quantity {
+                resource: JsonResource::StringBytes,
+                source: actual,
+            } if actual == source
+        ),
+        "encoder quantity conversion must preserve the resource and source"
+    );
 }

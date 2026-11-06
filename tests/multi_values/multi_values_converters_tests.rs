@@ -32,6 +32,8 @@ use qubit_value::ValueError;
 use qubit_value::ValueMissingReason;
 #[cfg(feature = "json")]
 use serde_json::Value as JsonValue;
+#[cfg(feature = "json")]
+use serde_json::json;
 #[cfg(feature = "url")]
 use url::Url;
 
@@ -47,18 +49,21 @@ fn test_multi_values_converters_convert_first_list_and_value() {
 fn test_multi_values_converters_report_list_conversion_index() {
     let values = MultiValues::String(vec!["1".to_string(), "bad".to_string()]);
     let error = values.to_list::<i32>().unwrap_err();
-    assert!(matches!(
-        error,
-        ValueError::ListConversion(ref error)
-            if error.source_index() == 1
-                && error.conversion_error() == &DataConversionError::invalid(
-                    DataType::String,
-                    DataType::Int32,
-                    InvalidValueReason::InvalidSyntax {
-                        expected: "integer",
-                    },
-                )
-    ));
+    assert!(
+        matches!(
+            error,
+            ValueError::ListConversion(ref error)
+                if error.source_index() == 1
+                    && error.conversion_error() == &DataConversionError::invalid(
+                        DataType::String,
+                        DataType::Int32,
+                        InvalidValueReason::InvalidSyntax {
+                            expected: "integer",
+                        },
+                    )
+        ),
+        "list conversion must report index 1 and the invalid integer syntax error"
+    );
 }
 
 #[test]
@@ -76,6 +81,8 @@ fn test_multi_values_empty_conversion_preserves_conversion_semantics() {
     assert_eq!(missing.target_type(), Some(DataType::Int32));
 }
 
+/// Checks that first-element and whole-list conversion preserve a runtime
+/// variant's values.
 macro_rules! assert_multi_values_identity_conversion {
     ($value:expr, $ty:ty, $first:expr, $list:expr) => {{
         let values = $value;
@@ -174,7 +181,7 @@ fn test_multi_values_converters_cover_every_runtime_variant() {
     );
     #[cfg(feature = "json")]
     {
-        let value = serde_json::json!({"key": 1});
+        let value = json!({"key": 1});
         assert_multi_values_identity_conversion!(
             MultiValues::Json(vec![value.clone()]),
             JsonValue,

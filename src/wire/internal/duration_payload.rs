@@ -18,14 +18,15 @@ use super::duration_payload_visitor::DurationPayloadVisitor;
 
 /// Encodes a [`Duration`] as whole seconds and a fractional nanosecond count.
 ///
-/// The nanosecond component is less than one billion, matching the invariant
-/// required by [`Duration::new`].
+/// Payloads created from a [`Duration`] have a nanosecond component less than
+/// one billion. Deserialized payloads are checked for this range when converted
+/// back into a [`Duration`].
 #[derive(Serialize)]
 pub(in crate::wire) struct DurationPayload {
     /// Number of complete seconds in the represented duration.
     pub(in crate::wire) secs: u64,
-    /// Fractional nanoseconds within the final second, from zero to
-    /// 999,999,999.
+    /// Fractional nanoseconds within the final second; conversion to
+    /// [`Duration`] rejects values above 999,999,999.
     pub(in crate::wire) nanos: u32,
 }
 
@@ -36,12 +37,27 @@ impl<'de> Deserialize<'de> for DurationPayload {
     /// must provide named fields; other formats may use the ordered sequence
     /// representation. The visitor enforces the field and element constraints.
     ///
+    /// # Type Parameters
+    ///
+    /// - `D`: The Serde deserializer that supplies the payload representation.
+    ///
+    /// # Parameters
+    ///
+    /// - `deserializer`: The input decoder, consumed to read the payload
+    ///   fields.
+    ///
+    /// # Returns
+    ///
+    /// The decoded seconds and nanoseconds, without validating the nanosecond
+    /// range.
+    ///
     /// # Errors
     ///
     /// Returns the deserializer's error for an unsupported shape, malformed
     /// field value, duplicate or unknown map field, missing field, or a
     /// sequence whose length is not two. The nanosecond range is checked later
     /// when converting this payload to [`Duration`].
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -75,6 +91,7 @@ impl From<&Duration> for DurationPayload {
 }
 
 impl TryFrom<DurationPayload> for Duration {
+    /// Static validation message for an out-of-range nanosecond component.
     type Error = &'static str;
 
     /// Restores a duration after validating its nanosecond component.
@@ -92,6 +109,7 @@ impl TryFrom<DurationPayload> for Duration {
     ///
     /// Returns a static error message when `value.nanos` is at least one
     /// billion.
+    #[inline]
     fn try_from(value: DurationPayload) -> Result<Self, Self::Error> {
         if value.nanos >= 1_000_000_000 {
             return Err("duration nanoseconds must be less than 1000000000");

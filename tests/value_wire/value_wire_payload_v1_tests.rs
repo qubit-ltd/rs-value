@@ -6,6 +6,9 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+//! Tests for owned and borrowed V1 payload shapes, bounded JSON I/O, and
+//! errors.
+
 use std::io;
 use std::io::Write;
 
@@ -20,6 +23,8 @@ use qubit_value::ValueWireDecodeError;
 use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
+use serde_json::json;
+use serde_json::to_value;
 
 /// Writer that rejects every write with a stable error.
 struct RejectingWriter;
@@ -40,8 +45,8 @@ fn test_value_wire_payload_v1_preserves_collection_shape() {
     let payload = ValueWirePayloadV1::try_from(ValueContainer::from(vec![42_i32])).expect("construct V1 payload");
 
     assert_eq!(
-        serde_json::to_value(payload).expect("serialize V1 payload"),
-        serde_json::json!({"collection": {"int32": [42]}}),
+        to_value(payload).expect("serialize V1 payload"),
+        json!({"collection": {"int32": [42]}}),
     );
 }
 
@@ -104,7 +109,7 @@ fn test_value_wire_payload_v1_default_encoding_round_trips() {
 
 #[test]
 fn test_value_wire_payload_v1_json_numbers_round_trip() {
-    let payload = ValueWirePayloadV1::try_from(Value::Json(serde_json::json!({
+    let payload = ValueWirePayloadV1::try_from(Value::Json(json!({
         "amount": 1.5,
         "items": [100.0, -0.0],
         "marker": {"$serde_json::private::Number": "1.5"},

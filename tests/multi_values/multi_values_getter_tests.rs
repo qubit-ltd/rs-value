@@ -8,10 +8,18 @@
 
 use std::collections::HashMap;
 
+#[cfg(feature = "big-decimal")]
+use bigdecimal::BigDecimal;
+#[cfg(feature = "big-integer")]
+use num_bigint::BigInt;
 use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::ValueError;
 use qubit_value::ValueMissing;
+#[cfg(feature = "json")]
+use serde_json::json;
+#[cfg(feature = "url")]
+use url::Url;
 
 #[test]
 fn test_multi_values_getter_is_strict() {
@@ -194,14 +202,14 @@ fn test_multi_values_first_read_reports_precise_missing_state() {
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_multi_values_first_big_integer_getter() {
-    let values = MultiValues::BigInteger(vec![num_bigint::BigInt::from(7)]);
-    assert_eq!(values.get_first_biginteger().unwrap(), num_bigint::BigInt::from(7));
+    let values = MultiValues::BigInteger(vec![BigInt::from(7)]);
+    assert_eq!(values.get_first_biginteger().unwrap(), BigInt::from(7));
 }
 
 #[cfg(feature = "big-decimal")]
 #[test]
 fn test_multi_values_first_big_decimal_getter() {
-    let decimal = "7.5".parse::<bigdecimal::BigDecimal>().unwrap();
+    let decimal = "7.5".parse::<BigDecimal>().unwrap();
     let values = MultiValues::BigDecimal(vec![decimal.clone()]);
     assert_eq!(values.get_first_bigdecimal().unwrap(), decimal);
 }
@@ -209,7 +217,7 @@ fn test_multi_values_first_big_decimal_getter() {
 #[cfg(feature = "url")]
 #[test]
 fn test_multi_values_first_url_getter() {
-    let url = url::Url::parse("https://example.com").unwrap();
+    let url = Url::parse("https://example.com").unwrap();
     let values = MultiValues::Url(vec![url.clone()]);
     assert_eq!(values.get_first_url().unwrap(), url);
 }
@@ -224,7 +232,7 @@ fn test_multi_values_first_string_map_getter() {
 #[cfg(feature = "json")]
 #[test]
 fn test_multi_values_first_json_getter() {
-    let json = serde_json::json!({"key": 1});
+    let json = json!({"key": 1});
     let values = MultiValues::Json(vec![json.clone()]);
     assert_eq!(values.get_first_json().unwrap(), json);
 }

@@ -9,11 +9,13 @@
 //! Serde visitor for the version and value fields of an owned wire envelope.
 
 use serde::de::Error;
+use serde::de::IgnoredAny;
 use serde::de::MapAccess;
 use serde::de::SeqAccess;
 use serde::de::Visitor;
 
 use super::WireEnvelopeOwned;
+
 /// Reads an envelope with exactly one `version` and one `value` field.
 ///
 /// This visitor validates the envelope's structure and field types. Ordered
@@ -27,15 +29,39 @@ pub(super) struct WireEnvelopeOwnedVisitor {
 
 impl WireEnvelopeOwnedVisitor {
     /// Creates a visitor with the sequence policy for the current format.
+    ///
+    /// # Parameters
+    ///
+    /// - `allow_sequence`: permits ordered struct sequences when `true`;
+    ///   human-readable formats must pass `false`.
+    ///
+    /// # Returns
+    ///
+    /// A visitor that applies the supplied sequence policy.
+    #[must_use]
+    #[inline]
     pub(super) fn new(allow_sequence: bool) -> Self {
         Self { allow_sequence }
     }
 }
 
 impl<'de> Visitor<'de> for WireEnvelopeOwnedVisitor {
+    /// Owned envelope produced after validating its structure and field types.
     type Value = WireEnvelopeOwned;
 
     /// Describes the envelope shape expected by this visitor.
+    ///
+    /// # Parameters
+    ///
+    /// - `formatter`: destination for the expected envelope description.
+    ///
+    /// # Returns
+    ///
+    /// Success after writing the description.
+    ///
+    /// # Errors
+    ///
+    /// Returns a formatting error if the destination rejects the description.
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("wire envelope record with version and value fields")
     }
@@ -43,8 +69,22 @@ impl<'de> Visitor<'de> for WireEnvelopeOwnedVisitor {
     /// Reads exactly two permitted sequence elements, in `version`, then
     /// `value` order.
     ///
-    /// Returns a deserializer error for a missing or extra element, or when a
-    /// field value cannot be decoded.
+    /// # Type Parameters
+    ///
+    /// - `A`: sequence access supplied by the deserializer for `'de`.
+    ///
+    /// # Parameters
+    ///
+    /// - `seq`: consumed input containing the version followed by the payload.
+    ///
+    /// # Returns
+    ///
+    /// An owned envelope decoded from the two elements.
+    ///
+    /// # Errors
+    ///
+    /// Returns a deserializer error when sequences are disallowed, an element
+    /// is missing or extra, or a field value cannot be decoded.
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
@@ -56,13 +96,27 @@ impl<'de> Visitor<'de> for WireEnvelopeOwnedVisitor {
         // and require exactly two elements.
         let version = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
         let value = seq.next_element()?.ok_or_else(|| Error::invalid_length(1, &self))?;
-        if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
+        if seq.next_element::<IgnoredAny>()?.is_some() {
             return Err(Error::invalid_length(3, &self));
         }
         Ok(WireEnvelopeOwned { version, value })
     }
 
     /// Reads the `version` and `value` map fields, in either order.
+    ///
+    /// # Type Parameters
+    ///
+    /// - `A`: map access supplied by the deserializer for `'de`.
+    ///
+    /// # Parameters
+    ///
+    /// - `map`: consumed input with the version and payload as named fields.
+    ///
+    /// # Returns
+    ///
+    /// An owned envelope containing both recognized fields.
+    ///
+    /// # Errors
     ///
     /// Returns a deserializer error for an unknown, duplicate, or missing
     /// field, or when a field value cannot be decoded.

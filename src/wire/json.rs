@@ -47,6 +47,7 @@ use crate::value_wire::ValueWireEncodeError;
 /// # Errors
 ///
 /// Returns `S::Error` when serialization fails.
+#[inline]
 pub(crate) fn serialize<S>(value: &Value, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -71,6 +72,7 @@ where
 /// # Errors
 ///
 /// Returns `D::Error` when decoding fails or an object repeats a key.
+#[inline]
 pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Value, D::Error>
 where
     D: Deserializer<'de>,
@@ -80,6 +82,14 @@ where
 
 /// Checks whether a JSON number survives the V1 decoder's number model
 /// without changing its `serde_json::Number` identity.
+///
+/// # Parameters
+///
+/// * `number` - JSON number whose V1 representation must preserve its identity.
+///
+/// # Returns
+///
+/// `Ok(())` when the number round-trips through the V1 number model unchanged.
 ///
 /// # Errors
 ///
@@ -105,6 +115,15 @@ pub(crate) fn validate_number(number: &Number) -> Result<(), ValueWireEncodeErro
 }
 
 /// Reconstructs the V1 number model from text and checks number identity.
+///
+/// # Parameters
+///
+/// * `number` - Original JSON number to compare with the reconstructed value.
+/// * `text` - Decimal representation used to reconstruct the V1 number.
+///
+/// # Returns
+///
+/// `Ok(())` when the reconstructed number equals `number`.
 ///
 /// # Errors
 ///
@@ -132,6 +151,10 @@ fn validate_number_text(number: &Number, text: &str) -> Result<(), ValueWireEnco
 /// the JSON number is written into a comparator that checks each text fragment
 /// byte-for-byte. Equality requires every expected byte to be consumed.
 ///
+/// # Type Parameters
+///
+/// * `T` - Integer type whose `Display` implementation produces decimal text.
+///
 /// # Parameters
 ///
 /// * `number` - JSON number whose textual identity is checked.
@@ -140,6 +163,7 @@ fn validate_number_text(number: &Number, text: &str) -> Result<(), ValueWireEnco
 /// # Returns
 ///
 /// `true` when formatting succeeds and the complete byte sequences match.
+#[must_use]
 fn number_matches_integer<T: fmt::Display>(number: &Number, integer: T) -> bool {
     let mut expected = FixedNumberText::new();
     if write!(&mut expected, "{integer}").is_err() {
@@ -150,6 +174,16 @@ fn number_matches_integer<T: fmt::Display>(number: &Number, integer: T) -> bool 
 }
 
 /// Checks every number in a JSON tree using iterator frames bounded by depth.
+///
+/// # Parameters
+///
+/// * `value` - Borrowed JSON tree whose numbers must preserve their V1
+///   identity.
+///
+/// # Returns
+///
+/// `Ok(())` when every number round-trips unchanged, including trees without
+/// numbers.
 ///
 /// # Errors
 ///

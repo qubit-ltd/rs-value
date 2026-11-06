@@ -38,6 +38,10 @@ macro_rules! define_collection_wire_ref {
     ) => {
         /// Borrowed payload for one homogeneous typed collection.
         ///
+        /// Populated variants borrow the runtime vector without allocating or
+        /// cloning elements. `Unset` retains only the declared element type and
+        /// remains distinct from a populated collection with no elements.
+        ///
         /// # Type Parameters
         ///
         /// * `'a` - Lifetime of the borrowed collection elements.
@@ -63,6 +67,16 @@ macro_rules! define_collection_wire_ref {
 
         impl<'a> From<&'a MultiValues> for CollectionWireRef<'a> {
             /// Borrows the exact runtime collection variant for V1 serialization.
+            ///
+            /// # Parameters
+            ///
+            /// * `values` - Collection whose payload remains borrowed for `'a`.
+            ///
+            /// # Returns
+            ///
+            /// A matching wire payload, preserving unset state or borrowing the
+            /// populated vector without cloning or transferring its ownership.
+            #[inline]
             fn from(values: &'a MultiValues) -> Self {
                 match &values.repr {
                     MultiValuesRepr::Unset(data_type) => Self::Unset((*data_type).into()),

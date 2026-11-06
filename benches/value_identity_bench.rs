@@ -8,6 +8,7 @@
 //! Benchmarks for `Value` identity hashing and hash-map lookup.
 
 use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::hint::black_box;
@@ -18,11 +19,12 @@ use criterion::criterion_group;
 use criterion::criterion_main;
 use num_bigint::BigInt;
 use qubit_value::Value;
+use serde_json::Value as JsonValue;
 use serde_json::json;
 
 /// Hashes one value with the standard library's default hasher.
 fn hash_value(value: &Value) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let mut hasher = DefaultHasher::new();
     value.hash(&mut hasher);
     hasher.finish()
 }
@@ -116,10 +118,10 @@ fn benchmark_hash_map_lookup(c: &mut Criterion) {
 
 /// Measures equality of wide arrays and objects without hash computation.
 fn benchmark_wide_json_equality(c: &mut Criterion) {
-    let array = serde_json::Value::Array((0..16_384).map(serde_json::Value::from).collect());
-    let object = serde_json::Value::Object(
+    let array = JsonValue::Array((0..16_384).map(JsonValue::from).collect());
+    let object = JsonValue::Object(
         (0..16_384)
-            .map(|index| (index.to_string(), serde_json::Value::from(index)))
+            .map(|index| (index.to_string(), JsonValue::from(index)))
             .collect(),
     );
     for (name, json) in [("array", array), ("object", object)] {

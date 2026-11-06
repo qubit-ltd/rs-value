@@ -27,6 +27,24 @@ pub(in crate::wire) struct CanonicalJson<'a>(
 
 impl Serialize for CanonicalJson<'_> {
     /// Serializes this JSON value with dictionary-order object keys.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Serializer receiving the canonical JSON representation.
+    ///
+    /// # Parameters
+    ///
+    /// * `self` - Borrowed JSON tree whose object keys are sorted recursively.
+    /// * `serializer` - Destination consumed by this serialization operation.
+    ///
+    /// # Returns
+    ///
+    /// The destination serializer's successful output.
+    ///
+    /// # Errors
+    ///
+    /// Returns `S::Error` if a number cannot round-trip through the wire number
+    /// model or if the destination serializer rejects any part of the tree.
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -65,55 +83,57 @@ mod tests {
     use qubit_budget::json::JsonEncodeSession;
     use qubit_budget::json::JsonResource;
     use qubit_json::encode::JsonEncoder;
+    use serde_json::Number;
     use serde_json::Value;
+    use serde_json::from_str;
+    use serde_json::to_vec;
 
     use super::CanonicalJson;
 
     #[test]
     fn test_canonical_json_rejects_non_round_trippable_number() {
         for text in ["0.12345678901234567890123", "1e1", "1.2500", "1e400", "-0"] {
-            let Ok(Value::Number(number)) = serde_json::from_str::<Value>(text) else {
+            let Ok(Value::Number(number)) = from_str::<Value>(text) else {
                 continue;
             };
             let rendered = number.to_string();
             let restored = if rendered == "-0" {
-                serde_json::Number::from_f64(-0.0)
+                Number::from_f64(-0.0)
             } else if rendered.bytes().any(|byte| matches!(byte, b'.' | b'e' | b'E')) {
-                rendered.parse::<f64>().ok().and_then(serde_json::Number::from_f64)
+                rendered.parse::<f64>().ok().and_then(Number::from_f64)
             } else if rendered.starts_with('-') {
-                rendered.parse::<i64>().ok().map(serde_json::Number::from)
+                rendered.parse::<i64>().ok().map(Number::from)
             } else {
-                rendered.parse::<u64>().ok().map(serde_json::Number::from)
+                rendered.parse::<u64>().ok().map(Number::from)
             };
             if restored.as_ref() == Some(&number) {
                 continue;
             }
             let value = Value::Number(number);
-            assert!(serde_json::to_vec(&CanonicalJson(&value)).is_err());
+            assert!(to_vec(&CanonicalJson(&value)).is_err(), "serde_json accepted {text}");
             assert!(
                 JsonEncoder::new(JsonEncodeSession::from_limits(
                     JsonEncodeLimits::<JsonResource, usize>::new(),
                 ))
                 .to_vec(&CanonicalJson(&value))
-                .is_err()
+                .is_err(),
+                "JsonEncoder accepted {text}"
             );
         }
     }
 
     #[test]
     fn test_canonical_json_serializes_standard_number() {
-        for number in [
-            serde_json::Number::from(42_u64),
-            serde_json::Number::from_f64(0.125).expect("finite fixture"),
-        ] {
+        for number in [Number::from(42_u64), Number::from_f64(0.125).expect("finite fixture")] {
             let value = Value::Number(number);
-            assert!(serde_json::to_vec(&CanonicalJson(&value)).is_ok());
+            assert!(to_vec(&CanonicalJson(&value)).is_ok(), "serde_json rejected {value}");
             assert!(
                 JsonEncoder::new(JsonEncodeSession::from_limits(
                     JsonEncodeLimits::<JsonResource, usize>::new(),
                 ))
                 .to_vec(&CanonicalJson(&value))
-                .is_ok()
+                .is_ok(),
+                "JsonEncoder rejected {value}"
             );
         }
     }

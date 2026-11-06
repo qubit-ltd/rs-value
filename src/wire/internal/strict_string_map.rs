@@ -26,7 +26,7 @@ pub(in crate::wire) struct StrictStringMap<V>(
 );
 
 impl<V> StrictStringMap<V> {
-    /// Returns the validated map.
+    /// Transfers ownership of the validated map without cloning or allocating.
     ///
     /// # Parameters
     ///
@@ -35,6 +35,8 @@ impl<V> StrictStringMap<V> {
     /// # Returns
     ///
     /// The owned map after duplicate-key validation has succeeded.
+    #[must_use]
+    #[inline]
     pub(in crate::wire) fn into_inner(self) -> HashMap<String, V> {
         self.0
     }
@@ -62,6 +64,7 @@ where
     ///
     /// Returns the deserializer error if a key or value cannot be decoded, or
     /// if the input contains a duplicate key.
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

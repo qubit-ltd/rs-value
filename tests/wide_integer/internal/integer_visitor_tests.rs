@@ -12,11 +12,13 @@ use qubit_value::Value;
 use qubit_value::ValueWireV1Seed;
 use serde::de::DeserializeSeed;
 use serde::de::IntoDeserializer;
+use serde_json::json;
 
 #[test]
 fn test_wide_integer_wire_rejects_number_payload() {
     assert!(
-        crate::decode_value_wire_value(serde_json::json!({"version": 1, "value": {"scalar": {"int128": 1}}})).is_err()
+        crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"int128": 1}}})).is_err(),
+        "wide integers must reject numeric wire payloads",
     );
 }
 
@@ -24,7 +26,7 @@ fn test_wide_integer_wire_rejects_number_payload() {
 #[test]
 fn test_wide_integer_wire_rejects_invalid_decimal_text() {
     for text in ["", "+1", "01", "12x", "-1"] {
-        let input = serde_json::json!({
+        let input = json!({
             "version": 1,
             "value": {"scalar": {"uint128": text}},
         });
@@ -50,7 +52,7 @@ fn test_wide_integer_wire_parses_extreme_values() {
         (i128::MAX.to_string(), Value::Int128(i128::MAX).into()),
     ] {
         assert_eq!(
-            crate::decode_value_wire_value(serde_json::json!({"version": 1, "value": {"scalar": {"int128": text}}}))
+            crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"int128": text}}}))
                 .expect("signed limit must decode")
                 .into_container(),
             expected,
@@ -62,7 +64,7 @@ fn test_wide_integer_wire_parses_extreme_values() {
         (u128::MAX.to_string(), Value::UInt128(u128::MAX).into()),
     ] {
         assert_eq!(
-            crate::decode_value_wire_value(serde_json::json!({"version": 1, "value": {"scalar": {"uint128": text}}}))
+            crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"uint128": text}}}))
                 .expect("unsigned limit must decode")
                 .into_container(),
             expected,
@@ -78,7 +80,7 @@ fn test_wide_integer_wire_parses_owned_extreme_strings() {
         ("int128", i128::MIN.to_string(), Value::Int128(i128::MIN)),
         ("uint128", u128::MAX.to_string(), Value::UInt128(u128::MAX)),
     ] {
-        let input = serde_json::json!({"version": 1, "value": {"scalar": {tag: text}}});
+        let input = json!({"version": 1, "value": {"scalar": {tag: text}}});
         let wire = ValueWireV1Seed::new()
             .deserialize(input.into_deserializer())
             .expect("owned extreme integer string must decode");
@@ -90,7 +92,7 @@ fn test_wide_integer_wire_parses_owned_extreme_strings() {
 /// error.
 #[test]
 fn test_wide_integer_wire_rejects_owned_noncanonical_string_precisely() {
-    let input = serde_json::json!({"version": 1, "value": {"scalar": {"int128": "+1"}}});
+    let input = json!({"version": 1, "value": {"scalar": {"int128": "+1"}}});
     let error = ValueWireV1Seed::new()
         .deserialize(input.into_deserializer())
         .expect_err("owned non-canonical integer string must be rejected");

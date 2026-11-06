@@ -11,6 +11,12 @@
 #[cfg(all(feature = "converter", feature = "json"))]
 use std::collections::HashMap;
 #[cfg(all(feature = "converter", feature = "json"))]
+use std::env::consts::OS;
+#[cfg(all(feature = "converter", feature = "json"))]
+use std::env::var_os;
+#[cfg(all(feature = "converter", feature = "json"))]
+use std::process::Command;
+#[cfg(all(feature = "converter", feature = "json"))]
 use std::time::Duration;
 
 #[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
@@ -26,7 +32,19 @@ use chrono::Utc;
 #[cfg(all(feature = "converter", feature = "json", feature = "big-integer"))]
 use num_bigint::BigInt;
 #[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::ConversionLimits;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::ConversionOperationLimits;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::ConversionPolicy;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::ConversionResource;
+#[cfg(all(feature = "converter", feature = "json"))]
 use qubit_datatype::DataType;
+#[cfg(all(feature = "converter", feature = "json", feature = "big-integer"))]
+use qubit_datatype::NumericConversionLimits;
+#[cfg(all(feature = "converter", feature = "json"))]
+use qubit_datatype::StructuredConversionLimits;
 #[cfg(all(feature = "converter", feature = "json"))]
 use qubit_value::MultiValues;
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -49,6 +67,13 @@ use serde_json::to_string;
 use url::Url;
 
 #[cfg(all(feature = "converter", feature = "json"))]
+use crate::deep_json_helpers::build_deep_json;
+#[cfg(all(feature = "converter", feature = "json"))]
+use crate::deep_json_helpers::dismantle_json;
+#[cfg(all(feature = "converter", feature = "json"))]
+use crate::deep_json_helpers::run_isolated_test;
+
+#[cfg(all(feature = "converter", feature = "json"))]
 const DEEP_NATURAL_JSON_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_NATURAL_JSON_CHILD";
 
 /// Checks that natural JSON projection handles deep trees in an isolated
@@ -56,8 +81,6 @@ const DEEP_NATURAL_JSON_CHILD_ENV: &str = "QUBIT_VALUE_DEEP_NATURAL_JSON_CHILD";
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_natural_json_deep_projection() {
-    use crate::deep_json_helpers::run_isolated_test;
-
     let output = run_isolated_test(
         "json_tests::test_natural_json_deep_projection_child",
         DEEP_NATURAL_JSON_CHILD_ENV,
@@ -65,7 +88,7 @@ fn test_natural_json_deep_projection() {
     println!(
         "RV-006: rustc={}, os={}, status={:?}, last_stage={}, depth=10000, max_depth=10001, max_structured_nodes=20002",
         rustc_version(),
-        std::env::consts::OS,
+        OS,
         output.status,
         last_deep_json_stage(&output.stderr),
     );
@@ -90,14 +113,9 @@ fn test_natural_json_deep_projection() {
 #[test]
 #[ignore = "run only through test_natural_json_deep_projection"]
 fn test_natural_json_deep_projection_child() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::StructuredConversionLimits;
-
-    assert!(std::env::var_os(DEEP_NATURAL_JSON_CHILD_ENV).is_some());
+    assert!(var_os(DEEP_NATURAL_JSON_CHILD_ENV).is_some());
     const DEPTH: usize = 10_000;
-    let input = Value::from_json_value(crate::deep_json_helpers::build_deep_json(DEPTH));
+    let input = Value::from_json_value(build_deep_json(DEPTH));
     let limits = ConversionLimits::builder()
         .structured_limits(
             StructuredConversionLimits::builder()
@@ -144,12 +162,15 @@ fn test_natural_json_deep_projection_child() {
     assert_eq!(projected_depth, DEPTH, "projected JSON depth changed");
     assert_eq!(deepest_bool, Some((DEPTH, true)), "projected JSON leaf changed");
     let input_json = JsonValue::try_from(input).expect("deep input retains its JSON type");
-    crate::deep_json_helpers::dismantle_json(input_json);
+    dismantle_json(input_json);
     eprintln!("teardown input iteratively");
     eprintln!("done");
 }
 
+/// Returns the last progress marker for a failed isolated projection, or a
+/// fallback.
 #[cfg(all(feature = "converter", feature = "json"))]
+#[must_use]
 fn last_deep_json_stage(stderr: &[u8]) -> String {
     String::from_utf8_lossy(stderr)
         .lines()
@@ -169,9 +190,11 @@ fn last_deep_json_stage(stderr: &[u8]) -> String {
         .to_owned()
 }
 
+/// Captures the compiler version for the deep-projection diagnostic report.
 #[cfg(all(feature = "converter", feature = "json"))]
+#[must_use]
 fn rustc_version() -> String {
-    std::process::Command::new("rustc")
+    Command::new("rustc")
         .arg("--version")
         .output()
         .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
@@ -181,9 +204,6 @@ fn rustc_version() -> String {
 /// Projection budgets cover the whole collection, including cheap scalar paths.
 #[test]
 fn test_natural_json_enforces_cumulative_projection_limits() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_output_bytes(5).build())
@@ -208,9 +228,6 @@ fn test_natural_json_enforces_cumulative_projection_limits() {
 /// Float budgets measure the projected JSON representation at exact boundaries.
 #[test]
 fn test_natural_json_float_budget_matches_projected_number() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
     let policy = ConversionPolicy::default();
     for value in [
         Value::Float64(1.0),
@@ -235,10 +252,6 @@ fn test_natural_json_float_budget_matches_projected_number() {
 /// JSON and map payloads obey the same structural limits as projected lists.
 #[test]
 fn test_natural_json_enforces_structure_before_materializing() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::StructuredConversionLimits;
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
         .structured_limits(
@@ -274,10 +287,6 @@ fn test_natural_json_enforces_structure_before_materializing() {
 /// limits.
 #[test]
 fn test_natural_json_duration_budget_error_scalar_and_collection() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::ConversionResource;
     let duration = Value::Duration(Duration::from_secs(1));
     let policy = ConversionPolicy::default();
     let zero_output = ConversionLimits::builder()
@@ -341,9 +350,6 @@ fn test_natural_json_duration_budget_error_scalar_and_collection() {
 /// unrelated non-finite number failures.
 #[test]
 fn test_natural_json_duration_budget_error_exact_fit_and_non_finite_float() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
     let policy = ConversionPolicy::default();
     let exact = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
@@ -364,9 +370,6 @@ fn test_natural_json_duration_budget_error_exact_fit_and_non_finite_float() {
 #[test]
 #[cfg(feature = "big-decimal")]
 fn test_natural_json_bounds_wide_number_text() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
@@ -634,10 +637,6 @@ fn test_natural_json_projects_every_collection_variant() {
 /// bytes.
 #[test]
 fn test_natural_json_limit_error_preserves_budget_facts() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::ConversionResource;
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_output_bytes(5).build())
@@ -670,10 +669,6 @@ fn test_natural_json_limit_error_preserves_budget_facts() {
 #[test]
 #[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 fn test_natural_json_projection_boundary_matrix() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::NumericConversionLimits;
     let policy = ConversionPolicy::default();
     let input = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_input_bytes(2).build())
@@ -738,10 +733,6 @@ fn test_natural_json_projection_boundary_matrix() {
 #[test]
 #[cfg(feature = "big-integer")]
 fn test_natural_json_checks_big_integer_limits() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::NumericConversionLimits;
-
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
         .numeric_limits(NumericConversionLimits::builder().max_big_integer_digits(10).build())
@@ -762,10 +753,6 @@ fn test_natural_json_checks_big_integer_limits() {
 /// Nested keys and string values consume the same operation-wide output budget.
 #[test]
 fn test_natural_json_keys_and_values_share_output_budget() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::ConversionResource;
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_output_bytes(1).build())
@@ -807,9 +794,6 @@ fn test_natural_json_keys_and_values_share_output_budget() {
 /// A string's representation does not determine whether the text bound applies.
 #[test]
 fn test_natural_json_text_limit_applies_inside_json_and_maps() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::StructuredConversionLimits;
     let limits = ConversionLimits::builder()
         .structured_limits(StructuredConversionLimits::builder().max_text_bytes(2).build())
         .build();
@@ -826,11 +810,6 @@ fn test_natural_json_text_limit_applies_inside_json_and_maps() {
 /// or the combined length of individually admitted strings.
 #[test]
 fn test_natural_json_text_limit_numbers_keys_and_utf8() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::ConversionResource;
-    use qubit_datatype::StructuredConversionLimits;
-
     let limits = ConversionLimits::builder()
         .structured_limits(StructuredConversionLimits::builder().max_text_bytes(2).build())
         .build();
@@ -871,12 +850,6 @@ fn test_natural_json_text_limit_numbers_keys_and_utf8() {
 /// position of the rejected value.
 #[test]
 fn test_natural_json_reports_each_projection_budget_resource_precisely() {
-    use qubit_datatype::ConversionLimits;
-    use qubit_datatype::ConversionOperationLimits;
-    use qubit_datatype::ConversionPolicy;
-    use qubit_datatype::ConversionResource;
-    use qubit_datatype::StructuredConversionLimits;
-
     let policy = ConversionPolicy::default();
     let cases = [
         (

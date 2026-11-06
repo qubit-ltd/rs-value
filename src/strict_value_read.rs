@@ -91,16 +91,59 @@ where
     for<'a> T: TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
     for<'a> Vec<T>: TryFrom<&'a MultiValues, Error = ValueError>,
 {
+    /// Delegates to the scalar's strict conversion without consuming its
+    /// storage.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Borrowed scalar storage to read without type conversion.
+    ///
+    /// # Returns
+    ///
+    /// An owned value of the exact stored type.
+    ///
+    /// # Errors
+    ///
+    /// Propagates missing-storage and type-mismatch errors from the strict
+    /// read.
     #[inline(always)]
     fn read_scalar(value: &Value) -> ValueResult<Self> {
         value.get()
     }
 
+    /// Delegates to the strict first-element conversion, preserving the
+    /// collection.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Borrowed collection whose first element is read exactly.
+    ///
+    /// # Returns
+    ///
+    /// An owned copy or clone of the first stored element.
+    ///
+    /// # Errors
+    ///
+    /// Propagates missing-storage, empty-collection, and type-mismatch errors.
     #[inline(always)]
     fn read_collection_first(values: &MultiValues) -> ValueResult<Self> {
         Self::try_from(values)
     }
 
+    /// Delegates to the strict list conversion, cloning elements in stored
+    /// order.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Borrowed collection to read without element conversion.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector containing every stored element in its original order.
+    ///
+    /// # Errors
+    ///
+    /// Propagates missing-storage and element-type-mismatch errors.
     #[inline(always)]
     fn read_collection_list(values: &MultiValues) -> ValueResult<Vec<Self>> {
         values.get()

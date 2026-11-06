@@ -17,7 +17,8 @@ use thiserror::Error;
 ///
 /// ```
 /// use qubit_datatype::NumericComparisonPolicy;
-/// use qubit_value::{NumericComparisonError, Value};
+/// use qubit_value::NumericComparisonError;
+/// use qubit_value::Value;
 ///
 /// let error = Value::from("text")
 ///     .numeric_cmp(&Value::from(1_i32), NumericComparisonPolicy::Exact)

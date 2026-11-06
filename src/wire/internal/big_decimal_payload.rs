@@ -20,6 +20,10 @@ use super::big_decimal_payload_visitor::BigDecimalPayloadVisitor;
 use crate::wire::is_valid_big_decimal_scale;
 
 /// Exact wire representation of an arbitrary-precision decimal.
+///
+/// The represented value is `coefficient * 10^(-scale)`, so a negative scale
+/// denotes a positive power of ten. Deserialization checks the record shape;
+/// conversion to `BigDecimal` validates the coefficient and scale.
 #[derive(Serialize)]
 pub(in crate::wire) struct BigDecimalPayload {
     /// Canonical base-10 integer coefficient.
@@ -29,6 +33,25 @@ pub(in crate::wire) struct BigDecimalPayload {
 }
 
 impl<'de> Deserialize<'de> for BigDecimalPayload {
+    /// Reads named fields, permitting ordered fields only in binary formats.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Deserializer supplying the payload record.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Input consumed to obtain the coefficient and scale.
+    ///
+    /// # Returns
+    ///
+    /// A payload whose coefficient and scale still require semantic validation.
+    ///
+    /// # Errors
+    ///
+    /// Returns a deserializer error for malformed fields, missing, duplicate,
+    /// or unknown fields, or sequences in human-readable formats.
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -43,6 +66,7 @@ impl<'de> Deserialize<'de> for BigDecimalPayload {
 }
 
 impl TryFrom<&BigDecimal> for BigDecimalPayload {
+    /// Static explanation of a scale outside the V1 absolute scale limit.
     type Error = &'static str;
 
     /// Creates an exact payload without formatting the decimal value.
@@ -76,6 +100,7 @@ impl TryFrom<&BigDecimal> for BigDecimalPayload {
 }
 
 impl TryFrom<BigDecimalPayload> for BigDecimal {
+    /// Static explanation of an invalid scale or noncanonical coefficient.
     type Error = &'static str;
 
     /// Restores a decimal after validating the canonical coefficient.

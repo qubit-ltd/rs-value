@@ -6,6 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+//! Checks allocation scaling and bounded rejection through the public wire API.
+
 #![cfg(feature = "json")]
 
 use std::alloc::GlobalAlloc;
@@ -13,6 +15,8 @@ use std::alloc::Layout;
 use std::alloc::System;
 use std::cell::Cell;
 use std::collections::HashMap;
+#[cfg(feature = "url")]
+use std::io::sink;
 
 use qubit_budget::BudgetError;
 use qubit_budget::json::JsonEncodeLimits;
@@ -23,7 +27,16 @@ use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWirePayloadRefV1;
+use serde_json::Value as JsonValue;
+use serde_json::json;
+use serde_json::to_string;
+#[cfg(feature = "url")]
+use serde_json::to_writer;
+#[cfg(feature = "url")]
+use url::Url;
 
+/// Counts successful allocation and reallocation sizes only on the measuring
+/// thread. Deallocations do not reduce this cumulative byte count.
 struct CountingAllocator;
 
 thread_local! {
@@ -67,15 +80,20 @@ unsafe impl GlobalAlloc for CountingAllocator {
     }
 }
 
+/// Disables thread-local counting on drop, including when the measured
+/// operation panics. Measurements must not be nested because each start resets
+/// the same thread-local counter.
 struct AllocationGuard;
 
 impl AllocationGuard {
+    /// Resets this thread's byte count and enables allocation recording.
     fn start() -> Self {
         ALLOCATED_BYTES.with(|bytes| bytes.set(0));
         COUNT_ALLOCATIONS.with(|enabled| enabled.set(true));
         Self
     }
 
+    /// Stops recording before returning the cumulative allocated bytes.
     fn stop(self) -> usize {
         COUNT_ALLOCATIONS.with(|enabled| enabled.set(false));
         ALLOCATED_BYTES.with(Cell::get)
@@ -88,6 +106,8 @@ impl Drop for AllocationGuard {
     }
 }
 
+/// Runs one non-nested measurement; only allocations on the current thread are
+/// counted.
 fn measured_allocations<T>(operation: impl FnOnce() -> T) -> (T, usize) {
     let guard = AllocationGuard::start();
     let result = operation();
@@ -96,8 +116,8 @@ fn measured_allocations<T>(operation: impl FnOnce() -> T) -> (T, usize) {
 }
 
 fn object(size: usize) -> Value {
-    let entries = (0..size).map(|index| (format!("key-{index:05}"), serde_json::json!(index)));
-    Value::Json(serde_json::Value::Object(entries.collect()))
+    let entries = (0..size).map(|index| (format!("key-{index:05}"), json!(index)));
+    Value::Json(JsonValue::Object(entries.collect()))
 }
 
 fn string_values(size: usize, length: usize) -> MultiValues {
@@ -289,7 +309,7 @@ fn test_string_map_success_output_keeps_canonical_order() {
     ]));
     let scalar_wire = ValueWirePayloadRefV1::from_value(&scalar_value).unwrap();
     assert_eq!(
-        serde_json::to_string(&scalar_wire).unwrap(),
+        to_string(&scalar_wire).unwrap(),
         r#"{"scalar":{"stringmap":{"a":"1","b":"2"}}}"#
     );
 
@@ -299,7 +319,7 @@ fn test_string_map_success_output_keeps_canonical_order() {
     ])]);
     let collection_wire = ValueWirePayloadRefV1::from_values(&collection_value).unwrap();
     assert_eq!(
-        serde_json::to_string(&collection_wire).unwrap(),
+        to_string(&collection_wire).unwrap(),
         r#"{"collection":{"stringmap":[{"a":"1","b":"2"}]}}"#
     );
 }
@@ -317,7 +337,7 @@ fn test_bounded_collection_entry_accepts_empty_collection() {
 
 #[cfg(feature = "url")]
 fn url_container(length: usize, collection: bool) -> ValueContainer {
-    let url = url::Url::parse(&format!("https://example.com/{}", "x".repeat(length))).unwrap();
+    let url = Url::parse(&format!("https://example.com/{}", "x".repeat(length))).unwrap();
     if collection {
         ValueContainer::from(vec![url; 32])
     } else {
@@ -333,10 +353,10 @@ fn test_url_success_encoding_allocation_does_not_scale_with_text_length() {
         let large = url_container(131072, collection);
         let small_wire = ValueWirePayloadRefV1::from_container(&small).unwrap();
         let large_wire = ValueWirePayloadRefV1::from_container(&large).unwrap();
-        serde_json::to_writer(std::io::sink(), &small_wire).unwrap();
-        serde_json::to_writer(std::io::sink(), &large_wire).unwrap();
-        let (small_result, small_bytes) = measured_allocations(|| serde_json::to_writer(std::io::sink(), &small_wire));
-        let (large_result, large_bytes) = measured_allocations(|| serde_json::to_writer(std::io::sink(), &large_wire));
+        to_writer(sink(), &small_wire).unwrap();
+        to_writer(sink(), &large_wire).unwrap();
+        let (small_result, small_bytes) = measured_allocations(|| to_writer(sink(), &small_wire));
+        let (large_result, large_bytes) = measured_allocations(|| to_writer(sink(), &large_wire));
         small_result.unwrap();
         large_result.unwrap();
         assert!(
@@ -364,10 +384,10 @@ fn test_url_rejected_encoding_allocation_does_not_scale_with_text_length() {
                 result,
                 Err(ValueWireEncodeError::Budget(
                     BudgetError::LimitExceeded {
-                        resource: qubit_budget::json::JsonResource::StringBytes,
+                        resource: JsonResource::StringBytes,
                         ..
                     } | BudgetError::Insufficient {
-                        resource: qubit_budget::json::JsonResource::StringBytes,
+                        resource: JsonResource::StringBytes,
                         ..
                     }
                 ))

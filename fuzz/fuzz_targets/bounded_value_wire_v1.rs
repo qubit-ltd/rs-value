@@ -5,6 +5,11 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
+//! Fuzzes raw Wire V1 decoding under fixed and varied resource budgets.
+//!
+//! The shared checker round-trips accepted values and asserts budget
+//! invariants.
+
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;

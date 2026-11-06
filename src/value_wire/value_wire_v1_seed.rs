@@ -28,6 +28,8 @@ use super::deserialize_wire;
 /// diagnostics, and reader or writer I/O sources may contain
 /// application-defined details that require the application's logging policy.
 ///
+/// # Examples
+///
 /// With the `json` feature, a complete envelope can be decoded through the
 /// public `JsonDecoder` entry point:
 ///
@@ -56,6 +58,10 @@ pub struct ValueWireV1Seed;
 
 impl ValueWireV1Seed {
     /// Creates a seed for one V1 envelope.
+    ///
+    /// # Returns
+    ///
+    /// A stateless seed to pass to a resource-bounded deserializer.
     #[must_use = "the seed should be passed to a bounded deserializer"]
     #[inline(always)]
     pub const fn new() -> Self {
@@ -64,9 +70,31 @@ impl ValueWireV1Seed {
 }
 
 impl<'de> DeserializeSeed<'de> for ValueWireV1Seed {
+    /// Validated V1 envelope produced by decoding the input.
     type Value = ValueWireV1;
 
     /// Deserializes one validated V1 runtime container into the DTO.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Serde deserializer supplying the V1 envelope, with input borrows
+    ///   valid for `'de`.
+    ///
+    /// # Parameters
+    ///
+    /// * `self` - Stateless seed consumed by the decoding operation.
+    /// * `deserializer` - Source of the envelope; the caller is responsible for
+    ///   enforcing appropriate resource limits.
+    ///
+    /// # Returns
+    ///
+    /// The decoded and version-validated V1 envelope.
+    ///
+    /// # Errors
+    ///
+    /// Returns `D::Error` if decoding fails or the envelope declares an
+    /// unsupported version. Diagnostics retain the deserializer's error
+    /// semantics and may contain input-derived text.
     #[inline(always)]
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where

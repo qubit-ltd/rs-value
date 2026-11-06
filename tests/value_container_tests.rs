@@ -8,13 +8,18 @@
 
 //! Tests for the explicit scalar-or-collection value container.
 
-#[cfg(any(feature = "redact", all(feature = "json", feature = "big-decimal")))]
+#[cfg(any(
+    feature = "redact",
+    all(feature = "converter", feature = "json", feature = "big-decimal")
+))]
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;
 #[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
 use std::time::Duration;
 
+#[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
+use bigdecimal::BigDecimal;
 #[cfg(feature = "converter")]
 use qubit_datatype::CollectionConversionPolicy;
 #[cfg(feature = "converter")]
@@ -637,7 +642,7 @@ fn test_value_container_state_accessors_cover_scalar_collection_and_unset() {
 fn test_value_container_json_projection_uses_structured_budgets() {
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::default();
-    let decimal = ValueContainer::from("123.45".parse::<bigdecimal::BigDecimal>().expect("valid decimal"));
+    let decimal = ValueContainer::from("123.45".parse::<BigDecimal>().expect("valid decimal"));
     assert_eq!(
         decimal.to_json_value_with(&policy, &limits).expect("project decimal"),
         json!("123.45")

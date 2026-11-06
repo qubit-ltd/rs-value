@@ -79,11 +79,12 @@ impl ValueWireV1 {
     /// Numeric version emitted and accepted by this DTO.
     pub const VERSION: u8 = VALUE_WIRE_V1_VERSION;
 
-    /// Creates a V1 DTO from an explicit scalar-or-collection container.
+    /// Creates a V1 DTO from an already validated V1 payload.
     ///
     /// # Parameters
     ///
-    /// * `value` - Runtime container whose exact type and shape are preserved.
+    /// * `value` - Validated [`ValueWirePayloadV1`] moved into the envelope,
+    ///   preserving its exact runtime type and scalar-or-collection shape.
     ///
     /// # Returns
     ///
@@ -91,30 +92,6 @@ impl ValueWireV1 {
     #[inline(always)]
     pub const fn new(value: ValueWirePayloadV1) -> Self {
         Self { value }
-    }
-
-    /// Returns the default JSON resource profile for complete V1 documents.
-    ///
-    /// # Returns
-    ///
-    /// Decode limits suitable for one standalone V1 envelope.
-    #[cfg(feature = "json")]
-    #[must_use = "the V1 JSON profile should be applied to a budget"]
-    #[inline]
-    pub fn default_json_decode_limits() -> JsonDecodeLimits {
-        super::default_json_decode_limits()
-    }
-
-    /// Returns the default JSON resource profile for encoding V1 documents.
-    ///
-    /// # Returns
-    ///
-    /// Encode limits suitable for one standalone V1 envelope.
-    #[cfg(feature = "json")]
-    #[must_use = "the V1 JSON profile should be applied to an encode session"]
-    #[inline(always)]
-    pub fn default_json_encode_limits() -> JsonEncodeLimits {
-        super::default_json_encode_limits()
     }
 
     /// Decodes a V1 JSON wire value using the default structural limits.
@@ -174,6 +151,41 @@ impl ValueWireV1 {
     pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         super::decode_wire_json_slice_with_session(input, session)
+    }
+
+    /// Returns the default JSON resource profile for complete V1 documents.
+    ///
+    /// # Returns
+    ///
+    /// Decode limits suitable for one standalone V1 envelope.
+    #[cfg(feature = "json")]
+    #[must_use = "the V1 JSON profile should be applied to a budget"]
+    #[inline]
+    pub fn default_json_decode_limits() -> JsonDecodeLimits {
+        super::default_json_decode_limits()
+    }
+
+    /// Returns the default JSON resource profile for encoding V1 documents.
+    ///
+    /// # Returns
+    ///
+    /// Encode limits suitable for one standalone V1 envelope.
+    #[cfg(feature = "json")]
+    #[must_use = "the V1 JSON profile should be applied to an encode session"]
+    #[inline(always)]
+    pub fn default_json_encode_limits() -> JsonEncodeLimits {
+        super::default_json_encode_limits()
+    }
+
+    /// Returns the runtime container represented by this DTO.
+    ///
+    /// # Returns
+    ///
+    /// A shared reference to the preserved runtime container.
+    #[must_use = "the borrowed value container should be used"]
+    #[inline]
+    pub const fn container(&self) -> &ValueContainer {
+        self.value.container()
     }
 
     /// Encodes this V1 document into a compact JSON vector with default limits.
@@ -320,17 +332,6 @@ impl ValueWireV1 {
             .map_err(ValueWireEncodeError::from)
     }
 
-    /// Returns the runtime container represented by this DTO.
-    ///
-    /// # Returns
-    ///
-    /// A shared reference to the preserved runtime container.
-    #[must_use = "the borrowed value container should be used"]
-    #[inline]
-    pub const fn container(&self) -> &ValueContainer {
-        self.value.container()
-    }
-
     /// Consumes the DTO and returns its runtime container.
     ///
     /// # Returns
@@ -343,9 +344,18 @@ impl ValueWireV1 {
 }
 
 impl TryFrom<Value> for ValueWireV1 {
+    /// Failure to represent the consumed runtime value under the V1 contract.
     type Error = ValueWireEncodeError;
 
     /// Wraps a runtime scalar in a V1 DTO.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Runtime scalar to validate and consume.
+    ///
+    /// # Returns
+    ///
+    /// A V1 DTO preserving the input type and shape.
     ///
     /// # Errors
     ///
@@ -364,9 +374,18 @@ impl TryFrom<Value> for ValueWireV1 {
 }
 
 impl TryFrom<MultiValues> for ValueWireV1 {
+    /// Failure to represent the consumed runtime value under the V1 contract.
     type Error = ValueWireEncodeError;
 
     /// Wraps a runtime collection in a V1 DTO.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Homogeneous collection to validate and consume.
+    ///
+    /// # Returns
+    ///
+    /// A V1 DTO preserving the input type and shape.
     ///
     /// # Errors
     ///
@@ -386,9 +405,18 @@ impl TryFrom<MultiValues> for ValueWireV1 {
 }
 
 impl TryFrom<ValueContainer> for ValueWireV1 {
+    /// Failure to represent the consumed runtime value under the V1 contract.
     type Error = ValueWireEncodeError;
 
     /// Wraps an explicit runtime shape in a V1 DTO.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Scalar-or-collection container to validate and consume.
+    ///
+    /// # Returns
+    ///
+    /// A V1 DTO preserving the input type and shape.
     ///
     /// # Errors
     ///
@@ -409,6 +437,14 @@ impl TryFrom<ValueContainer> for ValueWireV1 {
 
 impl From<ValueWireV1> for ValueContainer {
     /// Unwraps the runtime container from a V1 DTO.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Owned DTO whose container is moved into the result.
+    ///
+    /// # Returns
+    ///
+    /// The preserved runtime container without cloning its payload.
     #[inline(always)]
     fn from(value: ValueWireV1) -> Self {
         value.into_container()
@@ -417,6 +453,23 @@ impl From<ValueWireV1> for ValueContainer {
 
 impl Serialize for ValueWireV1 {
     /// Serializes the contained runtime shape through the V1 contract.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Serde serializer defining the output format and error type.
+    ///
+    /// # Parameters
+    ///
+    /// * `serializer` - Serializer consumed to emit the versioned envelope.
+    ///
+    /// # Returns
+    ///
+    /// The serializer's completed output on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns the serializer's error if it cannot encode the envelope or
+    /// payload.
     #[inline(always)]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

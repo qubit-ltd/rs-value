@@ -12,13 +12,16 @@ use qubit_value::Value;
 use qubit_value::ValueWireV1;
 use serde_json::to_value;
 
+use crate::decode_value_wire_value;
+
 #[test]
 fn test_owned_scalar_wire_round_trip() {
     let wire = ValueWireV1::try_from(Value::Int32(1)).expect("construct wire");
     assert_eq!(
-        crate::decode_value_wire_value(to_value(wire).expect("wire value should serialize"))
+        decode_value_wire_value(to_value(wire).expect("wire value should serialize"))
             .expect("wire value should decode")
             .into_container(),
-        Value::Int32(1).into()
+        Value::Int32(1).into(),
+        "owned scalar wire round trip should preserve the value and scalar shape"
     );
 }

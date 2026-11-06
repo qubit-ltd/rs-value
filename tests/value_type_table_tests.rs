@@ -11,6 +11,8 @@
 #[cfg(feature = "all")]
 use std::collections::HashMap;
 #[cfg(feature = "all")]
+use std::mem::size_of;
+#[cfg(feature = "all")]
 use std::time::Duration;
 
 #[cfg(feature = "all")]
@@ -27,6 +29,8 @@ use qubit_datatype::DataType;
 use qubit_value::Value;
 #[cfg(feature = "all")]
 use qubit_value::ValueContainer;
+#[cfg(feature = "all")]
+use serde_json::Map as JsonMap;
 #[cfg(feature = "all")]
 use serde_json::Value as JsonValue;
 #[cfg(feature = "all")]
@@ -85,7 +89,11 @@ fn value_for_data_type(data_type: DataType) -> Value {
 /// Verifies values report their concrete runtime data type.
 #[test]
 fn test_value_type_table_reports_concrete_type() {
-    assert_eq!(Value::Int32(7).data_type(), DataType::Int32);
+    assert_eq!(
+        Value::Int32(7).data_type(),
+        DataType::Int32,
+        "an Int32 value must report the Int32 runtime data type"
+    );
 }
 
 /// Verifies the complete value type table covers the datatype catalog.
@@ -99,15 +107,25 @@ fn test_value_type_table_covers_all_data_types() {
         .map(|value| value.data_type())
         .collect::<Vec<_>>();
 
-    assert_eq!(actual, DataType::ALL);
+    assert_eq!(
+        actual,
+        DataType::ALL,
+        "concrete value types must match the complete datatype catalog in order"
+    );
 }
 
 /// Verifies the scalar container stays compact when the URL family is enabled.
 #[cfg(feature = "all")]
 #[test]
 fn test_value_layout_with_all_features_is_compact() {
-    let ordered_json_map_size = std::mem::size_of::<serde_json::Map<String, serde_json::Value>>();
+    let ordered_json_map_size = size_of::<JsonMap<String, JsonValue>>();
     let max_size = if ordered_json_map_size > 24 { 80 } else { 64 };
-    assert!(std::mem::size_of::<Value>() <= max_size);
-    assert!(std::mem::size_of::<ValueContainer>() <= max_size);
+    assert!(
+        size_of::<Value>() <= max_size,
+        "Value must fit within the {max_size}-byte layout budget"
+    );
+    assert!(
+        size_of::<ValueContainer>() <= max_size,
+        "ValueContainer must fit within the {max_size}-byte layout budget"
+    );
 }

@@ -29,6 +29,25 @@ where
     T: fmt::Display,
 {
     /// Serializes the wrapped decimal through its display representation.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Serializer receiving the decimal's textual representation.
+    ///
+    /// # Parameters
+    ///
+    /// * `self` - Wrapper borrowing the decimal value to display.
+    /// * `serializer` - Serializer consumed to write the displayed value as a
+    ///   string.
+    ///
+    /// # Returns
+    ///
+    /// The serializer's success value after writing the decimal string.
+    ///
+    /// # Errors
+    ///
+    /// Returns the serializer's error if serializing the string fails.
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

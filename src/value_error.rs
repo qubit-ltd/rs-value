@@ -102,6 +102,15 @@ pub enum ValueError {
 
 impl PartialEq for ValueError {
     /// Compares structured error facts without depending on diagnostic text.
+    ///
+    /// # Parameters
+    ///
+    /// * `other` - Error whose variant and structured payload are compared.
+    ///
+    /// # Returns
+    ///
+    /// `true` when both errors have the same variant and equal structured
+    /// facts; otherwise `false`.
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Missing(left), Self::Missing(right)) => left == right,
@@ -162,6 +171,7 @@ impl ValueError {
     /// # Returns
     ///
     /// `Some(reason)` for [`Self::Missing`] and `None` for every other variant.
+    #[must_use]
     #[inline(always)]
     pub const fn missing(&self) -> Option<&ValueMissing> {
         match self {
@@ -177,6 +187,17 @@ impl ValueError {
 
 #[cfg(feature = "converter")]
 impl From<DataConversionError> for ValueError {
+    /// Preserves a single-value conversion failure, promoting missing states.
+    ///
+    /// # Parameters
+    ///
+    /// * `error` - Owned conversion failure retained without cloning.
+    ///
+    /// # Returns
+    ///
+    /// [`Self::Missing`] for missing or empty-collection failures; otherwise
+    /// [`Self::Conversion`] with the original error.
+    #[inline]
     fn from(error: DataConversionError) -> Self {
         if error.is_missing() || error.kind() == DataConversionErrorKind::EmptyCollection {
             return Self::Missing(ValueMissing::from_conversion(error, None));
@@ -187,6 +208,18 @@ impl From<DataConversionError> for ValueError {
 
 #[cfg(feature = "converter")]
 impl From<DataListConversionError> for ValueError {
+    /// Preserves a failed list item's original index and conversion cause.
+    ///
+    /// # Parameters
+    ///
+    /// * `error` - Owned list conversion failure consumed without cloning.
+    ///
+    /// # Returns
+    ///
+    /// [`Self::Missing`] for missing or empty-collection causes, retaining the
+    /// source index; otherwise [`Self::ListConversion`] with the original
+    /// facts.
+    #[inline]
     fn from(error: DataListConversionError) -> Self {
         let (source_index, source) = error.into_parts();
         if source.is_missing() || source.kind() == DataConversionErrorKind::EmptyCollection {

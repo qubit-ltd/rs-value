@@ -10,6 +10,10 @@
 
 use std::collections::HashMap;
 #[cfg(feature = "converter")]
+use std::env::consts::OS;
+#[cfg(feature = "converter")]
+use std::env::var_os;
+#[cfg(feature = "converter")]
 use std::mem::ManuallyDrop;
 #[cfg(feature = "converter")]
 use std::process::Command;
@@ -27,6 +31,8 @@ use chrono::NaiveTime;
 use chrono::Utc;
 #[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 use num_bigint::BigInt;
+#[cfg(feature = "big-integer")]
+use num_bigint::Sign;
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::Observation;
@@ -41,8 +47,18 @@ use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodePreflight;
 use qubit_value::ValueWireV1;
+use serde_json::Map;
+use serde_json::Value as JsonValue;
+use serde_json::json;
 #[cfg(feature = "url")]
 use url::Url;
+
+#[cfg(feature = "converter")]
+use crate::deep_json_helpers::build_deep_json;
+#[cfg(feature = "converter")]
+use crate::deep_json_helpers::dismantle_json;
+#[cfg(feature = "converter")]
+use crate::deep_json_helpers::run_isolated_test;
 
 #[test]
 fn test_preflight_key_payload_boundary() {
@@ -70,7 +86,7 @@ fn test_preflight_key_output_boundaries_and_utf8_lower_bound() {
         );
     }
 
-    let json = Value::Json(serde_json::json!({"abc": null}));
+    let json = Value::Json(json!({"abc": null}));
     for (maximum, accepted) in [(8, false), (9, true)] {
         let limits = JsonEncodeLimits::builder().max_output_bytes(maximum).build();
         assert_eq!(
@@ -123,6 +139,7 @@ fn test_preflight_key_payload_accumulates_and_failed_calls_roll_back() {
     );
 }
 
+/// Fills the key payload budget, then checks that a rejected call restores it.
 fn assert_three_key_calls<F>(mut checker: ValueWireEncodePreflight, mut check: F, rollback_message: &str)
 where
     F: FnMut(&mut ValueWireEncodePreflight) -> Result<(), MeasuredBudgetError<JsonResource, usize>>,
@@ -337,14 +354,14 @@ fn test_preflight_encoding_success_implies_acceptance_at_output_boundaries() {
         Value::Duration(Duration::new(u64::MAX, 999_999_999)),
         Value::Unset(DataType::UInt128),
         #[cfg(feature = "big-integer")]
-        Value::BigInteger(BigInt::from_bytes_le(num_bigint::Sign::Minus, &[0xff; 256])),
+        Value::BigInteger(BigInt::from_bytes_le(Sign::Minus, &[0xff; 256])),
         #[cfg(feature = "big-decimal")]
         Value::BigDecimal(BigDecimal::new(BigInt::from(0), 2)),
         #[cfg(feature = "big-decimal")]
         Value::BigDecimal(BigDecimal::new(BigInt::from(-7), 150_000)),
         #[cfg(feature = "big-decimal")]
         Value::BigDecimal(BigDecimal::new(BigInt::from(10_u8).pow(255), -150_001)),
-        Value::Json(serde_json::json!([null, true, 123, "mixed", {"nested": [false]}])),
+        Value::Json(json!([null, true, 123, "mixed", {"nested": [false]}])),
     ];
 
     let positive = Value::Int32(7);
@@ -400,8 +417,8 @@ fn test_preflight_encoding_success_implies_acceptance_for_collections_and_limits
         ValueContainer::Collection(MultiValues::Int128(Vec::new())),
         ValueContainer::Collection(MultiValues::String(vec![String::new()])),
         ValueContainer::Collection(MultiValues::Json(vec![
-            serde_json::Value::Null,
-            serde_json::json!({"items": [true, 1, "text"]}),
+            JsonValue::Null,
+            json!({"items": [true, 1, "text"]}),
         ])),
     ];
     let dimension_profiles = [
@@ -550,7 +567,7 @@ fn test_new_u64_limits_saturates_unrepresentable_limits() {
         .max_number_bytes(oversized_limit)
         .max_payload_bytes(oversized_limit)
         .build();
-    let value = Value::Json(serde_json::json!({
+    let value = Value::Json(json!({
         "items": [1, "portable"]
     }));
     let mut checker = ValueWireEncodePreflight::new_u64_limits(limits);
@@ -579,7 +596,7 @@ fn test_new_value_limits_enforces_value_budget_without_outer_output_limit() {
 fn test_new_u64_limits_preserves_unconfigured_dimensions() {
     let limits = JsonEncodeLimits::<JsonResource, u64>::new();
     let mut checker = ValueWireEncodePreflight::new_u64_limits(limits);
-    let value = Value::Json(serde_json::json!({
+    let value = Value::Json(json!({
         "items": [null, true, 42, "ready"]
     }));
 
@@ -637,7 +654,7 @@ fn test_check_value_traverses_every_scalar_shape_and_accumulates_nodes() {
             2,
         ),
         (
-            Value::Json(serde_json::json!({
+            Value::Json(json!({
                 "items": [null, true, 42, "ready"]
             })),
             6,
@@ -669,7 +686,7 @@ fn test_check_values_traverses_specialized_collection_shapes() {
             3,
         ),
         (
-            MultiValues::Json(vec![serde_json::json!({
+            MultiValues::Json(vec![json!({
                 "items": [null, true, 42, "ready"]
             })]),
             7,
@@ -780,9 +797,9 @@ fn test_check_value_reports_each_cumulative_limit_precisely() {
 
 #[test]
 fn test_preflight_accepts_deep_arrays_with_tight_payload() {
-    let mut payload = serde_json::Value::Bool(true);
+    let mut payload = JsonValue::Bool(true);
     for _ in 0..32 {
-        payload = serde_json::Value::Array(vec![payload]);
+        payload = JsonValue::Array(vec![payload]);
     }
     let value = Value::Json(payload);
     let limits = JsonEncodeLimits::builder().max_payload_bytes(32).build();
@@ -797,9 +814,9 @@ fn test_preflight_accepts_deep_arrays_with_tight_payload() {
 
 #[test]
 fn test_preflight_accepts_deep_arrays_at_exact_output_size() {
-    let mut payload = serde_json::Value::Bool(true);
+    let mut payload = JsonValue::Bool(true);
     for _ in 0..60 {
-        payload = serde_json::Value::Array(vec![payload]);
+        payload = JsonValue::Array(vec![payload]);
     }
     let value = Value::Json(payload);
     let wire = ValueWireV1::try_from(value.clone()).expect("JSON value should have a Wire V1 representation");
@@ -848,11 +865,11 @@ fn test_failed_string_check_rolls_back_payload_before_next_check() {
 #[test]
 fn test_preflight_lower_bounds_for_empty_json_containers_and_map_text() {
     let cases = [
-        Value::Json(serde_json::Value::Array(Vec::new())),
-        Value::Json(serde_json::Value::Object(serde_json::Map::new())),
-        Value::Json(serde_json::json!({ "": "" })),
-        Value::Json(serde_json::json!({ "text": "long value" })),
-        Value::Json(serde_json::json!(12345678901234567890_u64)),
+        Value::Json(JsonValue::Array(Vec::new())),
+        Value::Json(JsonValue::Object(Map::new())),
+        Value::Json(json!({ "": "" })),
+        Value::Json(json!({ "text": "long value" })),
+        Value::Json(json!(12345678901234567890_u64)),
         Value::UInt128(u128::MAX),
         Value::StringMap(HashMap::from([(String::new(), String::new())])),
     ];
@@ -968,7 +985,7 @@ fn test_check_values_covers_empty_and_nested_json() {
         .check_values(&MultiValues::Int32(Vec::new()))
         .expect("an empty collection must be accepted");
     checker
-        .check_values(&MultiValues::Json(vec![serde_json::json!({
+        .check_values(&MultiValues::Json(vec![json!({
             "items": [null, {"ready": true}]
         })]))
         .expect("nested JSON values must be traversed");
@@ -977,8 +994,6 @@ fn test_check_values_covers_empty_and_nested_json() {
 #[test]
 #[cfg(feature = "converter")]
 fn test_preflight_handles_deep_json_without_recursion() {
-    use crate::deep_json_helpers::run_isolated_test;
-
     let baseline = run_isolated_test(
         "value_wire::value_wire_encode_preflight_tests::test_preflight_deep_json_baseline_child",
         DEEP_PREFLIGHT_CHILD_ENV,
@@ -999,7 +1014,7 @@ fn test_preflight_handles_deep_json_without_recursion() {
     println!(
         "RV-007 baseline: rustc={}, os={}, status={:?}, last_stage={baseline_stage}",
         rustc_version(),
-        std::env::consts::OS,
+        OS,
         baseline.status,
     );
 
@@ -1020,7 +1035,7 @@ fn test_preflight_handles_deep_json_without_recursion() {
     println!(
         "RV-007 iterative: rustc={}, os={}, status={:?}, last_stage={iterative_stage}",
         rustc_version(),
-        std::env::consts::OS,
+        OS,
         iterative.status,
     );
     assert!(
@@ -1041,10 +1056,8 @@ fn test_preflight_handles_deep_json_without_recursion() {
 #[cfg(feature = "converter")]
 #[ignore = "run only through test_preflight_handles_deep_json_without_recursion"]
 fn test_preflight_deep_json_baseline_child() {
-    assert!(std::env::var_os(DEEP_PREFLIGHT_CHILD_ENV).is_some());
-    let value = ManuallyDrop::new(Value::from_json_value(crate::deep_json_helpers::build_deep_json(
-        10_000,
-    )));
+    assert!(var_os(DEEP_PREFLIGHT_CHILD_ENV).is_some());
+    let value = ManuallyDrop::new(Value::from_json_value(build_deep_json(10_000)));
     eprintln!("checking");
     ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_depth(10_001).build())
         .check_value(&value)
@@ -1060,16 +1073,14 @@ fn test_preflight_deep_json_baseline_child() {
 #[cfg(feature = "converter")]
 #[ignore = "run only through test_preflight_handles_deep_json_without_recursion"]
 fn test_preflight_deep_json_iterative_child() {
-    assert!(std::env::var_os(DEEP_PREFLIGHT_CHILD_ENV).is_some());
-    let value = ManuallyDrop::new(Value::from_json_value(crate::deep_json_helpers::build_deep_json(
-        10_000,
-    )));
+    assert!(var_os(DEEP_PREFLIGHT_CHILD_ENV).is_some());
+    let value = ManuallyDrop::new(Value::from_json_value(build_deep_json(10_000)));
     eprintln!("checking");
     let check_succeeded = ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_depth(10_001).build())
         .check_value(&value)
         .is_ok();
     eprintln!("checked");
-    crate::deep_json_helpers::dismantle_json(crate::deep_json_helpers::build_deep_json(10_000));
+    dismantle_json(build_deep_json(10_000));
     eprintln!("iterative teardown fixture completed");
     // `Value` has no safe consuming JSON getter. Keep the checked input in
     // `ManuallyDrop`; the isolated child process reclaims it when it exits.
@@ -1077,7 +1088,10 @@ fn test_preflight_deep_json_iterative_child() {
     eprintln!("done");
 }
 
+/// Reports the compiler used by the isolated depth probe, tolerating
+/// unavailable tooling.
 #[cfg(feature = "converter")]
+#[must_use]
 fn rustc_version() -> String {
     Command::new("rustc")
         .arg("--version")

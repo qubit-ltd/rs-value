@@ -28,6 +28,8 @@ use super::WireShapeOwned;
 /// diagnostics, and reader or writer I/O sources may contain
 /// application-defined details that require the application's logging policy.
 ///
+/// # Examples
+///
 /// With the `json` feature, use it when the surrounding protocol owns the
 /// version envelope and its decoder session:
 ///
@@ -56,6 +58,10 @@ pub struct ValueWirePayloadV1Seed;
 
 impl ValueWirePayloadV1Seed {
     /// Creates a seed for one unversioned V1 payload.
+    ///
+    /// # Returns
+    ///
+    /// A stateless seed to pass to the surrounding protocol's deserializer.
     #[must_use = "the seed should be passed to a bounded deserializer"]
     #[inline(always)]
     pub const fn new() -> Self {
@@ -64,9 +70,29 @@ impl ValueWirePayloadV1Seed {
 }
 
 impl<'de> DeserializeSeed<'de> for ValueWirePayloadV1Seed {
+    /// Owned scalar-or-collection payload decoded without a version envelope.
     type Value = ValueWirePayloadV1;
 
     /// Deserializes one unversioned V1 shape.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Serde deserializer whose input is valid for `'de` and whose
+    ///   resource limits are controlled by the surrounding protocol.
+    ///
+    /// # Parameters
+    ///
+    /// * `self` - Stateless seed consumed by this decoding operation.
+    /// * `deserializer` - Decoder positioned at one unversioned V1 payload.
+    ///
+    /// # Returns
+    ///
+    /// An owned payload preserving the decoded scalar or collection shape.
+    ///
+    /// # Errors
+    ///
+    /// Propagates `D::Error` when the input cannot be decoded as a V1 shape,
+    /// preserving the deserializer's diagnostics, which may contain input text.
     #[inline(always)]
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where

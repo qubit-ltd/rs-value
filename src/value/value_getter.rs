@@ -38,8 +38,23 @@ macro_rules! impl_value_try_from_table {
         $(
             $(#[$cfg])*
             impl TryFrom<&Value> for $type {
+                /// Reports an unset value of the requested type or a runtime type mismatch.
                 type Error = ValueError;
 
+                /// Copies or clones the matching payload without changing the container.
+                ///
+                /// # Parameters
+                ///
+                /// - `value` - Container borrowed for the duration of this read.
+                ///
+                /// # Returns
+                ///
+                /// An owned payload; heap-backed payloads are cloned.
+                ///
+                /// # Errors
+                ///
+                /// Returns [`ValueError::Missing`] for an unset value of the requested
+                /// type, or [`ValueError::TypeMismatch`] for any other runtime type.
                 #[inline(always)]
                 fn try_from(value: &Value) -> ValueResult<$type> {
                     match &value.repr {
@@ -84,8 +99,23 @@ macro_rules! impl_value_borrowed_try_from_table {
         $(
             $(#[$cfg])*
             impl<'a> TryFrom<&'a Value> for &'a $type {
+                /// Reports an unset value of the requested type or a runtime type mismatch.
                 type Error = ValueError;
 
+                /// Borrows the matching payload without copying or allocating.
+                ///
+                /// # Parameters
+                ///
+                /// - `value` - Container that owns the payload and must outlive the returned reference.
+                ///
+                /// # Returns
+                ///
+                /// A payload reference tied to the lifetime of `value`.
+                ///
+                /// # Errors
+                ///
+                /// Returns [`ValueError::Missing`] for an unset value of the requested
+                /// type, or [`ValueError::TypeMismatch`] for any other runtime type.
                 #[inline(always)]
                 fn try_from(value: &'a Value) -> ValueResult<Self> {
                     match &value.repr {
@@ -103,8 +133,23 @@ macro_rules! impl_value_borrowed_try_from_table {
 
             $(#[$cfg])*
             impl TryFrom<Value> for $type {
+                /// Reports an unset value of the requested type or a runtime type mismatch.
                 type Error = ValueError;
 
+                /// Consumes the container and moves out its matching payload without cloning.
+                ///
+                /// # Parameters
+                ///
+                /// - `value` - Container consumed even when its runtime type does not match.
+                ///
+                /// # Returns
+                ///
+                /// The owned payload moved from the container.
+                ///
+                /// # Errors
+                ///
+                /// Returns [`ValueError::Missing`] for an unset value of the requested
+                /// type, or [`ValueError::TypeMismatch`] for any other runtime type.
                 #[inline(always)]
                 fn try_from(value: Value) -> ValueResult<Self> {
                     match value.repr {
@@ -126,8 +171,24 @@ macro_rules! impl_value_borrowed_try_from_table {
 for_each_value_type!(impl_value_borrowed_try_from_table);
 
 impl<'a> TryFrom<&'a Value> for &'a str {
+    /// Reports an unset string value or a runtime type mismatch.
     type Error = ValueError;
 
+    /// Borrows the stored string as a slice without copying or allocating.
+    ///
+    /// # Parameters
+    ///
+    /// - `value` - Container that owns the string and must outlive the returned
+    ///   slice.
+    ///
+    /// # Returns
+    ///
+    /// A string slice tied to the lifetime of `value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueError::Missing`] for an unset string value, or
+    /// [`ValueError::TypeMismatch`] for any other runtime type.
     #[inline(always)]
     fn try_from(value: &'a Value) -> ValueResult<Self> {
         match &value.repr {

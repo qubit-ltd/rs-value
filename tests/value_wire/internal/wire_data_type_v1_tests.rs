@@ -10,14 +10,17 @@
 
 use qubit_value::Value;
 use qubit_value::ValueWireV1;
+use serde_json::json;
+
+use crate::decode_value_wire_value;
 
 #[test]
 fn test_wire_type_tag_is_decoded() {
-    let wire_data = serde_json::json!({
+    let wire_data = json!({
         "version": 1,
         "value": {"scalar": {"int32": 1}},
     });
-    let wire: ValueWireV1 = crate::decode_value_wire_value(wire_data).expect("valid V1 wire data should decode");
+    let wire: ValueWireV1 = decode_value_wire_value(wire_data).expect("valid V1 wire data should decode");
 
     assert_eq!(
         wire.into_container(),

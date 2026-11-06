@@ -9,6 +9,9 @@
 //! Errors produced while constructing a V1 wire DTO.
 
 #[cfg(feature = "json")]
+use std::io::Error as IoError;
+
+#[cfg(feature = "json")]
 use qubit_budget::BudgetError;
 #[cfg(feature = "json")]
 use qubit_budget::MeasuredBudgetError;
@@ -32,7 +35,9 @@ use thiserror::Error;
 /// # Examples
 ///
 /// ```
-/// use qubit_value::{Value, ValueWireEncodeError, ValueWireV1};
+/// use qubit_value::Value;
+/// use qubit_value::ValueWireEncodeError;
+/// use qubit_value::ValueWireV1;
 ///
 /// let error = ValueWireV1::try_from(Value::Float64(f64::NAN)).unwrap_err();
 /// assert!(matches!(error, ValueWireEncodeError::NonFiniteFloat { .. }));
@@ -107,7 +112,7 @@ pub enum ValueWireEncodeError {
     Io(
         /// Destination-writer failure.
         #[source]
-        std::io::Error,
+        IoError,
     ),
 }
 
@@ -129,10 +134,7 @@ impl From<JsonEncodeError<JsonResource, usize>> for ValueWireEncodeError {
     #[inline]
     fn from(error: JsonEncodeError<JsonResource>) -> Self {
         match error.into_source() {
-            JsonEncodeErrorSource::Budget(source) => match source {
-                MeasuredBudgetError::Budget(error) => Self::Budget(error),
-                MeasuredBudgetError::Quantity { resource, source } => Self::Quantity { resource, source },
-            },
+            JsonEncodeErrorSource::Budget(source) => Self::from(source),
             JsonEncodeErrorSource::InvalidRawJson(source) => Self::Syntax(source),
             JsonEncodeErrorSource::Serialize(source) => Self::Json(source),
             JsonEncodeErrorSource::Write(source) => Self::Io(source),

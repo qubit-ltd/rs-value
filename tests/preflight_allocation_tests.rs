@@ -10,15 +10,9 @@
 
 #![cfg(all(feature = "big-decimal", feature = "json"))]
 
-use std::alloc::GlobalAlloc;
-use std::alloc::Layout;
-use std::alloc::System;
-use std::cell::Cell;
-
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_budget::BudgetError;
-use qubit_budget::MeasuredBudgetError;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_value::MultiValues;
@@ -31,83 +25,22 @@ use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
+use serde_json::Number;
+use serde_json::from_str;
 
-struct CountingAllocator;
+use self::preflight_allocation_tests::internal::assertions::assert_big_decimal_payload_construction_does_not_copy_coefficient;
+use self::preflight_allocation_tests::internal::assertions::assert_bounded_direct_helper_allocations;
+use self::preflight_allocation_tests::internal::assertions::assert_expected_encode_limit;
+use self::preflight_allocation_tests::internal::assertions::assert_expected_limit;
+use self::preflight_allocation_tests::internal::fixtures::json_number_fixture;
+use self::preflight_allocation_tests::internal::measurement::measured_allocations;
+use self::preflight_allocation_tests::internal::measurement::measured_json_payload_construction_bytes;
+use self::preflight_allocation_tests::internal::measurement::measured_preflight_bytes;
 
-thread_local! {
-    static COUNT_ALLOCATIONS: Cell<bool> = const { Cell::new(false) };
-    static ALLOCATED_BYTES: Cell<usize> = const { Cell::new(0) };
-}
-
-#[global_allocator]
-static ALLOCATOR: CountingAllocator = CountingAllocator;
-
-unsafe impl GlobalAlloc for CountingAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        // SAFETY: The layout comes from the caller of the global allocator.
-        let pointer = unsafe { System.alloc(layout) };
-        if !pointer.is_null() {
-            COUNT_ALLOCATIONS.with(|enabled| {
-                if enabled.get() {
-                    ALLOCATED_BYTES.with(|bytes| bytes.set(bytes.get().saturating_add(layout.size())));
-                }
-            });
-        }
-        pointer
-    }
-
-    unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
-        // SAFETY: The pointer and layout come from the caller of the global allocator.
-        unsafe { System.dealloc(pointer, layout) };
-    }
-
-    unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        // SAFETY: The pointer and layouts come from the caller of the global allocator.
-        let result = unsafe { System.realloc(pointer, layout, new_size) };
-        if !result.is_null() {
-            COUNT_ALLOCATIONS.with(|enabled| {
-                if enabled.get() {
-                    ALLOCATED_BYTES.with(|bytes| bytes.set(bytes.get().saturating_add(new_size)));
-                }
-            });
-        }
-        result
-    }
-}
-
-fn measured_preflight_bytes(value: &Value) -> usize {
-    let (result, bytes) =
-        measured_allocations(|| ValueWireEncodePreflight::new(JsonEncodeLimits::new()).check_value(value));
-    result.expect("an unbounded preflight must accept the fixture");
-    bytes
-}
-
-fn measured_allocations<T>(operation: impl FnOnce() -> T) -> (T, usize) {
-    let guard = AllocationGuard::start();
-    let result = operation();
-    let allocated = guard.stop();
-    (result, allocated)
-}
-
-struct AllocationGuard;
-
-impl AllocationGuard {
-    fn start() -> Self {
-        ALLOCATED_BYTES.with(|bytes| bytes.set(0));
-        COUNT_ALLOCATIONS.with(|enabled| enabled.set(true));
-        Self
-    }
-
-    fn stop(self) -> usize {
-        COUNT_ALLOCATIONS.with(|enabled| enabled.set(false));
-        ALLOCATED_BYTES.with(Cell::get)
-    }
-}
-
-impl Drop for AllocationGuard {
-    fn drop(&mut self) {
-        COUNT_ALLOCATIONS.with(|enabled| enabled.set(false));
-    }
+// Keeps support modules local to this explicitly registered allocation test
+// target.
+mod preflight_allocation_tests {
+    pub(crate) mod internal;
 }
 
 #[test]
@@ -278,31 +211,10 @@ fn test_direct_wire_helpers_reject_large_decimal_before_formatting() {
     check_helpers!("ValueWireV1 collection", &small_collection_wire, &large_collection_wire);
 }
 
-fn json_number_fixture(size: usize, floating: bool) -> Value {
-    let values = (0..size)
-        .map(|index| {
-            if floating {
-                serde_json::json!(index as f64 / 10.0)
-            } else {
-                serde_json::json!(index)
-            }
-        })
-        .collect::<Vec<_>>();
-    Value::Json(serde_json::Value::Array(values))
-}
-
-fn measured_json_payload_construction_bytes(value: &Value) -> usize {
-    let _ = ValueWirePayloadRefV1::from_value(value).expect("number fixture must be accepted");
-    let _ = ValueWirePayloadRefV1::from_value(value).expect("warm-up fixture must be accepted");
-    let (result, bytes) = measured_allocations(|| ValueWirePayloadRefV1::from_value(value));
-    let _ = result.expect("measured number fixture must be accepted");
-    bytes
-}
-
 #[test]
 fn test_json_number_payload_construction_avoids_per_float_string_allocation() {
-    let preserves_number_lexeme = serde_json::from_str::<serde_json::Number>("1.2500").expect("number must parse")
-        != serde_json::from_str::<serde_json::Number>("1.25").expect("number must parse");
+    let preserves_number_lexeme = from_str::<Number>("1.2500").expect("number must parse")
+        != from_str::<Number>("1.25").expect("number must parse");
     let mut allocation_bytes = Vec::new();
     for floating in [false, true] {
         let label = if floating { "float" } else { "integer" };
@@ -415,12 +327,16 @@ fn test_named_helpers_reject_large_decimal_before_formatting() {
                 $small
                     .to_json_vec_with_limits(JsonEncodeLimits::new())
                     .expect("small named fixture fits an explicit wide profile"),
+                "default named vector must match the explicit wide profile",
             );
             let mut default_writer = Vec::new();
             $small
                 .to_json_writer(&mut default_writer)
                 .expect("default named writer helper succeeds");
-            assert_eq!(default_writer, small_default);
+            assert_eq!(
+                default_writer, small_default,
+                "default named writer must match vector output"
+            );
         }};
     }
 
@@ -456,179 +372,19 @@ fn test_named_helpers_keep_name_and_complete_output_limits() {
     assert!(
         small
             .to_json_vec_with_limits(JsonEncodeLimits::builder().max_output_bytes(complete_len).build())
-            .is_ok()
+            .is_ok(),
+        "the exact complete output limit must accept the named wrapper",
     );
-    assert!(matches!(
-        small
-            .to_json_vec_with_limits(JsonEncodeLimits::builder().max_output_bytes(complete_len - 1).build(),)
-            .unwrap_err(),
-        ValueWireEncodeError::Budget(BudgetError::Insufficient {
-            resource: JsonResource::OutputBytes,
-            ..
-        })
-    ));
-}
-
-fn assert_expected_encode_limit(error: ValueWireEncodeError, expected: JsonResource, dto: &str, method: &str) {
-    assert!(
-        matches!(error, ValueWireEncodeError::Budget(BudgetError::LimitExceeded { resource, .. }) if resource == expected),
-        "{dto} {method} expected {expected:?}, got {error:?}",
-    );
-}
-
-fn assert_bounded_direct_helper_allocations(
-    dto: &str,
-    method: &str,
-    resource: JsonResource,
-    small: usize,
-    large: usize,
-) {
-    assert!(
-        large <= small.saturating_add(4096),
-        "{dto} {method} {resource:?} allocation grew with coefficient: 4096 digits={small}, 128 Ki digits={large}",
-    );
-}
-
-fn assert_expected_limit(error: MeasuredBudgetError<JsonResource, usize>, expected: JsonResource) {
     assert!(
         matches!(
-            error,
-            MeasuredBudgetError::Budget(BudgetError::LimitExceeded { resource, .. }) if resource == expected
+            small
+                .to_json_vec_with_limits(JsonEncodeLimits::builder().max_output_bytes(complete_len - 1).build(),)
+                .unwrap_err(),
+            ValueWireEncodeError::Budget(BudgetError::Insufficient {
+                resource: JsonResource::OutputBytes,
+                ..
+            })
         ),
-        "expected a {expected:?} rejection, got {error:?}",
+        "one byte below the complete output size must report insufficient output budget",
     );
-}
-
-fn assert_big_decimal_payload_construction_does_not_copy_coefficient() {
-    let coefficient = "9".repeat(128 * 1024);
-    let large_coefficient = BigInt::parse_bytes(coefficient.as_bytes(), 10).expect("large coefficient must parse");
-
-    let small_scalar = Value::BigDecimal(BigDecimal::new(BigInt::from(123_i32), 2));
-    let large_scalar = Value::BigDecimal(BigDecimal::new(large_coefficient.clone(), 2));
-    let small_values = MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(123_i32), 2)]);
-    let large_values = MultiValues::BigDecimal(vec![BigDecimal::new(large_coefficient.clone(), 2)]);
-    let invalid_small_scalar = Value::BigDecimal(BigDecimal::new(BigInt::from(123_i32), i64::MAX));
-    let invalid_large_scalar = Value::BigDecimal(BigDecimal::new(large_coefficient.clone(), i64::MAX));
-    let invalid_small_values = MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(123_i32), i64::MAX)]);
-    let invalid_large_values = MultiValues::BigDecimal(vec![BigDecimal::new(large_coefficient, i64::MAX)]);
-
-    let (small_borrowed_scalar, small_borrowed_scalar_bytes) =
-        measured_allocations(|| ValueWirePayloadRefV1::from_value(&small_scalar));
-    let (large_borrowed_scalar, large_borrowed_scalar_bytes) =
-        measured_allocations(|| ValueWirePayloadRefV1::from_value(&large_scalar));
-    let (small_borrowed_values, small_borrowed_values_bytes) =
-        measured_allocations(|| ValueWirePayloadRefV1::from_values(&small_values));
-    let (large_borrowed_values, large_borrowed_values_bytes) =
-        measured_allocations(|| ValueWirePayloadRefV1::from_values(&large_values));
-
-    let small_owned_scalar = small_scalar.clone();
-    let large_owned_scalar = large_scalar.clone();
-    let small_owned_values = small_values.clone();
-    let large_owned_values = large_values.clone();
-    let (small_owned_scalar_result, small_owned_scalar_bytes) =
-        measured_allocations(|| ValueWirePayloadV1::try_from(small_owned_scalar));
-    let (large_owned_scalar_result, large_owned_scalar_bytes) =
-        measured_allocations(|| ValueWirePayloadV1::try_from(large_owned_scalar));
-    let (small_owned_values_result, small_owned_values_bytes) =
-        measured_allocations(|| ValueWirePayloadV1::try_from(small_owned_values));
-    let (large_owned_values_result, large_owned_values_bytes) =
-        measured_allocations(|| ValueWirePayloadV1::try_from(large_owned_values));
-
-    for (succeeded, label) in [
-        (small_borrowed_scalar.is_ok(), "small borrowed scalar"),
-        (large_borrowed_scalar.is_ok(), "large borrowed scalar"),
-        (small_borrowed_values.is_ok(), "small borrowed collection"),
-        (large_borrowed_values.is_ok(), "large borrowed collection"),
-        (small_owned_scalar_result.is_ok(), "small owned scalar"),
-        (large_owned_scalar_result.is_ok(), "large owned scalar"),
-        (small_owned_values_result.is_ok(), "small owned collection"),
-        (large_owned_values_result.is_ok(), "large owned collection"),
-    ] {
-        assert!(succeeded, "{label} with a valid scale must construct");
-    }
-
-    for (small, large, label) in [
-        (
-            small_borrowed_scalar_bytes,
-            large_borrowed_scalar_bytes,
-            "borrowed scalar",
-        ),
-        (
-            small_borrowed_values_bytes,
-            large_borrowed_values_bytes,
-            "borrowed collection",
-        ),
-        (small_owned_scalar_bytes, large_owned_scalar_bytes, "owned scalar"),
-        (small_owned_values_bytes, large_owned_values_bytes, "owned collection"),
-    ] {
-        assert!(
-            large <= small.saturating_add(4096),
-            "{label} construction allocation grew with the coefficient: small={small}, large={large}",
-        );
-    }
-
-    let (invalid_small_borrowed_scalar, invalid_small_borrowed_scalar_bytes) =
-        measured_allocations(|| ValueWirePayloadRefV1::from_value(&invalid_small_scalar));
-    let (invalid_borrowed_scalar, invalid_borrowed_scalar_bytes) =
-        measured_allocations(|| ValueWirePayloadRefV1::from_value(&invalid_large_scalar));
-    let (invalid_small_borrowed_values, invalid_small_borrowed_values_bytes) =
-        measured_allocations(|| ValueWirePayloadRefV1::from_values(&invalid_small_values));
-    let (invalid_borrowed_values, invalid_borrowed_values_bytes) =
-        measured_allocations(|| ValueWirePayloadRefV1::from_values(&invalid_large_values));
-    let invalid_small_owned_scalar = invalid_small_scalar.clone();
-    let invalid_owned_scalar = invalid_large_scalar.clone();
-    let invalid_small_owned_values = invalid_small_values.clone();
-    let invalid_owned_values = invalid_large_values.clone();
-    let (invalid_small_owned_scalar_result, invalid_small_owned_scalar_bytes) =
-        measured_allocations(|| ValueWirePayloadV1::try_from(invalid_small_owned_scalar));
-    let (invalid_owned_scalar_result, invalid_owned_scalar_bytes) =
-        measured_allocations(|| ValueWirePayloadV1::try_from(invalid_owned_scalar));
-    let (invalid_small_owned_values_result, invalid_small_owned_values_bytes) =
-        measured_allocations(|| ValueWirePayloadV1::try_from(invalid_small_owned_values));
-    let (invalid_owned_values_result, invalid_owned_values_bytes) =
-        measured_allocations(|| ValueWirePayloadV1::try_from(invalid_owned_values));
-
-    for (small, large, label) in [
-        (
-            invalid_small_borrowed_scalar_bytes,
-            invalid_borrowed_scalar_bytes,
-            "invalid borrowed scalar",
-        ),
-        (
-            invalid_small_borrowed_values_bytes,
-            invalid_borrowed_values_bytes,
-            "invalid borrowed collection",
-        ),
-        (
-            invalid_small_owned_scalar_bytes,
-            invalid_owned_scalar_bytes,
-            "invalid owned scalar",
-        ),
-        (
-            invalid_small_owned_values_bytes,
-            invalid_owned_values_bytes,
-            "invalid owned collection",
-        ),
-    ] {
-        assert!(
-            large <= small.saturating_add(4096),
-            "{label} construction allocation grew with the coefficient: small={small}, large={large}",
-        );
-    }
-
-    for (error, label) in [
-        (invalid_small_borrowed_scalar.err(), "small borrowed scalar"),
-        (invalid_borrowed_scalar.err(), "borrowed scalar"),
-        (invalid_small_borrowed_values.err(), "small borrowed collection"),
-        (invalid_borrowed_values.err(), "borrowed collection"),
-        (invalid_small_owned_scalar_result.err(), "small owned scalar"),
-        (invalid_owned_scalar_result.err(), "owned scalar"),
-        (invalid_small_owned_values_result.err(), "small owned collection"),
-        (invalid_owned_values_result.err(), "owned collection"),
-    ] {
-        assert!(
-            matches!(error, Some(ValueWireEncodeError::BigDecimalScaleTooLarge { .. })),
-            "{label} must preserve the scale error"
-        );
-    }
 }

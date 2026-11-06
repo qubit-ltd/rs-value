@@ -15,6 +15,10 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Output;
 
+use serde_json::Value;
+use serde_json::from_slice;
+use serde_json::from_str;
+
 use super::super::ExampleMode;
 use super::super::MarkdownExample;
 
@@ -32,6 +36,8 @@ const REQUIRED_EXTERN_NAMES: &[&str] = &[
     "num_bigint",
 ];
 
+/// Builds the shared artifact set, checks runner failure handling, and executes
+/// every example.
 pub(crate) fn run_markdown_examples(
     root: &Path,
     documents: &[(&str, BTreeMap<String, MarkdownExample>)],
@@ -57,6 +63,8 @@ pub(crate) fn run_markdown_examples(
     Ok(())
 }
 
+/// Checks compile/run semantics and diagnostic context using synthetic success
+/// and failure cases.
 fn check_runner_behavior(root: &Path, runner: &Runner) -> Result<(), String> {
     let examples = [
         (
@@ -103,6 +111,8 @@ fn check_runner_behavior(root: &Path, runner: &Runner) -> Result<(), String> {
     Ok(())
 }
 
+/// Runs Markdown doctests against the root crate and its selected direct
+/// dependency artifacts.
 pub(crate) struct Runner {
     rustdoc: OsString,
     externs: Vec<(String, PathBuf)>,
@@ -110,6 +120,8 @@ pub(crate) struct Runner {
 }
 
 impl Runner {
+    /// Resolves offline Cargo metadata and builds the library artifacts passed
+    /// to rustdoc.
     pub(crate) fn build(root: &Path) -> Result<Self, String> {
         let manifest = root.join("Cargo.toml");
         let cargo = cargo_command();
@@ -130,8 +142,8 @@ impl Runner {
         if !metadata.status.success() {
             return Err(process_error("cargo metadata", &metadata));
         }
-        let metadata_json: serde_json::Value = serde_json::from_slice(&metadata.stdout)
-            .map_err(|error| format!("could not parse cargo metadata JSON: {error}"))?;
+        let metadata_json: Value =
+            from_slice(&metadata.stdout).map_err(|error| format!("could not parse cargo metadata JSON: {error}"))?;
         let root_package_id = metadata_json["resolve"]["root"]
             .as_str()
             .ok_or("cargo metadata did not identify the root package")?;
@@ -202,7 +214,7 @@ impl Runner {
         }
         let mut artifacts: BTreeMap<(String, String), Vec<PathBuf>> = BTreeMap::new();
         for line in String::from_utf8_lossy(&build.stdout).lines() {
-            let Ok(message) = serde_json::from_str::<serde_json::Value>(line) else {
+            let Ok(message) = from_str::<Value>(line) else {
                 continue;
             };
             if message["reason"] != "compiler-artifact" {
@@ -285,6 +297,8 @@ impl Runner {
         })
     }
 
+    /// Executes one doctest, retaining its temporary output when execution or
+    /// summary checks fail.
     pub(crate) fn run_one(
         &self,
         root: &Path,
@@ -373,6 +387,8 @@ impl Runner {
         Ok(())
     }
 
+    /// Removes a synthetic failure directory only after validating its parent
+    /// and process prefix.
     fn discard_expected_failure(&self, error: &str) -> Result<(), String> {
         let Some((_, directory)) = error.rsplit_once("\ntemporary output: ") else {
             return Err(format!("expected failure has no temporary output path: {error}"));
@@ -400,6 +416,8 @@ impl Runner {
     }
 }
 
+/// Indents each source line for the generated fallible doctest entry point.
+#[must_use]
 fn indent_source(source: &str) -> String {
     source
         .lines()
@@ -408,6 +426,9 @@ fn indent_source(source: &str) -> String {
         .join("\n")
 }
 
+/// Includes the exit status and both output streams in a failed process
+/// diagnostic.
+#[must_use]
 fn process_error(name: &str, output: &Output) -> String {
     format!(
         "{name} exited with {}\nstdout:\n{}\nstderr:\n{}",
@@ -417,16 +438,21 @@ fn process_error(name: &str, output: &Output) -> String {
     )
 }
 
+/// Honors the Cargo executable override used by the invoking test environment.
+#[must_use]
 fn cargo_command() -> OsString {
     std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())
 }
 
+/// Owns a process-specific scratch directory, retaining it only for
+/// failed-example diagnosis.
 struct TempDir {
     path: PathBuf,
     preserve_on_drop: bool,
 }
 
 impl TempDir {
+    /// Claims a fresh directory atomically, retrying names that already exist.
     fn create() -> Result<Self, String> {
         let parent = std::env::temp_dir();
         for attempt in 0..100_u32 {

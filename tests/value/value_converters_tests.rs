@@ -38,11 +38,15 @@ use qubit_value::Value;
 use qubit_value::ValueError;
 use qubit_value::ValueMissingReason;
 
+/// Classifies conversion failures without conflating them with missing values.
 trait ConversionResultAssertions {
+    /// Reports whether the result contains a conversion error of any kind.
+    #[must_use]
     fn is_conversion_error(&self) -> bool;
 }
 
 impl<T> ConversionResultAssertions for Result<T, ValueError> {
+    #[inline]
     fn is_conversion_error(&self) -> bool {
         matches!(self, Err(ValueError::Conversion(_)))
     }
@@ -250,7 +254,6 @@ fn test_value_as_bool_all_branches() {
         Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
     ));
 }
-#[cfg(all(feature = "chrono", feature = "big-decimal"))]
 #[test]
 fn test_value_as_int32_all_branches() {
     // Test all types that can convert to i32
@@ -322,16 +325,21 @@ fn test_value_as_int32_all_branches() {
         99,
     );
 
-    // Test BigDecimal to i32 conversion
-    let value = Value::BigDecimal(BigDecimal::from(123));
-    assert_eq!(value.to::<i32>().unwrap(), 123);
-
-    // Test unsupported time types
-    let value = Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
-    assert!(matches!(
-        value.to::<i32>(),
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
-    ));
+    #[cfg(feature = "big-decimal")]
+    {
+        // Test BigDecimal to i32 conversion
+        let value = Value::BigDecimal(BigDecimal::from(123));
+        assert_eq!(value.to::<i32>().unwrap(), 123);
+    }
+    #[cfg(feature = "chrono")]
+    {
+        // Test unsupported time types
+        let value = Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
+        assert!(matches!(
+            value.to::<i32>(),
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
+        ));
+    }
 }
 #[test]
 fn test_value_as_int64_all_branches() {
@@ -370,7 +378,6 @@ fn test_value_as_int64_all_branches() {
         Err(ValueError::Missing(missing)) if missing.reason() == ValueMissingReason::UnsetScalar
     ));
 }
-#[cfg(feature = "chrono")]
 #[test]
 fn test_value_as_float64_all_branches() {
     // Test floating point conversion
@@ -419,12 +426,15 @@ fn test_value_as_float64_all_branches() {
     let value = Value::UInt128(456);
     assert_eq!(value.to::<f64>().unwrap(), 456.0);
 
-    // Test unsupported time types
-    let value = Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
-    assert!(matches!(
-        value.to::<f64>(),
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
-    ));
+    #[cfg(feature = "chrono")]
+    {
+        // Test unsupported time types
+        let value = Value::Date(NaiveDate::from_ymd_opt(2024, 1, 1).unwrap());
+        assert!(matches!(
+            value.to::<f64>(),
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::Unsupported
+        ));
+    }
 }
 #[test]
 fn test_value_as_string_all_types() {
@@ -513,37 +523,42 @@ fn test_value_as_float64_conversions() {
     let value = Value::String("invalid number".to_string());
     assert!(value.to::<f64>().is_conversion_error());
 }
-#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_big_type_conversions_for_coverage() {
-    let lossy = ConversionPolicy::builder()
-        .numeric_policy(NumericConversionPolicy::lossy())
-        .build();
+    #[cfg(feature = "big-integer")]
+    {
+        // BigInt -> as_int32
+        let v = Value::BigInteger(BigInt::from(123));
+        assert_eq!(v.to::<i32>().unwrap(), 123);
+        let v_overflow = Value::BigInteger(BigInt::from(i64::MAX));
+        assert!(v_overflow.to::<i32>().is_conversion_error());
 
-    // BigInt -> as_int32
-    let v = Value::BigInteger(BigInt::from(123));
-    assert_eq!(v.to::<i32>().unwrap(), 123);
-    let v_overflow = Value::BigInteger(BigInt::from(i64::MAX));
-    assert!(v_overflow.to::<i32>().is_conversion_error());
+        // BigInt -> as_int64
+        let v = Value::BigInteger(BigInt::from(123456i64));
+        assert_eq!(v.to::<i64>().unwrap(), 123456i64);
+        let v_overflow = Value::BigInteger(BigInt::from_str("123456789012345678901234567890").unwrap());
+        assert!(v_overflow.to::<i64>().is_conversion_error());
 
-    // BigInt -> as_int64
-    let v = Value::BigInteger(BigInt::from(123456i64));
-    assert_eq!(v.to::<i64>().unwrap(), 123456i64);
-    let v_overflow = Value::BigInteger(BigInt::from_str("123456789012345678901234567890").unwrap());
-    assert!(v_overflow.to::<i64>().is_conversion_error());
+        // BigInt -> as_float64
+        let v = Value::BigInteger(BigInt::from(12345));
+        assert!((v.to::<f64>().unwrap() - 12345.0).abs() < f64::EPSILON);
+        let large_big_int_str = "1".repeat(400);
+        let v_overflow = Value::BigInteger(BigInt::from_str(&large_big_int_str).unwrap());
+        assert!(v_overflow.to::<f64>().is_conversion_error());
+    }
+    #[cfg(feature = "big-decimal")]
+    {
+        let lossy = ConversionPolicy::builder()
+            .numeric_policy(NumericConversionPolicy::lossy())
+            .build();
 
-    // BigInt -> as_float64
-    let v = Value::BigInteger(BigInt::from(12345));
-    assert!((v.to::<f64>().unwrap() - 12345.0).abs() < f64::EPSILON);
-    let large_big_int_str = "1".repeat(400);
-    let v_overflow = Value::BigInteger(BigInt::from_str(&large_big_int_str).unwrap());
-    assert!(v_overflow.to::<f64>().is_conversion_error());
-
-    // BigDecimal -> as_float64
-    let v = Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
-    assert!((v.to_with::<f64>(&lossy, ConversionLimits::default_ref()).unwrap() - 123.456).abs() < f64::EPSILON);
-    let v_overflow = Value::BigDecimal(BigDecimal::from_str("1.0e400").unwrap());
-    assert!(v_overflow.to::<f64>().is_conversion_error());
+        // BigDecimal -> as_float64
+        let v = Value::BigDecimal(BigDecimal::from_str("123.456").unwrap());
+        assert!((v.to_with::<f64>(&lossy, ConversionLimits::default_ref()).unwrap() - 123.456).abs() < f64::EPSILON);
+        let v_overflow = Value::BigDecimal(BigDecimal::from_str("1.0e400").unwrap());
+        assert!(v_overflow.to::<f64>().is_conversion_error());
+    }
 }
 #[test]
 fn test_as_bool_string_conversion_error() {
@@ -573,7 +588,6 @@ fn test_as_bool_string_conversion_error() {
         ));
     }
 }
-#[cfg(feature = "big-integer")]
 #[test]
 fn test_as_int32_conversion_errors() {
     // Test i64 out of range ConversionError
@@ -612,16 +626,18 @@ fn test_as_int32_conversion_errors() {
         _ => panic!("Expected ConversionError for string parse failure"),
     }
 
-    // Test BigInteger out of range ConversionError
-    let value = Value::BigInteger(BigInt::from_str("999999999999999999999").unwrap());
-    match value.to::<i32>() {
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::InvalidValue => {
-            assert!(error.kind() == DataConversionErrorKind::InvalidValue);
+    #[cfg(feature = "big-integer")]
+    {
+        // Test BigInteger out of range ConversionError
+        let value = Value::BigInteger(BigInt::from_str("999999999999999999999").unwrap());
+        match value.to::<i32>() {
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::InvalidValue => {
+                assert!(error.kind() == DataConversionErrorKind::InvalidValue);
+            }
+            _ => panic!("Expected ConversionError for BigInteger overflow"),
         }
-        _ => panic!("Expected ConversionError for BigInteger overflow"),
     }
 }
-#[cfg(feature = "big-integer")]
 #[test]
 fn test_as_int64_conversion_errors() {
     // Test i128 out of range ConversionError
@@ -651,16 +667,18 @@ fn test_as_int64_conversion_errors() {
         _ => panic!("Expected ConversionError for string parse failure"),
     }
 
-    // Test BigInteger out of range ConversionError
-    let value = Value::BigInteger(BigInt::from_str("999999999999999999999999999999").unwrap());
-    match value.to::<i64>() {
-        Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::InvalidValue => {
-            assert!(error.kind() == DataConversionErrorKind::InvalidValue);
+    #[cfg(feature = "big-integer")]
+    {
+        // Test BigInteger out of range ConversionError
+        let value = Value::BigInteger(BigInt::from_str("999999999999999999999999999999").unwrap());
+        match value.to::<i64>() {
+            Err(ValueError::Conversion(error)) if error.kind() == DataConversionErrorKind::InvalidValue => {
+                assert!(error.kind() == DataConversionErrorKind::InvalidValue);
+            }
+            _ => panic!("Expected ConversionError for BigInteger overflow"),
         }
-        _ => panic!("Expected ConversionError for BigInteger overflow"),
     }
 }
-#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_as_float64_conversion_errors() {
     // Test string conversion failure ConversionError
@@ -1475,24 +1493,33 @@ fn test_as_int64_non_numeric_type_conversion_failed() {
     let value = Value::Date(date);
     assert!(value.to::<i64>().is_conversion_error());
 }
-#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_as_int64_big_types_edge_cases() {
-    // BigInteger out of i64 range
-    let huge_bigint = BigInt::from_str("99999999999999999999").unwrap();
-    let value = Value::BigInteger(huge_bigint);
-    let lossy = ConversionPolicy::builder()
-        .numeric_policy(NumericConversionPolicy::lossy())
-        .build();
-    let result = value.to_with::<i64>(&lossy, ConversionLimits::default_ref());
-    assert!(result.is_conversion_error());
+    #[cfg(feature = "big-integer")]
+    {
+        // BigInteger out of i64 range
+        let huge_bigint = BigInt::from_str("99999999999999999999").unwrap();
+        let value = Value::BigInteger(huge_bigint);
+        let lossy = ConversionPolicy::builder()
+            .numeric_policy(NumericConversionPolicy::lossy())
+            .build();
+        let result = value.to_with::<i64>(&lossy, ConversionLimits::default_ref());
+        assert!(result.is_conversion_error());
+    }
+    #[cfg(feature = "big-decimal")]
+    {
+        let lossy = ConversionPolicy::builder()
+            .numeric_policy(NumericConversionPolicy::lossy())
+            .build();
 
-    // BigDecimal with decimal part should be able to convert
-    let decimal = BigDecimal::from_str("123.456").unwrap();
-    let value = Value::BigDecimal(decimal);
-    let result = value.to_with::<i64>(&lossy, ConversionLimits::default_ref());
-    assert!(result.is_ok());
-    assert_eq!(result.unwrap(), 123);
+        // BigDecimal with decimal part should be able to convert
+        let decimal = BigDecimal::from_str("123.456").unwrap();
+        let value = Value::BigDecimal(decimal);
+        let result = value.to_with::<i64>(&lossy, ConversionLimits::default_ref());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 123);
+    }
 }
 #[cfg(feature = "chrono")]
 #[test]
@@ -1954,24 +1981,29 @@ fn test_to_f32_extended_sources() {
 fn test_to_f32_range_failures() {
     assert!(Value::Float64(f64::MAX).to::<f32>().is_conversion_error());
 }
-#[cfg(all(feature = "big-integer", feature = "big-decimal"))]
+#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_big_number_to_f32_and_f64_failures() {
-    let huge_big_int = BigInt::from_str(&"9".repeat(2000)).unwrap();
-    assert!(
-        Value::BigInteger(huge_big_int.clone())
-            .to::<f32>()
-            .is_conversion_error()
-    );
-    assert!(Value::BigInteger(huge_big_int).to::<f64>().is_conversion_error());
-
-    let huge_big_decimal = BigDecimal::from_str("1.0e10000").unwrap();
-    assert!(
-        Value::BigDecimal(huge_big_decimal.clone())
-            .to::<f32>()
-            .is_conversion_error()
-    );
-    assert!(Value::BigDecimal(huge_big_decimal).to::<f64>().is_conversion_error());
+    #[cfg(feature = "big-integer")]
+    {
+        let huge_big_int = BigInt::from_str(&"9".repeat(2000)).unwrap();
+        assert!(
+            Value::BigInteger(huge_big_int.clone())
+                .to::<f32>()
+                .is_conversion_error()
+        );
+        assert!(Value::BigInteger(huge_big_int).to::<f64>().is_conversion_error());
+    }
+    #[cfg(feature = "big-decimal")]
+    {
+        let huge_big_decimal = BigDecimal::from_str("1.0e10000").unwrap();
+        assert!(
+            Value::BigDecimal(huge_big_decimal.clone())
+                .to::<f32>()
+                .is_conversion_error()
+        );
+        assert!(Value::BigDecimal(huge_big_decimal).to::<f64>().is_conversion_error());
+    }
 }
 
 #[test]

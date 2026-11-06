@@ -16,9 +16,11 @@
 /// # Examples
 ///
 /// ```
-/// use qubit_value::{Value, ValueMissingReason};
+/// use qubit_datatype::DataType;
+/// use qubit_value::Value;
+/// use qubit_value::ValueMissingReason;
 ///
-/// let error = Value::new_unset(qubit_datatype::DataType::Int32)
+/// let error = Value::new_unset(DataType::Int32)
 ///     .get::<i32>()
 ///     .unwrap_err();
 /// assert_eq!(error.missing().unwrap().reason(), ValueMissingReason::UnsetScalar);

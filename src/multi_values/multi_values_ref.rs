@@ -20,6 +20,10 @@ macro_rules! define_view {
         /// The lifetime is that of the source storage; copying this view does
         /// not clone strings, maps, JSON, or other rich payloads.
         ///
+        /// # Type Parameters
+        ///
+        /// * `'a` - Lifetime of the source slices borrowed by this view.
+        ///
         /// # Examples
         ///
         /// ```
@@ -38,8 +42,8 @@ macro_rules! define_view {
             /// Unset storage retaining its declared type.
             Unset(#[doc = "Declared source type."] DataType),
             $(
-                $(#[$cfg])*
                 #[doc = $multi_doc]
+                $(#[$cfg])*
                 $variant(#[doc = "Borrowed or copied source payload."] &'a [$type]),
             )+
         }
@@ -50,7 +54,6 @@ macro_rules! define_view {
             /// # Returns
             ///
             /// The declared runtime element type.
-            #[must_use = "the declared type determines how unset storage is interpreted"]
             #[inline(always)]
             pub fn data_type(self) -> DataType {
                 match self {
@@ -95,6 +98,7 @@ macro_rules! define_view {
             ///
             /// `Some` with the indexed element, or `None` when storage is unset
             /// or `index` is out of bounds.
+            #[must_use]
             #[inline(always)]
             pub fn get(self, index: usize) -> Option<ValueRef<'a>> {
                 match self {

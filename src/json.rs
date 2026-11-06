@@ -29,16 +29,13 @@ use crate::ValueError;
 use crate::ValueRef;
 use crate::ValueResult;
 
-mod json_children;
-mod measurement_writer;
-mod prepared_projection;
-mod prepared_scalar;
+mod internal;
 mod projection_budget;
 
-use json_children::JsonChildren;
-use prepared_projection::PreparedProjection;
-use prepared_scalar::PreparedScalar;
-use projection_budget::ProjectionBudget;
+use self::internal::json_children::JsonChildren;
+use self::internal::prepared_projection::PreparedProjection;
+use self::internal::prepared_scalar::PreparedScalar;
+use self::projection_budget::ProjectionBudget;
 
 /// Checks source big-number limits before decimal formatting can allocate.
 macro_rules! check_projection_number {
@@ -156,6 +153,22 @@ macro_rules! prepare_scalar_match {
 
 /// Admits one scalar before allocating a cached rich rendering.
 ///
+/// # Type Parameters
+///
+/// - `'a`: Lifetime of the source storage retained by the prepared scalar.
+///
+/// # Parameters
+///
+/// - `view`: Borrowed scalar payload to admit and prepare.
+/// - `budget`: Shared operation accounting, updated as input and output are
+///   admitted.
+/// - `depth`: Root-inclusive depth of this scalar in the projected JSON.
+///
+/// # Returns
+///
+/// A borrowed payload or cached rendering whose resource costs have been
+/// admitted.
+///
 /// # Errors
 ///
 /// Returns an error when conversion fails or a configured resource limit is
@@ -180,6 +193,22 @@ macro_rules! collection_cache_match {
 }
 
 /// Admits the full collection before materializing any final JSON output.
+///
+/// # Type Parameters
+///
+/// - `'a`: Lifetime of the source storage retained by borrowed collection and
+///   scalar projections.
+///
+/// # Parameters
+///
+/// - `view`: Borrowed homogeneous collection, including its unset state.
+/// - `budget`: Shared operation accounting, updated for the shape and each
+///   element.
+///
+/// # Returns
+///
+/// An admitted collection projection, retaining rendered elements only when
+/// needed; an unset collection remains a null projection.
 ///
 /// # Errors
 ///
@@ -225,9 +254,21 @@ fn prepare_collection<'a>(
 /// Traverses nested JSON iteratively, charging keys and leaf text before
 /// cloning.
 ///
+/// # Parameters
+///
+/// - `value`: Borrowed JSON tree to inspect without cloning.
+/// - `depth`: Root-inclusive depth of the tree root in the projected output.
+/// - `budget`: Shared operation accounting, updated for every visited node and
+///   key.
+///
+/// # Returns
+///
+/// Unit after the entire tree has been admitted and its numbers validated.
+///
 /// # Errors
 ///
-/// Returns an error when a configured resource limit is exceeded.
+/// Returns an error when a configured resource limit is exceeded or a JSON
+/// number is outside the supported projection range.
 fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>) -> ValueResult<()> {
     let mut frames = Vec::<JsonChildren<'_>>::new();
     let mut next = Some((None, value, depth));
@@ -271,6 +312,15 @@ fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>
 
 /// Checks an already budget-admitted JSON number against the projection range.
 ///
+/// # Parameters
+///
+/// - `number`: Admitted number to validate as an integer or finite
+///   floating-point value.
+///
+/// # Returns
+///
+/// Unit when the number fits the supported projection range.
+///
 /// # Errors
 ///
 /// Returns a conversion error for an out-of-range integer or non-finite float.
@@ -303,6 +353,16 @@ fn validate_projected_json_number(number: &Number) -> ValueResult<()> {
 ///
 /// Returns conversion or resource errors before final JSON allocation.
 ///
+/// # Parameters
+///
+/// - `value`: Borrowed scalar source; its storage is preserved.
+/// - `policy`: Conversion policy used when rendering rich scalar payloads.
+/// - `limits`: Per-value and cumulative resource limits for this operation.
+///
+/// # Returns
+///
+/// The owned natural JSON projection after all preparation costs are admitted.
+///
 /// # Errors
 ///
 /// Returns an error when conversion fails or a configured resource limit is
@@ -319,6 +379,18 @@ pub(crate) fn value_to_json_value_with(
 /// Projects a collection after complete bounded preparation, preserving its
 /// shape.
 ///
+/// # Parameters
+///
+/// - `values`: Borrowed homogeneous source collection; its storage is
+///   preserved.
+/// - `policy`: Conversion policy used when rendering rich element payloads.
+/// - `limits`: Per-value and cumulative resource limits shared by the
+///   collection.
+///
+/// # Returns
+///
+/// An owned JSON array, or JSON null for an unset collection.
+///
 /// # Errors
 ///
 /// Returns an error when conversion fails or a configured resource limit is
@@ -334,10 +406,23 @@ pub(crate) fn multi_values_to_json_value_with(
 
 /// Projects scalar or collection storage without conflating cardinalities.
 ///
+/// # Parameters
+///
+/// - `container`: Borrowed scalar or collection source; its storage is
+///   preserved.
+/// - `policy`: Conversion policy forwarded to the selected projection.
+/// - `limits`: Resource limits forwarded to the selected projection.
+///
+/// # Returns
+///
+/// The owned JSON projection preserving the source's scalar or collection
+/// shape.
+///
 /// # Errors
 ///
 /// Returns an error when conversion fails or a configured resource limit is
 /// exceeded.
+#[inline]
 pub(crate) fn value_container_to_json_value_with(
     container: &ValueContainer,
     policy: &ConversionPolicy,

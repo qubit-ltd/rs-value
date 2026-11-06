@@ -25,7 +25,10 @@ fn test_big_integer_wire_serializes_negative_value() {
     )
     .expect("wire value serializes");
 
-    assert_eq!(wire["value"]["scalar"]["biginteger"], "-42");
+    assert_eq!(
+        wire["value"]["scalar"]["biginteger"], "-42",
+        "negative big integers must retain their sign in the wire text"
+    );
 }
 
 /// Verifies decimal display preserves a large integer without numeric coercion.
@@ -36,5 +39,8 @@ fn test_big_integer_wire_serializes_large_value_as_text() {
     let wire = to_value(ValueWireV1::try_from(Value::BigInteger(value)).expect("big integer converts to wire value"))
         .expect("serialize large integer");
 
-    assert_eq!(wire["value"]["scalar"]["biginteger"], "123456789012345678901234567890");
+    assert_eq!(
+        wire["value"]["scalar"]["biginteger"], "123456789012345678901234567890",
+        "large big integers must preserve every digit in the wire text"
+    );
 }

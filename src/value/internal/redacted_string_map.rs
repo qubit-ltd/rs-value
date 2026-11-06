@@ -20,6 +20,11 @@ pub(in crate::value) struct RedactedStringMap<'a> {
 
 impl Redact for RedactedStringMap<'_> {
     /// Writes borrowed entries through the shared key-aware map scope.
+    ///
+    /// # Parameters
+    ///
+    /// - `writer`: Shared output session whose policy and resource budget apply
+    ///   to the borrowed map entries.
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         writer.record("Value", |fields| {
             fields.map("StringMap", self.values);

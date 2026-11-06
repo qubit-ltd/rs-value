@@ -13,6 +13,13 @@ use qubit_value::ValueRef;
 fn test_value_ref_borrows_scalar_payload_without_changing_it() {
     let value = Value::String("ready".to_owned());
 
-    assert!(matches!(value.view(), ValueRef::String(text) if text == "ready"));
-    assert_eq!(value.get_string().expect("read string"), "ready");
+    assert!(
+        matches!(value.view(), ValueRef::String(text) if text == "ready"),
+        "the borrowed view must preserve the string variant and payload"
+    );
+    assert_eq!(
+        value.get_string().expect("read string"),
+        "ready",
+        "creating a borrowed view must leave the owned string unchanged"
+    );
 }

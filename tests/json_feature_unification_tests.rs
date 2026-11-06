@@ -9,6 +9,10 @@
 
 #[cfg(feature = "converter")]
 use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hash;
+use std::hash::Hasher;
+use std::iter::repeat_n;
 
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
@@ -16,6 +20,8 @@ use qubit_budget::json::JsonDecodeSession;
 use qubit_datatype::ConversionLimits;
 #[cfg(feature = "converter")]
 use qubit_datatype::ConversionOperationLimits;
+#[cfg(feature = "converter")]
+use qubit_datatype::ConversionPolicy;
 #[cfg(feature = "converter")]
 use qubit_datatype::InvalidValueReason;
 use qubit_json::decode::JsonDecoder;
@@ -35,9 +41,16 @@ use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
 use qubit_value::ValueWireV1Seed;
 use serde::Deserialize;
+use serde_json::Number;
 use serde_json::Value as JsonValue;
 use serde_json::error::Category;
+use serde_json::from_slice;
+use serde_json::from_str;
+use serde_json::json;
+use serde_json::to_vec;
 
+/// Supplies the shared input, depth, node, and numeric-token budgets for wire
+/// fixtures.
 fn limits() -> JsonDecodeLimits {
     JsonDecodeLimits::builder()
         .max_input_bytes(4096usize)
@@ -65,18 +78,18 @@ fn test_wire_json_number_round_trip_boundary() {
         "-0",
     ];
     for input in number_inputs {
-        let Ok(number) = serde_json::from_str::<JsonValue>(input) else {
+        let Ok(number) = from_str::<JsonValue>(input) else {
             continue;
         };
         let text = number.to_string();
-        let expected_standard: Option<serde_json::Number> = if text == "-0" {
-            serde_json::Number::from_f64(-0.0)
+        let expected_standard: Option<Number> = if text == "-0" {
+            Number::from_f64(-0.0)
         } else if text.bytes().any(|byte| matches!(byte, b'.' | b'e' | b'E')) {
-            text.parse::<f64>().ok().and_then(serde_json::Number::from_f64)
+            text.parse::<f64>().ok().and_then(Number::from_f64)
         } else if text.starts_with('-') {
-            text.parse::<i64>().ok().map(serde_json::Number::from)
+            text.parse::<i64>().ok().map(Number::from)
         } else {
-            text.parse::<u64>().ok().map(serde_json::Number::from)
+            text.parse::<u64>().ok().map(Number::from)
         };
         let value = Value::Json(number.clone());
         if expected_standard.as_ref() == number.as_number() {
@@ -113,9 +126,9 @@ fn test_wire_json_number_round_trip_boundary() {
             Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
         ));
         let named = NamedValue::new("number", value.clone());
-        assert!(serde_json::to_vec(&named).is_err());
+        assert!(to_vec(&named).is_err());
         assert!(named.to_json_vec().is_err());
-        let nested = Value::Json(serde_json::json!({"outer": [number.clone()]}));
+        let nested = Value::Json(json!({"outer": [number.clone()]}));
         assert!(
             matches!(
                 ValueWireV1::try_from(nested.clone()),
@@ -130,7 +143,7 @@ fn test_wire_json_number_round_trip_boundary() {
             ),
             "borrowed nested scalar {input} must be rejected"
         );
-        let values = MultiValues::Json(vec![serde_json::json!(0), number]);
+        let values = MultiValues::Json(vec![json!(0), number]);
         assert!(
             matches!(
                 ValueWirePayloadV1::try_from(values.clone()),
@@ -154,17 +167,13 @@ fn test_wire_json_number_round_trip_boundary() {
             Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
         ));
         let named = NamedMultiValues::new("numbers", values.clone());
-        assert!(serde_json::to_vec(&named).is_err());
+        assert!(to_vec(&named).is_err());
         assert!(named.to_json_vec().is_err());
     }
 }
 
 #[test]
 fn test_wire_json_number_standard_values_preserve_identity() {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::Hash;
-    use std::hash::Hasher;
-
     let values = [
         JsonValue::from(i64::MIN),
         JsonValue::from(u64::MAX),
@@ -194,8 +203,8 @@ fn test_wire_json_number_named_standard_wrappers_round_trip() {
     let named_value = NamedValue::new("answer", value.clone());
 
     // Standard JSON numbers remain supported through both Serde entry points.
-    let serde_bytes = serde_json::to_vec(&named_value).expect("ordinary named Serde encoding");
-    let serde_value: NamedValue = serde_json::from_slice(&serde_bytes).expect("ordinary named Serde decoding");
+    let serde_bytes = to_vec(&named_value).expect("ordinary named Serde encoding");
+    let serde_value: NamedValue = from_slice(&serde_bytes).expect("ordinary named Serde decoding");
     assert_eq!(serde_value.name(), "answer");
     assert_eq!(serde_value.value(), &value);
 
@@ -206,9 +215,8 @@ fn test_wire_json_number_named_standard_wrappers_round_trip() {
 
     let values = MultiValues::Json(vec![JsonValue::from(42_u64), JsonValue::from(43_u64)]);
     let named_values = NamedMultiValues::new("answers", values.clone());
-    let serde_bytes = serde_json::to_vec(&named_values).expect("ordinary named-list Serde encoding");
-    let serde_values: NamedMultiValues =
-        serde_json::from_slice(&serde_bytes).expect("ordinary named-list Serde decoding");
+    let serde_bytes = to_vec(&named_values).expect("ordinary named-list Serde encoding");
+    let serde_values: NamedMultiValues = from_slice(&serde_bytes).expect("ordinary named-list Serde decoding");
     assert_eq!(serde_values.name(), "answers");
     assert_eq!(serde_values.values(), &values);
 
@@ -218,6 +226,8 @@ fn test_wire_json_number_named_standard_wrappers_round_trip() {
     assert_eq!(bounded_values.values(), &values);
 }
 
+/// Checks the underlying conversion reason while rejecting other error
+/// variants.
 #[cfg(feature = "converter")]
 fn assert_projection_conversion_reason(error: ValueError, expected: InvalidValueReason) {
     let ValueError::Conversion(source) = error else {
@@ -226,12 +236,14 @@ fn assert_projection_conversion_reason(error: ValueError, expected: InvalidValue
     assert_eq!(source.reason(), Some(&expected));
 }
 
+/// Checks scalar, nested, and collection projections when Serde preserves the
+/// integer token.
 #[cfg(feature = "converter")]
 fn assert_wide_integer_is_rejected(input: &str, expected: InvalidValueReason) {
-    let number: JsonValue = serde_json::from_str(input).expect("valid JSON number fixture");
+    let number: JsonValue = from_str(input).expect("valid JSON number fixture");
     // Without arbitrary_precision serde_json may already have rounded this integer
     // to f64.
-    if serde_json::to_vec(&number).expect("number must serialize").as_slice() != input.as_bytes() {
+    if to_vec(&number).expect("number must serialize").as_slice() != input.as_bytes() {
         return;
     }
     assert_projection_conversion_reason(
@@ -239,12 +251,12 @@ fn assert_wide_integer_is_rejected(input: &str, expected: InvalidValueReason) {
         expected.clone(),
     );
     assert_projection_conversion_reason(
-        Value::Json(serde_json::json!({"outer": [number.clone()]}))
+        Value::Json(json!({"outer": [number.clone()]}))
             .to_json_value()
             .unwrap_err(),
         expected.clone(),
     );
-    let values = MultiValues::Json(vec![serde_json::json!(0), number.clone()]);
+    let values = MultiValues::Json(vec![json!(0), number.clone()]);
     let error = values.to_json_value().unwrap_err();
     let ValueError::ListConversion(source) = error else {
         panic!("expected indexed list conversion error, got {error:?}");
@@ -265,20 +277,20 @@ fn test_projection_rejects_unified_wide_json_number() {
 
     // Ordinary serde_json builds may reject this token while parsing; the
     // arbitrary_precision matrix entry must preserve it for projection.
-    if let Ok(non_finite) = serde_json::from_str::<JsonValue>("1e400")
-        && serde_json::to_vec(&non_finite).expect("number must serialize") == b"1e400"
+    if let Ok(non_finite) = from_str::<JsonValue>("1e400")
+        && to_vec(&non_finite).expect("number must serialize") == b"1e400"
     {
         assert_projection_conversion_reason(
             Value::Json(non_finite.clone()).to_json_value().unwrap_err(),
             InvalidValueReason::NonFinite,
         );
         assert_projection_conversion_reason(
-            Value::Json(serde_json::json!({"outer": [non_finite.clone()]}))
+            Value::Json(json!({"outer": [non_finite.clone()]}))
                 .to_json_value()
                 .unwrap_err(),
             InvalidValueReason::NonFinite,
         );
-        let values = MultiValues::Json(vec![serde_json::json!(0), non_finite.clone()]);
+        let values = MultiValues::Json(vec![json!(0), non_finite.clone()]);
         let ValueError::ListConversion(source) = values.to_json_value().unwrap_err() else {
             panic!("expected indexed list conversion error");
         };
@@ -299,26 +311,26 @@ fn test_projection_rejects_unified_wide_json_number() {
             )
             .build();
         assert!(matches!(
-            Value::Json(non_finite.clone()).to_json_value_with(&qubit_datatype::ConversionPolicy::default(), &limits,),
+            Value::Json(non_finite.clone()).to_json_value_with(&ConversionPolicy::default(), &limits,),
             Err(ValueError::JsonProjectionLimit { .. })
         ));
     }
 
     for input in ["18446744073709551615", "-9223372036854775808"] {
-        let value: JsonValue = serde_json::from_str(input).expect("valid integer boundary");
+        let value: JsonValue = from_str(input).expect("valid integer boundary");
         assert_eq!(
-            serde_json::to_vec(&value).expect("number must serialize"),
+            to_vec(&value).expect("number must serialize"),
             input.as_bytes(),
             "boundary fixture must stay exact"
         );
         assert_eq!(Value::Json(value.clone()).to_json_value().unwrap(), value);
     }
     for input in ["1.25e100", "0.125", "-0.0"] {
-        let value: JsonValue = serde_json::from_str(input).expect("valid finite float");
+        let value: JsonValue = from_str(input).expect("valid finite float");
         assert_eq!(Value::Json(value.clone()).to_json_value().unwrap(), value);
     }
 
-    let marker = serde_json::json!({"$serde_json::private::Number": "7"});
+    let marker = json!({"$serde_json::private::Number": "7"});
     assert_eq!(Value::Json(marker.clone()).to_json_value().unwrap(), marker);
 }
 
@@ -438,7 +450,7 @@ fn test_json_feature_unification_preserves_private_number_marker_object_key() {
     };
     assert_eq!(
         value.get_json_ref().expect("JSON value"),
-        &serde_json::json!({"$serde_json::private::Number": "7"})
+        &json!({"$serde_json::private::Number": "7"})
     );
 }
 
@@ -454,7 +466,7 @@ fn test_json_feature_unification_preserves_numeric_payload_tree() {
     };
     assert_eq!(
         value.get_json_ref().expect("JSON payload tree"),
-        &serde_json::json!({"n": 1.5, "u64": u64::MAX})
+        &json!({"n": 1.5, "u64": u64::MAX})
     );
 }
 
@@ -490,6 +502,8 @@ fn test_json_feature_unification_enforces_strict_number_ranges() {
 #[cfg(feature = "converter")]
 #[test]
 fn test_json_feature_unification_canonicalizes_nested_object_order() {
+    /// Checks the relative positions of the two fixture keys in serialized
+    /// output.
     fn assert_string_map_keys_are_sorted(bytes: &[u8]) {
         let first = bytes
             .windows(b"\"a\"".len())
@@ -502,8 +516,8 @@ fn test_json_feature_unification_canonicalizes_nested_object_order() {
         assert!(first < second, "keys should be emitted in lexical order: {bytes:?}");
     }
 
-    let first: JsonValue = serde_json::from_str(r#"{"outer":{"z":1,"a":2}}"#).unwrap();
-    let second: JsonValue = serde_json::from_str(r#"{"outer":{"a":2,"z":1}}"#).unwrap();
+    let first: JsonValue = from_str(r#"{"outer":{"z":1,"a":2}}"#).unwrap();
+    let second: JsonValue = from_str(r#"{"outer":{"a":2,"z":1}}"#).unwrap();
     let first_value = Value::Json(first);
     let second_value = Value::Json(second);
     let first_wire = ValueWireV1::try_from(first_value.clone())
@@ -516,8 +530,8 @@ fn test_json_feature_unification_canonicalizes_nested_object_order() {
         .expect("second wire encodes");
     assert_eq!(first_wire, second_wire);
     assert_eq!(
-        serde_json::to_vec(&first_value.to_json_value().unwrap()).unwrap(),
-        serde_json::to_vec(&second_value.to_json_value().unwrap()).unwrap()
+        to_vec(&first_value.to_json_value().unwrap()).unwrap(),
+        to_vec(&second_value.to_json_value().unwrap()).unwrap()
     );
 
     let mut first_map = HashMap::new();
@@ -538,8 +552,8 @@ fn test_json_feature_unification_canonicalizes_nested_object_order() {
         .expect("second string map wire encodes");
     assert_eq!(first_wire, second_wire);
     assert_string_map_keys_are_sorted(&first_wire);
-    let first_natural = serde_json::to_vec(&first_map.to_json_value().unwrap()).unwrap();
-    let second_natural = serde_json::to_vec(&second_map.to_json_value().unwrap()).unwrap();
+    let first_natural = to_vec(&first_map.to_json_value().unwrap()).unwrap();
+    let second_natural = to_vec(&second_map.to_json_value().unwrap()).unwrap();
     assert_eq!(first_natural, second_natural);
     assert_string_map_keys_are_sorted(&first_natural);
 }
@@ -547,9 +561,9 @@ fn test_json_feature_unification_canonicalizes_nested_object_order() {
 #[test]
 fn test_json_feature_unification_uses_configured_depth_for_unique_decoders() {
     let mut input = String::from(r#"{"scalar":{"json":"#);
-    input.extend(std::iter::repeat_n('[', 130));
+    input.extend(repeat_n('[', 130));
     input.push('0');
-    input.extend(std::iter::repeat_n(']', 130));
+    input.extend(repeat_n(']', 130));
     input.push_str("}}");
     let input = input.into_bytes();
     let limits = JsonDecodeLimits::builder()
@@ -564,7 +578,7 @@ fn test_json_feature_unification_uses_configured_depth_for_unique_decoders() {
         "the source scanner and generic JSON tree target should admit 130 levels: {source_tree:?}"
     );
     assert!(
-        serde_json::from_slice::<JsonValue>(&input).is_err(),
+        from_slice::<JsonValue>(&input).is_err(),
         "serde_json::Value source-tree construction should expose its default recursion boundary"
     );
     let payload = ValueWirePayloadV1::decode_json_slice_with_limits(&input, limits)

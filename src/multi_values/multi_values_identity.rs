@@ -9,6 +9,7 @@
 
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::mem::discriminant;
 
 use super::MultiValuesRepr;
 use super::multi_values::MultiValues;
@@ -110,6 +111,20 @@ macro_rules! non_json_payload_match {
 
 /// Hashes a non-JSON collection payload. JSON is handled by
 /// [`MultiValues::hash_with_json_budget`](crate::MultiValues::hash_with_json_budget).
+///
+/// # Type Parameters
+///
+/// * `H` - Hasher receiving the collection payload's semantic identity.
+///
+/// # Parameters
+///
+/// * `repr` - Non-JSON collection storage to hash, excluding its variant tag.
+/// * `state` - Hasher updated with the payload's semantic identity.
+///
+/// # Panics
+///
+/// Panics if `repr` contains JSON storage; the caller must handle that variant
+/// through the budget-aware hashing path instead.
 #[cfg(feature = "json")]
 pub(crate) fn hash_non_json_multi_values_payload<H: Hasher>(repr: &MultiValuesRepr, state: &mut H) {
     for_each_value_type!(non_json_payload_match, repr, state);
@@ -122,6 +137,15 @@ macro_rules! impl_multi_values_identity {
         $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?
     ) => {
         impl PartialEq for MultiValues {
+            /// Compares variants and ordered payloads using semantic identity.
+            ///
+            /// # Parameters
+            ///
+            /// * `other` - Collection to compare with this borrowed collection.
+            ///
+            /// # Returns
+            ///
+            /// Whether both collections have the same variant and equal payloads.
             fn eq(&self, other: &Self) -> bool {
                 match (&self.repr, &other.repr) {
                     (MultiValuesRepr::Unset(left), MultiValuesRepr::Unset(right)) => left == right,
@@ -137,8 +161,17 @@ macro_rules! impl_multi_values_identity {
         impl Eq for MultiValues {}
 
         impl Hash for MultiValues {
+            /// Writes the variant tag and ordered semantic payload identity.
+            ///
+            /// # Type Parameters
+            ///
+            /// * `H` - Hasher receiving the collection identity.
+            ///
+            /// # Parameters
+            ///
+            /// * `state` - Hasher updated with the variant and payload identity.
             fn hash<H: Hasher>(&self, state: &mut H) {
-                std::mem::discriminant(&self.repr).hash(state);
+                discriminant(&self.repr).hash(state);
                 match &self.repr {
                     MultiValuesRepr::Unset(data_type) => data_type.hash(state),
                     $($(#[$cfg])*

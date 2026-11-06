@@ -35,6 +35,8 @@ use serde::Serializer;
 use serde::de::Error as DeserializeError;
 use serde::ser::Error as SerializeError;
 
+use self::internal::NamedValueWireOwned;
+use self::internal::NamedValueWireRef;
 use super::value::Value;
 #[cfg(feature = "json")]
 use crate::ValueWireDecodeError;
@@ -47,9 +49,6 @@ use crate::ValueWireRefV1;
 use crate::ValueWireV1;
 
 mod internal;
-
-use self::internal::NamedValueWireOwned;
-use self::internal::NamedValueWireRef;
 
 /// Named single value
 ///
@@ -104,16 +103,17 @@ use self::internal::NamedValueWireRef;
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NamedValue {
-    /// Name of the value
+    /// Owned label, stored independently of the value and its runtime type.
     name: String,
-    /// Content of the value
+    /// Owned scalar payload, retaining its runtime type and unset state.
     value: Value,
 }
 
 impl NamedValue {
     /// Create a new named value
     ///
-    /// Creates a binding instance between a name and a value.
+    /// Converts the name into owned storage and moves `value` into the wrapper
+    /// without cloning it. The name is not required to be unique or nonempty.
     ///
     /// # Type Parameters
     ///
@@ -121,8 +121,9 @@ impl NamedValue {
     ///
     /// # Parameters
     ///
-    /// * `name` - Name of the value
-    /// * `value` - Content of the value
+    /// * `name` - Label converted into an owned string.
+    /// * `value` - Scalar payload whose ownership is transferred to the
+    ///   wrapper.
     ///
     /// # Returns
     ///
@@ -318,7 +319,9 @@ impl NamedValue {
 
     /// Get a reference to the name
     ///
-    /// Returns a read-only name slice bound to this value.
+    /// Borrows the stored label without allocating. The slice remains valid
+    /// while this wrapper is shared-borrowed, preventing name replacement
+    /// through the wrapper during that borrow.
     ///
     /// # Returns
     ///
@@ -338,9 +341,39 @@ impl NamedValue {
         &self.name
     }
 
+    /// Borrows the contained value without cloning its payload.
+    ///
+    /// The reference is tied to the shared borrow of this wrapper; mutation
+    /// through the wrapper requires that borrow to end.
+    ///
+    /// # Returns
+    ///
+    /// A shared reference to the contained [`Value`].
+    #[inline(always)]
+    #[must_use = "the borrowed value should be used"]
+    pub fn value(&self) -> &Value {
+        &self.value
+    }
+
+    /// Borrows the contained value exclusively, allowing in-place updates.
+    ///
+    /// The reference is tied to the exclusive borrow of this wrapper. Updates
+    /// can change the payload or its runtime type without changing the name.
+    ///
+    /// # Returns
+    ///
+    /// An exclusive reference to the contained [`Value`].
+    #[inline]
+    #[must_use = "the mutable value reference should be used"]
+    pub fn value_mut(&mut self) -> &mut Value {
+        &mut self.value
+    }
+
     /// Set a new name
     ///
-    /// Updates the name bound to the current instance.
+    /// Converts the new label into owned storage and drops the previous name,
+    /// leaving the contained value unchanged. Empty and duplicate labels are
+    /// accepted without validation.
     ///
     /// # Type Parameters
     ///
@@ -364,29 +397,10 @@ impl NamedValue {
         self.name = name.into();
     }
 
-    /// Borrows the contained value.
+    /// Moves a new value into this wrapper and drops the previous payload.
     ///
-    /// # Returns
-    ///
-    /// A shared reference to the contained [`Value`].
-    #[inline(always)]
-    #[must_use = "the borrowed value should be used"]
-    pub fn value(&self) -> &Value {
-        &self.value
-    }
-
-    /// Mutably borrows the contained value.
-    ///
-    /// # Returns
-    ///
-    /// An exclusive reference to the contained [`Value`].
-    #[inline]
-    #[must_use = "the mutable value reference should be used"]
-    pub fn value_mut(&mut self) -> &mut Value {
-        &mut self.value
-    }
-
-    /// Replaces the contained value.
+    /// The replacement may change the runtime type or unset state; the stored
+    /// name is preserved and the new payload is not cloned.
     ///
     /// # Parameters
     ///
@@ -410,6 +424,24 @@ impl NamedValue {
 
 impl Serialize for NamedValue {
     /// Serializes the name and its explicitly versioned scalar value.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Serde serializer that determines the output format.
+    ///
+    /// # Parameters
+    ///
+    /// * `serializer` - Destination serializer receiving the named V1 scalar
+    ///   envelope.
+    ///
+    /// # Returns
+    ///
+    /// The serializer's success value after serializing the complete envelope.
+    ///
+    /// # Errors
+    ///
+    /// Returns `S::Error` when the scalar cannot be represented by the V1 wire
+    /// contract or the serializer rejects the envelope.
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

@@ -36,6 +36,10 @@ macro_rules! define_scalar_wire_owned {
         ),+ $(,)?
     ) => {
         /// Owned payload for one typed scalar.
+        ///
+        /// Deserialization retains the V1 tag and owns the decoded payload until
+        /// conversion transfers it into a runtime [`Value`]. An unset payload
+        /// retains its declared data type instead of storing a scalar value.
         #[derive(Deserialize)]
         pub(in crate::value_wire) enum ScalarWireOwned {
             /// Unset scalar and its declared data type.
@@ -58,6 +62,18 @@ macro_rules! define_scalar_wire_owned {
 
         impl From<ScalarWireOwned> for Value {
             /// Restores the exact runtime scalar variant.
+            ///
+            /// Transfers the decoded payload to its runtime constructor without
+            /// cloning it, preserving the declared type for an unset scalar.
+            ///
+            /// # Parameters
+            ///
+            /// * `value` - Decoded scalar payload consumed by the conversion.
+            ///
+            /// # Returns
+            ///
+            /// A runtime scalar with the same type and owned payload.
+            #[inline]
             fn from(value: ScalarWireOwned) -> Self {
                 match value {
                     ScalarWireOwned::Unset(data_type) => Self::new_unset(data_type.into()),

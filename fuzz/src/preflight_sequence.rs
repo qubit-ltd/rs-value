@@ -54,6 +54,7 @@ pub struct SequenceReport {
     pub array_oracles: usize,
 }
 
+/// One decoded checker call, retaining its entry-point shape for replay.
 #[derive(Debug, Clone)]
 enum Operation {
     Value(Value),
@@ -62,14 +63,7 @@ enum Operation {
 }
 
 impl Operation {
-    fn invoke(&self, checker: &mut ValueWireEncodePreflight) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
-        match self {
-            Self::Value(value) => checker.check_value(value),
-            Self::Values(values) => checker.check_values(values),
-            Self::Container(value) => checker.check_container(value),
-        }
-    }
-
+    /// Clones the payload into the common shape used by the encoding oracle.
     fn container(&self) -> ValueContainer {
         match self {
             Self::Value(value) => ValueContainer::Scalar(value.clone()),
@@ -78,6 +72,9 @@ impl Operation {
         }
     }
 
+    /// Identifies the exercised checker entry point in the sequence report.
+    #[must_use]
+    #[inline]
     fn entry_bit(&self) -> u8 {
         match self {
             Self::Value(_) => 1,
@@ -85,9 +82,20 @@ impl Operation {
             Self::Container(_) => 4,
         }
     }
+
+    /// Dispatches through the same public entry point selected by the input.
+    #[inline]
+    fn invoke(&self, checker: &mut ValueWireEncodePreflight) -> Result<(), MeasuredBudgetError<JsonResource, usize>> {
+        match self {
+            Self::Value(value) => checker.check_value(value),
+            Self::Values(values) => checker.check_values(values),
+            Self::Container(value) => checker.check_container(value),
+        }
+    }
 }
 
 /// Runs one deterministic, bounded sequence with limits derived from its input.
+#[must_use]
 pub fn run_sequence(data: &[u8]) -> SequenceReport {
     let input = bounded_input(data);
     let mode = input.first().copied().unwrap_or_default() % 4;
@@ -96,6 +104,7 @@ pub fn run_sequence(data: &[u8]) -> SequenceReport {
 }
 
 /// Runs the sequence with explicit limits for deterministic property tests.
+#[must_use]
 pub fn run_sequence_with_limits(data: &[u8], limits: JsonEncodeLimits) -> SequenceReport {
     let input = bounded_input(data);
     let body = input.get(1..).unwrap_or_default();
@@ -187,6 +196,9 @@ pub fn run_sequence_with_limits(data: &[u8], limits: JsonEncodeLimits) -> Sequen
     report
 }
 
+/// Decodes the selector and bounded payload without changing scalar/collection
+/// shape.
+#[must_use]
 fn make_operation(chunk: &[u8]) -> Operation {
     let selector = chunk.first().copied().unwrap_or_default() % 4;
     let source = chunk.get(1..).unwrap_or_default();
@@ -218,6 +230,9 @@ fn make_operation(chunk: &[u8]) -> Operation {
     }
 }
 
+/// Selects the generous baseline or one intentionally constrained resource
+/// budget.
+#[must_use]
 fn limits_for_mode(mode: u8, selector: u8) -> JsonEncodeLimits {
     let builder = JsonEncodeLimits::builder()
         .max_output_bytes(MAX_OUTPUT_BYTES)

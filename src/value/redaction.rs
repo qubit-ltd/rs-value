@@ -20,6 +20,8 @@ use crate::NamedMultiValues;
 use crate::NamedValue;
 use crate::ValueContainer;
 
+/// Selects policy-aware writing for string, map, and JSON collection payloads.
+/// Other value families share the unredacted collection writer.
 macro_rules! redact_collection_payload {
     (String, $values:expr, $writer:expr) => {
         $writer.sequence(|items| {
@@ -47,6 +49,8 @@ macro_rules! redact_collection_payload {
     };
 }
 
+/// Builds borrowed collection dispatch from the canonical value type table.
+/// The caller must handle unset collections before invoking this macro.
 macro_rules! redact_multi_values_match {
     ($values:expr, $writer:expr; $(([$($cfg:meta),*], $variant:ident, $type:ty, $data_type:expr, $materialization:ident, $json_class:ident, $number_projection:ident, $value_doc:literal, $multi_doc:literal $(, $_wire:tt)*)),+ $(,)?) => {
         match $values {
@@ -60,6 +64,11 @@ macro_rules! redact_multi_values_match {
 
 impl Redact for Value {
     /// Writes one value through the shared structured writer.
+    ///
+    /// # Parameters
+    ///
+    /// - `writer`: Borrowed writer for the active redaction session; receives
+    ///   the classified representation without modifying the source value.
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         match &self.repr {
             ValueRepr::StringMap(values) => {
@@ -82,6 +91,11 @@ impl Redact for Value {
 
 impl Redact for MultiValues {
     /// Writes a typed collection through the shared structured writer.
+    ///
+    /// # Parameters
+    ///
+    /// - `writer`: Borrowed writer for the active redaction session; receives
+    ///   the classified representation without modifying the source value.
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         let values = self.view();
         if matches!(values, MultiValuesRef::Unset(_)) {
@@ -94,6 +108,11 @@ impl Redact for MultiValues {
 
 impl Redact for ValueContainer {
     /// Writes the selected container payload through the shared session.
+    ///
+    /// # Parameters
+    ///
+    /// - `writer`: Borrowed writer for the active redaction session; receives
+    ///   the classified representation without modifying the source value.
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         match self {
             Self::Scalar(value) => {
@@ -112,6 +131,11 @@ impl Redact for ValueContainer {
 
 impl Redact for NamedValue {
     /// Writes the name and policy-selected value through one session.
+    ///
+    /// # Parameters
+    ///
+    /// - `writer`: Borrowed writer for the active redaction session; receives
+    ///   the classified representation without modifying the source value.
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         writer.record("NamedValue", |fields| {
             fields.unredacted("name", || self.name());
@@ -122,6 +146,11 @@ impl Redact for NamedValue {
 
 impl Redact for NamedMultiValues {
     /// Writes the name and policy-selected collection through one session.
+    ///
+    /// # Parameters
+    ///
+    /// - `writer`: Borrowed writer for the active redaction session; receives
+    ///   the classified representation without modifying the source value.
     fn write_redacted(&self, writer: &mut RedactionWriter<'_>) {
         writer.record("NamedMultiValues", |fields| {
             fields.unredacted("name", || self.name());

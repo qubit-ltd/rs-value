@@ -44,6 +44,7 @@ use serde_json::error::Category;
 /// };
 /// check_metadata(&metadata);
 /// ```
+#[must_use]
 #[derive(Debug)]
 pub struct ValueWireJsonError {
     /// Serde's category for the JSON decoding failure.
@@ -66,6 +67,7 @@ impl ValueWireJsonError {
     /// # Returns
     ///
     /// The metadata containing only the supplied category and coordinates.
+    #[inline]
     pub(crate) fn new(category: Category, line: usize, column: usize) -> Self {
         Self { category, line, column }
     }
@@ -75,6 +77,7 @@ impl ValueWireJsonError {
     /// # Returns
     ///
     /// The category associated with the failure.
+    #[must_use]
     #[inline]
     pub fn classify(&self) -> Category {
         self.category
@@ -85,6 +88,7 @@ impl ValueWireJsonError {
     /// # Returns
     ///
     /// The source line, or zero if no source position is available.
+    #[must_use]
     #[inline]
     pub fn line(&self) -> usize {
         self.line
@@ -95,30 +99,51 @@ impl ValueWireJsonError {
     /// # Returns
     ///
     /// The source column, or zero if no source position is available.
+    #[must_use]
     #[inline]
     pub fn column(&self) -> usize {
         self.column
     }
 
     /// Returns whether the error is an I/O failure.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the category is `Category::Io`; otherwise, `false`.
+    #[must_use]
     #[inline]
     pub fn is_io(&self) -> bool {
         self.category == Category::Io
     }
 
     /// Returns whether the error is a JSON syntax failure.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the category is `Category::Syntax`; otherwise, `false`.
+    #[must_use]
     #[inline]
     pub fn is_syntax(&self) -> bool {
         self.category == Category::Syntax
     }
 
     /// Returns whether the JSON data has an incompatible type or value.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the category is `Category::Data`; otherwise, `false`.
+    #[must_use]
     #[inline]
     pub fn is_data(&self) -> bool {
         self.category == Category::Data
     }
 
     /// Returns whether the JSON input ended before decoding completed.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the category is `Category::Eof`; otherwise, `false`.
+    #[must_use]
     #[inline]
     pub fn is_eof(&self) -> bool {
         self.category == Category::Eof
@@ -126,6 +151,19 @@ impl ValueWireJsonError {
 }
 
 impl fmt::Display for ValueWireJsonError {
+    /// Writes the failure category and coordinates without exposing input data.
+    ///
+    /// # Parameters
+    ///
+    /// - `formatter`: Destination for the privacy-safe diagnostic.
+    ///
+    /// # Returns
+    ///
+    /// Success after writing the diagnostic.
+    ///
+    /// # Errors
+    ///
+    /// Returns the destination's formatting error if writing fails.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             formatter,

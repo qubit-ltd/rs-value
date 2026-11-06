@@ -26,6 +26,8 @@ use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
 use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
+use serde_json::json;
+use serde_json::to_vec;
 
 /// Writer that rejects every write to verify error conversion.
 struct FailingWriter;
@@ -37,11 +39,13 @@ impl Write for FailingWriter {
     }
 
     /// Does not flush because writes are always rejected.
+    #[inline]
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }
 
+/// Records accepted bytes and flushes, optionally failing after a byte prefix.
 struct WriterProbe {
     bytes: Vec<u8>,
     remaining: Option<usize>,
@@ -67,6 +71,8 @@ impl Write for WriterProbe {
     }
 }
 
+/// Checks that encoding preserves a three-byte prefix and returns the writer
+/// error without flushing.
 fn assert_partial_writer<F>(expected: &[u8], encode: F)
 where
     F: FnOnce(&mut WriterProbe) -> Result<(), ValueWireEncodeError>,
@@ -87,6 +93,8 @@ where
     assert_eq!(writer.flush_calls, 0);
 }
 
+/// Checks that encoding writes the complete document while leaving flushing to
+/// the caller.
 fn assert_writer_does_not_flush<F>(expected: &[u8], encode: F)
 where
     F: FnOnce(&mut WriterProbe) -> Result<(), ValueWireEncodeError>,
@@ -123,7 +131,7 @@ fn test_value_wire_v1_default_json_limits_are_stable() {
 #[test]
 fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {
     let expected = ValueWireV1::try_from(ValueContainer::from(vec![1_i32, 2, 3])).expect("construct V1 wire");
-    let input = serde_json::to_vec(&expected).expect("wire value should serialize");
+    let input = to_vec(&expected).expect("wire value should serialize");
 
     let actual = ValueWireV1::decode_json_slice(&input).expect("bounded input should decode");
 
@@ -132,7 +140,7 @@ fn test_value_wire_v1_decode_json_slice_round_trips_with_default_limits() {
 
 #[test]
 fn test_value_wire_v1_json_numbers_round_trip() {
-    let expected = ValueWireV1::try_from(Value::Json(serde_json::json!({
+    let expected = ValueWireV1::try_from(Value::Json(json!({
         "amount": 1.5,
         "items": [100.0, -0.0],
         "marker": {"$serde_json::private::Number": "1.5"},
@@ -151,7 +159,7 @@ fn test_value_wire_v1_json_numbers_round_trip() {
 #[test]
 fn test_value_wire_v1_decode_json_slice_honors_custom_limit() {
     let expected = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
-    let input = serde_json::to_vec(&expected).expect("wire value should serialize");
+    let input = to_vec(&expected).expect("wire value should serialize");
     let limits = JsonDecodeLimits::builder().max_input_bytes(input.len()).build();
 
     let actual =
@@ -208,8 +216,8 @@ fn test_value_wire_v1_reports_typed_mismatch_as_invalid_json() {
 fn test_value_wire_v1_decoding_honors_structural_budgets() {
     let scalar = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
     let string = ValueWireV1::try_from(ValueContainer::from("ready")).expect("construct string wire");
-    let scalar_input = serde_json::to_vec(&scalar).expect("scalar wire should serialize");
-    let string_input = serde_json::to_vec(&string).expect("string wire should serialize");
+    let scalar_input = to_vec(&scalar).expect("scalar wire should serialize");
+    let string_input = to_vec(&string).expect("string wire should serialize");
     let cases = [
         (
             scalar_input.as_slice(),
@@ -296,7 +304,7 @@ fn test_value_wire_v1_default_encoding_round_trips() {
     let wire = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
     let encoded = wire.to_json_vec().expect("default limits should encode");
 
-    assert_eq!(encoded, serde_json::to_vec(&wire).expect("wire should serialize"));
+    assert_eq!(encoded, to_vec(&wire).expect("wire should serialize"));
     assert_eq!(
         ValueWireV1::decode_json_slice(&encoded).expect("default limits should decode"),
         wire

@@ -8,13 +8,14 @@
 
 //! Tests for identity and hashing contracts.
 
-#[cfg(feature = "json")]
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hash;
 use std::hash::Hasher;
 
 use qubit_value::Value;
+#[cfg(feature = "json")]
+use serde_json::json;
 
 fn hash(value: &Value) -> u64 {
     let mut hasher = DefaultHasher::new();
@@ -33,9 +34,8 @@ fn test_float_identity_normalizes_signed_zero_and_nan_payloads() {
     assert_eq!(hash(&left), hash(&right));
 }
 
-#[cfg(feature = "json")]
 #[test]
-fn test_map_and_json_object_identity_ignores_insertion_order() {
+fn test_string_map_identity_ignores_insertion_order() {
     let left_map = Value::StringMap(HashMap::from([
         ("a".to_owned(), "1".to_owned()),
         ("b".to_owned(), "2".to_owned()),
@@ -46,9 +46,13 @@ fn test_map_and_json_object_identity_ignores_insertion_order() {
     ]));
     assert_eq!(left_map, right_map);
     assert_eq!(hash(&left_map), hash(&right_map));
+}
 
-    let left_json = Value::Json(serde_json::json!({"b": {"x": 1}, "a": 0}));
-    let right_json = Value::Json(serde_json::json!({"a": 0, "b": {"x": 1}}));
+#[cfg(feature = "json")]
+#[test]
+fn test_json_object_identity_ignores_insertion_order() {
+    let left_json = Value::Json(json!({"b": {"x": 1}, "a": 0}));
+    let right_json = Value::Json(json!({"a": 0, "b": {"x": 1}}));
     assert_eq!(left_json, right_json);
     assert_eq!(hash(&left_json), hash(&right_json));
 }

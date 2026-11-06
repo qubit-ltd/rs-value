@@ -17,7 +17,9 @@ use qubit_value::ValueError;
 fn test_adding_same_type_scalars_promotes_to_an_ordered_collection() {
     let mut container = ValueContainer::Scalar(Value::Int32(7));
 
-    container.add(ValueContainer::Scalar(Value::Int32(8))).unwrap();
+    container
+        .add(ValueContainer::Scalar(Value::Int32(8)))
+        .expect("adding a scalar of the same type should succeed");
 
     assert_eq!(container, ValueContainer::Collection(MultiValues::Int32(vec![7, 8])));
 }
@@ -26,9 +28,12 @@ fn test_adding_same_type_scalars_promotes_to_an_ordered_collection() {
 fn test_adding_different_types_rejects_without_changing_shape() {
     let mut container = ValueContainer::Scalar(Value::Int32(7));
 
-    assert!(matches!(
-        container.add(ValueContainer::Scalar(Value::String("8".to_owned()))),
-        Err(ValueError::TypeMismatch { .. })
-    ));
+    assert!(
+        matches!(
+            container.add(ValueContainer::Scalar(Value::String("8".to_owned()))),
+            Err(ValueError::TypeMismatch { .. })
+        ),
+        "adding a scalar of a different type should report a type mismatch"
+    );
     assert_eq!(container, ValueContainer::Scalar(Value::Int32(7)));
 }

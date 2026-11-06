@@ -9,6 +9,10 @@
 
 use std::collections::HashMap;
 
+#[cfg(feature = "chrono")]
+use chrono::NaiveDate;
+#[cfg(feature = "big-integer")]
+use num_bigint::BigInt;
 use qubit_redact::MaskPolicy;
 use qubit_redact::Redact;
 use qubit_redact::RedactionCompletion;
@@ -21,6 +25,8 @@ use qubit_value::NamedValue;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use serde_json::json;
+#[cfg(feature = "url")]
+use url::Url;
 
 /// Renders a domain value through one explicit policy snapshot.
 fn redacted_text<T: Redact>(value: &T, policy: &RedactionPolicy) -> String {
@@ -65,8 +71,8 @@ fn test_value_redacted_view_masks_sensitive_string_map_entries() {
 
     let output = redacted_text(&value, &policy);
 
-    assert!(!output.contains("raw-secret"));
-    assert!(output.contains("visible"));
+    assert!(!output.contains("raw-secret"), "unexpected redacted output: {output:?}");
+    assert!(output.contains("visible"), "unexpected redacted output: {output:?}");
 }
 
 #[test]
@@ -150,6 +156,7 @@ fn test_multi_values_json_stops_before_unadmitted_items() {
     feature = "url"
 ))]
 fn test_multi_values_typed_collections_obey_item_budget() {
+    /// Checks that truncation preserves the first item and excludes the next.
     fn assert_second_item_is_not_admitted<T: Redact>(values: &T, first: &str, second: &str) {
         let policy = RedactionPolicy::builder()
             .limits(|limits| {
@@ -169,17 +176,14 @@ fn test_multi_values_typed_collections_obey_item_budget() {
 
     #[cfg(feature = "chrono")]
     let dates = MultiValues::Date(vec![
-        chrono::NaiveDate::from_ymd_opt(2026, 1, 2).expect("valid date"),
-        chrono::NaiveDate::from_ymd_opt(2037, 11, 29).expect("valid date"),
+        NaiveDate::from_ymd_opt(2026, 1, 2).expect("valid date"),
+        NaiveDate::from_ymd_opt(2037, 11, 29).expect("valid date"),
     ]);
     #[cfg(feature = "chrono")]
     assert_second_item_is_not_admitted(&dates, "2026", "2037");
 
     #[cfg(feature = "big-integer")]
-    let integers = MultiValues::BigInteger(vec![
-        num_bigint::BigInt::from(123456789_i64),
-        num_bigint::BigInt::from(987654321_i64),
-    ]);
+    let integers = MultiValues::BigInteger(vec![BigInt::from(123456789_i64), BigInt::from(987654321_i64)]);
     #[cfg(feature = "big-integer")]
     assert_second_item_is_not_admitted(&integers, "123456789", "987654321");
 
@@ -193,8 +197,8 @@ fn test_multi_values_typed_collections_obey_item_budget() {
 
     #[cfg(feature = "url")]
     let urls = MultiValues::Url(vec![
-        url::Url::parse("https://first.example/path").expect("valid URL"),
-        url::Url::parse("https://second.example/sentinel").expect("valid URL"),
+        Url::parse("https://first.example/path").expect("valid URL"),
+        Url::parse("https://second.example/sentinel").expect("valid URL"),
     ]);
     #[cfg(feature = "url")]
     assert_second_item_is_not_admitted(&urls, "first.example", "second.example");
@@ -213,7 +217,10 @@ fn test_value_redacted_view_preserves_scalar_without_key_context() {
 
     let output = redacted_text(&value, &policy);
 
-    assert!(output.contains("visible-without-key"));
+    assert!(
+        output.contains("visible-without-key"),
+        "unexpected redacted output: {output:?}"
+    );
 }
 
 #[test]
@@ -229,7 +236,10 @@ fn test_named_value_masks_non_strings_with_configured_opaque_value() {
         .expect("the test policy should be valid")
         .build()
         .expect("policy should build");
-    assert!(redacted_text(&value, &policy).contains("OPAQUE"));
+    assert!(
+        redacted_text(&value, &policy).contains("OPAQUE"),
+        "the configured opaque mask must replace the sensitive value"
+    );
 }
 
 #[test]
@@ -248,8 +258,11 @@ fn test_named_value_redaction_uses_text_masking_for_sensitive_strings() {
 
     let output = redacted_text(&value, &policy);
 
-    assert!(!output.contains("secret-token"));
-    assert!(output.contains("MASK"));
+    assert!(
+        !output.contains("secret-token"),
+        "unexpected redacted output: {output:?}"
+    );
+    assert!(output.contains("MASK"), "unexpected redacted output: {output:?}");
 }
 
 #[test]
@@ -270,9 +283,15 @@ fn test_named_multi_values_redaction_masks_sensitive_collections_as_opaque() {
 
     let output = redacted_text(&value, &policy);
 
-    assert!(!output.contains("first-secret"));
-    assert!(!output.contains("second-secret"));
-    assert!(output.contains("OPAQUE"));
+    assert!(
+        !output.contains("first-secret"),
+        "unexpected redacted output: {output:?}"
+    );
+    assert!(
+        !output.contains("second-secret"),
+        "unexpected redacted output: {output:?}"
+    );
+    assert!(output.contains("OPAQUE"), "unexpected redacted output: {output:?}");
 }
 
 #[test]
@@ -328,14 +347,16 @@ fn test_named_values_classify_payload_by_business_name() {
             .redact_text(&scalar)
             .text()
             .as_str()
-            .contains("value: \"<redacted>\"")
+            .contains("value: \"<redacted>\""),
+        "the business name must select the payload mask"
     );
     assert!(
         redactor
             .redact_text(&collection)
             .text()
             .as_str()
-            .contains("value: \"<redacted>\"")
+            .contains("value: \"<redacted>\""),
+        "the business name must select the payload mask"
     );
 }
 
@@ -346,8 +367,14 @@ fn test_named_values_preserve_public_payloads() {
     let scalar = NamedValue::new("region", Value::String("eu-west".to_owned()));
     let collection = NamedMultiValues::new("region", MultiValues::String(vec!["eu-west".to_owned()]));
 
-    assert!(redactor.redact_text(&scalar).text().as_str().contains("eu-west"));
-    assert!(redactor.redact_text(&collection).text().as_str().contains("eu-west"));
+    assert!(
+        redactor.redact_text(&scalar).text().as_str().contains("eu-west"),
+        "the policy must preserve the expected payload"
+    );
+    assert!(
+        redactor.redact_text(&collection).text().as_str().contains("eu-west"),
+        "the policy must preserve the expected payload"
+    );
     assert_eq!(redactor.inspect(&scalar).expect("inspection").max_sensitivity(), None);
     assert_eq!(
         redactor.inspect(&collection).expect("inspection").max_sensitivity(),
@@ -367,8 +394,16 @@ fn test_named_value_recursively_redacts_json_under_public_business_name() {
 
     let output = Redactor::standard().redact_text(&value);
 
-    assert!(!output.text().as_str().contains("nested-secret"));
-    assert!(output.text().as_str().contains("visible"));
+    assert!(
+        !output.text().as_str().contains("nested-secret"),
+        "unexpected redacted output: {:?}",
+        output.text().as_str()
+    );
+    assert!(
+        output.text().as_str().contains("visible"),
+        "unexpected redacted output: {:?}",
+        output.text().as_str()
+    );
     assert_eq!(
         Redactor::standard()
             .inspect(&value)
@@ -385,8 +420,14 @@ fn test_named_values_disabled_policy_restores_payloads() {
     let scalar = NamedValue::new("password", Value::String("raw-secret".to_owned()));
     let collection = NamedMultiValues::new("password", MultiValues::String(vec!["raw-secret".to_owned()]));
 
-    assert!(redactor.redact_text(&scalar).text().as_str().contains("raw-secret"));
-    assert!(redactor.redact_text(&collection).text().as_str().contains("raw-secret"));
+    assert!(
+        redactor.redact_text(&scalar).text().as_str().contains("raw-secret"),
+        "the policy must preserve the expected payload"
+    );
+    assert!(
+        redactor.redact_text(&collection).text().as_str().contains("raw-secret"),
+        "the policy must preserve the expected payload"
+    );
     assert_eq!(redactor.inspect(&scalar).expect("inspection").max_sensitivity(), None);
     assert_eq!(
         redactor.inspect(&collection).expect("inspection").max_sensitivity(),
@@ -404,14 +445,25 @@ fn test_string_map_collection_redacts_keys_and_preserves_public_values() {
     let value = ValueContainer::Collection(MultiValues::StringMap(vec![map]));
     let redactor = Redactor::standard();
     let output = redactor.redact_text(&value);
-    assert!(!output.text().as_str().contains("collection-secret"));
-    assert!(output.text().as_str().contains("eu-west"));
+    assert!(
+        !output.text().as_str().contains("collection-secret"),
+        "unexpected redacted output: {:?}",
+        output.text().as_str()
+    );
+    assert!(
+        output.text().as_str().contains("eu-west"),
+        "unexpected redacted output: {:?}",
+        output.text().as_str()
+    );
     assert_eq!(
         redactor.inspect(&value).expect("complete inspection").max_sensitivity(),
         Some(Sensitivity::Secret)
     );
     let disabled = Redactor::new(RedactionPolicy::disabled()).redact_text(&value);
-    assert!(disabled.text().as_str().contains("collection-secret"));
+    assert!(
+        disabled.text().as_str().contains("collection-secret"),
+        "disabled policy must preserve the collection payload"
+    );
 }
 
 /// A nested map shares the outer sequence's item budget.
@@ -430,13 +482,17 @@ fn test_string_map_collection_stops_before_unadmitted_maps() {
         .expect("valid policy");
     let output = Redactor::new(policy).redact_text(&values);
     assert_eq!(output.summary().completion(), RedactionCompletion::Truncated);
-    assert!(!output.text().as_str().contains("must-not-be-visited"));
+    assert!(
+        !output.text().as_str().contains("must-not-be-visited"),
+        "unexpected redacted output: {:?}",
+        output.text().as_str()
+    );
 }
 
 /// Verifies sensitive JSON containers are masked without exposing their data.
 #[test]
 fn test_redacted_json_masks_sensitive_non_string_values() {
-    let value = Value::Json(serde_json::json!({
+    let value = Value::Json(json!({
         "secret_number": 42,
         "secret_object": {"label": "nested-object-secret"},
         "secret_array": ["array-secret"],
@@ -462,9 +518,15 @@ fn test_redacted_json_masks_sensitive_non_string_values() {
         .expect("test output must be complete")
         .into_string();
 
-    assert!(!output.contains("42"));
-    assert!(!output.contains("nested-object-secret"));
-    assert!(!output.contains("array-secret"));
+    assert!(!output.contains("42"), "unexpected redacted output: {output:?}");
+    assert!(
+        !output.contains("nested-object-secret"),
+        "unexpected redacted output: {output:?}"
+    );
+    assert!(
+        !output.contains("array-secret"),
+        "unexpected redacted output: {output:?}"
+    );
     assert_eq!(output.matches("OPAQUE").count(), 4);
-    assert!(output.contains("public"));
+    assert!(output.contains("public"), "unexpected redacted output: {output:?}");
 }

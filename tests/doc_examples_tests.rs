@@ -27,6 +27,8 @@ enum ExampleMode {
 }
 
 impl ExampleMode {
+    #[must_use]
+    #[inline]
     fn parse(value: &str) -> Option<Self> {
         match value {
             "compile" => Some(Self::Compile),
@@ -35,6 +37,8 @@ impl ExampleMode {
         }
     }
 
+    #[must_use]
+    #[inline]
     fn as_str(self) -> &'static str {
         match self {
             Self::Compile => "compile",
@@ -44,6 +48,7 @@ impl ExampleMode {
 }
 
 /// Produces a diagnostic that always identifies the document and example.
+#[must_use]
 fn diagnostic(file: &str, id: &str, message: &str) -> String {
     format!("{file}: example `{id}`: {message}")
 }

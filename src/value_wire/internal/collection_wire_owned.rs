@@ -36,6 +36,10 @@ macro_rules! define_collection_wire_owned {
         ),+ $(,)?
     ) => {
         /// Owned payload for one homogeneous typed collection.
+        ///
+        /// Deserialization owns every element buffer. Conversion into
+        /// [`MultiValues`] transfers those buffers without cloning elements,
+        /// preserving their order and the declared type of unset collections.
         #[derive(Deserialize)]
         pub(in crate::value_wire) enum CollectionWireOwned {
             /// Unset collection and its declared element data type.
@@ -58,6 +62,17 @@ macro_rules! define_collection_wire_owned {
 
         impl From<CollectionWireOwned> for MultiValues {
             /// Restores the exact runtime collection variant.
+            ///
+            /// # Parameters
+            ///
+            /// * `values` - Deserialized payload whose element buffer is moved
+            ///   into the runtime collection without cloning.
+            ///
+            /// # Returns
+            ///
+            /// The matching runtime collection, retaining element order or the
+            /// declared element type for an unset payload.
+            #[inline]
             fn from(values: CollectionWireOwned) -> Self {
                 match values {
                     CollectionWireOwned::Unset(data_type) => Self::new_unset(data_type.into()),

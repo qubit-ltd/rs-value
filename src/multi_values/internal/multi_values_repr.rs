@@ -30,45 +30,19 @@ macro_rules! define_multi_values_enum {
             )
         ),+ $(,)?
     ) => {
-        /// Internal multiple-values representation.
+        /// Owns the homogeneous payload of a multi-value container.
         ///
-        /// Uses an enum to represent multiple values of different types,
-        /// providing type-safe storage and access for multiple values.
+        /// Each populated variant owns a vector of one element type from the
+        /// closed [`DataType`] family. `Unset` retains a declared element type
+        /// without a vector, and is distinct from a populated but empty vector.
         ///
         /// This representation is private; downstream code uses
-        /// [`crate::MultiValues`] constructors and [`crate::MultiValuesRef`] semantic views
-        /// instead of matching storage details.
+        /// [`crate::MultiValues`] constructors and [`crate::MultiValuesRef`]
+        /// semantic views instead of matching storage details. Accessors,
+        /// conversions, equality, and hashing belong to the public container.
         ///
-        /// # Behavior
-        ///
-        /// - Stores a homogeneous collection from the closed [`DataType`]
-        ///   family.
-        /// - Provides strict getters and, with `converter`, option-controlled
-        ///   conversion methods.
-        /// - Distinguishes an unset container from a concrete empty vector.
-        ///
-        /// # Equality and hashing
-        ///
-        /// Equality preserves the collection variant and element order. Float
-        /// elements use canonical signed-zero and NaN identity, while map-like
-        /// elements hash structurally. Standard hash output is suitable for in-memory
-        /// keys but is not a stable persistent fingerprint.
-        ///
-        /// # Examples
-        ///
-        /// ```rust
-        /// use qubit_value::MultiValues;
-        ///
-        /// let mut values = MultiValues::Int32(vec![1, 2, 3]);
-        /// assert_eq!(values.len(), 3);
-        /// assert_eq!(values.get_first_int32().unwrap(), 1);
-        ///
-        /// let all = values.get_int32s().unwrap();
-        /// assert_eq!(all, &[1, 2, 3]);
-        ///
-        /// values.add(4).unwrap();
-        /// assert_eq!(values.len(), 4);
-        /// ```
+        /// Cloning duplicates the vector and clones its elements; moving this
+        /// representation transfers ownership of the payload without cloning it.
         #[derive(Debug, Clone)]
         pub(crate) enum MultiValuesRepr {
             /// Unset collection with a declared element data type.

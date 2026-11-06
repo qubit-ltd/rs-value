@@ -24,6 +24,8 @@ fn limits(nodes: usize, payload: usize, output: usize) -> JsonEncodeLimits {
         .build()
 }
 
+/// Places each operation selector at the start of its 512-byte chunk after the
+/// mode byte.
 fn sequence(selectors: &[u8]) -> Vec<u8> {
     let mut input = vec![0; 4096];
     for (index, selector) in selectors.iter().enumerate() {
@@ -33,7 +35,7 @@ fn sequence(selectors: &[u8]) -> Vec<u8> {
 }
 
 #[test]
-fn sequence_is_bounded_deterministic_and_empty_input_checks_once() {
+fn test_sequence_is_bounded_deterministic_and_empty_input_checks_once() {
     for input in [vec![], vec![0x5a], vec![0x5a; 4096], vec![0x5a; 4097]] {
         let first = run_sequence(&input);
         let second = run_sequence(&input);
@@ -46,7 +48,7 @@ fn sequence_is_bounded_deterministic_and_empty_input_checks_once() {
 }
 
 #[test]
-fn sequence_dispatches_all_legal_checker_entries_and_array_oracle() {
+fn test_sequence_dispatches_all_legal_checker_entries_and_array_oracle() {
     let report = run_sequence_with_limits(&sequence(&[0, 1, 2, 3, 0, 1, 2, 3]), limits(4096, 4096, 4096));
     assert_eq!(report.operation_count, 8);
     assert_eq!(report.checked_entries, 0b111);
@@ -55,7 +57,7 @@ fn sequence_dispatches_all_legal_checker_entries_and_array_oracle() {
 }
 
 #[test]
-fn sequence_exercises_nodes_payload_and_output_budget_failures() {
+fn test_sequence_exercises_nodes_payload_and_output_budget_failures() {
     let inputs = [
         (sequence(&[0, 0]), limits(0, 4096, 4096)),
         (sequence(&[3, 0]), limits(4096, 0, 4096)),
@@ -71,7 +73,7 @@ fn sequence_exercises_nodes_payload_and_output_budget_failures() {
 }
 
 #[test]
-fn sequence_can_succeed_after_a_failed_operation() {
+fn test_sequence_can_succeed_after_a_failed_operation() {
     let input = sequence(&[2, 3, 2]);
     let report = (1..512)
         .map(|output| run_sequence_with_limits(&input, limits(4096, 4096, output)))

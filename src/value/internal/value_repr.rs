@@ -30,46 +30,16 @@ macro_rules! define_value_enum {
             )
         ),+ $(,)?
     ) => {
-        /// Internal single-value representation.
+        /// Owned storage for one scalar value or an unset declared type.
         ///
-        /// Uses an enum to represent different types of values, providing
-        /// type-safe value storage and access.
+        /// Each concrete variant owns its payload from the shared value-type table.
+        /// The URL payload is boxed to keep the enum compact; other payloads are
+        /// stored directly. Cloning follows each payload's `Clone` implementation.
+        /// `Unset` retains a declared type without a concrete payload.
         ///
-        /// This representation is private; downstream code uses [`crate::Value`]
-        /// constructors and [`crate::ValueRef`] semantic views instead of matching
-        /// storage details.
-        ///
-        /// # Behavior
-        ///
-        /// - Stores one value from the closed [`DataType`] family.
-        /// - Provides strict getters and, with `converter`, option-controlled
-        ///   conversion methods.
-        /// - Distinguishes an unset container from concrete inner values.
-        /// - The URL variant uses boxed storage internally to keep the enum
-        ///   compact; use [`crate::Value::new`] and typed getters instead of relying
-        ///   on the storage representation of individual variants.
-        ///
-        /// # Equality and hashing
-        ///
-        /// Equality preserves enum-variant identity. Signed zero is canonicalized,
-        /// every NaN payload within one float width is equal, and unordered payloads
-        /// hash structurally. Standard hash output is suitable for in-memory keys but
-        /// is not a stable persistent fingerprint.
-        ///
-        /// # Examples
-        ///
-        /// ```rust
-        /// use qubit_value::Value;
-        ///
-        /// let value = Value::Int32(42);
-        /// assert_eq!(value.get_int32().unwrap(), 42);
-        ///
-        /// let number: i32 = value.get().unwrap();
-        /// assert_eq!(number, 42);
-        ///
-        /// let text = Value::String("hello".to_string());
-        /// assert_eq!(text.get_string().unwrap(), "hello");
-        /// ```
+        /// This crate-private representation has no accessors or conversion methods.
+        /// Public callers construct and inspect [`crate::Value`] through its typed
+        /// constructors, getters, and [`crate::ValueRef`] views.
         #[derive(Debug, Clone)]
         pub(crate) enum ValueRepr {
             /// Unset value with a declared data type.

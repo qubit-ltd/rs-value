@@ -69,42 +69,6 @@ pub struct ValueWirePayloadV1 {
 }
 
 impl ValueWirePayloadV1 {
-    /// Wraps a payload decoded through V1's finite-number Serde adapters.
-    ///
-    /// # Parameters
-    ///
-    /// * `value` - Already validated decoded runtime container.
-    ///
-    /// # Returns
-    ///
-    /// An owned unversioned V1 payload.
-    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
-        Self { value }
-    }
-
-    /// Builds a payload after enforcing V1's representational constraints.
-    ///
-    /// # Parameters
-    ///
-    /// * `value` - Runtime container to validate and own.
-    ///
-    /// # Returns
-    ///
-    /// A validated owned V1 payload.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`ValueWireEncodeError`] when any contained payload is not
-    /// representable by V1, including an instant outside the supported UTC
-    /// year range.
-    fn try_new(value: ValueContainer) -> Result<Self, ValueWireEncodeError> {
-        match &value {
-            ValueContainer::Scalar(value) => validate_value(value)?,
-            ValueContainer::Collection(values) => validate_values(values)?,
-        }
-        Ok(Self { value })
-    }
-
     /// Returns the default JSON resource profile for complete V1 payloads.
     ///
     /// # Returns
@@ -180,6 +144,54 @@ impl ValueWirePayloadV1 {
         JsonDecoder::new(session)
             .decode_unique_seed_utf8(ValueWirePayloadV1Seed::new(), input)
             .map_err(ValueWireDecodeError::from)
+    }
+
+    /// Wraps a payload decoded through V1's finite-number Serde adapters.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Already validated decoded runtime container.
+    ///
+    /// # Returns
+    ///
+    /// An owned unversioned V1 payload.
+    #[inline]
+    pub(in crate::value_wire) const fn from_decoded(value: ValueContainer) -> Self {
+        Self { value }
+    }
+
+    /// Builds a payload after enforcing V1's representational constraints.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Runtime container to validate and own.
+    ///
+    /// # Returns
+    ///
+    /// A validated owned V1 payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValueWireEncodeError`] when any contained payload is not
+    /// representable by V1, including an instant outside the supported UTC
+    /// year range.
+    fn try_new(value: ValueContainer) -> Result<Self, ValueWireEncodeError> {
+        match &value {
+            ValueContainer::Scalar(value) => validate_value(value)?,
+            ValueContainer::Collection(values) => validate_values(values)?,
+        }
+        Ok(Self { value })
+    }
+
+    /// Borrows the preserved runtime value.
+    ///
+    /// # Returns
+    ///
+    /// A shared reference to the preserved scalar-or-collection container.
+    #[must_use = "the borrowed value container should be used"]
+    #[inline(always)]
+    pub const fn container(&self) -> &ValueContainer {
+        &self.value
     }
 
     /// Encodes this V1 payload into a compact JSON vector with default limits.
@@ -326,17 +338,6 @@ impl ValueWirePayloadV1 {
             .map_err(ValueWireEncodeError::from)
     }
 
-    /// Borrows the preserved runtime value.
-    ///
-    /// # Returns
-    ///
-    /// A shared reference to the preserved scalar-or-collection container.
-    #[must_use = "the borrowed value container should be used"]
-    #[inline(always)]
-    pub const fn container(&self) -> &ValueContainer {
-        &self.value
-    }
-
     /// Consumes this payload and returns its runtime value.
     ///
     /// # Returns
@@ -349,9 +350,19 @@ impl ValueWirePayloadV1 {
 }
 
 impl TryFrom<Value> for ValueWirePayloadV1 {
+    /// Validation failure when the runtime value cannot satisfy the V1 wire
+    /// contract.
     type Error = ValueWireEncodeError;
 
     /// Validates a scalar for use in a V1 payload.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Scalar to validate and take ownership of.
+    ///
+    /// # Returns
+    ///
+    /// A validated owned unversioned V1 payload.
     ///
     /// # Errors
     ///
@@ -370,9 +381,19 @@ impl TryFrom<Value> for ValueWirePayloadV1 {
 }
 
 impl TryFrom<MultiValues> for ValueWirePayloadV1 {
+    /// Validation failure when the runtime value cannot satisfy the V1 wire
+    /// contract.
     type Error = ValueWireEncodeError;
 
     /// Validates a collection for use in a V1 payload.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Homogeneous collection to validate and take ownership of.
+    ///
+    /// # Returns
+    ///
+    /// A validated owned unversioned V1 payload.
     ///
     /// # Errors
     ///
@@ -392,9 +413,20 @@ impl TryFrom<MultiValues> for ValueWirePayloadV1 {
 }
 
 impl TryFrom<ValueContainer> for ValueWirePayloadV1 {
+    /// Validation failure when the runtime value cannot satisfy the V1 wire
+    /// contract.
     type Error = ValueWireEncodeError;
 
     /// Validates an explicitly shaped value for use in a V1 payload.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Scalar-or-collection container whose shape and ownership are
+    ///   preserved.
+    ///
+    /// # Returns
+    ///
+    /// A validated owned unversioned V1 payload.
     ///
     /// # Errors
     ///
@@ -414,7 +446,16 @@ impl TryFrom<ValueContainer> for ValueWirePayloadV1 {
 }
 
 impl From<ValueWirePayloadV1> for ValueContainer {
-    /// Extracts the shaped runtime value from a V1 payload.
+    /// Extracts the shaped runtime value from a V1 payload without cloning.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Owned payload to consume.
+    ///
+    /// # Returns
+    ///
+    /// The preserved runtime container with its original scalar-or-collection
+    /// shape.
     #[inline]
     fn from(value: ValueWirePayloadV1) -> Self {
         value.into_container()
@@ -422,7 +463,25 @@ impl From<ValueWirePayloadV1> for ValueContainer {
 }
 
 impl Serialize for ValueWirePayloadV1 {
-    /// Serializes the unversioned V1 shape.
+    /// Serializes the unversioned V1 shape through borrowed runtime values.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Serde serializer selecting the output format and error type.
+    ///
+    /// # Parameters
+    ///
+    /// * `serializer` - Destination serializer receiving the
+    ///   scalar-or-collection shape.
+    ///
+    /// # Returns
+    ///
+    /// The serializer's success value after emitting the complete payload.
+    ///
+    /// # Errors
+    ///
+    /// Returns the serializer's error if the destination rejects the shape or
+    /// values.
     #[inline(always)]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

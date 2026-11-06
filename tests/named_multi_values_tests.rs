@@ -37,13 +37,18 @@ use qubit_value::ValueError;
 use qubit_value::ValueWireDecodeError;
 #[cfg(feature = "json")]
 use qubit_value::ValueWireEncodeError;
+use serde_json::from_str;
+use serde_json::json;
+use serde_json::to_value;
+#[cfg(feature = "json")]
+use serde_json::to_vec;
 
 #[cfg(feature = "json")]
 #[test]
 fn test_named_multi_values_json_numbers_round_trip() {
     let expected = NamedMultiValues::new(
         "prices",
-        MultiValues::Json(vec![serde_json::json!({
+        MultiValues::Json(vec![json!({
             "amount": 1.5,
             "items": [100.0, -0.0],
             "marker": {"$serde_json::private::Number": "1.5"},
@@ -64,15 +69,14 @@ fn test_named_multi_values_json_numbers_round_trip() {
 fn test_named_multi_values_rejects_unknown_fields() {
     let input = r#"{"name":"ports","value":{"version":1,"value":{"collection":{"int32":[42]}}},"extra":true}"#;
 
-    assert!(serde_json::from_str::<NamedMultiValues>(input).is_err());
+    assert!(from_str::<NamedMultiValues>(input).is_err());
 }
 
 #[test]
 fn test_named_multi_values_rejects_scalar_wire_payload() {
     let input = r#"{"name":"ports","value":{"version":1,"value":{"scalar":{"int32":42}}}}"#;
 
-    let error =
-        serde_json::from_str::<NamedMultiValues>(input).expect_err("a named collection must reject a scalar payload");
+    let error = from_str::<NamedMultiValues>(input).expect_err("a named collection must reject a scalar payload");
     assert!(
         error
             .to_string()
@@ -86,8 +90,8 @@ fn test_named_multi_values_serializes_with_v1_wire_contract() {
     let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![42]));
 
     assert_eq!(
-        serde_json::to_value(named).expect("named collection should serialize"),
-        serde_json::json!({
+        to_value(named).expect("named collection should serialize"),
+        json!({
             "name": "ports",
             "value": {"version": 1, "value": {"collection": {"int32": [42]}}},
         }),
@@ -99,7 +103,7 @@ fn test_named_multi_values_serializes_with_v1_wire_contract() {
 #[test]
 fn test_named_multi_values_bounded_decode_reuses_collection_budget() {
     let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![42, 43]));
-    let input = serde_json::to_vec(&named).expect("named collection should serialize");
+    let input = to_vec(&named).expect("named collection should serialize");
 
     let error = NamedMultiValues::decode_json_slice_with_limits(
         &input,

@@ -14,6 +14,14 @@ use std::str::FromStr;
 
 #[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 use bigdecimal::BigDecimal;
+#[cfg(feature = "chrono")]
+use chrono::DateTime;
+#[cfg(feature = "chrono")]
+use chrono::NaiveDate;
+#[cfg(feature = "chrono")]
+use chrono::NaiveTime;
+#[cfg(feature = "chrono")]
+use chrono::Utc;
 #[cfg(feature = "big-integer")]
 use num_bigint::BigInt;
 use qubit_datatype::DataType;
@@ -23,6 +31,8 @@ use qubit_value::ValueError;
 use qubit_value::ValueWireEncodeError;
 #[cfg(feature = "json")]
 use qubit_value::ValueWireV1;
+#[cfg(feature = "json")]
+use serde_json::to_string;
 
 #[test]
 fn test_value_creation() {
@@ -103,7 +113,7 @@ fn test_value_is_numeric_is_state_aware() {
 fn test_value_wire_rejects_non_finite_floats() {
     let finite = Value::Float64(1.25);
     let wire = ValueWireV1::try_from(finite.clone()).expect("finite value should fit the V1 wire contract");
-    let json = serde_json::to_string(&wire).expect("serialize V1 wire");
+    let json = to_string(&wire).expect("serialize V1 wire");
     let decoded = ValueWireV1::decode_json_slice(json.as_bytes()).expect("deserialize V1 wire");
     assert_eq!(decoded.into_container(), finite.into());
 
@@ -185,11 +195,6 @@ fn test_value_ref_types() {
 #[cfg(feature = "chrono")]
 #[test]
 fn test_value_datetime_types() {
-    use chrono::DateTime;
-    use chrono::NaiveDate;
-    use chrono::NaiveTime;
-    use chrono::Utc;
-
     // Test Date
     let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
     let mut value = Value::Unset(DataType::Date);
@@ -251,11 +256,6 @@ fn test_set_on_non_empty_for_coverage() {
 #[test]
 fn test_data_type_coverage_all_variants() {
     // Test data_type() method coverage for all data type variants
-    use chrono::DateTime;
-    use chrono::NaiveDate;
-    use chrono::NaiveTime;
-    use chrono::Utc;
-
     // Empty type (all possible DataType)
     assert_eq!(Value::Unset(DataType::Bool).data_type(), DataType::Bool);
     assert_eq!(Value::Unset(DataType::Char).data_type(), DataType::Char);
@@ -328,11 +328,6 @@ fn test_data_type_coverage_all_variants() {
 #[cfg(all(feature = "chrono", feature = "big-integer", feature = "big-decimal"))]
 #[test]
 fn test_is_unset_distinguishes_empty_inner_values() {
-    use chrono::DateTime;
-    use chrono::NaiveDate;
-    use chrono::NaiveTime;
-    use chrono::Utc;
-
     assert!(!Value::Bool(true).is_unset());
     assert!(!Value::Char('A').is_unset());
     assert!(!Value::Int8(1).is_unset());

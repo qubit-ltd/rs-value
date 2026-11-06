@@ -6,6 +6,9 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
+//! Checks bilingual examples in isolated consumers with documented minimal
+//! dependencies.
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
@@ -14,6 +17,9 @@ use std::process::Command;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
+use toml::Table;
+
+use super::super::ExampleMode;
 use super::super::MarkdownExample;
 
 struct Profile {
@@ -57,6 +63,8 @@ const PROFILES: &[Profile] = &[
     },
 ];
 
+/// Checks each documented dependency profile and retains failed fixtures for
+/// diagnosis.
 pub(crate) fn run_minimal_examples(
     root: &Path,
     documents: &[(&str, BTreeMap<String, MarkdownExample>)],
@@ -94,6 +102,8 @@ pub(crate) fn run_minimal_examples(
     Ok(())
 }
 
+/// Extracts matching bilingual dependency blocks and checks the required
+/// versions and features.
 fn profile_declarations(root: &Path, profile: &Profile) -> Result<String, String> {
     let mut blocks = Vec::new();
     for (document, _) in profile.examples {
@@ -111,6 +121,8 @@ fn profile_declarations(root: &Path, profile: &Profile) -> Result<String, String
     Ok(block)
 }
 
+/// Returns the shared dependency declaration, rejecting missing or divergent
+/// language blocks.
 fn matching_blocks(profile: &str, blocks: &[String]) -> Result<String, String> {
     let first = blocks.first().ok_or("profile has no language documents")?;
     if blocks.iter().any(|block| block != first) {
@@ -119,6 +131,9 @@ fn matching_blocks(profile: &str, blocks: &[String]) -> Result<String, String> {
     Ok(first.clone())
 }
 
+/// Extracts the first TOML fence following the dependency marker for one
+/// profile.
+#[must_use]
 fn marked_toml_block(document: &str, profile: &str) -> Option<String> {
     let marker = format!("<!-- minimal-dependencies: {profile} -->");
     let tail = document.split_once(&marker)?.1;
@@ -127,6 +142,8 @@ fn marked_toml_block(document: &str, profile: &str) -> Option<String> {
     Some(body.split_once("```")?.0.trim().to_owned())
 }
 
+/// Checks dependency declarations against the exact package, version, feature
+/// and defaults contract.
 fn validate_declarations(profile: &Profile, block: &str) -> Result<(), String> {
     let mut parsed = BTreeMap::new();
     let mut in_dependencies = false;
@@ -172,8 +189,11 @@ fn validate_declarations(profile: &Profile, block: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Parses a TOML inline dependency table, rejecting unknown keys and invalid
+/// field types.
+#[must_use]
 fn parse_inline_dependency(value: &str) -> Option<(String, Vec<String>, bool)> {
-    let document = format!("dependency = {value}").parse::<toml::Table>().ok()?;
+    let document = format!("dependency = {value}").parse::<Table>().ok()?;
     if document.len() != 1 {
         return None;
     }
@@ -200,6 +220,8 @@ fn parse_inline_dependency(value: &str) -> Option<(String, Vec<String>, bool)> {
     Some((version, features, defaults))
 }
 
+/// Checks one isolated consumer, returning compiler diagnostics for
+/// negative-case assertions.
 fn check_consumer(
     root: &Path,
     temp_root: &Path,
@@ -248,6 +270,8 @@ fn check_consumer(
     Ok(())
 }
 
+/// Checks both language examples together using only the documented dependency
+/// profile.
 fn check_profile(
     root: &Path,
     temp_root: &Path,
@@ -310,6 +334,8 @@ fn check_profile(
     Ok(())
 }
 
+/// Confirms isolated consumers cannot use undeclared crates or disabled feature
+/// APIs.
 fn check_negative_examples(root: &Path, temp_root: &Path) -> Result<(), String> {
     const QUICK_START: &str = "[dependencies]\nqubit-value = { version = \"0.13\", default-features = false, features = [\"converter\"] }\nqubit-datatype = { version = \"0.15\", default-features = false }";
     for (id, source, expected) in [
@@ -326,7 +352,7 @@ fn check_negative_examples(root: &Path, temp_root: &Path) -> Result<(), String> 
     ] {
         let example = MarkdownExample {
             id: id.to_owned(),
-            mode: super::super::ExampleMode::Run,
+            mode: ExampleMode::Run,
             source: source.to_owned(),
         };
         let error = check_consumer(root, temp_root, "quick-start", "README.md", &example, QUICK_START)
@@ -341,10 +367,16 @@ fn check_negative_examples(root: &Path, temp_root: &Path) -> Result<(), String> 
     Ok(())
 }
 
+/// Maps a document path to the binary suffix used for its language.
+#[must_use]
+#[inline]
 fn language_suffix(document: &str) -> &'static str {
     if document.ends_with("zh_CN.md") { "zh" } else { "en" }
 }
 
+/// Quotes a local path as a TOML basic string, escaping delimiters and control
+/// characters.
+#[must_use]
 fn toml_string(value: &str) -> String {
     format!(
         "\"{}\"",
@@ -357,6 +389,8 @@ fn toml_string(value: &str) -> String {
     )
 }
 
+/// Builds a process- and timestamp-qualified fixture path without creating it.
+#[must_use]
 fn temp_root() -> PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)

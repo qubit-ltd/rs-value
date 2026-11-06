@@ -33,6 +33,25 @@ where
     T::Err: fmt::Display,
 {
     /// Deserializes one canonical decimal string.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Deserializer supplying a string from the input lifetime `'de`.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Consumed input deserializer used to request a decimal
+    ///   string.
+    ///
+    /// # Returns
+    ///
+    /// The parsed decimal value wrapped for collection deserialization.
+    ///
+    /// # Errors
+    ///
+    /// Returns the deserializer's error if the input is not a string, parsing
+    /// fails, or the decimal text is not canonical.
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

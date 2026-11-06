@@ -15,6 +15,7 @@ use serde::Serialize;
 #[cfg(feature = "json")]
 use super::wire_preflight_strategy::WirePreflightStrategy;
 
+/// Resolves a value-table strategy identifier to its JSON measurement category.
 #[cfg(feature = "json")]
 macro_rules! wire_preflight_strategy {
     (boolean) => {
@@ -89,6 +90,15 @@ macro_rules! define_wire_data_type_v1 {
 
         impl From<DataType> for WireDataTypeV1 {
             /// Maps a runtime data type to its frozen V1 tag.
+            ///
+            /// # Parameters
+            ///
+            /// * `data_type` - Runtime type identity, including feature-disabled types.
+            ///
+            /// # Returns
+            ///
+            /// The matching V1 tag without allocating or inspecting a payload.
+            #[inline]
             fn from(data_type: DataType) -> Self {
                 match data_type {
                     $(DataType::$variant => Self::$variant,)+
@@ -98,6 +108,15 @@ macro_rules! define_wire_data_type_v1 {
 
         impl From<WireDataTypeV1> for DataType {
             /// Restores a runtime data type from its frozen V1 tag.
+            ///
+            /// # Parameters
+            ///
+            /// * `data_type` - Frozen type identity read from an unset V1 payload.
+            ///
+            /// # Returns
+            ///
+            /// The matching runtime type, regardless of enabled storage features.
+            #[inline]
             fn from(data_type: WireDataTypeV1) -> Self {
                 match data_type {
                     $(WireDataTypeV1::$variant => Self::$variant,)+

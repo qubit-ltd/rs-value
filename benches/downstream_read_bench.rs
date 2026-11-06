@@ -9,6 +9,7 @@
 //! Benchmarks conversion and wire paths owned by `qubit-value`.
 
 use std::hint::black_box;
+use std::time::Duration;
 
 use criterion::Criterion;
 use criterion::criterion_group;
@@ -18,12 +19,16 @@ use qubit_datatype::CollectionConversionPolicy;
 use qubit_datatype::ConversionLimits;
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::NumericComparisonPolicy;
+use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodePreflight;
 use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
+use serde_json::Value as JsonValue;
+use serde_json::json;
+use serde_json::to_vec;
 
 /// Builds the scalar-string splitting policy used by configuration readers.
 fn config_conversion_policy() -> ConversionPolicy {
@@ -105,7 +110,7 @@ fn benchmark_natural_json_projection(c: &mut Criterion) {
     c.bench_function("projection/string_collection/32", |b| {
         b.iter(|| black_box(black_box(&strings).to_json_value().unwrap()));
     });
-    let durations = ValueContainer::from(vec![std::time::Duration::from_millis(1234); 32]);
+    let durations = ValueContainer::from(vec![Duration::from_millis(1234); 32]);
     assert_eq!(durations.to_json_value().unwrap().as_array().unwrap().len(), 32);
     c.bench_function("projection/duration_collection/32", |b| {
         b.iter(|| black_box(black_box(&durations).to_json_value().unwrap()));
@@ -120,11 +125,11 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
         "scheduler".to_string(),
     ]))
     .expect("construct V1 wire");
-    let encoded = serde_json::to_vec(&wire).expect("benchmark wire value should serialize");
+    let encoded = to_vec(&wire).expect("benchmark wire value should serialize");
 
     c.bench_function("value/value_wire_v1_encode_json_serde", |bencher| {
         bencher.iter(|| {
-            let bytes = serde_json::to_vec(black_box(&wire)).expect("benchmark wire value should serialize");
+            let bytes = to_vec(black_box(&wire)).expect("benchmark wire value should serialize");
             black_box(bytes)
         });
     });
@@ -147,7 +152,7 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
         bencher.iter(|| {
             let wire =
                 ValueWireRefV1::try_from(black_box(&borrowed_values)).expect("benchmark wire value should validate");
-            let bytes = serde_json::to_vec(black_box(&wire)).expect("benchmark wire value should serialize");
+            let bytes = to_vec(black_box(&wire)).expect("benchmark wire value should serialize");
             black_box(bytes)
         });
     });
@@ -165,8 +170,7 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
         ValueWireRefV1::try_from(&borrowed_float_values).expect("finite benchmark floats should validate");
     c.bench_function("value/value_wire_ref_v1_float_encode_json_serde", |bencher| {
         bencher.iter(|| {
-            let bytes =
-                serde_json::to_vec(black_box(&borrowed_float_wire)).expect("benchmark float wire should serialize");
+            let bytes = to_vec(black_box(&borrowed_float_wire)).expect("benchmark float wire should serialize");
             black_box(bytes)
         });
     });
@@ -176,7 +180,7 @@ fn benchmark_value_wire_v1(c: &mut Criterion) {
             bencher.iter(|| {
                 let wire = ValueWireRefV1::try_from(black_box(&borrowed_float_values))
                     .expect("benchmark float wire should validate");
-                let bytes = serde_json::to_vec(black_box(&wire)).expect("benchmark float wire should serialize");
+                let bytes = to_vec(black_box(&wire)).expect("benchmark float wire should serialize");
                 black_box(bytes)
             });
         },
@@ -250,9 +254,9 @@ fn benchmark_repeated_wire_validation(c: &mut Criterion) {
         ),
         (
             "json",
-            ValueContainer::from(qubit_value::MultiValues::Json(
+            ValueContainer::from(MultiValues::Json(
                 (0..4096)
-                    .map(|index| serde_json::json!({"outer": {"items": [index, index as f64 / 10.0]}}))
+                    .map(|index| json!({"outer": {"items": [index, index as f64 / 10.0]}}))
                     .collect(),
             )),
         ),
@@ -289,8 +293,8 @@ fn benchmark_repeated_wire_validation(c: &mut Criterion) {
 fn benchmark_nested_json_number_validation(c: &mut Criterion) {
     let limits = JsonEncodeLimits::builder().max_output_bytes(4 * 1024 * 1024).build();
     for size in [256, 4096] {
-        let value = Value::Json(serde_json::Value::Array(
-            (0..size).map(|index| serde_json::json!(index as f64 / 10.0)).collect(),
+        let value = Value::Json(JsonValue::Array(
+            (0..size).map(|index| json!(index as f64 / 10.0)).collect(),
         ));
         let payload = ValueWirePayloadRefV1::from_value(&value).expect("JSON float fixture must validate");
         let encoded = payload

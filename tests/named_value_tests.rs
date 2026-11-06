@@ -5,9 +5,10 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! # Named Single Value Unit Tests
+//! # Named Single Value Integration Tests
 //!
-//! Tests various functionalities of the named single value container。
+//! Verifies named scalar mutation, typed access, identity, and wire
+//! serialization through the public API.
 
 #[cfg(feature = "chrono")]
 use chrono::DateTime as UtcDateTime;
@@ -36,13 +37,18 @@ use qubit_value::Value;
 use qubit_value::ValueWireDecodeError;
 #[cfg(feature = "json")]
 use qubit_value::ValueWireEncodeError;
+use serde_json::from_str;
+use serde_json::json;
+use serde_json::to_value;
+#[cfg(feature = "json")]
+use serde_json::to_vec;
 
 #[cfg(feature = "json")]
 #[test]
 fn test_named_value_json_numbers_round_trip() {
     let expected = NamedValue::new(
         "price",
-        Value::Json(serde_json::json!({
+        Value::Json(json!({
             "amount": 1.5,
             "items": [100.0, -0.0],
             "marker": {"$serde_json::private::Number": "1.5"},
@@ -63,18 +69,22 @@ fn test_named_value_json_numbers_round_trip() {
 fn test_named_value_rejects_unknown_fields() {
     let input = r#"{"name":"port","value":{"version":1,"value":{"scalar":{"int32":42}}},"extra":true}"#;
 
-    assert!(serde_json::from_str::<NamedValue>(input).is_err());
+    assert!(
+        from_str::<NamedValue>(input).is_err(),
+        "the named-value wrapper must reject unknown fields"
+    );
 }
 
 #[test]
 fn test_named_value_rejects_collection_wire_payload() {
     let input = r#"{"name":"port","value":{"version":1,"value":{"collection":{"int32":[42]}}}}"#;
 
-    let error = serde_json::from_str::<NamedValue>(input).expect_err("a named scalar must reject a collection payload");
+    let error = from_str::<NamedValue>(input).expect_err("a named scalar must reject a collection payload");
     assert!(
         error
             .to_string()
-            .contains("named value wire payload must contain a scalar")
+            .contains("named value wire payload must contain a scalar"),
+        "collection rejection must identify the scalar-only named-value contract"
     );
 }
 
@@ -84,8 +94,8 @@ fn test_named_value_serializes_with_v1_wire_contract() {
     let named = NamedValue::new("port", Value::Int32(42));
 
     assert_eq!(
-        serde_json::to_value(named).expect("named value should serialize"),
-        serde_json::json!({
+        to_value(named).expect("named value should serialize"),
+        json!({
             "name": "port",
             "value": {"version": 1, "value": {"scalar": {"int32": 42}}},
         }),
@@ -97,7 +107,7 @@ fn test_named_value_serializes_with_v1_wire_contract() {
 #[test]
 fn test_named_value_bounded_decode_reuses_value_budget() {
     let named = NamedValue::new("port", Value::Int32(42));
-    let input = serde_json::to_vec(&named).expect("named value should serialize");
+    let input = to_vec(&named).expect("named value should serialize");
 
     let name_error = NamedValue::decode_json_slice_with_limits(
         &input,
@@ -162,8 +172,14 @@ fn test_named_value_writer_matches_vec_and_rejects_output_limit() {
             JsonEncodeLimits::builder().max_output_bytes(1).build(),
         )
         .expect_err("output budget should reject named scalar");
-    assert!(matches!(error, ValueWireEncodeError::Budget(_)));
-    assert!(constrained.is_empty());
+    assert!(
+        matches!(error, ValueWireEncodeError::Budget(_)),
+        "exceeding the output limit must report a budget error"
+    );
+    assert!(
+        constrained.is_empty(),
+        "a rejected encoding must not write partial output"
+    );
 }
 
 #[test]

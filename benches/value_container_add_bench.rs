@@ -49,8 +49,8 @@ fn benchmark_promote_scalar_with_scalar(c: &mut Criterion) {
 }
 
 criterion_group!(
-    benches,
+    scalar_append_benches,
     benchmark_append_scalar_to_collection,
     benchmark_promote_scalar_with_scalar,
 );
-criterion_main!(benches);
+criterion_main!(scalar_append_benches);

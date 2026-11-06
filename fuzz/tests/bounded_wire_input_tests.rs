@@ -33,6 +33,10 @@ fn decode_limits(max_input_bytes: usize) -> JsonDecodeLimits {
         .build()
 }
 
+/// Accepts either budget-exhaustion variant, requiring the requested resource.
+///
+/// This keeps the assertion independent of whether decoding checks a limit
+/// directly or fails while reserving the remaining budget.
 fn assert_resource(input: &[u8], limits: JsonDecodeLimits, resource: JsonResource) {
     let result = ValueWireV1::decode_json_slice_with_limits(input, limits);
     assert!(

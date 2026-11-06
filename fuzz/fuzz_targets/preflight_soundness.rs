@@ -25,6 +25,12 @@ use qubit_value_fuzz::preflight_input::value_from_bytes;
 use qubit_value_fuzz::preflight_sequence::run_sequence;
 use qubit_value_fuzz::structured_wire_input::container_from_bytes;
 
+/// Selects zero, one, the next input byte, or `wide` using the indexed byte.
+///
+/// Missing bytes default to zero; callers provide a small index so that reading
+/// the next byte cannot overflow, and clamp the result to their resource cap.
+#[must_use]
+#[inline]
 fn varied_limit(input: &[u8], index: usize, wide: usize) -> usize {
     match input.get(index).copied().unwrap_or_default() % 4 {
         0 => 0,
@@ -35,6 +41,9 @@ fn varied_limit(input: &[u8], index: usize, wide: usize) -> usize {
 }
 
 /// Creates JSON encoding limits varied by the bounded fuzz input.
+///
+/// Every selected limit is clamped to the corresponding fuzz resource cap.
+#[must_use]
 fn encode_limits(data: &[u8]) -> JsonEncodeLimits {
     let input = bounded_input(data);
     JsonEncodeLimits::builder()
@@ -50,6 +59,11 @@ fn encode_limits(data: &[u8]) -> JsonEncodeLimits {
         .build()
 }
 
+/// Asserts that preflight accepts any Wire V1 value encoded within `limits`.
+///
+/// Values that cannot be converted to Wire V1 or encoded within the limits are
+/// skipped. Panics if encoding succeeds but preflight rejects the original
+/// value.
 fn check_successful_encoding(value: &ValueContainer, limits: JsonEncodeLimits) {
     let wire = match ValueWireV1::try_from(value.clone()) {
         Ok(wire) => wire,

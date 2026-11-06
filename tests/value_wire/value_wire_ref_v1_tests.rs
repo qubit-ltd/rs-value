@@ -19,6 +19,7 @@ use qubit_value::Value;
 use qubit_value::ValueContainer;
 use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWireRefV1;
+use serde_json::to_value;
 
 /// Writer that rejects every wire write with a stable diagnostic.
 struct RejectingWriter;
@@ -37,7 +38,7 @@ impl Write for RejectingWriter {
 fn test_value_wire_ref_v1_preserves_the_owned_wire_contract() {
     let value = ValueContainer::from(vec!["api".to_owned(), "worker".to_owned()]);
     let wire = ValueWireRefV1::try_from(&value).expect("construct borrowed V1 wire");
-    let encoded = serde_json::to_value(wire).expect("serialize borrowed V1 wire");
+    let encoded = to_value(wire).expect("serialize borrowed V1 wire");
     let decoded = crate::decode_value_wire_value(encoded).expect("decode V1 wire");
 
     assert_eq!(decoded.into_container(), value);

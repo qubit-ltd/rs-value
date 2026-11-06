@@ -32,6 +32,15 @@ macro_rules! impl_value_from_table {
         $(
             $(#[$cfg])*
             impl From<$type> for Value {
+                /// Wraps an owned payload in its matching runtime value type.
+                ///
+                /// # Parameters
+                ///
+                /// * `value` - Payload moved into the returned container without cloning.
+                ///
+                /// # Returns
+                ///
+                /// A typed value owning the supplied payload.
                 #[inline(always)]
                 fn from(value: $type) -> Self {
                     Value::$variant(value)
@@ -44,6 +53,17 @@ macro_rules! impl_value_from_table {
 for_each_value_type!(impl_value_from_table);
 
 impl From<&str> for Value {
+    /// Copies borrowed UTF-8 text into an owned string value.
+    ///
+    /// The returned container is independent of the input string's lifetime.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Text copied into the container's string storage.
+    ///
+    /// # Returns
+    ///
+    /// A string value owning a copy of `value`.
     #[inline]
     fn from(value: &str) -> Self {
         Value::String(value.to_string())

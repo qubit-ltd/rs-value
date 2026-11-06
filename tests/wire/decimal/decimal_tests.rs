@@ -14,6 +14,8 @@ use num_bigint::BigInt;
 use qubit_value::Value;
 #[cfg(feature = "big-integer")]
 use qubit_value::ValueWireV1;
+#[cfg(feature = "big-integer")]
+use serde_json::to_value;
 
 #[cfg(feature = "big-integer")]
 #[test]
@@ -21,9 +23,10 @@ fn test_big_integer_wire_round_trip() {
     let expected = Value::BigInteger(BigInt::from(42));
     let wire = ValueWireV1::try_from(expected.clone()).expect("big integer converts to wire value");
     assert_eq!(
-        crate::decode_value_wire_value(serde_json::to_value(wire).expect("wire value serializes"))
+        crate::decode_value_wire_value(to_value(wire).expect("wire value serializes"))
             .expect("wire value deserializes")
             .into_container(),
-        expected.into()
+        expected.into(),
+        "big-integer wire round trip must preserve the scalar container"
     );
 }

@@ -7,6 +7,7 @@
 // =============================================================================
 //! Internal helpers for JSON identity calculations.
 
+pub(super) mod hash_destination;
 pub(super) mod hash_frame;
 pub(super) mod json_equality_frame;
 pub(super) mod object_hash;

@@ -24,6 +24,11 @@ use crate::finite_float::NON_FINITE_FLOAT_MESSAGE;
 ///
 /// Failure stops typed element requests; outer document preflight and already
 /// charged resources remain the caller's responsibility.
+///
+/// # Type Parameters
+///
+/// * `T` - Decoded element type; visiting requires deserialization support and
+///   the shared finite-float predicate.
 pub(in crate::finite_float) struct FiniteFloatSequenceVisitor<T> {
     /// Associates the visitor with its decoded float width without storing it.
     marker: PhantomData<fn() -> T>,
@@ -31,6 +36,10 @@ pub(in crate::finite_float) struct FiniteFloatSequenceVisitor<T> {
 
 impl<T> FiniteFloatSequenceVisitor<T> {
     /// Creates a stateless visitor for the decoded float width.
+    ///
+    /// # Returns
+    ///
+    /// A visitor that stores no decoded elements until a sequence is visited.
     #[must_use]
     #[inline]
     pub(in crate::finite_float) const fn new() -> Self {
@@ -42,15 +51,41 @@ impl<'de, T> Visitor<'de> for FiniteFloatSequenceVisitor<T>
 where
     T: Deserialize<'de> + FiniteFloat,
 {
+    /// Owns the validated finite elements in their original input order.
     type Value = Vec<T>;
 
     /// Describes the sequence representation required by the adapter.
+    ///
+    /// # Parameters
+    ///
+    /// * `formatter` - Destination for the expected-representation description.
+    ///
+    /// # Returns
+    ///
+    /// Success after writing the description.
+    ///
+    /// # Errors
+    ///
+    /// Returns the destination's formatting error if writing fails.
     fn expecting(&self, formatter: &mut Formatter<'_>) -> FmtResult {
         formatter.write_str("a sequence of finite floating-point values")
     }
 
     /// Returns decoded finite values in input order without reading past an
     /// error.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `A` - Serde sequence access supplying elements for the input lifetime.
+    ///
+    /// # Parameters
+    ///
+    /// * `sequence` - Consumed access to the sequence being decoded.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector of finite values in input order, empty for an empty
+    /// sequence.
     ///
     /// # Errors
     ///

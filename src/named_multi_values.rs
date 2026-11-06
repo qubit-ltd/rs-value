@@ -33,6 +33,8 @@ use serde::Serializer;
 use serde::de::Error as DeserializeError;
 use serde::ser::Error as SerializeError;
 
+use self::internal::NamedMultiValuesWireOwned;
+use self::internal::NamedMultiValuesWireRef;
 use super::multi_values::MultiValues;
 use super::named_value::NamedValue;
 #[cfg(feature = "json")]
@@ -46,9 +48,6 @@ use crate::ValueWireRefV1;
 use crate::ValueWireV1;
 
 mod internal;
-
-use self::internal::NamedMultiValuesWireOwned;
-use self::internal::NamedMultiValuesWireRef;
 
 /// Named multiple values
 ///
@@ -111,9 +110,11 @@ use self::internal::NamedMultiValuesWireRef;
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NamedMultiValues {
-    /// Name of the values
+    /// Owned, human-readable label identifying this collection independently of
+    /// its contents.
     name: String,
-    /// Content of the multiple values
+    /// Owned homogeneous collection stored under the label, including empty or
+    /// unset values.
     value: MultiValues,
 }
 
@@ -196,6 +197,7 @@ impl NamedMultiValues {
     ///
     /// Returns a JSON, wire-contract, or resource-limit error.
     #[cfg(feature = "json")]
+    #[inline]
     pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
@@ -333,7 +335,10 @@ impl NamedMultiValues {
             .map_err(ValueWireEncodeError::from)
     }
 
-    /// Get a reference to the name
+    /// Borrows the human-readable label without allocating or inspecting the
+    /// collection.
+    ///
+    /// The slice remains valid while this container is borrowed.
     ///
     /// # Returns
     ///
@@ -353,7 +358,47 @@ impl NamedMultiValues {
         &self.name
     }
 
-    /// Set a new name
+    /// Borrows the collection without cloning its elements or its label.
+    ///
+    /// # Returns
+    ///
+    /// A shared reference to the contained [`MultiValues`].
+    #[inline(always)]
+    #[must_use = "the borrowed values should be used"]
+    pub fn values(&self) -> &MultiValues {
+        &self.value
+    }
+
+    /// Exclusively borrows the collection so it can be changed without changing
+    /// the label.
+    ///
+    /// # Returns
+    ///
+    /// An exclusive reference to the contained [`MultiValues`].
+    #[inline]
+    #[must_use = "the mutable values reference should be used"]
+    pub fn values_mut(&mut self) -> &mut MultiValues {
+        &mut self.value
+    }
+
+    /// Convert this named multi-values into a named single value.
+    ///
+    /// The returned value keeps the same name and uses the first element from
+    /// the inner [`MultiValues`]. If there is no element, the returned value is
+    /// `Value::Unset` with the same data type.
+    ///
+    /// # Returns
+    ///
+    /// A named clone of the first item, or a named typed unset value.
+    #[inline]
+    pub fn first_named_value(&self) -> NamedValue {
+        NamedValue::new(self.name.as_str(), self.value.first_value())
+    }
+
+    /// Replaces the owned label while preserving the collection unchanged.
+    ///
+    /// Converts the supplied name into owned storage and drops the previous
+    /// label.
     ///
     /// # Type Parameters
     ///
@@ -361,7 +406,8 @@ impl NamedMultiValues {
     ///
     /// # Parameters
     ///
-    /// * `name` - The new name
+    /// * `name` - Human-readable label to associate with the existing
+    ///   collection.
     ///
     /// # Returns
     ///
@@ -379,28 +425,6 @@ impl NamedMultiValues {
     #[inline(always)]
     pub fn set_name(&mut self, name: impl Into<String>) {
         self.name = name.into();
-    }
-
-    /// Borrows the contained values.
-    ///
-    /// # Returns
-    ///
-    /// A shared reference to the contained [`MultiValues`].
-    #[inline(always)]
-    #[must_use = "the borrowed values should be used"]
-    pub fn values(&self) -> &MultiValues {
-        &self.value
-    }
-
-    /// Mutably borrows the contained values.
-    ///
-    /// # Returns
-    ///
-    /// An exclusive reference to the contained [`MultiValues`].
-    #[inline]
-    #[must_use = "the mutable values reference should be used"]
-    pub fn values_mut(&mut self) -> &mut MultiValues {
-        &mut self.value
     }
 
     /// Replaces the contained values.
@@ -424,21 +448,6 @@ impl NamedMultiValues {
         (self.name, self.value)
     }
 
-    /// Convert this named multi-values into a named single value.
-    ///
-    /// The returned value keeps the same name and uses the first element from
-    /// the inner [`MultiValues`]. If there is no element, the returned value is
-    /// `Value::Unset` with the same data type.
-    ///
-    /// # Returns
-    ///
-    /// A named clone of the first item, or a named typed unset value.
-    #[must_use = "the projected named value should be used"]
-    #[inline]
-    pub fn first_named_value(&self) -> NamedValue {
-        NamedValue::new(self.name.as_str(), self.value.first_value())
-    }
-
     /// Consumes this container and converts its first item to a named value.
     ///
     /// The owned name and first stored item are moved into the result. An empty
@@ -460,6 +469,14 @@ impl From<NamedValue> for NamedMultiValues {
     ///
     /// Reuses the name and promotes the single value to a `MultiValues`
     /// containing only one element.
+    ///
+    /// # Parameters
+    ///
+    /// * `named` - Named scalar consumed to transfer its name and value.
+    ///
+    /// # Returns
+    ///
+    /// A named collection containing the promoted scalar.
     #[inline]
     fn from(named: NamedValue) -> Self {
         let (name, value) = named.into_parts();
@@ -470,6 +487,22 @@ impl From<NamedValue> for NamedMultiValues {
 
 impl Serialize for NamedMultiValues {
     /// Serializes the name and its explicitly versioned collection.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Serde serializer that determines the output representation.
+    ///
+    /// # Parameters
+    ///
+    /// * `serializer` - Destination receiving the named V1 collection envelope.
+    ///
+    /// # Returns
+    ///
+    /// The serializer's success value after writing the envelope.
+    ///
+    /// # Errors
+    ///
+    /// Returns `S::Error` if wire conversion or serialization fails.
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

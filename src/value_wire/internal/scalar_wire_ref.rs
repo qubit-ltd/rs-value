@@ -38,6 +38,9 @@ macro_rules! define_scalar_wire_ref {
     ) => {
         /// Borrowed payload for one typed scalar.
         ///
+        /// Set variants borrow the runtime payload without cloning or allocating;
+        /// unset values retain their declared V1 data type.
+        ///
         /// # Type Parameters
         ///
         /// * `'a` - Lifetime of the borrowed scalar payload.
@@ -63,6 +66,16 @@ macro_rules! define_scalar_wire_ref {
 
         impl<'a> From<&'a Value> for ScalarWireRef<'a> {
             /// Borrows the exact runtime variant for V1 serialization.
+            ///
+            /// # Parameters
+            ///
+            /// * `value` - Runtime scalar whose payload remains borrowed for `'a`.
+            ///
+            /// # Returns
+            ///
+            /// The matching borrowed payload, or the declared V1 data type for
+            /// an unset scalar. No payload is cloned or moved out of `value`.
+            #[inline]
             fn from(value: &'a Value) -> Self {
                 match &value.repr {
                     ValueRepr::Unset(data_type) => Self::Unset((*data_type).into()),

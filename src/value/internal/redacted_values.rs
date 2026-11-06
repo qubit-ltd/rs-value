@@ -14,6 +14,11 @@ use qubit_redact::RedactionWriter;
 /// Writes a typed collection while admitting and formatting each item under
 /// the writer's active collection budget.
 ///
+/// # Type Parameters
+///
+/// * `T` - Collection item type, formatted through `Debug` only after
+///   admission.
+///
 /// # Parameters
 ///
 /// * `writer` - Structured writer carrying the active policy and budget.

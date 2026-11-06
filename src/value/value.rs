@@ -16,6 +16,8 @@ use std::fmt;
 use std::hash::Hash;
 #[cfg(feature = "json")]
 use std::hash::Hasher;
+#[cfg(feature = "json")]
+use std::mem::discriminant;
 use std::time::Duration;
 
 #[cfg(feature = "big-decimal")]
@@ -65,6 +67,8 @@ use serde::Deserialize;
 use serde::Serialize;
 #[cfg(all(feature = "converter", feature = "json"))]
 use serde::de::DeserializeOwned;
+#[cfg(feature = "json")]
+use serde_json::Value as JsonValue;
 #[cfg(feature = "url")]
 use url::Url;
 
@@ -143,6 +147,20 @@ pub struct Value {
 }
 
 impl fmt::Debug for Value {
+    /// Formats the borrowed semantic view without cloning owned payloads.
+    ///
+    /// # Parameters
+    ///
+    /// * `formatter` - Destination and formatting options for the debug view.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the semantic view has been written.
+    ///
+    /// # Errors
+    ///
+    /// Returns the formatter's error if writing the semantic view fails.
+    #[inline]
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.view().fmt(formatter)
     }
@@ -258,6 +276,16 @@ impl Value {
         <&'a T>::try_from(self)
     }
 
+    /// Borrows the stable semantic view of this value.
+    ///
+    /// # Returns
+    ///
+    /// A non-owning view that hides private storage representation details.
+    #[inline(always)]
+    pub fn view(&self) -> ValueRef<'_> {
+        for_each_value_type!(owned_view_match, self)
+    }
+
     /// Hashes this value while applying `budget` to a JSON payload.
     ///
     /// # Type Parameters
@@ -321,26 +349,16 @@ impl Value {
             ValueRepr::Json(value) => {
                 let mut transaction = budget.transaction();
                 preflight_json(value, &mut transaction)?;
-                std::mem::discriminant(&self.repr).hash(state);
+                discriminant(&self.repr).hash(state);
                 hash_json(value, state);
                 transaction.commit()
             }
             _ => {
-                std::mem::discriminant(&self.repr).hash(state);
+                discriminant(&self.repr).hash(state);
                 hash_non_json_value_payload(&self.repr, state);
                 Ok(())
             }
         }
-    }
-
-    /// Borrows the stable semantic view of this value.
-    ///
-    /// # Returns
-    ///
-    /// A non-owning view that hides private storage representation details.
-    #[inline(always)]
-    pub fn view(&self) -> ValueRef<'_> {
-        for_each_value_type!(owned_view_match, self)
     }
 }
 
@@ -358,17 +376,6 @@ macro_rules! value_data_type_match {
 // Getter method generation macro
 // ============================================================================
 
-/// Unified getter generation macro
-///
-/// Supports two modes:
-/// 1. `copy:` - For types implementing the Copy trait, directly returns the
-///    value
-/// 2. `ref:` - For non-Copy types, returns a reference
-///
-/// # Documentation Comment Support
-///
-/// The macro automatically extracts preceding documentation comments, so
-/// you can add `///` comments before macro invocations.
 impl Value {
     /// Generic constructor method
     ///
@@ -832,6 +839,74 @@ impl Value {
         }
     }
 
+    /// Get the data type of the value
+    ///
+    /// # Returns
+    ///
+    /// Returns the data type corresponding to this value
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qubit_datatype::DataType;
+    /// use qubit_value::Value;
+    ///
+    /// let value = Value::Int32(42);
+    /// assert_eq!(value.data_type(), DataType::Int32);
+    ///
+    /// let empty = Value::Unset(DataType::String);
+    /// assert_eq!(empty.data_type(), DataType::String);
+    /// ```
+    ///
+    /// ```compile_fail
+    /// #![deny(unused_must_use)]
+    /// use qubit_value::Value;
+    ///
+    /// Value::new(42_i32).data_type();
+    /// ```
+    #[inline(always)]
+    pub fn data_type(&self) -> DataType {
+        for_each_value_type!(value_data_type_match, self)
+    }
+
+    /// Tests whether this container has no concrete value.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` only for [`Value::Unset`]. An empty string, map, or JSON
+    /// container is still a concrete value and returns `false`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qubit_datatype::DataType;
+    /// use qubit_value::Value;
+    ///
+    /// let value = Value::Int32(42);
+    /// assert!(!value.is_unset());
+    ///
+    /// let empty = Value::Unset(DataType::String);
+    /// assert!(empty.is_unset());
+    /// ```
+    #[inline(always)]
+    #[must_use]
+    pub fn is_unset(&self) -> bool {
+        matches!(self.repr, ValueRepr::Unset(_))
+    }
+
+    /// Tests whether a concrete value belongs to the numeric type family.
+    ///
+    /// An unset value returns `false`, even when its declared type is numeric.
+    ///
+    /// # Returns
+    ///
+    /// `true` for concrete numeric variants; otherwise `false`.
+    #[inline]
+    #[must_use]
+    pub fn is_numeric(&self) -> bool {
+        !self.is_unset() && self.data_type().is_numeric()
+    }
+
     /// Generic setter method
     ///
     /// Replaces the current value with any supported input value.
@@ -898,81 +973,6 @@ impl Value {
         *self = value.into();
     }
 
-    /// Get the data type of the value
-    ///
-    /// # Returns
-    ///
-    /// Returns the data type corresponding to this value
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use qubit_datatype::DataType;
-    /// use qubit_value::Value;
-    ///
-    /// let value = Value::Int32(42);
-    /// assert_eq!(value.data_type(), DataType::Int32);
-    ///
-    /// let empty = Value::Unset(DataType::String);
-    /// assert_eq!(empty.data_type(), DataType::String);
-    /// ```
-    ///
-    /// ```compile_fail
-    /// #![deny(unused_must_use)]
-    /// use qubit_value::Value;
-    ///
-    /// Value::new(42_i32).data_type();
-    /// ```
-    #[must_use = "the runtime data type should be used"]
-    #[inline(always)]
-    pub fn data_type(&self) -> DataType {
-        for_each_value_type!(value_data_type_match, self)
-    }
-
-    /// Tests whether this container has no concrete value.
-    ///
-    /// # Returns
-    ///
-    /// Returns `true` only for [`Value::Unset`]. An empty string, map, or JSON
-    /// container is still a concrete value and returns `false`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use qubit_datatype::DataType;
-    /// use qubit_value::Value;
-    ///
-    /// let value = Value::Int32(42);
-    /// assert!(!value.is_unset());
-    ///
-    /// let empty = Value::Unset(DataType::String);
-    /// assert!(empty.is_unset());
-    /// ```
-    #[inline(always)]
-    #[must_use]
-    pub fn is_unset(&self) -> bool {
-        matches!(self.repr, ValueRepr::Unset(_))
-    }
-
-    /// Tests whether a concrete value belongs to the numeric type family.
-    ///
-    /// An unset value returns `false`, even when its declared type is numeric.
-    ///
-    /// # Returns
-    ///
-    /// `true` for concrete numeric variants; otherwise `false`.
-    #[inline]
-    #[must_use]
-    pub fn is_numeric(&self) -> bool {
-        !self.is_unset() && self.data_type().is_numeric()
-    }
-
-    /// Removes the concrete value while preserving its declared data type.
-    #[inline]
-    pub fn unset(&mut self) {
-        *self = Value::new_unset(self.data_type());
-    }
-
     /// Set the data type
     ///
     /// If the new type differs from the current type, clears the value
@@ -999,6 +999,12 @@ impl Value {
             *self = Value::new_unset(data_type);
         }
     }
+
+    /// Removes the concrete value while preserving its declared data type.
+    #[inline]
+    pub fn unset(&mut self) {
+        *self = Value::new_unset(self.data_type());
+    }
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -1024,7 +1030,7 @@ impl Value {
     /// Returns a structured conversion error for values JSON cannot represent,
     /// including non-finite floating-point values and inexact durations.
     #[inline]
-    pub fn to_json_value(&self) -> ValueResult<serde_json::Value> {
+    pub fn to_json_value(&self) -> ValueResult<JsonValue> {
         self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
@@ -1045,11 +1051,7 @@ impl Value {
     /// limit is exceeded, or a structured conversion error when JSON
     /// projection or duration formatting violates the requested policy.
     #[inline(always)]
-    pub fn to_json_value_with(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<serde_json::Value> {
+    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
         crate::json::value_to_json_value_with(self, policy, limits)
     }
 }
@@ -1129,7 +1131,7 @@ impl Value {
     /// A `Value::Json` wrapping the given JSON value.
     #[inline]
     #[cfg(feature = "json")]
-    pub fn from_json_value(json: serde_json::Value) -> Self {
+    pub fn from_json_value(json: JsonValue) -> Self {
         Value::Json(json)
     }
 
@@ -1477,8 +1479,8 @@ impl Value {
         /// # Returns
         ///
         /// If types match, returns the JSON value; see `# Errors`.
-        ref: get_json, Json, serde_json::Value, DataType::Json,
-            |v: &serde_json::Value| v.clone()
+        ref: get_json, Json, JsonValue, DataType::Json,
+            |v: &JsonValue| v.clone()
     }
 
     /// Borrow the inner `BigInt` without cloning.
@@ -1495,20 +1497,7 @@ impl Value {
     #[cfg(feature = "big-integer")]
     #[inline]
     pub fn get_biginteger_ref(&self) -> ValueResult<&BigInt> {
-        match &self.repr {
-            ValueRepr::BigInteger(v) => Ok(v),
-            ValueRepr::Unset(dt) if *dt == DataType::BigInteger => {
-                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
-            }
-            ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
-                expected: DataType::BigInteger,
-                actual: *dt,
-            }),
-            _ => Err(ValueError::TypeMismatch {
-                expected: DataType::BigInteger,
-                actual: self.data_type(),
-            }),
-        }
+        self.get_ref()
     }
 
     /// Borrow the inner `BigDecimal` without cloning.
@@ -1525,20 +1514,7 @@ impl Value {
     #[cfg(feature = "big-decimal")]
     #[inline]
     pub fn get_bigdecimal_ref(&self) -> ValueResult<&BigDecimal> {
-        match &self.repr {
-            ValueRepr::BigDecimal(v) => Ok(v),
-            ValueRepr::Unset(dt) if *dt == DataType::BigDecimal => {
-                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
-            }
-            ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
-                expected: DataType::BigDecimal,
-                actual: *dt,
-            }),
-            _ => Err(ValueError::TypeMismatch {
-                expected: DataType::BigDecimal,
-                actual: self.data_type(),
-            }),
-        }
+        self.get_ref()
     }
 
     /// Borrow the inner `Url` without cloning.
@@ -1555,20 +1531,7 @@ impl Value {
     #[cfg(feature = "url")]
     #[inline]
     pub fn get_url_ref(&self) -> ValueResult<&Url> {
-        match &self.repr {
-            ValueRepr::Url(v) => Ok(v.as_ref()),
-            ValueRepr::Unset(dt) if *dt == DataType::Url => {
-                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
-            }
-            ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
-                expected: DataType::Url,
-                actual: *dt,
-            }),
-            _ => Err(ValueError::TypeMismatch {
-                expected: DataType::Url,
-                actual: self.data_type(),
-            }),
-        }
+        self.get_ref()
     }
 
     /// Borrow the inner `HashMap<String, String>` without cloning.
@@ -1584,20 +1547,7 @@ impl Value {
     /// data type differs.
     #[inline(always)]
     pub fn get_string_map_ref(&self) -> ValueResult<&HashMap<String, String>> {
-        match &self.repr {
-            ValueRepr::StringMap(v) => Ok(v),
-            ValueRepr::Unset(dt) if *dt == DataType::StringMap => {
-                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
-            }
-            ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
-                expected: DataType::StringMap,
-                actual: *dt,
-            }),
-            _ => Err(ValueError::TypeMismatch {
-                expected: DataType::StringMap,
-                actual: self.data_type(),
-            }),
-        }
+        self.get_ref()
     }
 
     /// Borrow the inner JSON value without cloning.
@@ -1613,21 +1563,8 @@ impl Value {
     /// type differs.
     #[cfg(feature = "json")]
     #[inline]
-    pub fn get_json_ref(&self) -> ValueResult<&serde_json::Value> {
-        match &self.repr {
-            ValueRepr::Json(v) => Ok(v),
-            ValueRepr::Unset(dt) if *dt == DataType::Json => {
-                Err(ValueError::Missing(ValueMissing::unset_scalar(*dt, *dt)))
-            }
-            ValueRepr::Unset(dt) => Err(ValueError::TypeMismatch {
-                expected: DataType::Json,
-                actual: *dt,
-            }),
-            _ => Err(ValueError::TypeMismatch {
-                expected: DataType::Json,
-                actual: self.data_type(),
-            }),
-        }
+    pub fn get_json_ref(&self) -> ValueResult<&JsonValue> {
+        self.get_ref()
     }
 
     /// Deserialize the inner JSON value into a target type.
@@ -1811,6 +1748,8 @@ impl Value {
     ///
     /// A borrowed numeric representation for every concrete numeric variant,
     /// or `None` for unset and non-numeric variants.
+    #[must_use = "the numeric projection should be inspected"]
+    #[inline]
     fn as_number_ref(&self) -> Option<NumberRef<'_>> {
         for_each_value_type!(value_number_ref_match, self)
     }

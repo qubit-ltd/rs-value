@@ -70,7 +70,11 @@ fn test_big_integer_wire_parses_owned_extreme_string() {
     let wire = ValueWireV1Seed::new()
         .deserialize(input.into_deserializer())
         .expect("owned extreme integer string must decode");
-    assert_eq!(wire.into_container(), Value::BigInteger(expected).into());
+    assert_eq!(
+        wire.into_container(),
+        Value::BigInteger(expected).into(),
+        "owned extreme integer text must preserve its sign and magnitude"
+    );
 }
 
 /// Verifies an owned non-canonical decimal string reports the exact visitor
@@ -85,5 +89,9 @@ fn test_big_integer_wire_rejects_owned_noncanonical_string_precisely() {
     let error = ValueWireV1Seed::new()
         .deserialize(input.into_deserializer())
         .expect_err("owned non-canonical integer string must be rejected");
-    assert_eq!(error.to_string(), "non-canonical decimal string");
+    assert_eq!(
+        error.to_string(),
+        "non-canonical decimal string",
+        "owned non-canonical integer text must report the exact visitor error"
+    );
 }

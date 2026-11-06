@@ -152,6 +152,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     /// runtime JSON number in either the scalar or collection shape, including
     /// a nested number, cannot preserve its `serde_json::Number` identity
     /// under the V1 number model.
+    #[inline]
     pub fn from_container(value: &'a ValueContainer) -> Result<Self, ValueWireEncodeError> {
         match value {
             ValueContainer::Scalar(value) => Self::from_value(value),
@@ -453,6 +454,7 @@ pub(in crate::value_wire) fn validate_values(values: &MultiValues) -> Result<(),
 /// Returns [`ValueWireEncodeError::BigDecimalScaleTooLarge`] when `scale`
 /// exceeds the V1 bound.
 #[cfg(feature = "big-decimal")]
+#[inline]
 fn validate_big_decimal_scale(scale: i64) -> Result<(), ValueWireEncodeError> {
     if is_valid_big_decimal_scale(scale) {
         return Ok(());
@@ -464,31 +466,96 @@ fn validate_big_decimal_scale(scale: i64) -> Result<(), ValueWireEncodeError> {
 }
 
 impl<'a> TryFrom<&'a Value> for ValueWirePayloadRefV1<'a> {
+    /// V1 representation validation failure; the borrowed input is unchanged.
     type Error = ValueWireEncodeError;
+
     /// Borrows and validates a scalar.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Scalar runtime value to validate and borrow.
+    ///
+    /// # Returns
+    ///
+    /// A validated V1 payload borrowing the original input without cloning.
+    ///
+    /// # Errors
+    ///
+    /// Returns the representation validation errors documented by
+    /// [`Self::from_value`].
+    #[inline]
     fn try_from(value: &'a Value) -> Result<Self, Self::Error> {
         Self::from_value(value)
     }
 }
 
 impl<'a> TryFrom<&'a MultiValues> for ValueWirePayloadRefV1<'a> {
+    /// V1 representation validation failure; the borrowed input is unchanged.
     type Error = ValueWireEncodeError;
+
     /// Borrows and validates a collection.
+    ///
+    /// # Parameters
+    ///
+    /// * `values` - Homogeneous runtime collection to validate and borrow.
+    ///
+    /// # Returns
+    ///
+    /// A validated V1 payload borrowing the original input without cloning.
+    ///
+    /// # Errors
+    ///
+    /// Returns the representation validation errors documented by
+    /// [`Self::from_values`].
+    #[inline]
     fn try_from(values: &'a MultiValues) -> Result<Self, Self::Error> {
         Self::from_values(values)
     }
 }
 
 impl<'a> TryFrom<&'a ValueContainer> for ValueWirePayloadRefV1<'a> {
+    /// V1 representation validation failure; the borrowed input is unchanged.
     type Error = ValueWireEncodeError;
+
     /// Borrows and validates an explicit shape.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Explicit scalar-or-collection value to validate and borrow.
+    ///
+    /// # Returns
+    ///
+    /// A validated V1 payload borrowing the original input without cloning.
+    ///
+    /// # Errors
+    ///
+    /// Returns the representation validation errors documented by
+    /// [`Self::from_container`].
+    #[inline]
     fn try_from(value: &'a ValueContainer) -> Result<Self, Self::Error> {
         Self::from_container(value)
     }
 }
 
 impl Serialize for ValueWirePayloadRefV1<'_> {
-    /// Serializes the borrowed unversioned V1 shape.
+    /// Serializes the borrowed unversioned V1 shape without cloning its source.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Serializer determining the output format and error type.
+    ///
+    /// # Parameters
+    ///
+    /// * `serializer` - Destination serializer consumed by this operation.
+    ///
+    /// # Returns
+    ///
+    /// The serializer's success value after emitting the scalar or collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `S::Error` if the serializer rejects the borrowed wire shape.
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

@@ -37,6 +37,16 @@ pub(in crate::value_wire) enum WireShapeRef<'a> {
 
 impl<'a> From<&'a ValueContainer> for WireShapeRef<'a> {
     /// Borrows the explicit runtime shape for V1 serialization.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Container whose scalar or collection payload is borrowed for
+    ///   `'a`.
+    ///
+    /// # Returns
+    ///
+    /// A wire shape preserving the container's scalar or collection variant,
+    /// without cloning or taking ownership of its payload.
     #[inline]
     fn from(value: &'a ValueContainer) -> Self {
         match value {

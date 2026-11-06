@@ -83,6 +83,7 @@ macro_rules! define_wide_integer_serde {
             /// # Errors
             ///
             /// Returns `S::Error` when serialization fails.
+            #[inline]
             pub(crate) fn serialize<S>(value: &$type, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -107,6 +108,7 @@ macro_rules! define_wide_integer_serde {
             /// # Errors
             ///
             /// Returns `D::Error` for malformed or non-canonical input.
+            #[inline]
             pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<$type, D::Error>
             where
                 D: Deserializer<'de>,
@@ -142,6 +144,7 @@ macro_rules! define_wide_integer_serde {
             /// # Errors
             ///
             /// Returns `S::Error` when sequence serialization fails.
+            #[inline]
             pub(crate) fn serialize<S>(values: &[$type], serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,

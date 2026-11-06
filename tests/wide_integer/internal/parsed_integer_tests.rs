@@ -16,7 +16,7 @@ use serde_json::json;
 fn test_wide_integer_wire_parses_canonical_string() {
     assert_eq!(
         crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"uint128": "1"}}}))
-            .unwrap()
+            .expect("canonical unsigned integer string must decode")
             .into_container(),
         Value::UInt128(1).into(),
     );

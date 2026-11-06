@@ -23,6 +23,31 @@ pub(in crate::named_value) struct NamedValueWireOwned {
 }
 
 impl<'de> Deserialize<'de> for NamedValueWireOwned {
+    /// Deserializes an owned named scalar record using the format's struct
+    /// encoding.
+    ///
+    /// Human-readable formats must use named fields; binary formats may also
+    /// use an ordered sequence containing the name followed by the
+    /// versioned value.
+    ///
+    /// # Type Parameters
+    ///
+    /// - `D`: Deserializer supplying the record and its format policy.
+    ///
+    /// # Parameters
+    ///
+    /// - `deserializer`: Consumed input from which both owned fields are
+    ///   decoded.
+    ///
+    /// # Returns
+    ///
+    /// The decoded record with an owned name and versioned scalar value.
+    ///
+    /// # Errors
+    ///
+    /// Returns a deserializer error for malformed records, missing, duplicate,
+    /// or unknown fields, unsupported scalar values, or disallowed sequences.
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

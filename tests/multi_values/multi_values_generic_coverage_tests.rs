@@ -7,8 +7,8 @@
 // =============================================================================
 //! # MultiValues Generic Coverage Tests
 //!
-//! Covers the four generic entry points `set`/`add`/`get`/`get_first`,
-//! verifying all supported types and three parameter categories.
+//! Exercises generic construction, mutation, retrieval, and default conversion
+//! with representative value types and owned or borrowed input forms.
 
 #[cfg(feature = "chrono")]
 use chrono::DateTime;
@@ -98,13 +98,13 @@ fn test_generic_set_vec_all_types() {
         let d2 = NaiveDate::from_ymd_opt(2020, 1, 2).unwrap();
         let mut mv = MultiValues::Unset(DataType::Date);
         mv.set(vec![d1, d2]);
-        assert_eq!(mv.get_dates().unwrap().len(), 2);
+        assert_eq!(mv.get_dates().unwrap(), &[d1, d2]);
 
         let t1 = NaiveTime::from_hms_opt(12, 0, 0).unwrap();
         let t2 = NaiveTime::from_hms_opt(13, 0, 0).unwrap();
         let mut mv = MultiValues::Unset(DataType::Time);
         mv.set(vec![t1, t2]);
-        assert_eq!(mv.get_times().unwrap().len(), 2);
+        assert_eq!(mv.get_times().unwrap(), &[t1, t2]);
 
         let ndt1 = NaiveDate::from_ymd_opt(2020, 1, 1)
             .unwrap()
@@ -116,13 +116,13 @@ fn test_generic_set_vec_all_types() {
             .unwrap();
         let mut mv = MultiValues::Unset(DataType::DateTime);
         mv.set(vec![ndt1, ndt2]);
-        assert_eq!(mv.get_datetimes().unwrap().len(), 2);
+        assert_eq!(mv.get_datetimes().unwrap(), &[ndt1, ndt2]);
 
         let i1 = DateTime::<Utc>::from_naive_utc_and_offset(ndt1, Utc);
         let i2 = DateTime::<Utc>::from_naive_utc_and_offset(ndt2, Utc);
         let mut mv = MultiValues::Unset(DataType::Instant);
         mv.set(vec![i1, i2]);
-        assert_eq!(mv.get_instants().unwrap().len(), 2);
+        assert_eq!(mv.get_instants().unwrap(), &[i1, i2]);
     }
 }
 

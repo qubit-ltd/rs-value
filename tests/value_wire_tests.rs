@@ -47,6 +47,11 @@ use serde_json::to_vec;
 #[cfg(feature = "url")]
 use url::Url;
 
+use crate::decode_value_wire_payload_value;
+use crate::decode_value_wire_slice;
+use crate::decode_value_wire_str;
+use crate::decode_value_wire_value;
+
 #[test]
 fn test_value_wire_v1_identity_preserves_shape() {
     assert_ne!(
@@ -60,7 +65,7 @@ fn test_value_wire_v1_preserves_f64_round_trip() {
     let value = Value::Float64(625_026_605_f64 / 3.0);
     let wire = ValueWireV1::try_from(value).expect("construct float wire");
     let encoded = to_vec(&wire).expect("serialize float wire");
-    let decoded = crate::decode_value_wire_slice(&encoded).expect("deserialize float wire");
+    let decoded = decode_value_wire_slice(&encoded).expect("deserialize float wire");
 
     assert_eq!(decoded, wire);
 }
@@ -89,7 +94,7 @@ fn test_value_wire_v1_rejects_duplicate_string_map_keys() {
         r#"{"version":1,"value":{"collection":{"stringmap":[{"key":"first","key":"second"}]}}}"#,
     ] {
         assert!(
-            crate::decode_value_wire_str(input).is_err(),
+            decode_value_wire_str(input).is_err(),
             "duplicate string-map key was accepted: {input}",
         );
     }
@@ -103,7 +108,7 @@ fn test_value_wire_v1_rejects_duplicate_nested_json_keys() {
         r#"{"version":1,"value":{"collection":{"json":[{"nested":{"key":"first","key":"second"}}]}}}"#,
     ] {
         assert!(
-            crate::decode_value_wire_str(input).is_err(),
+            decode_value_wire_str(input).is_err(),
             "duplicate JSON key was accepted: {input}",
         );
     }
@@ -197,7 +202,7 @@ fn test_value_wire_v1_rejects_excessive_big_decimal_scale() {
 fn test_value_wire_v1_rejects_excessive_big_decimal_scale_on_decode() {
     let input = scalar_wire("bigdecimal", json!({"coefficient": "1", "scale": 150_001}));
 
-    let error = crate::decode_value_wire_value(input).expect_err("excessive decimal scale must be rejected");
+    let error = decode_value_wire_value(input).expect_err("excessive decimal scale must be rejected");
 
     assert!(error.to_string().contains("maximum absolute scale"));
 }
@@ -208,7 +213,7 @@ fn test_value_wire_v1_rejects_excessive_big_decimal_scale_on_decode() {
 fn test_value_wire_v1_rejects_minimum_big_decimal_scale_on_decode() {
     let input = scalar_wire("bigdecimal", json!({"coefficient": "1", "scale": i64::MIN}));
 
-    assert!(crate::decode_value_wire_value(input).is_err());
+    assert!(decode_value_wire_value(input).is_err());
 }
 
 /// Rejects URL spellings that parse successfully but are not canonical V1
@@ -218,12 +223,13 @@ fn test_value_wire_v1_rejects_minimum_big_decimal_scale_on_decode() {
 fn test_value_wire_v1_rejects_noncanonical_url_payload() {
     let input = r#"{"version":1,"value":{"scalar":{"url":"HTTPS://example.com/"}}}"#;
 
-    assert!(crate::decode_value_wire_str(input).is_err());
+    assert!(decode_value_wire_str(input).is_err());
 
     let collection = r#"{"version":1,"value":{"collection":{"url":["HTTPS://example.com/"]}}}"#;
-    assert!(crate::decode_value_wire_str(collection).is_err());
+    assert!(decode_value_wire_str(collection).is_err());
 }
 
+/// Pairs a runtime scalar with its stable V1 tag and canonical JSON payload.
 #[derive(Debug)]
 struct ValueFixture {
     data_type: DataType,
@@ -232,10 +238,12 @@ struct ValueFixture {
     payload: JsonValue,
 }
 
+/// Wraps a payload in the single externally tagged object used by V1.
 fn tagged_payload(tag: &str, payload: JsonValue) -> JsonValue {
     JsonValue::Object(Map::from_iter([(tag.to_string(), payload)]))
 }
 
+/// Builds a complete V1 envelope while keeping the expected shape explicit.
 fn wire_value(shape: &str, tag: &str, payload: JsonValue) -> JsonValue {
     json!({
         "version": 1,
@@ -243,18 +251,24 @@ fn wire_value(shape: &str, tag: &str, payload: JsonValue) -> JsonValue {
     })
 }
 
+/// Builds an unversioned payload with separate scalar or collection and type
+/// tags.
 fn shaped_value(shape: &str, tag: &str, payload: JsonValue) -> JsonValue {
     JsonValue::Object(Map::from_iter([(shape.to_string(), tagged_payload(tag, payload))]))
 }
 
+/// Builds the expected V1 envelope for one scalar payload.
 fn scalar_wire(tag: &str, payload: JsonValue) -> JsonValue {
     wire_value("scalar", tag, payload)
 }
 
+/// Builds the expected V1 envelope for a collection payload.
 fn collection_wire(tag: &str, payload: JsonValue) -> JsonValue {
     wire_value("collection", tag, payload)
 }
 
+/// Supplies canonical scalar payloads for every data type enabled in this
+/// build.
 fn value_fixtures() -> Vec<ValueFixture> {
     vec![
         ValueFixture {
@@ -504,7 +518,7 @@ fn test_value_wire_v1_unset_tags_cover_every_data_type() {
             expected_scalar
         );
         assert_eq!(
-            crate::decode_value_wire_value(expected_scalar)
+            decode_value_wire_value(expected_scalar)
                 .expect("deserialize unset scalar")
                 .into_container(),
             scalar
@@ -515,7 +529,7 @@ fn test_value_wire_v1_unset_tags_cover_every_data_type() {
             expected_collection
         );
         assert_eq!(
-            crate::decode_value_wire_value(expected_collection)
+            decode_value_wire_value(expected_collection)
                 .expect("deserialize unset collection")
                 .into_container(),
             collection
@@ -529,7 +543,7 @@ fn test_value_wire_v1_scalar_golden_round_trips_all_types() {
         let expected = scalar_wire(fixture.tag, fixture.payload);
         let dto = ValueWireV1::try_from(fixture.value.clone()).expect("construct scalar wire");
         assert_eq!(to_value(&dto).unwrap(), expected);
-        let restored = crate::decode_value_wire_value(expected).unwrap();
+        let restored = decode_value_wire_value(expected).unwrap();
         assert_eq!(ValueContainer::from(restored), ValueContainer::Scalar(fixture.value),);
     }
 }
@@ -541,7 +555,7 @@ fn test_value_wire_v1_collection_golden_round_trips_all_types() {
         let expected = collection_wire(fixture.tag, json!([fixture.payload]));
         let dto = ValueWireV1::try_from(values.clone()).expect("construct collection wire");
         assert_eq!(to_value(&dto).unwrap(), expected);
-        let restored = crate::decode_value_wire_value(expected).unwrap();
+        let restored = decode_value_wire_value(expected).unwrap();
         assert_eq!(ValueContainer::from(restored), ValueContainer::Collection(values),);
     }
 }
@@ -553,7 +567,7 @@ fn test_value_wire_v1_borrowed_payload_golden_round_trips_all_types() {
         let scalar = ValueWirePayloadRefV1::try_from(&fixture.value).expect("construct borrowed scalar payload");
         assert_eq!(to_value(&scalar).unwrap(), expected_scalar);
         assert_eq!(
-            crate::decode_value_wire_payload_value(expected_scalar)
+            decode_value_wire_payload_value(expected_scalar)
                 .unwrap()
                 .into_container(),
             ValueContainer::Scalar(fixture.value.clone()),
@@ -564,7 +578,7 @@ fn test_value_wire_v1_borrowed_payload_golden_round_trips_all_types() {
         let collection = ValueWirePayloadRefV1::try_from(&values).expect("construct borrowed collection payload");
         assert_eq!(to_value(&collection).unwrap(), expected_collection,);
         assert_eq!(
-            crate::decode_value_wire_payload_value(expected_collection)
+            decode_value_wire_payload_value(expected_collection)
                 .unwrap()
                 .into_container(),
             ValueContainer::Collection(values),
@@ -605,10 +619,7 @@ fn test_value_wire_v1_preserves_unset_empty_singleton_and_json_null() {
             to_value(ValueWireV1::try_from(container.clone()).expect("construct V1 wire"),).unwrap(),
             expected
         );
-        assert_eq!(
-            crate::decode_value_wire_value(expected).unwrap().into_container(),
-            container,
-        );
+        assert_eq!(decode_value_wire_value(expected).unwrap().into_container(), container,);
     }
 }
 
@@ -667,7 +678,7 @@ fn test_value_wire_v1_rejects_invalid_envelopes_and_unknown_tags() {
         json!({"version": 1, "value": {"scalar": {"int32": 42, "bool": true}}}),
     ] {
         assert!(
-            crate::decode_value_wire_value(invalid.clone()).is_err(),
+            decode_value_wire_value(invalid.clone()).is_err(),
             "unexpectedly accepted {invalid}",
         );
     }
@@ -681,7 +692,7 @@ fn test_value_wire_v1_rejects_noncanonical_external_tag_shapes() {
         json!({"Scalar": {"Int32": 42}}),
         json!({"Collection": {"Int32": [42]}}),
     ] {
-        assert!(crate::decode_value_wire_value(noncanonical).is_err());
+        assert!(decode_value_wire_value(noncanonical).is_err());
     }
 }
 
@@ -695,13 +706,13 @@ fn test_value_wire_v1_wide_integer_payloads_require_canonical_decimal_strings() 
         scalar_wire("uint128", json!("-1")),
         scalar_wire("uint128", json!("01")),
     ] {
-        assert!(crate::decode_value_wire_value(invalid).is_err());
+        assert!(decode_value_wire_value(invalid).is_err());
     }
     for invalid in [
         collection_wire("uint128", json!(["1", 2])),
         collection_wire("uint128", json!(["1", "02"])),
     ] {
-        assert!(crate::decode_value_wire_value(invalid).is_err());
+        assert!(decode_value_wire_value(invalid).is_err());
     }
 }
 
@@ -714,11 +725,11 @@ fn test_value_wire_v1_big_integer_payloads_require_canonical_structures() {
         scalar_wire("biginteger", json!("+1")),
         scalar_wire("biginteger", json!("001")),
     ] {
-        assert!(crate::decode_value_wire_value(invalid).is_err());
+        assert!(decode_value_wire_value(invalid).is_err());
     }
-    assert!(crate::decode_value_wire_value(collection_wire("biginteger", json!(["1", "02"]),)).is_err(),);
+    assert!(decode_value_wire_value(collection_wire("biginteger", json!(["1", "02"]),)).is_err(),);
     let valid = scalar_wire("biginteger", json!("1"));
-    assert!(crate::decode_value_wire_value(valid).is_ok());
+    assert!(decode_value_wire_value(valid).is_ok());
 }
 
 #[cfg(feature = "big-decimal")]
@@ -730,22 +741,18 @@ fn test_value_wire_v1_big_decimal_payloads_require_canonical_structures() {
         scalar_wire("bigdecimal", json!({"coefficient": "01", "scale": 1})),
         scalar_wire("bigdecimal", json!({"coefficient": "1", "scale": 1, "extra": true})),
     ] {
-        assert!(crate::decode_value_wire_value(invalid).is_err());
+        assert!(decode_value_wire_value(invalid).is_err());
     }
     let valid = scalar_wire("bigdecimal", json!({"coefficient": "1", "scale": 0}));
-    assert!(crate::decode_value_wire_value(valid).is_ok());
+    assert!(decode_value_wire_value(valid).is_ok());
 }
 
 #[test]
 fn test_value_wire_v1_duration_payload_is_strict() {
+    assert!(decode_value_wire_value(scalar_wire("duration", json!({"secs": 1, "nanos": 1_000_000_000}),)).is_err(),);
+    assert!(decode_value_wire_value(scalar_wire("duration", json!({"secs": 1, "nanos": 2, "extra": 3}),)).is_err(),);
     assert!(
-        crate::decode_value_wire_value(scalar_wire("duration", json!({"secs": 1, "nanos": 1_000_000_000}),)).is_err(),
-    );
-    assert!(
-        crate::decode_value_wire_value(scalar_wire("duration", json!({"secs": 1, "nanos": 2, "extra": 3}),)).is_err(),
-    );
-    assert!(
-        crate::decode_value_wire_value(collection_wire(
+        decode_value_wire_value(collection_wire(
             "duration",
             json!([{"secs": 1, "nanos": 2, "extra": 3}]),
         ))

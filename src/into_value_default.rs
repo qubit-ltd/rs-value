@@ -21,6 +21,7 @@
 /// # Returns
 ///
 /// Owned strings in the source iteration order.
+#[must_use]
 #[inline]
 fn collect_strings<'a, I>(values: I) -> Vec<String>
 where
@@ -56,6 +57,10 @@ pub trait IntoValueDefault<T> {
 
 impl<T> IntoValueDefault<T> for T {
     /// Returns the owned value unchanged as the default.
+    ///
+    /// # Returns
+    ///
+    /// The input value, moved without cloning.
     #[inline(always)]
     fn into_value_default(self) -> T {
         self
@@ -64,6 +69,10 @@ impl<T> IntoValueDefault<T> for T {
 
 impl IntoValueDefault<String> for &str {
     /// Copies the borrowed string into an owned default string.
+    ///
+    /// # Returns
+    ///
+    /// An owned string with the same contents as the input.
     #[inline]
     fn into_value_default(self) -> String {
         self.to_string()
@@ -72,6 +81,10 @@ impl IntoValueDefault<String> for &str {
 
 impl IntoValueDefault<String> for &String {
     /// Clones the borrowed string into an owned default string.
+    ///
+    /// # Returns
+    ///
+    /// An owned string with the same contents as the input.
     #[inline]
     fn into_value_default(self) -> String {
         self.clone()
@@ -83,6 +96,10 @@ where
     T: Clone,
 {
     /// Clones the borrowed slice elements into an owned default vector.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector preserving the input element order.
     #[inline]
     fn into_value_default(self) -> Vec<T> {
         self.to_vec()
@@ -94,6 +111,10 @@ where
     T: Clone,
 {
     /// Clones the borrowed vector elements into an owned default vector.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector preserving the input element order.
     #[inline]
     fn into_value_default(self) -> Vec<T> {
         self.clone()
@@ -102,6 +123,10 @@ where
 
 impl<T, const N: usize> IntoValueDefault<Vec<T>> for [T; N] {
     /// Moves the array elements into an owned default vector.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector preserving the input element order.
     #[inline]
     fn into_value_default(self) -> Vec<T> {
         Vec::from(self)
@@ -113,6 +138,10 @@ where
     T: Clone,
 {
     /// Clones the borrowed array elements into an owned default vector.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector preserving the input element order.
     #[inline]
     fn into_value_default(self) -> Vec<T> {
         self.to_vec()
@@ -121,6 +150,10 @@ where
 
 impl IntoValueDefault<Vec<String>> for Vec<&str> {
     /// Copies each borrowed string into an owned default vector.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector preserving the input element order.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self)
@@ -129,6 +162,10 @@ impl IntoValueDefault<Vec<String>> for Vec<&str> {
 
 impl IntoValueDefault<Vec<String>> for &[&str] {
     /// Copies each borrowed slice string into an owned default vector.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector preserving the input element order.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self.iter().copied())
@@ -137,6 +174,10 @@ impl IntoValueDefault<Vec<String>> for &[&str] {
 
 impl IntoValueDefault<Vec<String>> for &Vec<&str> {
     /// Copies each borrowed vector string into an owned default vector.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector preserving the input element order.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self.iter().copied())
@@ -145,6 +186,10 @@ impl IntoValueDefault<Vec<String>> for &Vec<&str> {
 
 impl<const N: usize> IntoValueDefault<Vec<String>> for [&str; N] {
     /// Copies each borrowed array string into an owned default vector.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector preserving the input element order.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self)
@@ -153,6 +198,10 @@ impl<const N: usize> IntoValueDefault<Vec<String>> for [&str; N] {
 
 impl<const N: usize> IntoValueDefault<Vec<String>> for &[&str; N] {
     /// Copies each borrowed array string into an owned default vector.
+    ///
+    /// # Returns
+    ///
+    /// An owned vector preserving the input element order.
     #[inline]
     fn into_value_default(self) -> Vec<String> {
         collect_strings(self.iter().copied())

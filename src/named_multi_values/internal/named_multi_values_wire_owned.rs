@@ -23,6 +23,28 @@ pub(in crate::named_multi_values) struct NamedMultiValuesWireOwned {
 }
 
 impl<'de> Deserialize<'de> for NamedMultiValuesWireOwned {
+    /// Decodes an owned name and versioned value using named fields for
+    /// human-readable formats; binary formats may also use ordered fields.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `D` - Deserializer supplying the record and its format policy.
+    ///
+    /// # Parameters
+    ///
+    /// * `deserializer` - Source of the named wire record, consumed by
+    ///   decoding.
+    ///
+    /// # Returns
+    ///
+    /// The owned name and decoded V1 value, before collection-shape validation
+    /// by `NamedMultiValues`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `D::Error` for missing, duplicate, unknown or malformed fields,
+    /// invalid V1 values, or disallowed sequence representations.
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

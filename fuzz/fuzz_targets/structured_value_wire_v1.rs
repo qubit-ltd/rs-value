@@ -18,6 +18,8 @@ use qubit_value::ValueWireV1;
 use qubit_value_fuzz::structured_wire_input::container_from_bytes;
 
 /// Bounds generated structured values during both sides of the wire round trip.
+#[must_use]
+#[inline]
 fn fuzz_decode_limits() -> JsonDecodeLimits {
     let base = ValueWireV1::default_json_decode_limits();
     JsonDecodeLimits::builder()
@@ -27,6 +29,8 @@ fn fuzz_decode_limits() -> JsonDecodeLimits {
 }
 
 /// Bounds generated JSON output while preserving the default value profile.
+#[must_use]
+#[inline]
 fn fuzz_encode_limits() -> JsonEncodeLimits {
     let base = ValueWireV1::default_json_encode_limits();
     JsonEncodeLimits::builder()

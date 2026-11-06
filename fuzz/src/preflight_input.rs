@@ -16,6 +16,10 @@ use qubit_datatype::DataType;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
+use serde_json::Map;
+use serde_json::Value as JsonValue;
+use serde_json::from_str;
+use serde_json::json;
 
 pub const MAX_INPUT_BYTES: usize = 4096;
 pub const MAX_ITEMS: usize = 32;
@@ -23,10 +27,15 @@ pub const MAX_DEPTH: usize = 60;
 pub const MAX_OUTPUT_BYTES: usize = 4 * 1024 * 1024;
 
 /// Limits the fuzz input slice to the target's maximum processing size.
+#[must_use]
+#[inline]
 pub fn bounded_input(data: &[u8]) -> &[u8] {
     &data[..data.len().min(MAX_INPUT_BYTES)]
 }
 
+/// Reads a little-endian unsigned 128-bit integer, zero-padding short input.
+#[must_use]
+#[inline]
 fn read_u128(data: &[u8]) -> u128 {
     let mut bytes = [0_u8; 16];
     let count = data.len().min(bytes.len());
@@ -34,6 +43,9 @@ fn read_u128(data: &[u8]) -> u128 {
     u128::from_le_bytes(bytes)
 }
 
+/// Reads a little-endian signed 128-bit integer, zero-padding short input.
+#[must_use]
+#[inline]
 fn read_i128(data: &[u8]) -> i128 {
     let mut bytes = [0_u8; 16];
     let count = data.len().min(bytes.len());
@@ -41,6 +53,9 @@ fn read_i128(data: &[u8]) -> i128 {
     i128::from_le_bytes(bytes)
 }
 
+/// Reads a little-endian unsigned 64-bit integer, zero-padding short input.
+#[must_use]
+#[inline]
 fn read_u64(data: &[u8]) -> u64 {
     let mut bytes = [0_u8; 8];
     let count = data.len().min(bytes.len());
@@ -48,6 +63,9 @@ fn read_u64(data: &[u8]) -> u64 {
     u64::from_le_bytes(bytes)
 }
 
+/// Reads a little-endian unsigned 32-bit integer, zero-padding short input.
+#[must_use]
+#[inline]
 fn read_u32(data: &[u8]) -> u32 {
     let mut bytes = [0_u8; 4];
     let count = data.len().min(bytes.len());
@@ -56,6 +74,7 @@ fn read_u32(data: &[u8]) -> u32 {
 }
 
 /// Converts a bounded input suffix into valid UTF-8 text.
+#[must_use]
 fn text(data: &[u8]) -> String {
     String::from_utf8_lossy(data.get(1..data.len().min(65)).unwrap_or_default()).into_owned()
 }
@@ -68,32 +87,35 @@ const JSON_NUMBER_TEXTS: [&str; 5] = [
     "0.123456789012345678901234567890123456789",
 ];
 
-fn json_number(data: &[u8]) -> serde_json::Value {
+/// Parses a selected numeric spelling, falling back to JSON null if rejected.
+#[must_use]
+fn json_number(data: &[u8]) -> JsonValue {
     let number_text =
         JSON_NUMBER_TEXTS[usize::from(data.get(4).copied().unwrap_or_default()) % JSON_NUMBER_TEXTS.len()];
-    serde_json::from_str(number_text).unwrap_or(serde_json::Value::Null)
+    from_str(number_text).unwrap_or(JsonValue::Null)
 }
 
 /// Builds a JSON value whose nesting depth is selected by the input.
-fn nested_json(data: &[u8]) -> serde_json::Value {
+#[must_use]
+fn nested_json(data: &[u8]) -> JsonValue {
     let depth = usize::from(data.get(3).copied().unwrap_or_default()) % (MAX_DEPTH + 1);
     let number = json_number(data);
     let text = text(data);
-    let finite = serde_json::Value::from(f64::from(data.get(1).copied().unwrap_or_default()) / 10.0);
-    let mut leaf = serde_json::Map::new();
+    let finite = JsonValue::from(f64::from(data.get(1).copied().unwrap_or_default()) / 10.0);
+    let mut leaf = Map::new();
     // Use the tag byte's quotient so order selection does not change the
     // generated text, which is derived from the remaining input bytes.
     if data.first().copied().unwrap_or_default() / 14 & 1 == 0 {
         leaf.insert("number".to_owned(), number);
-        leaf.insert("text".to_owned(), serde_json::Value::String(text));
+        leaf.insert("text".to_owned(), JsonValue::String(text));
         leaf.insert("finite".to_owned(), finite);
     } else {
         leaf.insert("finite".to_owned(), finite);
-        leaf.insert("text".to_owned(), serde_json::Value::String(text));
+        leaf.insert("text".to_owned(), JsonValue::String(text));
         leaf.insert("number".to_owned(), number);
     }
-    let leaf = serde_json::Value::Object(leaf);
-    (0..depth).fold(leaf, |value, _| serde_json::json!([value]))
+    let leaf = JsonValue::Object(leaf);
+    (0..depth).fold(leaf, |value, _| json!([value]))
 }
 
 /// Maps bounded fuzz bytes to a runtime value container.
@@ -135,11 +157,11 @@ pub fn value_from_bytes(data: &[u8]) -> ValueContainer {
                 .chunks(16)
                 .take(MAX_ITEMS)
                 .map(|chunk| match chunk.first().copied().unwrap_or_default() % 5 {
-                    0 => serde_json::Value::Null,
-                    1 => serde_json::Value::Bool(chunk.get(1).copied().unwrap_or_default() & 1 == 1),
-                    2 => serde_json::Value::from(i64::from(chunk.get(1).copied().unwrap_or_default())),
-                    3 => serde_json::Value::String(text(chunk)),
-                    _ => serde_json::json!({"text": text(chunk)}),
+                    0 => JsonValue::Null,
+                    1 => JsonValue::Bool(chunk.get(1).copied().unwrap_or_default() & 1 == 1),
+                    2 => JsonValue::from(i64::from(chunk.get(1).copied().unwrap_or_default())),
+                    3 => JsonValue::String(text(chunk)),
+                    _ => json!({"text": text(chunk)}),
                 })
                 .collect(),
         )),

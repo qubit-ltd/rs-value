@@ -19,6 +19,9 @@ use super::internal::StrictStringMap;
 
 /// Serializes one string map with lexicographically ordered keys.
 ///
+/// Borrows the entries without cloning their strings and allocates a temporary
+/// vector of entry references for sorting. The source map remains unchanged.
+///
 /// # Type Parameters
 ///
 /// * `S` - Destination serializer type.
@@ -51,6 +54,9 @@ where
 
 /// Deserializes one string map from any Serde map representation.
 ///
+/// Produces owned keys and values and rejects duplicate keys rather than
+/// overwriting an earlier entry.
+///
 /// # Type Parameters
 ///
 /// * `D` - Source deserializer type.
@@ -66,6 +72,7 @@ where
 /// # Errors
 ///
 /// Returns `D::Error` when decoding fails or the map repeats a key.
+#[inline]
 pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
 where
     D: Deserializer<'de>,

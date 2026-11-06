@@ -33,6 +33,14 @@ pub(in crate::value_wire) enum WireShapeOwned {
 
 impl From<WireShapeOwned> for ValueContainer {
     /// Restores the explicit runtime scalar-or-collection shape.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: Owned wire payload consumed to restore its runtime shape.
+    ///
+    /// # Returns
+    ///
+    /// A container with the same scalar-or-collection shape and typed payload.
     #[inline]
     fn from(value: WireShapeOwned) -> Self {
         match value {
