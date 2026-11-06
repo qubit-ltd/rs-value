@@ -186,4 +186,28 @@ Captured on Linux x86_64 with rustc 1.94.0, `serde_json::Value` size 32 bytes in
 | unified, after | 1,024 | 74,080 / 73,952 | 73,728 / 73,728 | 352 / 224 |
 | unified, after | 4,096 | 295,264 / 295,136 | 294,912 / 294,912 | 352 / 224 |
 
-At 4096 items, cumulative / peak-live bytes fell by 327,136 / 196,176 B in the default profile and 654,880 / 360,240 B in the unified profile. Scratch beyond the direct output reference is width-independent in the measured samples after the change. The regression test checks that the 4096-element scratch stays within two `Value` slots of the 16-element scratch; this bound fails on the unchanged implementation. The figures establish allocator traffic for this synthetic boolean-array projection only. They do not establish process RSS, general JSON workloads, or downstream throughput; the `natural_array/{16,1024,4096}` Criterion cases are separate timing measurements.
+At 4096 items, cumulative / peak-live bytes fell by 327,136 / 196,176 B in the default profile and 654,880 / 360,240 B in the unified profile. Scratch beyond the direct output reference is width-independent in the measured samples after the change. The regression test checks that the 4096-element scratch stays within two `Value` slots of the 16-element scratch; this bound fails on the unchanged implementation. The figures establish allocator traffic for this synthetic boolean-array projection only. They do not establish process RSS or general JSON workloads.
+
+The array Criterion comparison used the same baseline source revision (`6f5ae6e`) and the same benchmark fixture in a detached temporary worktree for the before run, then the implementation worktree for the after run. Commands used `--sample-size 10 --warm-up-time 1 --measurement-time 1 --save-baseline`; features were `natural-json` and, separately, `natural-json,serde_json/arbitrary_precision,serde_json/preserve_order`. The fixture is created outside the timed iteration and returns the projected value through `black_box`. Times are Criterion 95% intervals:
+
+| Profile | Items | Before | After | Median change |
+| --- | ---: | ---: | ---: | ---: |
+| Default | 16 | 884.33–887.40 ns | 729.38–734.05 ns | −17.3% |
+| Default | 1,024 | 37.103–37.520 µs | 34.546–34.631 µs | −7.2% |
+| Default | 4,096 | 146.58–146.68 µs | 137.90–137.96 µs | −6.0% |
+| Unified | 16 | 1.0146–1.0178 µs | 797.15–797.92 ns | −21.5% |
+| Unified | 1,024 | 47.128–47.212 µs | 41.559–41.594 µs | −11.8% |
+| Unified | 4,096 | 190.95–191.32 µs | 170.19–172.06 µs | −10.6% |
+
+The object comparison re-ran the natural projection cases most relevant to canonical sorting. The before and after runs each used the same 10-sample, 1-second warm-up and measurement settings. The table reports Criterion 95% slope intervals in milliseconds; object fixture creation remains outside timing.
+
+| Profile | Object case, 1,024 entries | Before | After |
+| --- | --- | ---: | ---: |
+| Default | Flat, ordered | 376.3–389.4 µs | 378.9–379.8 µs |
+| Default | Nested, ordered | 1.311–1.364 ms | 1.272–1.273 ms |
+| Default | Flat, shuffled | 414.5–419.6 µs | 373.1–373.4 µs |
+| Unified | Flat, ordered | 309.9–352.1 µs | 294.5–295.2 µs |
+| Unified | Nested, ordered | 1.363–1.434 ms | 1.208–1.224 ms |
+| Unified | Flat, shuffled | 431.9–450.5 µs | 403.9–405.3 µs |
+
+These synthetic runs showed no repeatable object slowdown; the default flat/ordered intervals overlap, while the other listed after intervals are lower. Natural-array timing also improved in these runs, but neither result predicts process RSS or end-to-end application performance. Criterion measurements are host- and load-sensitive.
