@@ -153,3 +153,8 @@ required-features = ["natural-json"]
 name = "value_identity_bench"
 harness = false
 required-features = ["big-decimal", "json"]
+
+[[test]]
+name = "natural_json_allocation_tests"
+path = "tests/natural_json_allocation_tests.rs"
+required-features = ["natural-json"]

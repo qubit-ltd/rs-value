@@ -922,3 +922,49 @@ fn test_natural_json_reports_each_projection_budget_resource_precisely() {
         );
     }
 }
+
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_natural_json_canonicalization_handles_empty_and_wide_arrays_without_mutation() {
+    let empty = Value::Json(JsonValue::Array(Vec::new()));
+    assert_eq!(
+        empty.to_json_value().expect("project empty array"),
+        JsonValue::Array(Vec::new())
+    );
+
+    let source = Value::Json(JsonValue::Array((0..1024).map(JsonValue::from).collect()));
+    let before = source.clone();
+    let projected = source.to_json_value().expect("project wide array");
+    assert_eq!(projected.as_array().expect("array").len(), 1024);
+    assert_eq!(projected[0], JsonValue::from(0));
+    assert_eq!(projected[1023], JsonValue::from(1023));
+    assert_eq!(source, before, "projection leaves its input unchanged");
+}
+
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
+fn test_natural_json_canonicalization_preserves_number_identity_and_sorts_mixed_objects() {
+    let source_json = from_str::<JsonValue>(r#"[{"z":1.0,"a":[1e+30,{"y":2,"b":3}]},{}]"#)
+        .expect("parse mixed JSON");
+    let original = source_json.clone();
+    let source = Value::Json(source_json);
+    let projected = source.to_json_value().expect("project mixed JSON");
+
+    let JsonValue::Array(items) = &projected else {
+        panic!("array result");
+    };
+    let JsonValue::Object(first) = &items[0] else {
+        panic!("object child");
+    };
+    assert_eq!(
+        first.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["a", "z"]
+    );
+    assert_eq!(first["z"].as_number().unwrap().to_string(), "1.0");
+    assert_eq!(first["a"][0].as_number().unwrap().to_string(), "1e+30");
+    assert_eq!(
+        source,
+        Value::Json(original),
+        "projection leaves its input unchanged"
+    );
+}

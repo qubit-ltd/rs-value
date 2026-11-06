@@ -164,3 +164,26 @@ The before/after runs used Rust 1.94.0, Criterion's optimized bench profile, and
 The allocation observation isolates 1024-entry Wire object serialization, with fixture construction, DTO construction, and canonical-output validation outside measurement. It uses `serde_json::to_writer(sink(), &wire)`, so output-buffer allocation is excluded. Under default `serde_json`, both map traversals are sorted and the sink measurements are 0 bytes for both inputs. Under unified `preserve_order` + `arbitrary_precision`, sorted input allocates 0 bytes while reverse input allocates 16,384 bytes for its sorting-index vector. Both inputs were validated outside timing to produce the same 16,319-byte canonical output. Earlier `to_json_vec()` totals included the returned output Vec and are not comparable to this isolated measurement, so they are omitted here.
 
 The Wire fast path is retained: it removes the measured sort-index allocation for sorted objects, preserves the existing budget rejection tests, and showed no confirmed throughput regression. The Natural JSON fast path was a temporary local experiment in `canonicalize_json_value`; the benchmark rows above measure that prototype, which was withdrawn before the final commit after the unordered-object regression. The committed code does not contain that path. These are synthetic object measurements; they do not predict full downstream application performance. Raw Criterion reports and samples remain under `target/criterion` on the measurement host.
+
+## Natural JSON wide-array allocation evidence
+
+The dedicated `natural_json_allocation_tests` integration binary measures the public `Value::to_json_value` path with its fixture constructed before the measurement window and the projected result retained through the readout. Its thread-local global allocator records cumulative requested allocation bytes (successful `alloc` plus the new size of successful `realloc`) and peak live requested bytes (alloc/realloc growth less dealloc/realloc old size). A direct `serde_json::Value::Array(vec![Bool(true); n])` build is the required-output reference. These are allocator-requested bytes in the test profile, not RSS or Criterion throughput.
+
+Captured on Linux x86_64 with rustc 1.94.0, `serde_json::Value` size 32 bytes in the default profile and 72 bytes with `arbitrary_precision,preserve_order`. The fixture is an array of `n` booleans; measured sizes are 16, 1024, and 4096. Default profile command: `cargo test --locked --features natural-json --test natural_json_allocation_tests -- --nocapture`. Unified profile command: `cargo test --locked --features 'natural-json,serde_json/arbitrary_precision,serde_json/preserve_order' --test natural_json_allocation_tests -- --nocapture`.
+
+| Feature profile | n | Projection cumulative / peak live (B) | Direct output cumulative / peak live (B) | Projection scratch over output (B) |
+| --- | ---: | ---: | ---: | ---: |
+| default, before | 16 | 2,016 / 1,296 | 512 / 512 | 1,504 / 784 |
+| default, before | 1,024 | 114,912 / 81,936 | 32,768 / 32,768 | 82,144 / 49,168 |
+| default, before | 4,096 | 458,976 / 327,696 | 131,072 / 131,072 | 327,904 / 196,624 |
+| default, after | 16 | 1,280 / 960 | 512 / 512 | 768 / 448 |
+| default, after | 1,024 | 33,536 / 33,216 | 32,768 / 32,768 | 768 / 448 |
+| default, after | 4,096 | 131,840 / 131,520 | 131,072 / 131,072 | 768 / 448 |
+| unified, before | 16 | 3,584 / 2,576 | 1,152 / 1,152 | 2,432 / 1,424 |
+| unified, before | 1,024 | 237,440 / 163,856 | 73,728 / 73,728 | 163,712 / 90,128 |
+| unified, before | 4,096 | 950,144 / 655,376 | 294,912 / 294,912 | 655,232 / 360,464 |
+| unified, after | 16 | 1,504 / 1,376 | 1,152 / 1,152 | 352 / 224 |
+| unified, after | 1,024 | 74,080 / 73,952 | 73,728 / 73,728 | 352 / 224 |
+| unified, after | 4,096 | 295,264 / 295,136 | 294,912 / 294,912 | 352 / 224 |
+
+At 4096 items, cumulative / peak-live bytes fell by 327,136 / 196,176 B in the default profile and 654,880 / 360,240 B in the unified profile. Scratch beyond the direct output reference is width-independent in the measured samples after the change. The regression test checks that the 4096-element scratch stays within two `Value` slots of the 16-element scratch; this bound fails on the unchanged implementation. The figures establish allocator traffic for this synthetic boolean-array projection only. They do not establish process RSS, general JSON workloads, or downstream throughput; the `natural_array/{16,1024,4096}` Criterion cases are separate timing measurements.

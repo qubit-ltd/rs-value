@@ -22,6 +22,8 @@ use serde_json::Number;
 use serde_json::Value;
 
 use super::internal::CanonicalJson;
+#[cfg(feature = "converter")]
+use super::internal::CanonicalJsonFrame;
 #[cfg(feature = "json")]
 use super::internal::FixedNumberText;
 use super::internal::JsonNumberChildren;
@@ -222,37 +224,43 @@ pub(crate) fn validate_numbers(value: &Value) -> Result<(), ValueWireEncodeError
 /// # Returns
 ///
 /// An owned JSON tree with lexicographically ordered object keys.
+///
+/// Traversal is iterative. The frame stack and object sort entries are
+/// scheduling storage; array children are transferred directly into the final
+/// output array, so wide arrays do not accumulate a second child-value buffer.
 #[must_use]
 #[cfg(feature = "converter")]
 pub(crate) fn canonicalize_json_value(value: &Value) -> Value {
-    let mut pending = vec![(value, false)];
-    let mut completed = Vec::new();
-    while let Some((node, ready)) = pending.pop() {
-        match node {
-            Value::Array(values) if !ready => {
-                pending.push((node, true));
-                pending.extend(values.iter().rev().map(|child| (child, false)));
+    let mut frames = Vec::new();
+    let mut next = Some(value);
+    let mut completed = None;
+    loop {
+        if let Some(node) = next.take() {
+            if let Some(mut frame) = CanonicalJsonFrame::new(node) {
+                next = frame.next_child();
+                frames.push(frame);
+                continue;
             }
-            Value::Object(values) if !ready => {
-                pending.push((node, true));
-                pending.extend(values.values().rev().map(|child| (child, false)));
+            completed = Some(match node {
+                Value::Array(_) => Value::Array(Vec::new()),
+                Value::Object(_) => Value::Object(Map::new()),
+                _ => node.clone(),
+            });
+        }
+        if let Some(child) = completed.take() {
+            if let Some(parent) = frames.last_mut() {
+                parent.push(child);
+            } else {
+                return child;
             }
-            Value::Array(values) => {
-                let children = completed.split_off(completed.len() - values.len());
-                completed.push(Value::Array(children));
-            }
-            Value::Object(values) => {
-                let children = completed.split_off(completed.len() - values.len());
-                let mut entries: Vec<_> = values.keys().zip(children).collect();
-                entries.sort_unstable_by_key(|(left, _)| *left);
-                let mut object = Map::with_capacity(entries.len());
-                for (key, child) in entries {
-                    object.insert(key.clone(), child);
-                }
-                completed.push(Value::Object(object));
-            }
-            _ => completed.push(node.clone()),
+        }
+        let Some(frame) = frames.last_mut() else {
+            unreachable!("the root value is returned when its frame completes");
+        };
+        if let Some(child) = frame.next_child() {
+            next = Some(child);
+        } else {
+            completed = Some(frames.pop().expect("last frame exists").finish());
         }
     }
-    completed.pop().expect("one root is completed")
 }

@@ -110,6 +110,23 @@ fn benchmark_natural_json_projection(c: &mut Criterion) {
     c.bench_function("projection/string_collection/32", |b| {
         b.iter(|| black_box(black_box(&strings).to_json_value().unwrap()));
     });
+    for size in [16, 1024, 4096] {
+        let source = Value::Json(JsonValue::Array(vec![JsonValue::Bool(true); size]));
+        assert_eq!(
+            source.to_json_value().unwrap().as_array().unwrap().len(),
+            size
+        );
+        c.bench_function(&format!("natural_array/{size}"), |b| {
+            b.iter(|| {
+                black_box(
+                    black_box(&source)
+                        .to_json_value()
+                        .expect("array should project"),
+                )
+            });
+        });
+    }
+
     let durations = ValueContainer::from(vec![Duration::from_millis(1234); 32]);
     assert_eq!(durations.to_json_value().unwrap().as_array().unwrap().len(), 32);
     c.bench_function("projection/duration_collection/32", |b| {

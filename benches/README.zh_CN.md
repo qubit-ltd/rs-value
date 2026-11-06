@@ -135,3 +135,26 @@ cargo bench --locked --no-default-features --features 'natural-json,serde_json/p
 分配观测隔离了 1024 键 Wire 对象序列化，fixture、DTO 构造和 canonical 输出校验均在计时外。测量使用 `serde_json::to_writer(sink(), &wire)`，不包含输出缓冲分配。默认 `serde_json` 下两种 map 遍历都已排序，sink 分配均为 0 bytes；统一 `preserve_order` + `arbitrary_precision` 下，有序输入为 0 bytes，逆序输入为 16,384 bytes，正好是排序索引向量的分配。两种输入在计时外都验证为相同的 16,319-byte canonical 输出。此前用 `to_json_vec()` 得到的分配总数包含返回的输出 Vec，不能作为此隔离测量的对比数据，已从此处移除。
 
 保留 Wire 快速路径：它确实移除了已排序对象的排序索引分配，原预算拒绝测试仍通过，也未发现确认的吞吐回退。Natural JSON 快速路径曾作为 `canonicalize_json_value` 的本地临时实验；上表数据测量了该原型。由于无序对象复测仍有回退，该路径在最终提交前已撤回，当前提交代码不含此路径。这些都是合成对象测量，不能代表完整下游应用性能。原始 Criterion 报告和采样数据保存在测量主机的 `target/criterion` 下。
+
+## Natural JSON 宽数组分配证据
+
+独立的 `natural_json_allocation_tests` integration binary 测量公开 `Value::to_json_value` 路径：fixture 在测量窗口外构造，投影结果保留到读数完成。线程局部全局分配器记录累计请求分配字节（成功 `alloc` 的大小加成功 `realloc` 的新大小）和峰值存活请求字节（alloc/realloc 增量减去 dealloc/realloc 旧大小）。直接构造 `serde_json::Value::Array(vec![Bool(true); n])` 作为必需输出参照。这些是测试 profile 中分配器请求的字节，不是 RSS 或 Criterion 吞吐量。
+
+测量环境为 Linux x86_64、rustc 1.94.0；默认 profile 下 `serde_json::Value` 大小为 32 字节，启用 `arbitrary_precision,preserve_order` 后为 72 字节。fixture 是由 `n` 个布尔值组成的数组，测量 16、1024 和 4096 项。默认 profile 命令：`cargo test --locked --features natural-json --test natural_json_allocation_tests -- --nocapture`。unified profile 命令：`cargo test --locked --features 'natural-json,serde_json/arbitrary_precision,serde_json/preserve_order' --test natural_json_allocation_tests -- --nocapture`。
+
+| Feature profile | 项数 | 投影累计 / 峰值存活（B） | 直接输出累计 / 峰值存活（B） | 投影超出输出的临时量（B） |
+| --- | ---: | ---: | ---: | ---: |
+| default，修改前 | 16 | 2,016 / 1,296 | 512 / 512 | 1,504 / 784 |
+| default，修改前 | 1,024 | 114,912 / 81,936 | 32,768 / 32,768 | 82,144 / 49,168 |
+| default，修改前 | 4,096 | 458,976 / 327,696 | 131,072 / 131,072 | 327,904 / 196,624 |
+| default，修改后 | 16 | 1,280 / 960 | 512 / 512 | 768 / 448 |
+| default，修改后 | 1,024 | 33,536 / 33,216 | 32,768 / 32,768 | 768 / 448 |
+| default，修改后 | 4,096 | 131,840 / 131,520 | 131,072 / 131,072 | 768 / 448 |
+| unified，修改前 | 16 | 3,584 / 2,576 | 1,152 / 1,152 | 2,432 / 1,424 |
+| unified，修改前 | 1,024 | 237,440 / 163,856 | 73,728 / 73,728 | 163,712 / 90,128 |
+| unified，修改前 | 4,096 | 950,144 / 655,376 | 294,912 / 294,912 | 655,232 / 360,464 |
+| unified，修改后 | 16 | 1,504 / 1,376 | 1,152 / 1,152 | 352 / 224 |
+| unified，修改后 | 1,024 | 74,080 / 73,952 | 73,728 / 73,728 | 352 / 224 |
+| unified，修改后 | 4,096 | 295,264 / 295,136 | 294,912 / 294,912 | 352 / 224 |
+
+4096 项时，default profile 的累计 / 峰值存活字节分别减少 327,136 / 196,176 B，unified profile 分别减少 654,880 / 360,240 B。修改后的样本中，直接输出参照以外的临时分配不随宽度增长。回归测试要求 4096 项临时量不超过 16 项临时量加两个 `Value` 槽位；未修改的实现会违反此边界。这些数据只证明该合成布尔数组投影的分配器流量，不代表进程 RSS、一般 JSON 负载或下游吞吐量；`natural_array/{16,1024,4096}` Criterion 用例单独测量时间。
