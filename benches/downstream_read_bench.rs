@@ -112,18 +112,9 @@ fn benchmark_natural_json_projection(c: &mut Criterion) {
     });
     for size in [16, 1024, 4096] {
         let source = Value::Json(JsonValue::Array(vec![JsonValue::Bool(true); size]));
-        assert_eq!(
-            source.to_json_value().unwrap().as_array().unwrap().len(),
-            size
-        );
+        assert_eq!(source.to_json_value().unwrap().as_array().unwrap().len(), size);
         c.bench_function(&format!("natural_array/{size}"), |b| {
-            b.iter(|| {
-                black_box(
-                    black_box(&source)
-                        .to_json_value()
-                        .expect("array should project"),
-                )
-            });
+            b.iter(|| black_box(black_box(&source).to_json_value().expect("array should project")));
         });
     }
 

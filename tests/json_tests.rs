@@ -944,8 +944,7 @@ fn test_natural_json_canonicalization_handles_empty_and_wide_arrays_without_muta
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_natural_json_canonicalization_preserves_number_identity_and_sorts_mixed_objects() {
-    let source_json = from_str::<JsonValue>(r#"[{"z":1.0,"a":[1e+30,{"y":2,"b":3}]},{}]"#)
-        .expect("parse mixed JSON");
+    let source_json = from_str::<JsonValue>(r#"[{"z":1.0,"a":[1e+30,{"y":2,"b":3}]},{}]"#).expect("parse mixed JSON");
     let original = source_json.clone();
     let source = Value::Json(source_json);
     let projected = source.to_json_value().expect("project mixed JSON");
@@ -956,15 +955,8 @@ fn test_natural_json_canonicalization_preserves_number_identity_and_sorts_mixed_
     let JsonValue::Object(first) = &items[0] else {
         panic!("object child");
     };
-    assert_eq!(
-        first.keys().map(String::as_str).collect::<Vec<_>>(),
-        ["a", "z"]
-    );
+    assert_eq!(first.keys().map(String::as_str).collect::<Vec<_>>(), ["a", "z"]);
     assert_eq!(first["z"].as_number().unwrap().to_string(), "1.0");
     assert_eq!(first["a"][0].as_number().unwrap().to_string(), "1e+30");
-    assert_eq!(
-        source,
-        Value::Json(original),
-        "projection leaves its input unchanged"
-    );
+    assert_eq!(source, Value::Json(original), "projection leaves its input unchanged");
 }

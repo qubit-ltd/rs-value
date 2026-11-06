@@ -1,3 +1,11 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
+
 //! Allocation evidence for public Natural JSON projection of wide arrays.
 
 use std::alloc::GlobalAlloc;
@@ -145,7 +153,7 @@ fn direct_output_reference(size: usize) -> (JsonValue, Reading) {
 }
 
 #[test]
-fn wide_natural_json_projection_allocation_evidence() {
+fn test_wide_natural_json_projection_allocation_evidence() {
     // Warm TLS and the projection path before enabling counters.
     let warm = fixture(1);
     let _ = warm.to_json_value().expect("warm projection");
@@ -166,10 +174,7 @@ fn wide_natural_json_projection_allocation_evidence() {
         assert_eq!(reference.as_array().unwrap().len(), size);
         eprintln!(
             "natural_array/{size}: cumulative={} peak_live={} direct_output: cumulative={} peak_live={}",
-            reading.cumulative,
-            reading.peak_live,
-            reference_reading.cumulative,
-            reference_reading.peak_live
+            reading.cumulative, reading.peak_live, reference_reading.cumulative, reference_reading.peak_live
         );
         readings.push((size, reading, reference_reading));
     }

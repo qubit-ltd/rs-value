@@ -14,7 +14,7 @@ mod big_decimal_payload;
 mod big_decimal_payload_visitor;
 #[cfg(feature = "json")]
 mod canonical_json;
-#[cfg(feature = "converter")]
+#[cfg(all(feature = "converter", feature = "json"))]
 mod canonical_json_frame;
 mod canonical_string_map;
 mod duration_payload;
@@ -33,7 +33,7 @@ mod validated_sequence_visitor;
 pub(in crate::wire) use big_decimal_payload::BigDecimalPayload;
 #[cfg(feature = "json")]
 pub(in crate::wire) use canonical_json::CanonicalJson;
-#[cfg(feature = "converter")]
+#[cfg(all(feature = "converter", feature = "json"))]
 pub(in crate::wire) use canonical_json_frame::CanonicalJsonFrame;
 pub(in crate::wire) use canonical_string_map::CanonicalStringMap;
 pub(in crate::wire) use duration_payload::DurationPayload;

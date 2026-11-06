@@ -3,8 +3,7 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Continuation frames for iterative canonical JSON materialization.
@@ -21,13 +20,20 @@ use serde_json::map::Iter as ObjectIter;
 /// an object child has been yielded and is cleared when that child's owned
 /// value is delivered. Completed array children already belong to final output.
 pub(in crate::wire) enum CanonicalJsonFrame<'a> {
+    /// Holds the remaining array source and its final owned destination.
     Array {
+        /// The source elements not yet visited by the projection loop.
         remaining: ArrayIter<'a, Value>,
+        /// Completed children accumulated directly into the returned array.
         output: Vec<Value>,
     },
+    /// Holds object children until key ordering can be restored.
     Object {
+        /// The object entries not yet visited by the projection loop.
         remaining: ObjectIter<'a>,
+        /// The key associated with the one child currently being projected.
         pending_key: Option<&'a str>,
+        /// Completed borrowed keys and owned values awaiting sorted insertion.
         completed: Vec<(&'a str, Value)>,
     },
 }
@@ -35,6 +41,15 @@ pub(in crate::wire) enum CanonicalJsonFrame<'a> {
 impl<'a> CanonicalJsonFrame<'a> {
     /// Creates a frame for a nonempty source container, preallocating its final
     /// destination. Empty containers are returned directly by the caller.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: borrowed JSON node whose nonempty container should be framed.
+    ///
+    /// # Returns
+    ///
+    /// `Some` containing the frame for a nonempty array or object, or `None`
+    /// for a scalar or empty container.
     pub(in crate::wire) fn new(value: &'a Value) -> Option<Self> {
         match value {
             Value::Array(values) if !values.is_empty() => Some(Self::Array {
@@ -51,13 +66,16 @@ impl<'a> CanonicalJsonFrame<'a> {
     }
 
     /// Yields exactly one next child and, for objects, remembers its key.
+    ///
+    /// # Returns
+    ///
+    /// The next borrowed array element or object value, or `None` when the
+    /// source container has no remaining entries.
     pub(in crate::wire) fn next_child(&mut self) -> Option<&'a Value> {
         match self {
             Self::Array { remaining, .. } => remaining.next(),
             Self::Object {
-                remaining,
-                pending_key,
-                ..
+                remaining, pending_key, ..
             } => {
                 debug_assert!(pending_key.is_none());
                 let (key, value) = remaining.next()?;
@@ -68,13 +86,16 @@ impl<'a> CanonicalJsonFrame<'a> {
     }
 
     /// Transfers one completed child directly into this frame's destination.
+    ///
+    /// # Parameters
+    ///
+    /// - `child`: independently owned projection of the child most recently
+    ///   yielded by [`Self::next_child`].
     pub(in crate::wire) fn push(&mut self, child: Value) {
         match self {
             Self::Array { output, .. } => output.push(child),
             Self::Object {
-                pending_key,
-                completed,
-                ..
+                pending_key, completed, ..
             } => {
                 let key = pending_key.take().expect("object child has a pending key");
                 completed.push((key, child));
@@ -84,11 +105,15 @@ impl<'a> CanonicalJsonFrame<'a> {
 
     /// Builds the completed owned container. Object keys remain sorted exactly
     /// as before, and are cloned only when entering the final map.
+    ///
+    /// # Returns
+    ///
+    /// The completed array or object with all projected children.
     pub(in crate::wire) fn finish(self) -> Value {
         match self {
             Self::Array { output, .. } => Value::Array(output),
             Self::Object { mut completed, .. } => {
-                completed.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
+                completed.sort_unstable_by_key(|(key, _)| *key);
                 let mut output = Map::with_capacity(completed.len());
                 for (key, child) in completed {
                     output.insert(key.to_owned(), child);

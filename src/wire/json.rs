@@ -22,7 +22,7 @@ use serde_json::Number;
 use serde_json::Value;
 
 use super::internal::CanonicalJson;
-#[cfg(feature = "converter")]
+#[cfg(all(feature = "converter", feature = "json"))]
 use super::internal::CanonicalJsonFrame;
 #[cfg(feature = "json")]
 use super::internal::FixedNumberText;
@@ -258,7 +258,10 @@ pub(crate) fn canonicalize_json_value(value: &Value) -> Value {
             unreachable!("the root value is returned when its frame completes");
         };
         if let Some(child) = frame.next_child() {
-            next = Some(child);
+            match child {
+                Value::Array(_) | Value::Object(_) => next = Some(child),
+                _ => frame.push(child.clone()),
+            }
         } else {
             completed = Some(frames.pop().expect("last frame exists").finish());
         }
