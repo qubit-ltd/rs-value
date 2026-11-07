@@ -21,16 +21,24 @@ use std::time::Duration;
 #[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
 use bigdecimal::BigDecimal;
 #[cfg(feature = "converter")]
+use qubit_datatype::CollectionConversionLimits;
+#[cfg(feature = "converter")]
 use qubit_datatype::CollectionConversionPolicy;
 #[cfg(feature = "converter")]
 use qubit_datatype::ConversionLimits;
-#[cfg(all(feature = "converter", feature = "json", feature = "big-decimal"))]
+#[cfg(feature = "converter")]
 use qubit_datatype::ConversionOperationLimits;
 #[cfg(feature = "converter")]
 use qubit_datatype::ConversionPolicy;
-#[cfg(all(feature = "converter", feature = "json"))]
+#[cfg(feature = "converter")]
+use qubit_datatype::ConversionResource;
+#[cfg(feature = "converter")]
 use qubit_datatype::ConversionSession;
+#[cfg(feature = "converter")]
+use qubit_datatype::DataConversionErrorKind;
 use qubit_datatype::DataType;
+#[cfg(feature = "converter")]
+use qubit_datatype::EmptyItemPolicy;
 #[cfg(feature = "redact")]
 use qubit_redact::Redact;
 #[cfg(feature = "redact")]
@@ -577,6 +585,286 @@ fn test_value_container_borrowed_and_session_conversion_paths() {
             .expect("project collection with policy"),
         json!(["43", "44"])
     );
+}
+
+/// Scalar numeric list conversion shares the caller's cumulative item budget.
+#[test]
+#[cfg(feature = "converter")]
+fn test_value_container_shared_budget_scalar_list() {
+    let policy = ConversionPolicy::strict();
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_items(1).build())
+        .build();
+    let mut session = ConversionSession::new(&policy, &limits);
+    let value = ValueContainer::from(41_i32);
+
+    assert_eq!(value.to_list_in::<i64>(&mut session).unwrap(), vec![41]);
+    assert_eq!(session.items_used(), 1);
+    let error = value.to_list_in::<i64>(&mut session).unwrap_err();
+    assert!(matches!(error, ValueError::Conversion(ref source)
+        if source.resource() == Some(ConversionResource::Items)));
+    assert_eq!(session.items_used(), 1);
+}
+
+/// The first-item scalar and collection dispatches consume the same session.
+#[test]
+#[cfg(feature = "converter")]
+fn test_value_container_shared_budget_first_item_dispatch() {
+    let policy = ConversionPolicy::strict();
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_items(1).build())
+        .build();
+
+    let mut scalar_session = ConversionSession::new(&policy, &limits);
+    assert_eq!(
+        ValueContainer::from(41_i32)
+            .to_first_in::<i64>(&mut scalar_session)
+            .unwrap(),
+        41
+    );
+    let error = ValueContainer::from("42")
+        .to_first_in::<i64>(&mut scalar_session)
+        .unwrap_err();
+    assert!(matches!(error, ValueError::Conversion(ref source)
+        if source.resource() == Some(ConversionResource::Items)));
+    assert_eq!(scalar_session.items_used(), 1);
+
+    let mut collection_session = ConversionSession::new(&policy, &limits);
+    assert_eq!(
+        ValueContainer::from(vec![41_i32, 42_i32])
+            .to_first_in::<i64>(&mut collection_session)
+            .unwrap(),
+        41
+    );
+    let error = ValueContainer::from(43_i32)
+        .to_first_in::<i64>(&mut collection_session)
+        .unwrap_err();
+    assert!(matches!(error, ValueError::Conversion(ref source)
+        if source.resource() == Some(ConversionResource::Items)));
+    assert_eq!(collection_session.items_used(), 1);
+}
+
+/// Split strings and concrete collections retain cumulative session accounting.
+#[test]
+#[cfg(feature = "converter")]
+fn test_value_container_shared_budget_string_and_collection_lists() {
+    let split = CollectionConversionPolicy::builder().split_scalar_strings(true).build();
+    let policy = ConversionPolicy::builder().collection_policy(split).build();
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_items(2).build())
+        .build();
+
+    let mut string_session = ConversionSession::new(&policy, &limits);
+    assert_eq!(
+        ValueContainer::from("41,42")
+            .to_list_in::<i32>(&mut string_session)
+            .unwrap(),
+        vec![41, 42]
+    );
+    assert_eq!(string_session.items_used(), 2);
+    let error = ValueContainer::from(43_i32)
+        .to_list_in::<i32>(&mut string_session)
+        .unwrap_err();
+    assert!(matches!(error, ValueError::Conversion(ref source)
+        if source.resource() == Some(ConversionResource::Items)));
+    assert_eq!(string_session.items_used(), 2);
+
+    let mut collection_session = ConversionSession::new(&policy, &limits);
+    assert_eq!(
+        ValueContainer::from(vec![41_i32, 42_i32])
+            .to_list_in::<i64>(&mut collection_session)
+            .unwrap(),
+        vec![41, 42]
+    );
+    assert_eq!(collection_session.items_used(), 2);
+    let error = ValueContainer::from("43,44")
+        .to_list_in::<i32>(&mut collection_session)
+        .unwrap_err();
+    assert!(matches!(error, ValueError::ListConversion(ref source)
+        if source.source_index() == 0
+            && source.conversion_error().resource() == Some(ConversionResource::Items)));
+    assert_eq!(collection_session.items_used(), 2);
+}
+
+/// A partial scalar list preserves the original index and admitted budget.
+#[test]
+#[cfg(feature = "converter")]
+fn test_value_container_shared_budget_list_failure_index_and_count() {
+    let collection = CollectionConversionPolicy::builder().split_scalar_strings(true).build();
+    let policy = ConversionPolicy::builder().collection_policy(collection).build();
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_items(2).build())
+        .build();
+    let mut session = ConversionSession::new(&policy, &limits);
+    let error = ValueContainer::from("41,42,43")
+        .to_list_in::<i32>(&mut session)
+        .unwrap_err();
+    assert!(matches!(error, ValueError::ListConversion(ref source)
+        if source.source_index() == 2
+            && source.conversion_error().resource() == Some(ConversionResource::Items)));
+    assert_eq!(session.items_used(), 2);
+}
+
+/// A failed target conversion remains charged after its item was admitted.
+#[test]
+#[cfg(feature = "converter")]
+fn test_value_container_shared_budget_failed_conversion_is_charged() {
+    let policy = ConversionPolicy::strict();
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_items(1).build())
+        .build();
+    let mut session = ConversionSession::new(&policy, &limits);
+    let error = ValueContainer::from("bad").to_list_in::<i32>(&mut session).unwrap_err();
+    assert!(matches!(error, ValueError::ListConversion(ref source)
+        if source.source_index() == 0
+            && source.conversion_error().resource().is_none()));
+    assert_eq!(session.items_used(), 1);
+
+    let error = ValueContainer::from(42_i32)
+        .to_list_in::<i32>(&mut session)
+        .unwrap_err();
+    assert!(matches!(error, ValueError::Conversion(ref source)
+        if source.resource() == Some(ConversionResource::Items)));
+    assert_eq!(session.items_used(), 1);
+}
+
+/// Source admission errors are list-context resource failures, not missing
+/// items.
+#[test]
+#[cfg(feature = "converter")]
+fn test_value_container_scalar_list_diagnostic_source_admission() {
+    let policy = ConversionPolicy::strict();
+    let limits = ConversionLimits::builder()
+        .collection_limits(CollectionConversionLimits::builder().max_source_bytes(2).build())
+        .build();
+    let value = ValueContainer::from("41,42");
+
+    let error = value.to_list_with::<i32>(&policy, &limits).unwrap_err();
+    assert!(matches!(error, ValueError::ListConversion(ref source)
+        if source.source_index() == 0
+            && source.conversion_error().kind() == DataConversionErrorKind::LimitExceeded
+            && source.conversion_error().resource() == Some(ConversionResource::CollectionSourceBytes)));
+    assert!(error.missing().is_none());
+
+    let policy = ConversionPolicy::strict();
+    let mut session = ConversionSession::new(&policy, &limits);
+    let error = value.to_list_in::<i32>(&mut session).unwrap_err();
+    assert!(matches!(error, ValueError::ListConversion(ref source)
+        if source.source_index() == 0
+            && source.conversion_error().kind() == DataConversionErrorKind::LimitExceeded
+            && source.conversion_error().resource() == Some(ConversionResource::CollectionSourceBytes)));
+    assert!(error.missing().is_none());
+    assert_eq!(session.items_used(), 0);
+
+    let limits = ConversionLimits::builder()
+        .operation_limits(ConversionOperationLimits::builder().max_items(0).build())
+        .build();
+    let split = CollectionConversionPolicy::builder().split_scalar_strings(true).build();
+    let policy = ConversionPolicy::builder().collection_policy(split).build();
+    let error = ValueContainer::from("41,42")
+        .to_list_with::<i32>(&policy, &limits)
+        .unwrap_err();
+    assert!(matches!(error, ValueError::ListConversion(ref source)
+        if source.source_index() == 0
+            && source.conversion_error().kind() == DataConversionErrorKind::LimitExceeded
+            && source.conversion_error().resource() == Some(ConversionResource::Items)));
+    assert!(error.missing().is_none());
+
+    let mut session = ConversionSession::new(&policy, &limits);
+    let error = ValueContainer::from("41,42")
+        .to_list_in::<i32>(&mut session)
+        .unwrap_err();
+    assert!(matches!(error, ValueError::ListConversion(ref source)
+        if source.source_index() == 0
+            && source.conversion_error().kind() == DataConversionErrorKind::LimitExceeded
+            && source.conversion_error().resource() == Some(ConversionResource::Items)));
+    assert!(error.missing().is_none());
+    assert_eq!(session.items_used(), 0);
+}
+
+/// Blank splitting policy skips list items while unset storage remains missing.
+#[test]
+#[cfg(feature = "converter")]
+fn test_value_container_scalar_list_diagnostic_blank_and_unset() {
+    let policy = ConversionPolicy::env_friendly();
+    let limits = ConversionLimits::default();
+    let value = ValueContainer::from("   ");
+
+    assert_eq!(value.to_list_with::<i32>(&policy, &limits).unwrap(), Vec::<i32>::new());
+
+    let mut session = ConversionSession::new(&policy, &limits);
+    assert_eq!(value.to_list_in::<i32>(&mut session).unwrap(), Vec::<i32>::new());
+    assert_eq!(session.items_used(), 0);
+
+    let unset = ValueContainer::new_unset_scalar(DataType::String);
+    let error = unset.to_list_with::<i32>(&policy, &limits).unwrap_err();
+    let missing = error.missing().expect("unset storage is missing");
+    assert_eq!(missing.reason(), qubit_value::ValueMissingReason::UnsetScalar);
+    assert_eq!(missing.source_index(), None);
+    assert!(missing.is_defaultable_for_conversion());
+
+    let error = unset.to_list_in::<i32>(&mut session).unwrap_err();
+    let missing = error.missing().expect("unset storage is missing");
+    assert_eq!(missing.source_index(), None);
+    assert!(missing.is_defaultable_for_conversion());
+    assert_eq!(session.items_used(), 1);
+}
+
+/// Rejected empty items retain the raw source index and are not defaultable.
+#[test]
+#[cfg(feature = "converter")]
+fn test_value_container_scalar_list_diagnostic_rejected_empty_item() {
+    let collection = CollectionConversionPolicy::builder()
+        .split_scalar_strings(true)
+        .empty_item_policy(EmptyItemPolicy::Reject)
+        .build();
+    let policy = ConversionPolicy::builder().collection_policy(collection).build();
+    let limits = ConversionLimits::default();
+    let value = ValueContainer::from(",42");
+
+    let error = value.to_list_with::<i32>(&policy, &limits).unwrap_err();
+    assert!(matches!(error, ValueError::ListConversion(ref source)
+        if source.source_index() == 0
+            && source.conversion_error().kind() == DataConversionErrorKind::InvalidValue
+            && source.conversion_error().resource().is_none()));
+    assert!(error.missing().is_none());
+
+    let mut session = ConversionSession::new(&policy, &limits);
+    let error = value.to_list_in::<i32>(&mut session).unwrap_err();
+    assert!(matches!(error, ValueError::ListConversion(ref source)
+        if source.source_index() == 0
+            && source.conversion_error().kind() == DataConversionErrorKind::InvalidValue
+            && source.conversion_error().resource().is_none()));
+    assert!(error.missing().is_none());
+    assert_eq!(session.items_used(), 0);
+}
+
+/// Target failures preserve first and later original split indices.
+#[test]
+#[cfg(feature = "converter")]
+fn test_value_container_scalar_list_diagnostic_target_conversion() {
+    let collection = CollectionConversionPolicy::builder().split_scalar_strings(true).build();
+    let policy = ConversionPolicy::builder().collection_policy(collection).build();
+    let limits = ConversionLimits::default();
+
+    for (source_text, expected_index, expected_items) in [("bad,42", 0, 1), ("41,bad", 1, 2)] {
+        let value = ValueContainer::from(source_text);
+        let error = value.to_list_with::<i32>(&policy, &limits).unwrap_err();
+        assert!(matches!(error, ValueError::ListConversion(ref source)
+            if source.source_index() == expected_index
+                && source.conversion_error().kind() == DataConversionErrorKind::InvalidValue
+                && source.conversion_error().resource().is_none()));
+        assert!(error.missing().is_none());
+
+        let mut session = ConversionSession::new(&policy, &limits);
+        let error = value.to_list_in::<i32>(&mut session).unwrap_err();
+        assert!(matches!(error, ValueError::ListConversion(ref source)
+            if source.source_index() == expected_index
+                && source.conversion_error().kind() == DataConversionErrorKind::InvalidValue
+                && source.conversion_error().resource().is_none()));
+        assert!(error.missing().is_none());
+        assert_eq!(session.items_used(), expected_items);
+    }
 }
 
 /// Exercises both shape branches of container metadata and consuming
