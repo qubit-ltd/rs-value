@@ -528,3 +528,12 @@ Maintainers should apply the following rules to future changes:
    compatibility-sensitive behavior, with focused tests and release notes.
 10. Keep English and Simplified Chinese README, user guide, and design
     documents semantically aligned whenever a contract changes.
+11. Validate Natural JSON projection with a shared bounded property checker,
+    corpus-backed deterministic regressions, and baseline/unified scheduled
+    fuzzing. Check determinism, source immutability, limit monotonicity,
+    collection shape, and recovery after failures.
+12. Preserve the tag and payload write-order regression for JSON root-leaf
+    identity hashing. Measure root leaves, shallow containers, and nested
+    containers together, recording repeated ranges and environmental noise.
+    Report allocation gains only when allocation evidence is stable; do not
+    claim a speedup from noisy timing results.

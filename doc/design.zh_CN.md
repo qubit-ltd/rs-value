@@ -401,3 +401,8 @@ preflight 累计行为或 feature gate 发生变化时。
 9. 默认资源 profile 和 canonical JSON 排序的变化属于兼容性敏感行为，需要 focused test 和
    release note。
 10. 契约发生变化时，中英文 README、用户手册和设计文档必须同步保持语义一致。
+11. Natural JSON 投影应由共享的有界性质检查器验证，并同时通过确定性 corpus 回归和
+    baseline/unified 持续 fuzz 检查确定性、源值不变、限额单调性、集合形状及失败恢复。
+12. JSON 根叶节点身份哈希应保留标签与载荷写入顺序回归；性能评估应并列测量根叶节点、
+    浅层容器和嵌套容器，记录重复测量区间及环境噪声。只有分配证据稳定时才报告分配收益，
+    不以有噪声的计时结果宣称加速。
