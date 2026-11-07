@@ -1609,6 +1609,16 @@ impl Value {
     /// `Value::Unset(DataType::Json)`,
     /// [`ValueError::TypeMismatch`] when this value has a non-JSON data type,
     /// or [`ValueError::Conversion`] when JSON deserialization fails.
+    ///
+    /// # Resource limits
+    ///
+    /// This method deserializes an already materialized JSON value. It does
+    /// not apply `ConversionLimits`, a `ConversionSession`, or a JSON decode
+    /// budget to target deserialization. Earlier bounded decoding does not
+    /// bound allocations, recursion, or custom `Deserialize` work performed
+    /// here. Keep input structure bounded and evaluate the target
+    /// deserializer's resource behavior before using this method with
+    /// untrusted data.
     #[cfg(all(feature = "converter", feature = "json"))]
     #[cfg_attr(docsrs, doc(cfg(all(feature = "converter", feature = "json"))))]
     pub fn deserialize_json<T: DeserializeOwned>(&self) -> ValueResult<T> {

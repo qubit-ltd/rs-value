@@ -902,6 +902,12 @@ assert_eq!(value.get_json()?.as_array().unwrap().len(), 1);
 If encoding fails, propagate the error and drop the transaction without
 committing it; no partial budget state is retained.
 
+`Value::deserialize_json` operates on an already materialized JSON value. A
+budget used to decode or construct that value does not bound the allocations,
+recursion, or custom `Deserialize` work required to build the target type.
+Evaluate the target deserializer's resource behavior before using this method
+with untrusted data.
+
 With `natural-json`, Natural JSON projects a runtime value into ordinary
 `serde_json::Value`. The following example shows the exact JSON string emitted
 for several common values:

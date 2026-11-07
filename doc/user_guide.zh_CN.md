@@ -787,6 +787,10 @@ assert_eq!(value.get_json()?.as_array().unwrap().len(), 1);
 
 如果编码失败，应传播错误并丢弃 transaction，不要提交；部分预算状态不会被保留。
 
+`Value::deserialize_json` 操作的是已经物化的 JSON 值。用于解码或构造该值的预算，不会限制构造
+目标类型时的分配、递归或自定义 `Deserialize` 工作量。将此方法用于不可信数据前，应评估目标
+反序列化器的资源消耗。
+
 启用 `natural-json` 后，自然 JSON 将运行时值投影为普通的 `serde_json::Value`。下面的
 示例展示几种常见值实际生成的 JSON 字符串：
 
