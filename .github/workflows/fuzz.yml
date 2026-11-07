@@ -28,6 +28,9 @@ jobs:
           - target: preflight_soundness
             profile: baseline
             features: ""
+          - target: natural_json_projection
+            profile: baseline
+            features: ""
           - target: bounded_value_wire_v1
             profile: unified
             features: json-arbitrary-precision,json-preserve-order
@@ -35,6 +38,9 @@ jobs:
             profile: unified
             features: json-arbitrary-precision,json-preserve-order
           - target: preflight_soundness
+            profile: unified
+            features: json-arbitrary-precision,json-preserve-order
+          - target: natural_json_projection
             profile: unified
             features: json-arbitrary-precision,json-preserve-order
     steps:

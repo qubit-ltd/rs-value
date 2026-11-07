@@ -9,6 +9,7 @@
 //! Shared input generation for the fuzz targets and their deterministic tests.
 
 pub mod bounded_wire_input;
+pub mod natural_json_projection;
 pub mod preflight_input;
 pub mod preflight_sequence;
 pub mod structured_wire_input;

@@ -44,3 +44,10 @@ path = "fuzz_targets/preflight_soundness.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "natural_json_projection"
+path = "fuzz_targets/natural_json_projection.rs"
+test = false
+doc = false
+bench = false
