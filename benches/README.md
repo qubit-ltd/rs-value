@@ -211,3 +211,73 @@ The object comparison re-ran the natural projection cases most relevant to canon
 | Unified | Flat, shuffled | 431.9–450.5 µs | 403.9–405.3 µs |
 
 These synthetic runs showed no repeatable object slowdown; the default flat/ordered intervals overlap, while the other listed after intervals are lower. Natural-array timing also improved in these runs, but neither result predicts process RSS or end-to-end application performance. Criterion measurements are host- and load-sensitive.
+
+## JSON root-leaf identity hashing (RV-001)
+
+The root-leaf optimization bypasses the iterative traversal vectors for JSON
+null, booleans, numbers, and strings. Arrays and objects still use the existing
+iterative engine. The counting test constructs fixtures and hashers before the
+measurement window and measures only `Value::hash`; it warms hashing and the
+thread-local allocator first. It compares JSON integer hashing with direct
+`serde_json::Number::hash` to distinguish traversal state from number hashing.
+
+The allocation baseline was measured before the change with
+`cargo test --locked --features json --test json_identity_allocation_tests -- --nocapture`
+and with
+`cargo test --locked --features 'all,serde_json/arbitrary_precision,serde_json/preserve_order' --test json_identity_allocation_tests -- --nocapture`.
+Both baseline runs intentionally fail the new zero-allocation assertion and
+print the measurements. The matching post-change commands pass.
+
+The test also compares hashing the lexical number
+`12345678901234567890.123456789` directly with hashing it as `Value::Json`.
+In the unified baseline, `Value::Json` allocates 2 times / 120 bytes while
+direct Number hashing allocates 0 / 0; after the change, both allocate 0 / 0.
+This checks the unified `arbitrary_precision` representation without claiming
+that every Number representation is allocation-free.
+
+| Profile | Value hashed | Before: allocations / bytes | After: allocations / bytes | Direct Number: allocations / bytes |
+| --- | --- | ---: | ---: | ---: |
+| default | null, bool, integer, float, empty/nonempty string (each) | 2 / 160 | 0 / 0 | integer 0 / 0 |
+| unified `arbitrary_precision` + `preserve_order` | null, bool, integer, float, empty/nonempty string (each) | 2 / 120 | 0 / 0 | integer 0 / 0 |
+
+The before/after Criterion runs used Rust/Cargo 1.94.0, Linux x86_64, an
+Intel Xeon E5-2680 v4, `--all-features`, and 30 samples with 1-second warm-up
+and 2-second measurement for every case. The command was:
+
+```text
+cargo bench --locked --all-features --bench value_identity_bench -- 'identity/hash_json_' --sample-size 30 --warm-up-time 1 --measurement-time 2
+```
+
+Each cell gives Criterion's median estimate and its 95% interval. These are
+three complete runs before and after; intervals vary widely, especially on
+container cases, so the timing evidence does not support a stable speedup or
+regression claim. The measured allocation removal is the reproducible result.
+
+| Case | Before run 1 | Before run 2 | Before run 3 |
+| --- | ---: | ---: | ---: |
+| null | 58.182 (56.909–60.607 ns) | 56.947 (56.781–57.204 ns) | 57.009 (56.551–57.864 ns) |
+| bool | 67.126 (64.025–71.544 ns) | 63.523 (61.534–66.862 ns) | 61.193 (61.068–61.326 ns) |
+| integer | 67.340 (67.080–67.765 ns) | 67.037 (66.803–67.308 ns) | 68.572 (66.988–70.955 ns) |
+| float | 67.365 (66.895–68.054 ns) | 68.941 (67.731–70.253 ns) | 66.854 (66.737–67.028 ns) |
+| empty string | 64.893 (64.674–65.142 ns) | 65.723 (65.305–66.447 ns) | 64.598 (64.577–64.622 ns) |
+| nonempty string | 72.538 (71.037–74.532 ns) | 73.784 (71.249–79.023 ns) | 71.456 (70.711–72.525 ns) |
+| shallow array | 250.00 (249.61–250.59 ns) | 552.88 (496.13–628.74 ns) | 257.21 (256.68–257.91 ns) |
+| nested JSON | 1.4277 (1.4122–1.4510 µs) | 1.9655 (1.6847–2.3480 µs) | 1.4172 (1.4087–1.4279 µs) |
+
+| Case | After run 1 | After run 2 | After run 3 |
+| --- | ---: | ---: | ---: |
+| null | 21.869 (21.435–22.547 ns) | 32.846 (28.383–37.580 ns) | 31.174 (27.720–35.723 ns) |
+| bool | 25.805 (25.705–25.946 ns) | 26.584 (26.527–26.644 ns) | 26.661 (25.900–27.511 ns) |
+| integer | 52.518 (45.575–57.627 ns) | 61.728 (58.521–64.699 ns) | 32.866 (31.586–34.936 ns) |
+| float | 122.70 (97.936–147.23 ns) | 56.865 (55.713–58.594 ns) | 32.458 (32.015–33.241 ns) |
+| empty string | 63.352 (57.731–69.965 ns) | 33.591 (31.852–36.194 ns) | 34.399 (30.902–38.325 ns) |
+| nonempty string | 73.966 (67.075–80.775 ns) | 46.505 (41.263–51.240 ns) | 44.252 (40.016–49.302 ns) |
+| shallow array | 581.88 (496.70–675.79 ns) | 257.66 (256.72–259.22 ns) | 514.28 (449.95–575.22 ns) |
+| nested JSON | 3.8822 (3.3566–4.5037 µs) | 1.4277 (1.4075–1.4654 µs) | 2.8551 (2.6866–3.0510 µs) |
+
+The host had substantial scheduling variation during these measurements. For
+example, shallow-array medians span 250–553 ns before and 258–582 ns after,
+while nested JSON spans 1.42–1.97 µs before and 1.43–3.88 µs after. Therefore
+the fast path is retained for its directly measured removal of two traversal
+allocations per root leaf, not on a throughput claim. These synthetic root
+fixtures do not establish end-to-end application performance.

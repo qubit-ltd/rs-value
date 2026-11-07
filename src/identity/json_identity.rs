@@ -95,8 +95,9 @@ pub(crate) fn json_eq(left: &Value, right: &Value) -> bool {
 
 /// Hashes a JSON tree using structural, object-order-independent semantics.
 ///
-/// Appends to `state` without mutating `value`. Traversal allocates
-/// continuation and object-entry state proportional to nesting depth.
+/// Appends to `state` without mutating `value`. Container traversal allocates
+/// continuation and object-entry state proportional to nesting depth; root
+/// leaves are hashed directly without traversal state.
 ///
 /// # Type Parameters
 ///
@@ -113,7 +114,22 @@ pub(crate) fn json_eq(left: &Value, right: &Value) -> bool {
 /// `state` are not rolled back.
 #[inline]
 pub(crate) fn hash_json<H: Hasher>(value: &Value, state: &mut H) {
-    hash_json_iterative(value, state);
+    match value {
+        Value::Null => 0_u8.hash(state),
+        Value::Bool(value) => {
+            1_u8.hash(state);
+            value.hash(state);
+        }
+        Value::Number(value) => {
+            2_u8.hash(state);
+            value.hash(state);
+        }
+        Value::String(value) => {
+            3_u8.hash(state);
+            value.hash(state);
+        }
+        Value::Array(_) | Value::Object(_) => hash_json_iterative(value, state),
+    }
 }
 
 /// Hashes a JSON tree while enforcing one mutable JSON budget.

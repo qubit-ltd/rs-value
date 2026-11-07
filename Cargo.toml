@@ -158,3 +158,8 @@ required-features = ["big-decimal", "json"]
 name = "natural_json_allocation_tests"
 path = "tests/natural_json_allocation_tests.rs"
 required-features = ["natural-json"]
+
+[[test]]
+name = "json_identity_allocation_tests"
+path = "tests/json_identity_allocation_tests.rs"
+required-features = ["json"]

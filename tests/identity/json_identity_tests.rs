@@ -56,6 +56,82 @@ impl Hasher for RecordingHasher {
 }
 
 #[cfg(feature = "json")]
+#[derive(Default)]
+struct EventHasher(Vec<Vec<u8>>);
+
+#[cfg(feature = "json")]
+impl Hasher for EventHasher {
+    fn finish(&self) -> u64 {
+        0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.push(bytes.to_vec());
+    }
+}
+
+/// Verifies root JSON leaves retain the Value prefix, JSON tag, and payload
+/// writes.
+#[cfg(feature = "json")]
+#[test]
+fn test_hash_json_root_leaf_write_sequence() {
+    let fixtures = vec![
+        (JsonValue::Null, 0_u8, None),
+        (JsonValue::Bool(true), 1_u8, Some(JsonValue::Bool(true))),
+        (json!(42), 2_u8, Some(json!(42))),
+        (
+            JsonValue::Number(serde_json::Number::from_f64(42.5).expect("finite float")),
+            2_u8,
+            Some(JsonValue::Number(
+                serde_json::Number::from_f64(42.5).expect("finite float"),
+            )),
+        ),
+        (
+            JsonValue::Number(serde_json::Number::from_f64(-0.0).expect("finite signed zero")),
+            2_u8,
+            Some(JsonValue::Number(
+                serde_json::Number::from_f64(-0.0).expect("finite signed zero"),
+            )),
+        ),
+        (json!("leaf"), 3_u8, Some(json!("leaf"))),
+    ];
+
+    let mut null_events = EventHasher::default();
+    Value::Json(JsonValue::Null).hash(&mut null_events);
+    let mut prefix = null_events.0;
+    assert_eq!(prefix.pop(), Some(vec![0]), "Null's JSON tag is the final write");
+
+    for (value, tag, payload) in fixtures {
+        let mut actual = EventHasher::default();
+        Value::Json(value).hash(&mut actual);
+        let mut expected = prefix.clone();
+        tag.hash(&mut EventHasherAppender(&mut expected));
+        if let Some(payload) = payload {
+            match payload {
+                JsonValue::Bool(value) => value.hash(&mut EventHasherAppender(&mut expected)),
+                JsonValue::Number(value) => value.hash(&mut EventHasherAppender(&mut expected)),
+                JsonValue::String(value) => value.hash(&mut EventHasherAppender(&mut expected)),
+                _ => unreachable!(),
+            }
+        }
+        assert_eq!(actual.0, expected, "unexpected write sequence for JSON tag {tag}");
+    }
+}
+
+#[cfg(feature = "json")]
+struct EventHasherAppender<'a>(&'a mut Vec<Vec<u8>>);
+
+#[cfg(feature = "json")]
+impl Hasher for EventHasherAppender<'_> {
+    fn finish(&self) -> u64 {
+        0
+    }
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.push(bytes.to_vec());
+    }
+}
+
+#[cfg(feature = "json")]
 struct PanickingHasher;
 
 #[cfg(feature = "json")]

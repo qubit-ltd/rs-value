@@ -55,6 +55,26 @@ fn nested_json_fixture() -> Value {
     }))
 }
 
+/// Builds scalar and shallow JSON roots used to isolate traversal setup cost.
+fn json_root_fixtures() -> [(&'static str, Value); 6] {
+    [
+        ("null", Value::Json(JsonValue::Null)),
+        ("bool", Value::Json(JsonValue::Bool(true))),
+        ("integer", Value::Json(JsonValue::Number(42.into()))),
+        (
+            "float",
+            Value::Json(JsonValue::Number(
+                serde_json::Number::from_f64(42.5).expect("finite benchmark float"),
+            )),
+        ),
+        ("string_empty", Value::Json(JsonValue::String(String::new()))),
+        (
+            "string_nonempty",
+            Value::Json(JsonValue::String("identity leaf".into())),
+        ),
+    ]
+}
+
 /// Builds a large-coefficient decimal fixture for scale-sensitive hashing.
 fn large_big_decimal_fixture() -> Value {
     let coefficient = BigInt::from(1_u8) << 4096_u32;
@@ -79,8 +99,17 @@ fn benchmark_string_map_hash(c: &mut Criterion) {
 
 /// Benchmarks hashing a nested JSON object.
 fn benchmark_json_hash(c: &mut Criterion) {
+    for (name, value) in json_root_fixtures() {
+        c.bench_function(&format!("identity/hash_json_root_{name}"), |bencher| {
+            bencher.iter(|| black_box(hash_value(black_box(&value))))
+        });
+    }
+    let shallow = Value::Json(json!([null, true, 42, "leaf"]));
+    c.bench_function("identity/hash_json_shallow_array", |bencher| {
+        bencher.iter(|| black_box(hash_value(black_box(&shallow))))
+    });
     let value = nested_json_fixture();
-    c.bench_function("identity/hash_nested_json", |bencher| {
+    c.bench_function("identity/hash_json_nested", |bencher| {
         bencher.iter(|| black_box(hash_value(black_box(&value))))
     });
 }
