@@ -334,6 +334,70 @@ fn test_projection_rejects_unified_wide_json_number() {
     assert_eq!(Value::Json(marker.clone()).to_json_value().unwrap(), marker);
 }
 
+#[cfg(feature = "converter")]
+#[test]
+fn test_natural_projection_retains_number_while_wire_checks_identity() {
+    let samples = ["1.2500", "1e1", "0.123456789012345678901234567890123456789"];
+    let mut preserved_source_tokens = 0;
+    let mut identity_rejections = 0;
+
+    for input in samples {
+        let number: JsonValue = from_str(input).expect("valid finite JSON number");
+        let serialized = to_vec(&number).expect("number serializes");
+        let retained_source_token = serialized == input.as_bytes();
+        if retained_source_token {
+            preserved_source_tokens += 1;
+        }
+
+        // Natural projection validates the representable range but preserves
+        // the original Number, including in recursively nested JSON values.
+        let projected = Value::Json(number.clone()).to_json_value().unwrap();
+        assert_eq!(projected, number);
+        assert_eq!(
+            to_vec(&projected).expect("projected number serializes"),
+            serialized,
+            "projection must retain the parsed Number representation for {input}"
+        );
+        let nested = json!({"outer": [number.clone()]});
+        assert_eq!(
+            Value::Json(nested.clone()).to_json_value().unwrap(),
+            nested,
+            "nested projection must retain {input}"
+        );
+
+        let expected_standard: Option<Number> = input.parse::<f64>().ok().and_then(Number::from_f64);
+        if expected_standard.as_ref() == number.as_number() {
+            let _wire = ValueWireV1::try_from(Value::Json(number.clone()))
+                .expect("identity-preserving Wire number is accepted");
+        } else {
+            identity_rejections += 1;
+            assert!(matches!(
+                ValueWireV1::try_from(Value::Json(number.clone())),
+                Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+            ));
+        }
+        if expected_standard.as_ref() == number.as_number() {
+            let _wire =
+                ValueWireV1::try_from(Value::Json(nested)).expect("identity-preserving nested Wire number is accepted");
+        } else {
+            assert!(matches!(
+                ValueWireV1::try_from(Value::Json(nested)),
+                Err(ValueWireEncodeError::JsonNumberNotRoundTrippable)
+            ));
+        }
+    }
+
+    // This branch proves the arbitrary_precision configuration exercised at
+    // least one original-token case instead of silently skipping all samples.
+    if preserved_source_tokens > 0 {
+        assert!(preserved_source_tokens <= samples.len());
+        assert!(
+            identity_rejections > 0,
+            "preserved source tokens must exercise Wire identity rejection"
+        );
+    }
+}
+
 #[test]
 fn test_json_feature_unification_preserves_native_numbers_in_wire_paths() {
     let limits = limits();

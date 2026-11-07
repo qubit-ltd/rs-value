@@ -53,11 +53,14 @@
 //!   reject them because JSON has no `NaN` or infinity number literals.
 //! - JSON numbers follow `qubit-json`'s explicit range contract: negative
 //!   integers fit `i64`, non-negative integers fit `u64`, and fractional or
-//!   exponential values are finite `f64`. Wider exact values use the crate's
-//!   explicit string-based integer and decimal wire representations. Runtime
-//!   JSON numbers must also round trip to the same `serde_json::Number`; with
-//!   `arbitrary_precision`, nonstandard or over-precise representations are
-//!   rejected instead of silently changing JSON identity.
+//!   exponential values must be finite `f64`. Wider exact values use the
+//!   crate's explicit string-based integer and decimal wire representations.
+//!   [`ValueWireV1`] additionally requires each runtime JSON number to round
+//!   trip to the same `serde_json::Number`; with `arbitrary_precision`, a
+//!   nonstandard or over-precise representation is rejected rather than
+//!   silently changing JSON identity. Natural JSON projection performs the
+//!   range check while retaining an accepted original `Number`, so a successful
+//!   projection does not imply that Wire V1 accepts that number.
 //!
 //! # Usage Examples
 //!
