@@ -15,6 +15,8 @@ use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_value::ValueWireV1;
+use qubit_value_fuzz::named_wire_input::check_structured;
+use qubit_value_fuzz::structured_wire_input::check_non_finite;
 use qubit_value_fuzz::structured_wire_input::container_from_bytes;
 
 /// Bounds generated structured values during both sides of the wire round trip.
@@ -57,4 +59,6 @@ fuzz_target!(|data: &[u8]| {
             panic!("generated structured value must be V1 encodable: {error}")
         }
     }
+    check_non_finite(data);
+    check_structured(data);
 });

@@ -14,7 +14,9 @@
 
 use libfuzzer_sys::fuzz_target;
 use qubit_value_fuzz::bounded_wire_input::check_input;
+use qubit_value_fuzz::named_wire_input::check_raw;
 
 fuzz_target!(|data: &[u8]| {
     let _ = check_input(data);
+    check_raw(data);
 });

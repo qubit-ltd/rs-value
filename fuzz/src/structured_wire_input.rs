@@ -75,8 +75,7 @@ fn float32(data: &[u8], arithmetic: i32) -> f32 {
             }
         }
         _ => f32::from_bits(
-            FLOAT32_BOUNDARIES
-                [usize::from(data.get(2).copied().unwrap_or_default()) % FLOAT32_BOUNDARIES.len()],
+            FLOAT32_BOUNDARIES[usize::from(data.get(2).copied().unwrap_or_default()) % FLOAT32_BOUNDARIES.len()],
         ),
     }
 }
@@ -99,8 +98,7 @@ fn float64(data: &[u8], arithmetic: i64) -> f64 {
             }
         }
         _ => f64::from_bits(
-            FLOAT64_BOUNDARIES
-                [usize::from(data.get(2).copied().unwrap_or_default()) % FLOAT64_BOUNDARIES.len()],
+            FLOAT64_BOUNDARIES[usize::from(data.get(2).copied().unwrap_or_default()) % FLOAT64_BOUNDARIES.len()],
         ),
     }
 }
@@ -118,10 +116,8 @@ pub fn check_non_finite(data: &[u8]) {
     } else {
         0x8000_0000_0000_0000
     };
-    let payload32 =
-        u32::from_le_bytes(padded_bytes(data.get(1..5).unwrap_or_default())) & 0x003f_ffff;
-    let payload64 = u64::from_le_bytes(padded_bytes(data.get(1..9).unwrap_or_default()))
-        & 0x0007_ffff_ffff_ffff;
+    let payload32 = u32::from_le_bytes(padded_bytes(data.get(1..5).unwrap_or_default())) & 0x003f_ffff;
+    let payload64 = u64::from_le_bytes(padded_bytes(data.get(1..9).unwrap_or_default())) & 0x0007_ffff_ffff_ffff;
     let nan32 = f32::from_bits(sign32 | 0x7fc0_0000 | payload32);
     let nan64 = f64::from_bits(sign64 | 0x7ff8_0000_0000_0000 | payload64);
     for value in [f32::INFINITY, f32::NEG_INFINITY, nan32] {
@@ -130,9 +126,7 @@ pub fn check_non_finite(data: &[u8]) {
             Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
         ));
         assert!(matches!(
-            ValueWireV1::try_from(ValueContainer::Collection(MultiValues::Float32(vec![
-                value
-            ]))),
+            ValueWireV1::try_from(ValueContainer::Collection(MultiValues::Float32(vec![value]))),
             Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
         ));
     }
@@ -142,9 +136,7 @@ pub fn check_non_finite(data: &[u8]) {
             Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
         ));
         assert!(matches!(
-            ValueWireV1::try_from(ValueContainer::Collection(MultiValues::Float64(vec![
-                value
-            ]))),
+            ValueWireV1::try_from(ValueContainer::Collection(MultiValues::Float64(vec![value]))),
             Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
         ));
     }

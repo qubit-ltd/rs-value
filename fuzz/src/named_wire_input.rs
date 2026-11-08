@@ -37,9 +37,8 @@ pub fn check_structured(data: &[u8]) {
             let encoded = named
                 .to_json_vec_with_limits(encode_limits(REFERENCE_BYTES))
                 .expect("bounded named scalar must encode within reference limits");
-            let decoded =
-                NamedValue::decode_json_slice_with_limits(&encoded, decode_limits(REFERENCE_BYTES))
-                    .expect("encoded named scalar must decode within reference limits");
+            let decoded = NamedValue::decode_json_slice_with_limits(&encoded, decode_limits(REFERENCE_BYTES))
+                .expect("encoded named scalar must decode within reference limits");
             assert_eq!(decoded.name(), named.name());
             assert_eq!(decoded.value(), named.value());
             assert_eq!(decode_scalar_reordered(&encoded), named);
@@ -49,11 +48,8 @@ pub fn check_structured(data: &[u8]) {
             let encoded = named
                 .to_json_vec_with_limits(encode_limits(REFERENCE_BYTES))
                 .expect("bounded named collection must encode within reference limits");
-            let decoded = NamedMultiValues::decode_json_slice_with_limits(
-                &encoded,
-                decode_limits(REFERENCE_BYTES),
-            )
-            .expect("encoded named collection must decode within reference limits");
+            let decoded = NamedMultiValues::decode_json_slice_with_limits(&encoded, decode_limits(REFERENCE_BYTES))
+                .expect("encoded named collection must decode within reference limits");
             assert_eq!(decoded.name(), named.name());
             assert_eq!(decoded.values(), named.values());
             assert_eq!(decode_collection_reordered(&encoded), named);
@@ -123,9 +119,7 @@ fn encode_limits(max_output: usize) -> qubit_budget::json::JsonEncodeLimits {
 }
 
 fn check_named_value(data: &[u8], limits: JsonDecodeLimits) {
-    let max_input = limits
-        .max_input_bytes()
-        .expect("all fuzz profiles are bounded");
+    let max_input = limits.max_input_bytes().expect("all fuzz profiles are bounded");
     let result = NamedValue::decode_json_slice_with_limits(data, limits);
     check_input_budget(&result, data.len(), max_input);
     match result {
@@ -133,9 +127,8 @@ fn check_named_value(data: &[u8], limits: JsonDecodeLimits) {
             let encoded = value
                 .to_json_vec_with_limits(encode_limits(REFERENCE_BYTES))
                 .expect("accepted named scalar must serialize within reference limits");
-            let decoded =
-                NamedValue::decode_json_slice_with_limits(&encoded, decode_limits(REFERENCE_BYTES))
-                    .expect("reference named scalar must decode");
+            let decoded = NamedValue::decode_json_slice_with_limits(&encoded, decode_limits(REFERENCE_BYTES))
+                .expect("reference named scalar must decode");
             assert_eq!(decoded, value);
         }
         Err(
@@ -149,9 +142,7 @@ fn check_named_value(data: &[u8], limits: JsonDecodeLimits) {
 }
 
 fn check_named_multi_values(data: &[u8], limits: JsonDecodeLimits) {
-    let max_input = limits
-        .max_input_bytes()
-        .expect("all fuzz profiles are bounded");
+    let max_input = limits.max_input_bytes().expect("all fuzz profiles are bounded");
     let result = NamedMultiValues::decode_json_slice_with_limits(data, limits);
     check_input_budget(&result, data.len(), max_input);
     match result {
@@ -159,11 +150,8 @@ fn check_named_multi_values(data: &[u8], limits: JsonDecodeLimits) {
             let encoded = value
                 .to_json_vec_with_limits(encode_limits(REFERENCE_BYTES))
                 .expect("accepted named collection must serialize within reference limits");
-            let decoded = NamedMultiValues::decode_json_slice_with_limits(
-                &encoded,
-                decode_limits(REFERENCE_BYTES),
-            )
-            .expect("reference named collection must decode");
+            let decoded = NamedMultiValues::decode_json_slice_with_limits(&encoded, decode_limits(REFERENCE_BYTES))
+                .expect("reference named collection must decode");
             assert_eq!(decoded, value);
         }
         Err(
@@ -176,11 +164,7 @@ fn check_named_multi_values(data: &[u8], limits: JsonDecodeLimits) {
     }
 }
 
-fn check_input_budget<T: std::fmt::Debug>(
-    result: &Result<T, ValueWireDecodeError>,
-    actual: usize,
-    maximum: usize,
-) {
+fn check_input_budget<T: std::fmt::Debug>(result: &Result<T, ValueWireDecodeError>, actual: usize, maximum: usize) {
     if actual <= maximum {
         return;
     }
@@ -195,25 +179,58 @@ fn check_input_budget<T: std::fmt::Debug>(
 }
 
 fn decode_scalar_reordered(encoded: &[u8]) -> NamedValue {
-    let mut value: serde_json::Value =
-        serde_json::from_slice(encoded).expect("encoded wrapper is JSON");
-    let object = value.as_object_mut().expect("wrapper is object");
-    let reordered = serde_json::json!({"value": object.remove("value").expect("value field"), "name": object.remove("name").expect("name field")});
-    NamedValue::decode_json_slice_with_limits(
-        &serde_json::to_vec(&reordered).expect("serialize reordered wrapper"),
-        decode_limits(REFERENCE_BYTES),
-    )
-    .expect("field order does not affect named scalar decode")
+    NamedValue::decode_json_slice_with_limits(&reorder_named_fields(encoded), decode_limits(REFERENCE_BYTES))
+        .expect("field order does not affect named scalar decode")
 }
 
 fn decode_collection_reordered(encoded: &[u8]) -> NamedMultiValues {
-    let mut value: serde_json::Value =
-        serde_json::from_slice(encoded).expect("encoded wrapper is JSON");
+    NamedMultiValues::decode_json_slice_with_limits(&reorder_named_fields(encoded), decode_limits(REFERENCE_BYTES))
+        .expect("field order does not affect named collection decode")
+}
+
+fn reorder_named_fields(encoded: &[u8]) -> Vec<u8> {
+    let mut value: serde_json::Value = serde_json::from_slice(encoded).expect("encoded wrapper is JSON");
     let object = value.as_object_mut().expect("wrapper is object");
-    let reordered = serde_json::json!({"value": object.remove("value").expect("value field"), "name": object.remove("name").expect("name field")});
-    NamedMultiValues::decode_json_slice_with_limits(
-        &serde_json::to_vec(&reordered).expect("serialize reordered wrapper"),
-        decode_limits(REFERENCE_BYTES),
-    )
-    .expect("field order does not affect named collection decode")
+    let value = serde_json::to_vec(&object.remove("value").expect("value field")).expect("serialize wrapper value");
+    let name = serde_json::to_vec(&object.remove("name").expect("name field")).expect("serialize wrapper name");
+    let mut reordered = Vec::with_capacity(value.len() + name.len() + 20);
+    reordered.extend_from_slice(br#"{"value": "#);
+    reordered.extend_from_slice(&value);
+    reordered.extend_from_slice(br#", "name": "#);
+    reordered.extend_from_slice(&name);
+    reordered.push(b'}');
+    reordered
+}
+
+#[cfg(test)]
+mod tests {
+    use qubit_value::NamedMultiValues;
+    use qubit_value::NamedValue;
+
+    use super::selected_limits;
+
+    #[test]
+    fn test_whitespace_prefixed_valid_wrappers_select_successful_profiles() {
+        let scalar = br#"  {"name":"x","value":{"version":1,"value":{"scalar":{"int32":7}}}}"#;
+        let scalar_limits = selected_limits(scalar, 0);
+        assert_eq!(scalar_limits.max_input_bytes(), Some(4096));
+        assert_eq!(scalar_limits.value_limits().max_depth(), Some(8));
+        assert_eq!(scalar_limits.value_limits().max_nodes(), Some(64));
+        assert_eq!(scalar_limits.value_limits().max_sequence_items(), Some(8));
+        assert_eq!(scalar_limits.value_limits().max_map_entries(), Some(64));
+        let decoded = NamedValue::decode_json_slice_with_limits(scalar, scalar_limits)
+            .expect("selected scalar profile should permit a successful decode");
+        assert_eq!(decoded.name(), "x");
+
+        let collection = br#"  {"name":"xs","value":{"version":1,"value":{"collection":{"int32":[]}}}}"#;
+        let collection_limits = selected_limits(collection, 1);
+        assert_eq!(collection_limits.max_input_bytes(), Some(4096));
+        assert_eq!(collection_limits.value_limits().max_depth(), Some(8));
+        assert_eq!(collection_limits.value_limits().max_nodes(), Some(64));
+        assert_eq!(collection_limits.value_limits().max_sequence_items(), Some(8));
+        assert_eq!(collection_limits.value_limits().max_map_entries(), Some(64));
+        let decoded = NamedMultiValues::decode_json_slice_with_limits(collection, collection_limits)
+            .expect("selected collection profile should permit a successful empty decode");
+        assert!(decoded.values().is_empty());
+    }
 }

@@ -2,16 +2,23 @@
 //    Copyright (c) 2025 - 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
 //! Deterministic coverage for named Wire V1 wrappers.
 
 use qubit_budget::BudgetError;
-use qubit_budget::json::{JsonDecodeLimits, JsonResource};
-use qubit_value::{
-    MultiValues, NamedMultiValues, NamedValue, Value, ValueWireDecodeError, ValueWireV1,
-};
-use qubit_value_fuzz::named_wire_input::{check_raw, check_structured};
+use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonResource;
+use qubit_value::MultiValues;
+use qubit_value::NamedMultiValues;
+use qubit_value::NamedValue;
+use qubit_value::Value;
+use qubit_value::ValueWireDecodeError;
+use qubit_value::ValueWireV1;
+use qubit_value_fuzz::named_wire_input::check_raw;
+use qubit_value_fuzz::named_wire_input::check_structured;
 
 fn wide_limits(input: usize) -> JsonDecodeLimits {
     let base = ValueWireV1::default_json_decode_limits();
@@ -30,10 +37,7 @@ fn wide_limits(input: usize) -> JsonDecodeLimits {
         .build()
 }
 
-fn assert_resource<T: std::fmt::Debug>(
-    result: &Result<T, ValueWireDecodeError>,
-    resource: JsonResource,
-) {
+fn assert_resource<T: std::fmt::Debug>(result: &Result<T, ValueWireDecodeError>, resource: JsonResource) {
     assert!(
         matches!(result, Err(ValueWireDecodeError::Budget(
         BudgetError::LimitExceeded { resource: actual, .. } | BudgetError::Insufficient { resource: actual, .. }
@@ -43,7 +47,7 @@ fn assert_resource<T: std::fmt::Debug>(
 }
 
 #[test]
-fn structured_covers_empty_unicode_escaped_scalar_collection_and_typed_unset() {
+fn test_structured_covers_empty_unicode_escaped_scalar_collection_and_typed_unset() {
     // Selector bytes choose empty, Unicode, quote/backslash and control names.
     check_structured(&[0]);
     for selector in [1_u8, 2, 3, 7] {
@@ -64,13 +68,8 @@ fn structured_covers_empty_unicode_escaped_scalar_collection_and_typed_unset() {
         NamedMultiValues::decode_json_slice(&bytes).expect("empty collection decodes"),
         empty
     );
-    let unset_collection = NamedMultiValues::new(
-        "unset",
-        MultiValues::Unset(qubit_datatype::DataType::String),
-    );
-    let bytes = unset_collection
-        .to_json_vec()
-        .expect("typed unset collection encodes");
+    let unset_collection = NamedMultiValues::new("unset", MultiValues::Unset(qubit_datatype::DataType::String));
+    let bytes = unset_collection.to_json_vec().expect("typed unset collection encodes");
     assert_eq!(
         NamedMultiValues::decode_json_slice(&bytes).expect("typed unset collection decodes"),
         unset_collection
@@ -78,7 +77,7 @@ fn structured_covers_empty_unicode_escaped_scalar_collection_and_typed_unset() {
 }
 
 #[test]
-fn raw_checker_accepts_valid_ordered_wrappers_and_rejects_duplicate_fields() {
+fn test_raw_checker_accepts_valid_ordered_wrappers_and_rejects_duplicate_fields() {
     let scalar = br#"{"name":"x","value":{"version":1,"value":{"scalar":{"int32":1}}}}"#;
     let reordered = br#"{"value":{"version":1,"value":{"scalar":{"int32":1}}},"name":"x"}"#;
     assert_eq!(
@@ -87,8 +86,13 @@ fn raw_checker_accepts_valid_ordered_wrappers_and_rejects_duplicate_fields() {
     );
     check_raw(scalar);
     check_raw(reordered);
-    let duplicate =
-        br#"{"name":"x","name":"y","value":{"version":1,"value":{"scalar":{"int32":1}}}}"#;
+    let reordered_collection = br#"  {"value":{"version":1,"value":{"collection":{"int32":[]}}},"name":"xs"}"#;
+    assert_eq!(
+        NamedMultiValues::decode_json_slice(reordered_collection).unwrap(),
+        NamedMultiValues::new("xs", MultiValues::Int32(Vec::new()))
+    );
+    check_raw(reordered_collection);
+    let duplicate = br#"{"name":"x","name":"y","value":{"version":1,"value":{"scalar":{"int32":1}}}}"#;
     assert!(matches!(
         NamedValue::decode_json_slice(duplicate),
         Err(ValueWireDecodeError::InvalidJson(_))
@@ -101,16 +105,30 @@ fn raw_checker_accepts_valid_ordered_wrappers_and_rejects_duplicate_fields() {
     let wrong_shape = br#"{"name":"x","value":{"version":1,"value":{"scalar":{"int32":1}}}}"#;
     assert!(NamedMultiValues::decode_json_slice(wrong_shape).is_err());
     check_raw(wrong_shape);
-    let collection_duplicate =
-        br#"{"name":"x","name":"y","value":{"version":1,"value":{"collection":{"int32":[]}}}}"#;
+    let collection_duplicate = br#"{"name":"x","name":"y","value":{"version":1,"value":{"collection":{"int32":[]}}}}"#;
     assert!(NamedMultiValues::decode_json_slice(collection_duplicate).is_err());
     check_raw(collection_duplicate);
 }
 
 #[test]
-fn each_schema_mutation_is_independently_rejected() {
-    let valid =
-        serde_json::json!({"name":"x","value":{"version":1,"value":{"scalar":{"int32":1}}}});
+fn test_raw_checker_accepts_whitespace_prefixed_scalar_and_empty_collection() {
+    let scalar = br#"  {"name":"x","value":{"version":1,"value":{"scalar":{"int32":7}}}}"#;
+    let collection = br#"  {"name":"xs","value":{"version":1,"value":{"collection":{"int32":[]}}}}"#;
+
+    assert_eq!(NamedValue::decode_json_slice(scalar).unwrap().value(), &Value::Int32(7));
+    assert!(
+        NamedMultiValues::decode_json_slice(collection)
+            .unwrap()
+            .values()
+            .is_empty()
+    );
+    check_raw(scalar);
+    check_raw(collection);
+}
+
+#[test]
+fn test_each_schema_mutation_is_independently_rejected() {
+    let valid = serde_json::json!({"name":"x","value":{"version":1,"value":{"scalar":{"int32":1}}}});
     let variants = [
         serde_json::json!({"value":valid["value"]}),
         serde_json::json!({"name":"x"}),
@@ -128,10 +146,29 @@ fn each_schema_mutation_is_independently_rejected() {
     let trailing = br#"{"name":"x","value":{"version":1,"value":{"scalar":{"int32":1}}}} {}"#;
     assert!(NamedValue::decode_json_slice_with_limits(trailing, wide_limits(4096)).is_err());
     check_raw(trailing);
+
+    let valid_collection = serde_json::json!({"name":"xs","value":{"version":1,"value":{"collection":{"int32":[1]}}}});
+    let collection_variants = [
+        serde_json::json!({"value":valid_collection["value"]}),
+        serde_json::json!({"name":"xs"}),
+        serde_json::json!({"name":"xs","value":valid_collection["value"],"extra":0}),
+        serde_json::json!({"name":7,"value":valid_collection["value"]}),
+    ];
+    for variant in collection_variants {
+        let bytes = serde_json::to_vec(&variant).unwrap();
+        assert!(
+            NamedMultiValues::decode_json_slice_with_limits(&bytes, wide_limits(4096)).is_err(),
+            "{variant}"
+        );
+        check_raw(&bytes);
+    }
+    let collection_trailing = br#"{"name":"xs","value":{"version":1,"value":{"collection":{"int32":[1]}}}} {}"#;
+    assert!(NamedMultiValues::decode_json_slice_with_limits(collection_trailing, wide_limits(4096)).is_err());
+    check_raw(collection_trailing);
 }
 
 #[test]
-fn input_and_output_byte_limits_are_checked_at_n_minus_n_and_n_plus_one() {
+fn test_input_and_output_byte_limits_are_checked_at_n_minus_n_and_n_plus_one() {
     let named = NamedValue::new("λ\"\\\n", Value::Int32(1));
     let encoded = named.to_json_vec().unwrap();
     let n = encoded.len();
@@ -154,8 +191,7 @@ fn input_and_output_byte_limits_are_checked_at_n_minus_n_and_n_plus_one() {
     let encoded = collection.to_json_vec().unwrap();
     let n = encoded.len();
     for (maximum, succeeds) in [(n - 1, false), (n, true), (n + 1, true)] {
-        let result =
-            NamedMultiValues::decode_json_slice_with_limits(&encoded, wide_limits(maximum));
+        let result = NamedMultiValues::decode_json_slice_with_limits(&encoded, wide_limits(maximum));
         if succeeds {
             assert_eq!(result.unwrap(), collection);
         } else {
@@ -171,7 +207,7 @@ fn input_and_output_byte_limits_are_checked_at_n_minus_n_and_n_plus_one() {
 }
 
 #[test]
-fn maximum_generated_name_fits_with_payload_under_wide_limits() {
+fn test_maximum_generated_name_fits_with_payload_under_wide_limits() {
     let wrapper = NamedValue::new("é".repeat(48), Value::Int32(1)); // exactly 96 UTF-8 bytes
     let bytes = wrapper.to_json_vec().unwrap();
     assert_eq!(

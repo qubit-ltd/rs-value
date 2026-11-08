@@ -266,7 +266,11 @@ fn test_float_arithmetic_bit_pattern_and_boundary_paths() {
     // to the f32/f64 width before little-endian decoding.
     for (tag, payload, expected) in [
         (12_u8, &[0x00, 0x00, 0x80][..], 0x0080_0000_u64),
-        (13_u8, &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10][..], 0x0010_0000_0000_0000_u64),
+        (
+            13_u8,
+            &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10][..],
+            0x0010_0000_0000_0000_u64,
+        ),
     ] {
         let mut input = vec![tag, 1];
         input.extend_from_slice(payload);
