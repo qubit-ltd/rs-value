@@ -45,6 +45,7 @@ fn assert_resource<T: std::fmt::Debug>(
 #[test]
 fn structured_covers_empty_unicode_escaped_scalar_collection_and_typed_unset() {
     // Selector bytes choose empty, Unicode, quote/backslash and control names.
+    check_structured(&[0]);
     for selector in [1_u8, 2, 3, 7] {
         for scalar in [false, true] {
             let data = [selector, 0, 0, 0, u8::from(scalar)];
@@ -147,6 +148,25 @@ fn input_and_output_byte_limits_are_checked_at_n_minus_n_and_n_plus_one() {
             .build();
         let output = named.to_json_vec_with_limits(encode_limits);
         assert_eq!(output.is_ok(), succeeds, "output max {maximum}");
+    }
+
+    let collection = NamedMultiValues::new("λ\"\\\n", MultiValues::Int32(vec![1, 2]));
+    let encoded = collection.to_json_vec().unwrap();
+    let n = encoded.len();
+    for (maximum, succeeds) in [(n - 1, false), (n, true), (n + 1, true)] {
+        let result =
+            NamedMultiValues::decode_json_slice_with_limits(&encoded, wide_limits(maximum));
+        if succeeds {
+            assert_eq!(result.unwrap(), collection);
+        } else {
+            assert_resource(&result, JsonResource::InputBytes);
+        }
+        let encode_limits = ValueWireV1::default_json_encode_limits()
+            .into_builder()
+            .max_output_bytes(maximum)
+            .build();
+        let output = collection.to_json_vec_with_limits(encode_limits);
+        assert_eq!(output.is_ok(), succeeds, "collection output max {maximum}");
     }
 }
 
