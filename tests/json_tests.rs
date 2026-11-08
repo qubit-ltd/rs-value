@@ -536,6 +536,25 @@ fn test_natural_json_canonicalizes_nested_json_object_keys() {
 
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
+fn test_natural_json_canonicalizes_unicode_object_keys() {
+    let mut nested = serde_json::Map::new();
+    nested.insert("z".to_owned(), json!(2));
+    nested.insert("a".to_owned(), json!(1));
+    let mut object = serde_json::Map::new();
+    object.insert("β".to_owned(), json!(3));
+    object.insert("é".to_owned(), json!(2));
+    object.insert("a".to_owned(), JsonValue::Object(nested));
+    let value = Value::Json(JsonValue::Object(object));
+
+    let projected = value.to_json_value().expect("project Unicode-key object");
+    assert_eq!(
+        to_string(&projected).expect("serialize projected Unicode-key object"),
+        r#"{"a":{"a":1,"z":2},"é":2,"β":3}"#,
+    );
+}
+
+#[cfg(all(feature = "converter", feature = "json"))]
+#[test]
 fn test_natural_json_canonicalizes_objects_nested_inside_arrays() {
     let value = Value::Json(from_str(r#"[{"z":1,"a":{"d":4,"c":3}}]"#).expect("parse JSON array"));
 

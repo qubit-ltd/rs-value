@@ -148,8 +148,10 @@ JSON 相等与 hash 使用迭代遍历，避免递归调用。带 budget 的 has
 | Round trip | 刻意有损 | 在 V1 支持范围内保留类型和形态 |
 | 入口 | `to_json_value*` | `ValueWire*V1` 与有界编解码 helper |
 
-自然 JSON 将运行时值投影成 `serde_json::Value`。它会排序字符串 map 和 JSON object 的 key，
-以得到确定输出；同时拒绝非有限浮点，并对完整投影使用同一 conversion budget。仅凭 JSON 无法
+自然 JSON 将运行时值投影成 `serde_json::Value`，并按字典序输出字符串 map 和 JSON object 的 key；
+同时拒绝非有限浮点，并对完整投影使用同一 conversion budget。JSON object 投影在每个 frame 的最终
+map 中直接保存已完成子值，并在该层 frame 完成时排序。StringMap 投影先排序借用条目再填充输出 map，
+因为在统一 `preserve_order` 配置下，填充后排序的基准出现了回退。仅凭 JSON 无法
 恢复原整数宽度、区分 unset 与具体 JSON null，或恢复声明类型。
 
 投影准备阶段借用源文本，完成准入后才分配最终 JSON string。整数和 Float64 的测量不需要临时堆字符串。

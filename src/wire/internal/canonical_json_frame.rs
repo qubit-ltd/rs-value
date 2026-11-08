@@ -18,7 +18,7 @@ use serde_json::map::Iter as ObjectIter;
 ///
 /// Invariant: an object has at most one `pending_key`; it is set exactly when
 /// an object child has been yielded and is cleared when that child's owned
-/// value is delivered. Completed array children already belong to final output.
+/// value is delivered. Completed children already belong to final output.
 pub(in crate::wire) enum CanonicalJsonFrame<'a> {
     /// Holds the remaining array source and its final owned destination.
     Array {
@@ -27,14 +27,14 @@ pub(in crate::wire) enum CanonicalJsonFrame<'a> {
         /// Completed children accumulated directly into the returned array.
         output: Vec<Value>,
     },
-    /// Holds object children until key ordering can be restored.
+    /// Holds remaining object entries and the final output map.
     Object {
         /// The object entries not yet visited by the projection loop.
         remaining: ObjectIter<'a>,
         /// The key associated with the one child currently being projected.
         pending_key: Option<&'a str>,
-        /// Completed borrowed keys and owned values awaiting sorted insertion.
-        completed: Vec<(&'a str, Value)>,
+        /// Completed children keyed directly in the final output map.
+        output: Map<String, Value>,
     },
 }
 
@@ -59,7 +59,7 @@ impl<'a> CanonicalJsonFrame<'a> {
             Value::Object(values) if !values.is_empty() => Some(Self::Object {
                 remaining: values.iter(),
                 pending_key: None,
-                completed: Vec::with_capacity(values.len()),
+                output: Map::with_capacity(values.len()),
             }),
             _ => None,
         }
@@ -95,16 +95,16 @@ impl<'a> CanonicalJsonFrame<'a> {
         match self {
             Self::Array { output, .. } => output.push(child),
             Self::Object {
-                pending_key, completed, ..
+                pending_key, output, ..
             } => {
                 let key = pending_key.take().expect("object child has a pending key");
-                completed.push((key, child));
+                output.insert(key.to_owned(), child);
             }
         }
     }
 
-    /// Builds the completed owned container. Object keys remain sorted exactly
-    /// as before, and are cloned only when entering the final map.
+    /// Builds the completed owned container, sorting each object map at its
+    /// own frame boundary. Each source key is cloned once into the final map.
     ///
     /// # Returns
     ///
@@ -112,12 +112,8 @@ impl<'a> CanonicalJsonFrame<'a> {
     pub(in crate::wire) fn finish(self) -> Value {
         match self {
             Self::Array { output, .. } => Value::Array(output),
-            Self::Object { mut completed, .. } => {
-                completed.sort_unstable_by_key(|(key, _)| *key);
-                let mut output = Map::with_capacity(completed.len());
-                for (key, child) in completed {
-                    output.insert(key.to_owned(), child);
-                }
+            Self::Object { mut output, .. } => {
+                output.sort_keys();
                 Value::Object(output)
             }
         }

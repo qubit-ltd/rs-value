@@ -212,6 +212,41 @@ The object comparison re-ran the natural projection cases most relevant to canon
 
 These synthetic runs showed no repeatable object slowdown; the default flat/ordered intervals overlap, while the other listed after intervals are lower. Natural-array timing also improved in these runs, but neither result predicts process RSS or end-to-end application performance. Criterion measurements are host- and load-sensitive.
 
+## Natural JSON object projection (RV-001)
+
+`canonical_object/{flat,nested}/{ordered,reverse,shuffled}/{0,1,16,1024}/natural` measures JSON object projection, and `string_map/{0,1,16,1024}/{natural,collection}` measures scalar and collection StringMap projection. Fixtures are built before Criterion starts timing. The standalone `natural_json_allocation_tests` binary compares both paths with a direct `serde_json::Map` build using the same backend and keys/values; counters cover allocator-requested cumulative bytes and peak live requested bytes, not RSS.
+
+The object frame now inserts each completed child into its final map and calls `Map::sort_keys()` when that frame finishes. StringMap retains its sorted borrowed-entry buffer: the direct-map-then-sort variant was withdrawn after a repeated unified-feature regression. This leaves StringMap allocator overhead measurable and avoids a confirmed throughput cost in `preserve_order` builds.
+
+At 4096 entries, the final object-frame projection used 473,144 cumulative / 472,824 peak-live bytes against a 472,376 / 472,376-byte direct-map reference in default, and 533,040 / 532,912 against 532,496 / 532,496 in unified. The remaining 768 B and 544 B cumulative differences are width-independent in these samples. StringMap retains its sorted-entry scratch: default used 578,872 / 578,872 against 421,056 / 421,056 direct, while unified used 638,992 / 638,992 against 573,456 / 573,456. This evidence does not claim StringMap allocation improvement.
+
+Before/after runs used Criterion's optimized profile, rustc 1.94.0, Linux x86_64, 30 samples, 3-second warm-up, and 5-second measurement. Baselines were captured from revision `0140fdb`; the unified run used the detached baseline worktree. Each command used the same selected object and StringMap fixtures:
+
+```text
+cargo bench --locked --no-default-features --features natural-json --bench downstream_read_bench -- 'canonical_object/flat/ordered/(0|1|16)/natural|canonical_object/flat/reverse/16/natural|canonical_object/flat/shuffled/(16|1024)/natural|canonical_object/nested/shuffled/(16|1024)/natural|string_map/(0|1|16|1024)/(natural|collection)' --sample-size 30 --warm-up-time 3 --measurement-time 5 --save-baseline rv001-stable-before-default
+cargo bench --locked --no-default-features --features natural-json --bench downstream_read_bench -- 'canonical_object/flat/ordered/(0|1|16)/natural|canonical_object/flat/reverse/16/natural|canonical_object/flat/shuffled/(16|1024)/natural|canonical_object/nested/shuffled/(16|1024)/natural|string_map/(0|1|16|1024)/(natural|collection)' --sample-size 30 --warm-up-time 3 --measurement-time 5 --baseline rv001-stable-before-default
+cargo bench --locked --no-default-features --features 'natural-json,serde_json/arbitrary_precision,serde_json/preserve_order' --bench downstream_read_bench -- 'canonical_object/flat/ordered/(0|1|16)/natural|canonical_object/flat/reverse/16/natural|canonical_object/flat/shuffled/(16|1024)/natural|canonical_object/nested/shuffled/(16|1024)/natural|string_map/(0|1|16|1024)/(natural|collection)' --sample-size 30 --warm-up-time 3 --measurement-time 5 --save-baseline rv001-stable-before-unified
+cargo bench --locked --no-default-features --features 'natural-json,serde_json/arbitrary_precision,serde_json/preserve_order' --bench downstream_read_bench -- 'canonical_object/flat/ordered/(0|1|16)/natural|canonical_object/flat/reverse/16/natural|canonical_object/flat/shuffled/(16|1024)/natural|canonical_object/nested/shuffled/(16|1024)/natural|string_map/(0|1|16|1024)/(natural|collection)' --sample-size 30 --warm-up-time 3 --measurement-time 5 --baseline rv001-stable-before-unified
+```
+
+Criterion's reported 95% intervals and change ranges for selected Natural JSON object cases are:
+
+| Profile and case | Before | After | Criterion change |
+| --- | ---: | ---: | ---: |
+| Default, flat ordered 16 | 3.5890–3.5956 µs | 3.3801–3.3841 µs | −6.22% to −5.95%, p<0.001 |
+| Default, flat reverse 16 | 3.5953–3.5982 µs | 3.3924–3.3960 µs | −5.89% to −5.73%, p<0.001 |
+| Default, flat shuffled 16 | 3.6215–3.6273 µs | 3.4175–3.4236 µs | −6.03% to −5.79%, p<0.001 |
+| Default, nested shuffled 16 | 14.297–14.409 µs | 12.395–12.450 µs | −14.38% to −13.34%, p<0.001 |
+| Default, flat shuffled 1024 | 359.39–359.49 µs | 328.15–328.87 µs | −8.84% to −8.58%, p<0.001 |
+| Default, nested shuffled 1024 | 1.2930–1.3010 ms | 1.1163–1.1192 ms | −14.60% to −13.87%, p<0.001 |
+| Unified, flat ordered 16 | 4.6715–4.6763 µs | 4.7283–4.7359 µs | +1.49% to +1.80%, p<0.001 |
+| Unified, flat shuffled 16 | 5.0780–5.1212 µs | 5.1923–5.2475 µs | +2.57% to +3.91%; 10% outliers |
+| Unified, nested shuffled 16 | 21.019–21.059 µs | 20.969–21.343 µs | +0.19% to +1.79%; 10% outliers |
+| Unified, flat shuffled 1024 | 389.51–393.75 µs | 395.55–399.43 µs | +1.43% to +3.03%, p<0.001 |
+| Unified, nested shuffled 1024 | 1.4144–1.4161 ms | 1.3749–1.3931 ms | −2.80% to −1.98%; 10% outliers |
+
+The unified flat shuffled 1024 case has a small measured slowdown below the 5% investigation threshold; no tested object case shows a confirmed slowdown above that threshold. The initial 10-sample experiment that directly inserted StringMap entries and then sorted the final map was repeated at 30 samples / 3 seconds / 5 seconds: unified StringMap 1024 natural regressed +25–29%, and collection +28–31% (p<0.001). That variant was removed. The retained StringMap source path is unchanged from the baseline, and its between-run timing varies with the randomized `HashMap` fixture layout; those StringMap deltas are not attributed to this change and do not establish a StringMap gain or regression. Criterion artifacts are under the detached baseline and implementation worktrees' `target/criterion` directories. These synthetic timings do not predict downstream application performance.
+
 ## JSON root-leaf identity hashing (RV-001)
 
 The root-leaf optimization bypasses the iterative traversal vectors for JSON

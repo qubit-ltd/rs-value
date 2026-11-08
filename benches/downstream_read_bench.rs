@@ -8,6 +8,7 @@
 
 //! Benchmarks conversion and wire paths owned by `qubit-value`.
 
+use std::collections::HashMap;
 use std::hint::black_box;
 use std::time::Duration;
 
@@ -233,6 +234,25 @@ fn benchmark_canonical_objects(c: &mut Criterion) {
                 });
             }
         }
+    }
+    for size in [0, 1, 16, 1024] {
+        let map: HashMap<_, _> = (0..size)
+            .map(|index| (format!("key-{index:04}"), format!("value-{index:04}")))
+            .collect();
+        let scalar = Value::StringMap(map.clone());
+        let collection = MultiValues::StringMap(vec![map]);
+        c.bench_function(&format!("string_map/{size}/natural"), |bencher| {
+            bencher.iter(|| black_box(black_box(&scalar).to_json_value().expect("string map should project")));
+        });
+        c.bench_function(&format!("string_map/{size}/collection"), |bencher| {
+            bencher.iter(|| {
+                black_box(
+                    black_box(&collection)
+                        .to_json_value()
+                        .expect("string map collection should project"),
+                )
+            });
+        });
     }
 }
 

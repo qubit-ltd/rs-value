@@ -189,9 +189,13 @@ Natural JSON and Wire JSON solve different boundary problems.
 | Round trip | Intentionally lossy | Type- and shape-preserving within V1 support |
 | Entry point | `to_json_value*` | `ValueWire*V1` plus bounded encode/decode helpers |
 
-Natural JSON is a projection into `serde_json::Value`. It sorts string-map and
-JSON object keys for deterministic output, rejects non-finite floats, and
-applies one conversion budget across a complete projection. It cannot recover
+Natural JSON is a projection into `serde_json::Value`. It emits string-map and
+JSON object keys in dictionary order, rejects non-finite floats, and applies
+one conversion budget across a complete projection. JSON object projection
+stores completed children in each frame's final map and sorts that map when
+the frame finishes. StringMap projection sorts borrowed entries before it
+populates the output map because sorting the populated map regressed the
+unified `preserve_order` benchmark. It cannot recover
 the original integer width, distinguish unset from concrete JSON null, or
 recover a declared type from JSON alone.
 

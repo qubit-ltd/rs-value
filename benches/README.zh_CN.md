@@ -183,6 +183,41 @@ cargo bench --locked --no-default-features --features 'natural-json,serde_json/p
 
 这些合成测试没有显示可重复的对象性能回退；default 平坦有序区间重叠，其余所列修改后区间更低。本轮数组计时也有所改善，但两者都不能代表进程 RSS 或端到端应用性能。Criterion 结果会受测量主机及其负载影响。
 
+## Natural JSON 对象投影（RV-001）
+
+`canonical_object/{flat,nested}/{ordered,reverse,shuffled}/{0,1,16,1024}/natural` 测量 JSON object 投影；`string_map/{0,1,16,1024}/{natural,collection}` 测量 StringMap 标量和集合投影。fixture 均在 Criterion 计时前构造。独立 `natural_json_allocation_tests` binary 将两条路径与同后端、同键值的直接 `serde_json::Map` 构建对照；计数器测量分配器请求的累计字节和峰值存活字节，不是 RSS。
+
+对象 frame 现在将每个完成的子值直接插入最终 map，并在该层 frame 完成时调用 `Map::sort_keys()`。StringMap 仍使用排序后的借用条目缓冲：在统一 feature 下，直接构建 map 后再排序的变体经过重复测量出现了回退，因此已撤回。这会保留 StringMap 分配开销，但避免 `preserve_order` 配置下确认的吞吐回退。
+
+4096 项时，最终对象 frame 投影在 default 下累计 / 峰值存活为 473,144 / 472,824 B，直接 map 参照为 472,376 / 472,376 B；unified 下为 533,040 / 532,912 B，对照 532,496 / 532,496 B。剩余 768 B 和 544 B 的累计差异在本次样本中不随宽度增长。StringMap 保留了排序条目临时量：default 为 578,872 / 578,872 B，对照直接构建的 421,056 / 421,056 B；unified 为 638,992 / 638,992 B，对照 573,456 / 573,456 B。这些数据不代表 StringMap 分配有所改善。
+
+前后测量使用 Criterion 优化 profile、rustc 1.94.0、Linux x86_64、30 个样本、3 秒预热和 5 秒测量。基线来自修订版 `0140fdb`，unified 基线在 detached worktree 中采集。各命令使用相同的对象与 StringMap fixture：
+
+```text
+cargo bench --locked --no-default-features --features natural-json --bench downstream_read_bench -- 'canonical_object/flat/ordered/(0|1|16)/natural|canonical_object/flat/reverse/16/natural|canonical_object/flat/shuffled/(16|1024)/natural|canonical_object/nested/shuffled/(16|1024)/natural|string_map/(0|1|16|1024)/(natural|collection)' --sample-size 30 --warm-up-time 3 --measurement-time 5 --save-baseline rv001-stable-before-default
+cargo bench --locked --no-default-features --features natural-json --bench downstream_read_bench -- 'canonical_object/flat/ordered/(0|1|16)/natural|canonical_object/flat/reverse/16/natural|canonical_object/flat/shuffled/(16|1024)/natural|canonical_object/nested/shuffled/(16|1024)/natural|string_map/(0|1|16|1024)/(natural|collection)' --sample-size 30 --warm-up-time 3 --measurement-time 5 --baseline rv001-stable-before-default
+cargo bench --locked --no-default-features --features 'natural-json,serde_json/arbitrary_precision,serde_json/preserve_order' --bench downstream_read_bench -- 'canonical_object/flat/ordered/(0|1|16)/natural|canonical_object/flat/reverse/16/natural|canonical_object/flat/shuffled/(16|1024)/natural|canonical_object/nested/shuffled/(16|1024)/natural|string_map/(0|1|16|1024)/(natural|collection)' --sample-size 30 --warm-up-time 3 --measurement-time 5 --save-baseline rv001-stable-before-unified
+cargo bench --locked --no-default-features --features 'natural-json,serde_json/arbitrary_precision,serde_json/preserve_order' --bench downstream_read_bench -- 'canonical_object/flat/ordered/(0|1|16)/natural|canonical_object/flat/reverse/16/natural|canonical_object/flat/shuffled/(16|1024)/natural|canonical_object/nested/shuffled/(16|1024)/natural|string_map/(0|1|16|1024)/(natural|collection)' --sample-size 30 --warm-up-time 3 --measurement-time 5 --baseline rv001-stable-before-unified
+```
+
+下表记录 Criterion 报告的 95% 区间与 change 范围：
+
+| Profile 与场景 | 修改前 | 修改后 | Criterion change |
+| --- | ---: | ---: | ---: |
+| Default，flat ordered 16 | 3.5890–3.5956 µs | 3.3801–3.3841 µs | −6.22% 至 −5.95%，p<0.001 |
+| Default，flat reverse 16 | 3.5953–3.5982 µs | 3.3924–3.3960 µs | −5.89% 至 −5.73%，p<0.001 |
+| Default，flat shuffled 16 | 3.6215–3.6273 µs | 3.4175–3.4236 µs | −6.03% 至 −5.79%，p<0.001 |
+| Default，nested shuffled 16 | 14.297–14.409 µs | 12.395–12.450 µs | −14.38% 至 −13.34%，p<0.001 |
+| Default，flat shuffled 1024 | 359.39–359.49 µs | 328.15–328.87 µs | −8.84% 至 −8.58%，p<0.001 |
+| Default，nested shuffled 1024 | 1.2930–1.3010 ms | 1.1163–1.1192 ms | −14.60% 至 −13.87%，p<0.001 |
+| Unified，flat ordered 16 | 4.6715–4.6763 µs | 4.7283–4.7359 µs | +1.49% 至 +1.80%，p<0.001 |
+| Unified，flat shuffled 16 | 5.0780–5.1212 µs | 5.1923–5.2475 µs | +2.57% 至 +3.91%；10% 离群值 |
+| Unified，nested shuffled 16 | 21.019–21.059 µs | 20.969–21.343 µs | +0.19% 至 +1.79%；10% 离群值 |
+| Unified，flat shuffled 1024 | 389.51–393.75 µs | 395.55–399.43 µs | +1.43% 至 +3.03%，p<0.001 |
+| Unified，nested shuffled 1024 | 1.4144–1.4161 ms | 1.3749–1.3931 ms | −2.80% 至 −1.98%；10% 离群值 |
+
+Unified 的 flat shuffled 1024 有小幅可测回退，但低于 5% 调查阈值；已测对象场景均未确认超过阈值的回退。最初直接插入 StringMap 条目后排序最终 map 的实验分支，经 30 样本、3 秒预热、5 秒测量复测后，unified 的 StringMap 1024 natural 回退 +25–29%，集合回退 +28–31%（p<0.001），因此已撤回。保留的 StringMap 源码路径与基线相同；其跨轮耗时会受标准 `HashMap` 的随机 fixture 布局影响，因此不能把这些 StringMap 差异归因于本次改动，也不能据此声称 StringMap 有收益或回退。Criterion 原始产物保存在 detached 基线 worktree 和实施 worktree 的 `target/criterion` 下。这些合成计时不代表下游应用性能。
+
 ## JSON 根叶节点身份哈希（RV-001）
 
 根叶节点优化让 JSON null、布尔值、数值和字符串绕过迭代遍历 Vec；数组和对象仍使用原迭代引擎。分配计数测试在计量区间外构造夹具和 hasher，并预热哈希路径及线程局部分配器，只测 `Value::hash`。测试将 JSON 整数哈希与直接 `serde_json::Number::hash` 对照，以区分遍历状态分配和 Number 自身的哈希成本；另用较大词法数值对照两条路径，在 unified 配置下覆盖 `arbitrary_precision` Number。

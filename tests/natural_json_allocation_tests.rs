@@ -12,6 +12,7 @@ use std::alloc::GlobalAlloc;
 use std::alloc::Layout;
 use std::alloc::System;
 use std::cell::Cell;
+use std::collections::HashMap;
 
 use qubit_value::Value;
 use serde_json::Value as JsonValue;
@@ -152,6 +153,52 @@ fn direct_output_reference(size: usize) -> (JsonValue, Reading) {
     measured(|| JsonValue::Array(vec![JsonValue::Bool(true); size]))
 }
 
+fn object_backend_is_ordered() -> bool {
+    let mut map = serde_json::Map::new();
+    map.insert("z".to_owned(), JsonValue::Null);
+    map.insert("a".to_owned(), JsonValue::Null);
+    map.keys().next().is_some_and(|key| key == "a")
+}
+
+fn object_fixture(size: usize) -> (JsonValue, Value) {
+    let mut source = serde_json::Map::with_capacity(size);
+    for index in 0..size {
+        source.insert(format!("key-{index:04}"), JsonValue::Bool(true));
+    }
+    let value = Value::Json(JsonValue::Object(source.clone()));
+    (JsonValue::Object(source), value)
+}
+
+fn string_map_fixture(size: usize) -> HashMap<String, String> {
+    (0..size)
+        .map(|index| (format!("key-{index:04}"), format!("value-{index:04}")))
+        .collect()
+}
+
+fn direct_string_map_reference(source: &HashMap<String, String>) -> (JsonValue, Reading) {
+    measured(|| {
+        let mut output = serde_json::Map::with_capacity(source.len());
+        for (key, value) in source {
+            output.insert(key.clone(), JsonValue::String(value.clone()));
+        }
+        output.sort_keys();
+        JsonValue::Object(output)
+    })
+}
+
+fn direct_object_reference(source: &JsonValue) -> (JsonValue, Reading) {
+    let JsonValue::Object(entries) = source else {
+        unreachable!()
+    };
+    measured(|| {
+        let mut output = serde_json::Map::with_capacity(entries.len());
+        for (key, value) in entries {
+            output.insert(key.clone(), value.clone());
+        }
+        JsonValue::Object(output)
+    })
+}
+
 #[test]
 fn test_wide_natural_json_projection_allocation_evidence() {
     // Warm TLS and the projection path before enabling counters.
@@ -188,4 +235,56 @@ fn test_wide_natural_json_projection_allocation_evidence() {
     let fixed_slack = 2 * std::mem::size_of::<JsonValue>();
     assert!(scratch(wide.0, wide.1) <= scratch(small.0, small.1) + fixed_slack);
     assert!(live_scratch(wide.0, wide.1) <= live_scratch(small.0, small.1) + fixed_slack);
+}
+
+#[test]
+fn test_wide_natural_json_object_allocation_evidence() {
+    let warm_source = object_fixture(1).1;
+    let _ = warm_source.to_json_value().expect("warm object projection");
+    let mut readings = Vec::new();
+    for size in [16, 1024, 4096] {
+        let (source, value) = object_fixture(size);
+        let (projected, projection) = measured(|| value.to_json_value().expect("object projection"));
+        let (reference, direct) = direct_object_reference(&source);
+        assert_eq!(projected, reference);
+        eprintln!(
+            "natural_object/{size}: cumulative={} peak_live={} direct_map: cumulative={} peak_live={}",
+            projection.cumulative, projection.peak_live, direct.cumulative, direct.peak_live
+        );
+        readings.push((size, projection, direct));
+    }
+    if object_backend_is_ordered() {
+        let scratch = |actual: Reading, output: Reading| actual.cumulative - output.cumulative;
+        let live_scratch = |actual: Reading, output: Reading| actual.peak_live - output.peak_live;
+        let small = (readings[0].1, readings[0].2);
+        let wide = (readings[2].1, readings[2].2);
+        let fixed_slack = 2 * std::mem::size_of::<JsonValue>();
+        assert!(
+            scratch(wide.0, wide.1) <= scratch(small.0, small.1) + fixed_slack,
+            "object projection retained a width-sized entry scratch buffer"
+        );
+        assert!(
+            live_scratch(wide.0, wide.1) <= live_scratch(small.0, small.1) + fixed_slack,
+            "object projection retained a width-sized entry scratch buffer"
+        );
+    }
+}
+
+#[test]
+fn test_wide_natural_json_string_map_allocation_evidence() {
+    let warm = Value::StringMap(string_map_fixture(1));
+    let _ = warm.to_json_value().expect("warm string map projection");
+    for size in [16, 1024, 4096] {
+        let source = string_map_fixture(size);
+        let value = Value::StringMap(source.clone());
+        let (projected, projection) = measured(|| value.to_json_value().expect("string map projection"));
+        let (reference, direct) = direct_string_map_reference(&source);
+        assert_eq!(projected, reference);
+        eprintln!(
+            "string_map/{size}: cumulative={} peak_live={} direct_map: cumulative={} peak_live={}",
+            projection.cumulative, projection.peak_live, direct.cumulative, direct.peak_live
+        );
+    }
+    // StringMap stays on the sorted borrowed-entry path: direct insertion
+    // followed by `sort_keys` regressed preserve_order throughput by >20%.
 }

@@ -51,6 +51,8 @@ macro_rules! borrowed_payload {
         crate::wire::json::canonicalize_json_value($value)
     };
     ($variant:ident, json_object, $value:expr) => {{
+        // Sorting borrowed entries before insertion avoids a measured
+        // `preserve_order` regression from sorting the populated map.
         let mut entries: Vec<_> = $value.iter().collect();
         entries.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
         let mut object = Map::with_capacity(entries.len());
