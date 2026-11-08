@@ -262,6 +262,26 @@ fn test_float_arithmetic_bit_pattern_and_boundary_paths() {
         assert_eq!(observed, expected);
     }
 
+    // Raw-bit inputs shorter than the selected precision must be zero-padded
+    // to the f32/f64 width before little-endian decoding.
+    for (tag, payload, expected) in [
+        (12_u8, &[0x00, 0x00, 0x80][..], 0x0080_0000_u64),
+        (13_u8, &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10][..], 0x0010_0000_0000_0000_u64),
+    ] {
+        let mut input = vec![tag, 1];
+        input.extend_from_slice(payload);
+        let value = container_from_bytes(&input);
+        let observed = match value {
+            ValueContainer::Scalar(v) => match v.view() {
+                ValueRef::Float32(x) => u64::from(x.to_bits()),
+                ValueRef::Float64(x) => x.to_bits(),
+                _ => panic!("expected float"),
+            },
+            _ => panic!("expected scalar"),
+        };
+        assert_eq!(observed, expected);
+    }
+
     for (tag, bits, expected) in [
         (12_u8, 0x7f80_0000_u64, 0x7f7f_ffff_u64),
         (12_u8, 0xff80_0000_u64, 0xff7f_ffff_u64),

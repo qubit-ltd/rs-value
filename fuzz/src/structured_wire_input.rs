@@ -66,7 +66,7 @@ fn float32(data: &[u8], arithmetic: i32) -> f32 {
     match data.get(1).copied().unwrap_or_default() % 3 {
         0 => arithmetic as f32 / 3.0,
         1 => {
-            let bits = u32::from_le_bytes(padded_bytes(data.get(2..6).unwrap_or_default()));
+            let bits = u32::from_le_bytes(padded_bytes(data.get(2..).unwrap_or_default()));
             let value = f32::from_bits(bits);
             if value.is_finite() {
                 value
@@ -90,7 +90,7 @@ fn float64(data: &[u8], arithmetic: i64) -> f64 {
     match data.get(1).copied().unwrap_or_default() % 3 {
         0 => arithmetic as f64 / 3.0,
         1 => {
-            let bits = u64::from_le_bytes(padded_bytes(data.get(2..10).unwrap_or_default()));
+            let bits = u64::from_le_bytes(padded_bytes(data.get(2..).unwrap_or_default()));
             let value = f64::from_bits(bits);
             if value.is_finite() {
                 value
