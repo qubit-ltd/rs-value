@@ -21,6 +21,7 @@ use qubit_value::ValueContainer;
 use qubit_value::ValueRef;
 use qubit_value::ValueWireEncodeError;
 use qubit_value::ValueWireV1;
+use qubit_value_fuzz::structured_wire_input::check_non_finite;
 use qubit_value_fuzz::structured_wire_input::container_from_bytes;
 use serde_json::Value as JsonValue;
 use url::Url;
@@ -227,6 +228,137 @@ fn test_scale_selector_covers_legal_boundaries_and_interior_values() {
         })
         .collect();
     assert_eq!(observed, [-150_000, -1, 0, 1, 150_000]);
+}
+
+/// Float fixtures use byte 1 as the mode selector. In bit-pattern mode bytes
+/// 2..6 (f32) or 2..10 (f64) are little-endian IEEE bits; boundary mode uses
+/// byte 2 to select a fixed table. Short payloads are zero-padded.
+#[test]
+fn test_float_arithmetic_bit_pattern_and_boundary_paths() {
+    let arithmetic32 = [12, 0, 0, 0, 0];
+    let arithmetic64 = [13, 0, 0, 0, 0];
+    assert!(
+        matches!(round_trip(&arithmetic32), ValueContainer::Scalar(v) if matches!(v.view(), ValueRef::Float32(x) if x.to_bits() == 0))
+    );
+    assert!(
+        matches!(round_trip(&arithmetic64), ValueContainer::Scalar(v) if matches!(v.view(), ValueRef::Float64(x) if x.to_bits() == (13.0_f64 / 3.0).to_bits()))
+    );
+
+    for (tag, bits, expected) in [
+        (12_u8, 0x8000_0000_u64, 0x8000_0000_u64),
+        (13_u8, 0x8000_0000_0000_0000_u64, 0x8000_0000_0000_0000_u64),
+    ] {
+        let mut input = vec![tag, 1];
+        input.extend_from_slice(&bits.to_le_bytes()[..if tag == 12 { 4 } else { 8 }]);
+        let value = round_trip(&input);
+        let observed = match value {
+            ValueContainer::Scalar(v) => match v.view() {
+                ValueRef::Float32(x) => u64::from(x.to_bits()),
+                ValueRef::Float64(x) => x.to_bits(),
+                _ => panic!("expected float"),
+            },
+            _ => panic!("expected scalar"),
+        };
+        assert_eq!(observed, expected);
+    }
+
+    for (tag, bits, expected) in [
+        (12_u8, 0x7f80_0000_u64, 0x7f7f_ffff_u64),
+        (12_u8, 0xff80_0000_u64, 0xff7f_ffff_u64),
+        (13_u8, 0x7ff0_0000_0000_0000_u64, 0x7fef_ffff_ffff_ffff_u64),
+        (13_u8, 0xfff0_0000_0000_0000_u64, 0xffef_ffff_ffff_ffff_u64),
+    ] {
+        let mut input = vec![tag, 1];
+        input.extend_from_slice(&bits.to_le_bytes()[..if tag == 12 { 4 } else { 8 }]);
+        let value = round_trip(&input);
+        let observed = match value {
+            ValueContainer::Scalar(v) => match v.view() {
+                ValueRef::Float32(x) => u64::from(x.to_bits()),
+                ValueRef::Float64(x) => x.to_bits(),
+                _ => panic!("expected float"),
+            },
+            _ => panic!("expected scalar"),
+        };
+        assert_eq!(observed, expected);
+    }
+
+    for (tag, width, patterns) in [
+        (
+            12_u8,
+            4_usize,
+            vec![
+                0_u64,
+                0x8000_0000,
+                1,
+                0x8000_0001,
+                0x007f_ffff,
+                0x0080_0000,
+                0x7f7f_ffff,
+                0xff7f_ffff,
+                0x3f80_0001,
+                0x3f7f_ffff,
+            ],
+        ),
+        (
+            13_u8,
+            8_usize,
+            vec![
+                0_u64,
+                0x8000_0000_0000_0000,
+                1,
+                0x8000_0000_0000_0001,
+                0x000f_ffff_ffff_ffff,
+                0x0010_0000_0000_0000,
+                0x7fef_ffff_ffff_ffff,
+                0xffef_ffff_ffff_ffff,
+                0x3ff0_0000_0000_0001,
+                0x3fefffffffffffff,
+            ],
+        ),
+    ] {
+        for (selector, expected) in patterns.into_iter().enumerate() {
+            let mut input = vec![tag, 2, selector as u8];
+            let bytes = expected.to_le_bytes();
+            input.extend_from_slice(&bytes[..width]);
+            let value = round_trip(&input);
+            let observed = match value {
+                ValueContainer::Scalar(v) => match v.view() {
+                    ValueRef::Float32(x) => u64::from(x.to_bits()),
+                    ValueRef::Float64(x) => x.to_bits(),
+                    _ => panic!("expected float"),
+                },
+                _ => panic!("expected scalar"),
+            };
+            assert_eq!(observed, expected);
+        }
+    }
+
+    for (tag, expected32, expected64) in [
+        (38_u8, 0x8000_0000_u32, 0x8000_0000_0000_0000_u64),
+        (39_u8, 0x0000_0001_u32, 0x0000_0000_0000_0001_u64),
+    ] {
+        let input = [tag, 2, if tag == 38 { 1 } else { 2 }, 0, 0, 1];
+        match round_trip(&input) {
+            ValueContainer::Collection(values) if tag == 38 => {
+                let values = values.get::<f32>().expect("f32 collection");
+                assert_eq!(values.len(), 1);
+                assert_eq!(values[0].to_bits(), expected32);
+            }
+            ValueContainer::Collection(values) => {
+                let values = values.get::<f64>().expect("f64 collection");
+                assert_eq!(values.len(), 1);
+                assert_eq!(values[0].to_bits(), expected64);
+            }
+            value => panic!("expected collection: {value:?}"),
+        }
+    }
+}
+
+#[test]
+fn test_non_finite_float_rejection_covers_scalar_and_nonempty_collections() {
+    for input in [&[0_u8][..], &[1, 0xff, 0x12, 0x34][..], &[0x80; 16][..]] {
+        check_non_finite(input);
+    }
 }
 
 #[test]

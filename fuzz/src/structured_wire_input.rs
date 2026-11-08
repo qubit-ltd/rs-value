@@ -21,6 +21,7 @@ use num_bigint::BigInt;
 use qubit_value::MultiValues;
 use qubit_value::Value;
 use qubit_value::ValueContainer;
+use qubit_value::ValueWireV1;
 use serde_json::Map as JsonMap;
 use serde_json::Value as JsonValue;
 use serde_json::json;
@@ -30,6 +31,124 @@ const TAG_COUNT: u8 = 52;
 const MAX_INPUT: usize = 4096;
 const MAX_NODES: usize = 96;
 const MAX_TEXT: usize = 24;
+
+const FLOAT32_BOUNDARIES: [u32; 10] = [
+    0x0000_0000,
+    0x8000_0000,
+    0x0000_0001,
+    0x8000_0001,
+    0x007f_ffff,
+    0x0080_0000,
+    0x7f7f_ffff,
+    0xff7f_ffff,
+    0x3f80_0001,
+    0x3f7f_ffff,
+];
+const FLOAT64_BOUNDARIES: [u64; 10] = [
+    0x0000_0000_0000_0000,
+    0x8000_0000_0000_0000,
+    0x0000_0000_0000_0001,
+    0x8000_0000_0000_0001,
+    0x000f_ffff_ffff_ffff,
+    0x0010_0000_0000_0000,
+    0x7fef_ffff_ffff_ffff,
+    0xffef_ffff_ffff_ffff,
+    0x3ff0_0000_0000_0001,
+    0x3fefffffffffffff,
+];
+
+/// Selects one finite f32 path: mode byte 0 keeps the legacy arithmetic value,
+/// mode 1 reads bytes 2..6 as little-endian IEEE bits (zero-padded), and mode
+/// 2 selects a fixed boundary bit pattern using byte 2. Non-finite bit patterns
+/// fall back to the same-sign maximum finite value.
+#[must_use]
+fn float32(data: &[u8], arithmetic: i32) -> f32 {
+    match data.get(1).copied().unwrap_or_default() % 3 {
+        0 => arithmetic as f32 / 3.0,
+        1 => {
+            let bits = u32::from_le_bytes(padded_bytes(data.get(2..6).unwrap_or_default()));
+            let value = f32::from_bits(bits);
+            if value.is_finite() {
+                value
+            } else {
+                f32::from_bits((bits & 0x8000_0000) | 0x7f7f_ffff)
+            }
+        }
+        _ => f32::from_bits(
+            FLOAT32_BOUNDARIES
+                [usize::from(data.get(2).copied().unwrap_or_default()) % FLOAT32_BOUNDARIES.len()],
+        ),
+    }
+}
+
+/// Selects one finite f64 path: mode byte 0 keeps the legacy arithmetic value,
+/// mode 1 reads bytes 2..10 as little-endian IEEE bits (zero-padded), and mode
+/// 2 selects a fixed boundary bit pattern using byte 2. Non-finite bit patterns
+/// fall back to the same-sign maximum finite value.
+#[must_use]
+fn float64(data: &[u8], arithmetic: i64) -> f64 {
+    match data.get(1).copied().unwrap_or_default() % 3 {
+        0 => arithmetic as f64 / 3.0,
+        1 => {
+            let bits = u64::from_le_bytes(padded_bytes(data.get(2..10).unwrap_or_default()));
+            let value = f64::from_bits(bits);
+            if value.is_finite() {
+                value
+            } else {
+                f64::from_bits((bits & 0x8000_0000_0000_0000) | 0x7fef_ffff_ffff_ffff)
+            }
+        }
+        _ => f64::from_bits(
+            FLOAT64_BOUNDARIES
+                [usize::from(data.get(2).copied().unwrap_or_default()) % FLOAT64_BOUNDARIES.len()],
+        ),
+    }
+}
+
+/// Asserts Wire V1 rejects input-controlled NaN payloads and both infinities
+/// for f32/f64 scalar values and non-empty collections.
+pub fn check_non_finite(data: &[u8]) {
+    let sign32 = if data.first().copied().unwrap_or_default() & 1 == 0 {
+        0
+    } else {
+        0x8000_0000
+    };
+    let sign64 = if data.first().copied().unwrap_or_default() & 1 == 0 {
+        0
+    } else {
+        0x8000_0000_0000_0000
+    };
+    let payload32 =
+        u32::from_le_bytes(padded_bytes(data.get(1..5).unwrap_or_default())) & 0x003f_ffff;
+    let payload64 = u64::from_le_bytes(padded_bytes(data.get(1..9).unwrap_or_default()))
+        & 0x0007_ffff_ffff_ffff;
+    let nan32 = f32::from_bits(sign32 | 0x7fc0_0000 | payload32);
+    let nan64 = f64::from_bits(sign64 | 0x7ff8_0000_0000_0000 | payload64);
+    for value in [f32::INFINITY, f32::NEG_INFINITY, nan32] {
+        assert!(matches!(
+            ValueWireV1::try_from(ValueContainer::Scalar(Value::Float32(value))),
+            Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
+        ));
+        assert!(matches!(
+            ValueWireV1::try_from(ValueContainer::Collection(MultiValues::Float32(vec![
+                value
+            ]))),
+            Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
+        ));
+    }
+    for value in [f64::INFINITY, f64::NEG_INFINITY, nan64] {
+        assert!(matches!(
+            ValueWireV1::try_from(ValueContainer::Scalar(Value::Float64(value))),
+            Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
+        ));
+        assert!(matches!(
+            ValueWireV1::try_from(ValueContainer::Collection(MultiValues::Float64(vec![
+                value
+            ]))),
+            Err(qubit_value::ValueWireEncodeError::NonFiniteFloat { .. })
+        ));
+    }
+}
 
 /// Reads bounded fuzz bytes, zero-filling exhausted scalar reads and advancing
 /// monotonically even when a requested slice extends past the input.
@@ -222,8 +341,8 @@ pub fn container_from_bytes(data: &[u8]) -> ValueContainer {
     }
     let json = json_value(&mut cursor, 0, &mut nodes, &mut text_bytes_left);
     let character = char::from_u32((seed % 0x11_0000) as u32).unwrap_or('🦀');
-    let float32 = number as f32 / 3.0;
-    let float64 = number as f64 / 3.0;
+    let float32 = float32(bounded, number);
+    let float64 = float64(bounded, number64);
 
     match tag {
         0 => ValueContainer::Scalar(Value::Bool(data.get(1).copied().unwrap_or_default() & 1 == 1)),
