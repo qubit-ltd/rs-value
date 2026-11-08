@@ -9,3 +9,5 @@
 //! Tests for contracts that require crate-internal access.
 
 mod finite_float_tests;
+#[cfg(feature = "json")]
+mod wire_api_tests;

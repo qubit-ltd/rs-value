@@ -954,3 +954,32 @@ pub(crate) mod duration_vec {
         .deserialize(deserializer)
     }
 }
+
+#[cfg(test)]
+mod contract_boundary_tests {
+    #[cfg(feature = "chrono")]
+    #[test]
+    fn test_instant_year_accepts_only_the_four_digit_wire_range() {
+        assert!(super::validate_instant_year(0).is_ok());
+        assert!(super::validate_instant_year(9999).is_ok());
+        assert!(matches!(
+            super::validate_instant_year(-1),
+            Err(crate::ValueWireEncodeError::InstantYearOutOfRange { year: -1 }),
+        ));
+        assert!(matches!(
+            super::validate_instant_year(10_000),
+            Err(crate::ValueWireEncodeError::InstantYearOutOfRange { year: 10_000 }),
+        ));
+    }
+
+    #[cfg(feature = "big-decimal")]
+    #[test]
+    fn test_decimal_scale_accepts_only_the_inclusive_wire_bound() {
+        assert!(super::is_valid_big_decimal_scale(0));
+        assert!(super::is_valid_big_decimal_scale(150_000));
+        assert!(super::is_valid_big_decimal_scale(-150_000));
+        assert!(!super::is_valid_big_decimal_scale(150_001));
+        assert!(!super::is_valid_big_decimal_scale(-150_001));
+        assert!(!super::is_valid_big_decimal_scale(i64::MIN));
+    }
+}

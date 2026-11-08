@@ -43,6 +43,8 @@ use qubit_value::ValueWireEncodeError;
 #[cfg(feature = "chrono")]
 use qubit_value::ValueWirePayloadRefV1;
 use qubit_value::ValueWirePayloadV1;
+#[cfg(feature = "json")]
+use qubit_value::ValueWirePayloadV1Seed;
 #[cfg(feature = "chrono")]
 use qubit_value::ValueWireRefV1;
 use qubit_value::ValueWireV1;
@@ -53,7 +55,13 @@ use ron::from_str as from_ron_str;
 use ron::ser::PrettyConfig;
 use ron::ser::to_string_pretty;
 use ron::to_string as to_ron_string;
+use serde::Deserialize;
+use serde::Deserializer as SerdeDeserializer;
 use serde::de::DeserializeSeed;
+#[cfg(feature = "json")]
+use serde::de::IntoDeserializer;
+use serde::de::value::SeqDeserializer;
+use serde::forward_to_deserialize_any;
 #[cfg(feature = "all")]
 use serde_json::from_slice;
 use serde_json::json;
@@ -65,6 +73,27 @@ use url::Url;
 
 use crate::decode_value_wire_str;
 use crate::decode_value_wire_value;
+
+#[cfg(feature = "json")]
+#[test]
+fn test_named_and_versioned_wire_reject_wrong_top_level_json_type() {
+    assert!(NamedValue::decode_json_slice(b"null").is_err());
+    assert!(NamedMultiValues::decode_json_slice(b"null").is_err());
+    assert!(ValueWireV1::decode_json_slice(b"null").is_err());
+}
+
+#[cfg(feature = "json")]
+#[test]
+fn test_named_collection_and_wire_writers_accept_sink() {
+    let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![80, 443]));
+    let mut sink = std::io::sink();
+    named
+        .to_json_writer(&mut sink)
+        .expect("named collection writes to a sink");
+
+    let wire = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
+    wire.to_json_writer(&mut sink).expect("V1 wire writes to a sink");
+}
 
 #[test]
 fn test_ron_named_scalar_roundtrip() {
@@ -80,6 +109,191 @@ fn test_ron_named_collection_roundtrip() {
     let text = to_ron_string(&original).expect("serialize named collection");
     let restored: NamedMultiValues = from_ron_str(&text).expect("decode named collection");
     assert_eq!(restored, original);
+}
+
+/// Exercises positional records accepted from non-human-readable formats.
+#[test]
+fn test_non_human_readable_named_and_wire_records_accept_exact_sequences() {
+    let named_scalar = serde_json::json!([
+        "port",
+        {"version": 1, "value": {"scalar": {"int32": 42}}}
+    ]);
+    let decoded = NamedValue::deserialize(NonHumanReadableSequence(
+        named_scalar.as_array().expect("fixture is an array").clone(),
+    ))
+    .expect("named scalar sequence should decode");
+    assert_eq!(decoded, NamedValue::new("port", Value::Int32(42)));
+
+    let named_values = serde_json::json!([
+        "ports",
+        {"version": 1, "value": {"collection": {"int32": [42, 43]}}}
+    ]);
+    let decoded = NamedMultiValues::deserialize(NonHumanReadableSequence(
+        named_values.as_array().expect("fixture is an array").clone(),
+    ))
+    .expect("named collection sequence should decode");
+    assert_eq!(
+        decoded,
+        NamedMultiValues::new("ports", MultiValues::Int32(vec![42, 43]))
+    );
+
+    let wire = serde_json::json!([1, {"scalar": {"int32": 7}}]);
+    let decoded = ValueWireV1Seed
+        .deserialize(NonHumanReadableSequence(
+            wire.as_array().expect("fixture is an array").clone(),
+        ))
+        .expect("wire envelope sequence should decode");
+    assert_eq!(decoded.container(), &ValueContainer::from(7_i32));
+}
+
+/// Rejects short and overlong positional records for each owned visitor.
+#[test]
+fn test_non_human_readable_owned_record_sequences_require_exact_lengths() {
+    for input in [
+        serde_json::json!(["port"]),
+        serde_json::json!(["port", {"version": 1, "value": {"scalar": {"int32": 1}}}, true]),
+    ] {
+        let fields = input.as_array().expect("fixture is an array").clone();
+        assert!(NamedValue::deserialize(NonHumanReadableSequence(fields)).is_err());
+    }
+    for input in [
+        serde_json::json!(["ports"]),
+        serde_json::json!(["ports", {"version": 1, "value": {"collection": {"int32": [1]}}}, true]),
+    ] {
+        let fields = input.as_array().expect("fixture is an array").clone();
+        assert!(NamedMultiValues::deserialize(NonHumanReadableSequence(fields)).is_err());
+    }
+    for input in [
+        serde_json::json!([1]),
+        serde_json::json!([1, {"scalar": {"int32": 7}}, true]),
+    ] {
+        let fields = input.as_array().expect("fixture is an array").clone();
+        assert!(ValueWireV1Seed.deserialize(NonHumanReadableSequence(fields)).is_err());
+    }
+}
+
+/// Exercises borrowed sequence access used by serde_json value references.
+#[test]
+fn test_non_human_readable_borrowed_named_and_wire_sequences() {
+    let named_scalar = serde_json::json!([
+        "port",
+        {"version": 1, "value": {"scalar": {"int32": 42}}}
+    ]);
+    let decoded = NamedValue::deserialize(NonHumanReadableValue(&named_scalar))
+        .expect("borrowed named scalar sequence should decode");
+    assert_eq!(decoded, NamedValue::new("port", Value::Int32(42)));
+
+    let named_values = serde_json::json!([
+        "ports",
+        {"version": 1, "value": {"collection": {"int32": [42]}}}
+    ]);
+    let decoded = NamedMultiValues::deserialize(NonHumanReadableValue(&named_values))
+        .expect("borrowed named collection sequence should decode");
+    assert_eq!(decoded, NamedMultiValues::new("ports", MultiValues::Int32(vec![42])));
+
+    let wire = serde_json::json!([1, {"scalar": {"int32": 7}}]);
+    let decoded = ValueWireV1Seed
+        .deserialize(NonHumanReadableValue(&wire))
+        .expect("borrowed wire envelope sequence should decode");
+    assert_eq!(decoded.container(), &ValueContainer::from(7_i32));
+}
+
+/// Exercises owned wrapper records with serde_json's value deserializer and
+/// the unversioned payload seed.
+#[cfg(feature = "json")]
+#[test]
+fn test_owned_wire_records_decode_from_json_values() {
+    let named_scalar: NamedValue = serde_json::from_value(serde_json::json!({
+        "name": "port",
+        "value": {"version": 1, "value": {"scalar": {"int32": 42}}}
+    }))
+    .expect("named scalar map should decode");
+    assert_eq!(named_scalar, NamedValue::new("port", Value::Int32(42)));
+
+    let named_collection: NamedMultiValues = serde_json::from_value(serde_json::json!({
+        "name": "ports",
+        "value": {"version": 1, "value": {"collection": {"int32": [42, 43]}}}
+    }))
+    .expect("named collection map should decode");
+    assert_eq!(
+        named_collection,
+        NamedMultiValues::new("ports", MultiValues::Int32(vec![42, 43]))
+    );
+
+    let envelope = ValueWireV1Seed::new()
+        .deserialize(serde_json::json!({"version": 1, "value": {"scalar": {"int32": 7}}}).into_deserializer())
+        .expect("V1 envelope map should decode");
+    assert_eq!(envelope.container(), &ValueContainer::from(7_i32));
+
+    let scalar = ValueWirePayloadV1Seed::new()
+        .deserialize(serde_json::json!({"scalar": {"int32": 7}}).into_deserializer())
+        .expect("unversioned scalar payload should decode");
+    assert_eq!(scalar.into_container(), ValueContainer::from(7_i32));
+
+    let collection = ValueWirePayloadV1Seed::new()
+        .deserialize(serde_json::json!({"collection": {"int32": [7, 11]}}).into_deserializer())
+        .expect("unversioned collection payload should decode");
+    assert_eq!(collection.into_container(), ValueContainer::from(vec![7_i32, 11]));
+}
+
+/// Presents a JSON array as a non-human-readable struct sequence.
+struct NonHumanReadableSequence(Vec<serde_json::Value>);
+
+impl<'de> SerdeDeserializer<'de> for NonHumanReadableSequence {
+    type Error = serde_json::Error;
+
+    fn is_human_readable(&self) -> bool {
+        false
+    }
+
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        visitor.visit_seq(SeqDeserializer::<_, Self::Error>::new(self.0.into_iter()))
+    }
+
+    forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+        bytes byte_buf option unit unit_struct newtype_struct seq tuple tuple_struct
+        map struct enum identifier ignored_any
+    }
+}
+
+/// Marks a borrowed serde_json value as a non-human-readable representation.
+struct NonHumanReadableValue<'de>(&'de serde_json::Value);
+
+impl<'de> SerdeDeserializer<'de> for NonHumanReadableValue<'de> {
+    type Error = serde_json::Error;
+
+    fn is_human_readable(&self) -> bool {
+        false
+    }
+
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        SerdeDeserializer::deserialize_any(self.0, visitor)
+    }
+
+    fn deserialize_struct<V>(
+        self,
+        name: &'static str,
+        fields: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        SerdeDeserializer::deserialize_struct(self.0, name, fields, visitor)
+    }
+
+    forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+        bytes byte_buf option unit unit_struct newtype_struct seq tuple tuple_struct
+        map enum identifier ignored_any
+    }
 }
 
 #[test]

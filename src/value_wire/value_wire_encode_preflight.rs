@@ -938,6 +938,7 @@ mod tests {
 
     use qubit_budget::MeasuredBudgetError;
     use qubit_budget::json::JsonEncodeLimits;
+    use qubit_budget::json::JsonMeasurement;
     use qubit_budget::json::JsonResource;
 
     use super::ValueWireEncodePreflight;
@@ -1024,6 +1025,72 @@ mod tests {
         assert_eq!(checker.nodes, 0);
         assert_eq!(checker.payload_bytes, 0);
         assert_eq!(checker.output_bytes, usize::MAX);
+    }
+
+    #[test]
+    fn test_admit_helpers_report_arithmetic_overflow_without_large_values() {
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        assert_overflow(
+            checker
+                .admit_string(0, usize::MAX)
+                .expect_err("string output length must not overflow"),
+        );
+
+        assert_overflow(
+            checker
+                .admit_array(0, usize::MAX)
+                .expect_err("array output punctuation must not overflow"),
+        );
+
+        assert_overflow(
+            checker
+                .admit_object(0, usize::MAX)
+                .expect_err("object output punctuation must not overflow"),
+        );
+
+        checker.payload_bytes = usize::MAX;
+        assert_overflow(
+            checker
+                .admit_key("x")
+                .expect_err("key payload accumulation must not overflow"),
+        );
+
+        checker.payload_bytes = 0;
+        checker.output_bytes = usize::MAX - 2;
+        assert_overflow(
+            checker
+                .admit_key("x")
+                .expect_err("key output accumulation must not overflow"),
+        );
+    }
+
+    #[test]
+    fn test_admit_reports_each_counter_arithmetic_overflow() {
+        let measurement = JsonMeasurement::Boolean { depth: 0 };
+
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        checker.nodes = usize::MAX;
+        assert_overflow(
+            checker
+                .admit(measurement, 1, 0)
+                .expect_err("node accumulation must not overflow"),
+        );
+
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        checker.payload_bytes = usize::MAX;
+        assert_overflow(
+            checker
+                .admit(measurement, 1, 1)
+                .expect_err("payload accumulation must not overflow"),
+        );
+
+        let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::new());
+        checker.output_bytes = usize::MAX;
+        assert_overflow(
+            checker
+                .admit(measurement, 1, 0)
+                .expect_err("output accumulation must not overflow"),
+        );
     }
 
     #[test]

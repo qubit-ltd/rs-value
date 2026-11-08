@@ -61,6 +61,20 @@ fn test_value_wire_v1_identity_preserves_shape() {
 }
 
 #[test]
+fn test_value_wire_v1_duration_shapes_serialize_to_sink() {
+    let scalar = ValueWireV1::try_from(ValueContainer::Scalar(Value::Duration(Duration::new(7, 123))))
+        .expect("construct scalar duration wire");
+    let collection = ValueWireV1::try_from(ValueContainer::Collection(MultiValues::Duration(vec![Duration::new(
+        7, 123,
+    )])))
+    .expect("construct duration collection wire");
+
+    let mut sink = std::io::sink();
+    serde_json::to_writer(&mut sink, &scalar).expect("serialize scalar duration to sink");
+    serde_json::to_writer(&mut sink, &collection).expect("serialize duration collection to sink");
+}
+
+#[test]
 fn test_value_wire_v1_preserves_f64_round_trip() {
     let value = Value::Float64(625_026_605_f64 / 3.0);
     let wire = ValueWireV1::try_from(value).expect("construct float wire");
