@@ -16,12 +16,10 @@ use serde_json::map::Iter;
 ///
 /// * `'a` - Lifetime of JSON values and object iterators retained by frames.
 pub(in crate::identity) enum HashFrame<'a> {
-    /// Visits one JSON node at its root-inclusive depth.
+    /// Visits one JSON node.
     Visit(
         /// JSON value whose structural tag and contents are hashed next.
         &'a Value,
-        /// Root-inclusive depth retained for child continuations.
-        usize,
     ),
     /// Hashes an array length before its elements are visited.
     HashArrayLength(
@@ -32,8 +30,6 @@ pub(in crate::identity) enum HashFrame<'a> {
     VisitArray {
         /// Array elements being visited.
         values: &'a [Value],
-        /// Root-inclusive depth of each array element.
-        depth: usize,
         /// Index of the next element to visit.
         next: usize,
     },
@@ -41,8 +37,6 @@ pub(in crate::identity) enum HashFrame<'a> {
     VisitObject {
         /// Object entries being visited.
         entries: Iter<'a>,
-        /// Root-inclusive depth of each object value.
-        depth: usize,
     },
     /// Starts an object entry with its independent identity hasher.
     StartObjectEntry(

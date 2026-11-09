@@ -245,13 +245,13 @@ fn hash_json_iterative<H>(value: &Value, state: &mut H)
 where
     H: Hasher,
 {
-    let mut frames = vec![HashFrame::Visit(value, 1)];
+    let mut frames = vec![HashFrame::Visit(value)];
     let mut destinations = vec![HashDestination::Root(state)];
     let mut objects = Vec::<ObjectHash>::new();
 
     while let Some(frame) = frames.pop() {
         match frame {
-            HashFrame::Visit(value, depth) => {
+            HashFrame::Visit(value) => {
                 let destination = destinations
                     .last_mut()
                     .expect("a JSON node must have a hash destination");
@@ -271,12 +271,7 @@ where
                     }
                     Value::Array(values) => {
                         destination.hash(&4_u8);
-                        let child_depth = depth.saturating_add(1);
-                        frames.push(HashFrame::VisitArray {
-                            values,
-                            depth: child_depth,
-                            next: 0,
-                        });
+                        frames.push(HashFrame::VisitArray { values, next: 0 });
                         frames.push(HashFrame::HashArrayLength(values.len()));
                     }
                     Value::Object(values) => {
@@ -284,11 +279,7 @@ where
                         destination.hash(&values.len());
                         objects.push(ObjectHash::default());
                         frames.push(HashFrame::FinishObject);
-                        let child_depth = depth.saturating_add(1);
-                        frames.push(HashFrame::VisitObject {
-                            entries: values.iter(),
-                            depth: child_depth,
-                        });
+                        frames.push(HashFrame::VisitObject { entries: values.iter() });
                     }
                 }
             }
@@ -298,21 +289,20 @@ where
                     .expect("an array must have a hash destination")
                     .hash(&length);
             }
-            HashFrame::VisitArray { values, depth, next } => {
+            HashFrame::VisitArray { values, next } => {
                 if let Some(value) = values.get(next) {
                     frames.push(HashFrame::VisitArray {
                         values,
-                        depth,
                         next: next.saturating_add(1),
                     });
-                    frames.push(HashFrame::Visit(value, depth));
+                    frames.push(HashFrame::Visit(value));
                 }
             }
-            HashFrame::VisitObject { mut entries, depth } => {
+            HashFrame::VisitObject { mut entries } => {
                 if let Some((key, value)) = entries.next() {
-                    frames.push(HashFrame::VisitObject { entries, depth });
+                    frames.push(HashFrame::VisitObject { entries });
                     frames.push(HashFrame::FinishObjectEntry);
-                    frames.push(HashFrame::Visit(value, depth));
+                    frames.push(HashFrame::Visit(value));
                     frames.push(HashFrame::StartObjectEntry(key));
                 }
             }
