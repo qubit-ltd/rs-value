@@ -14,3 +14,6 @@ pub mod natural_json_projection;
 pub mod preflight_input;
 pub mod preflight_sequence;
 pub mod structured_wire_input;
+
+#[path = "../../tests/identity/internal/identity_properties.rs"]
+pub mod identity_properties;

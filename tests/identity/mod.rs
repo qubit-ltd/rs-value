@@ -11,6 +11,10 @@
 #[cfg(feature = "big-decimal")]
 mod big_decimal_hash_tests;
 mod float_identity_tests;
+#[cfg(all(feature = "big-decimal", feature = "json"))]
+mod identity_property_tests;
+#[cfg(all(feature = "big-decimal", feature = "json"))]
+mod internal;
 #[cfg(feature = "json")]
 mod json_identity_tests;
 mod string_map_hash_tests;

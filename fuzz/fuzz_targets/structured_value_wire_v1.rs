@@ -15,6 +15,7 @@ use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_value::ValueWireV1;
+use qubit_value_fuzz::identity_properties::check_identity_properties;
 use qubit_value_fuzz::named_wire_input::check_structured;
 use qubit_value_fuzz::structured_wire_input::check_non_finite;
 use qubit_value_fuzz::structured_wire_input::container_from_bytes;
@@ -42,6 +43,7 @@ fn fuzz_encode_limits() -> JsonEncodeLimits {
 }
 
 fuzz_target!(|data: &[u8]| {
+    check_identity_properties(data);
     let container = container_from_bytes(data);
     let wire = ValueWireV1::try_from(container.clone());
 
