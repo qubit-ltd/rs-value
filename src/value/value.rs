@@ -77,6 +77,7 @@ use super::value_ref::ValueRef;
 use crate::IntoValueDefault;
 use crate::NumericComparisonError;
 use crate::ValueError;
+#[cfg(all(feature = "converter", feature = "json"))]
 use crate::ValueMissing;
 #[cfg(feature = "json")]
 use crate::identity::hash_json;

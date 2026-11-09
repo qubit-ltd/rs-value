@@ -121,5 +121,5 @@ fuzz_target!(|data: &[u8]| {
 
     let structured = container_from_bytes(input);
     check_successful_encoding(&structured, encode_limits(input));
-    run_sequence(input);
+    let _ = run_sequence(input);
 });
