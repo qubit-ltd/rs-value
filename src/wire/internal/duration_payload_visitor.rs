@@ -15,6 +15,7 @@ use serde::de::SeqAccess;
 use serde::de::Visitor;
 
 use super::DurationPayload;
+use super::duration_payload_field::DurationPayloadField;
 
 /// Reads a duration payload with exactly one `secs` and one `nanos` field in
 /// maps, or those two components in order in permitted sequences.
@@ -126,21 +127,20 @@ impl<'de> Visitor<'de> for DurationPayloadVisitor {
         // Map representations require both recognized fields exactly once.
         let mut secs = None;
         let mut nanos = None;
-        while let Some(key) = map.next_key::<String>()? {
-            match key.as_str() {
-                "secs" => {
+        while let Some(key) = map.next_key::<DurationPayloadField>()? {
+            match key {
+                DurationPayloadField::Secs => {
                     if secs.is_some() {
                         return Err(Error::duplicate_field("secs"));
                     }
                     secs = Some(map.next_value()?);
                 }
-                "nanos" => {
+                DurationPayloadField::Nanos => {
                     if nanos.is_some() {
                         return Err(Error::duplicate_field("nanos"));
                     }
                     nanos = Some(map.next_value()?);
                 }
-                _ => return Err(Error::unknown_field(&key, &["secs", "nanos"])),
             }
         }
         Ok(DurationPayload {

@@ -18,6 +18,7 @@ use serde::de::SeqAccess;
 use serde::de::Visitor;
 
 use super::NamedMultiValuesWireOwned;
+use super::named_multi_values_field::NamedMultiValuesField;
 use crate::ValueWireV1;
 use crate::ValueWireV1Seed;
 
@@ -130,21 +131,20 @@ impl<'de> Visitor<'de> for NamedMultiValuesWireOwnedVisitor {
     {
         let mut name: Option<String> = None;
         let mut value: Option<ValueWireV1> = None;
-        while let Some(key) = map.next_key::<String>()? {
-            match key.as_str() {
-                "name" => {
+        while let Some(key) = map.next_key::<NamedMultiValuesField>()? {
+            match key {
+                NamedMultiValuesField::Name => {
                     if name.is_some() {
                         return Err(Error::duplicate_field("name"));
                     }
                     name = Some(map.next_value()?);
                 }
-                "value" => {
+                NamedMultiValuesField::Value => {
                     if value.is_some() {
                         return Err(Error::duplicate_field("value"));
                     }
                     value = Some(map.next_value_seed(ValueWireV1Seed::new())?);
                 }
-                _ => return Err(Error::unknown_field(&key, &["name", "value"])),
             }
         }
         Ok(NamedMultiValuesWireOwned {

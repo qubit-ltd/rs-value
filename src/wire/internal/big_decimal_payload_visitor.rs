@@ -18,6 +18,7 @@ use serde::de::SeqAccess;
 use serde::de::Visitor;
 
 use super::BigDecimalPayload;
+use super::big_decimal_payload_field::BigDecimalPayloadField;
 
 /// Decodes coefficient and scale records without validating decimal
 /// canonicality.
@@ -127,21 +128,20 @@ impl<'de> Visitor<'de> for BigDecimalPayloadVisitor {
     {
         let mut coefficient = None;
         let mut scale = None;
-        while let Some(key) = map.next_key::<String>()? {
-            match key.as_str() {
-                "coefficient" => {
+        while let Some(key) = map.next_key::<BigDecimalPayloadField>()? {
+            match key {
+                BigDecimalPayloadField::Coefficient => {
                     if coefficient.is_some() {
                         return Err(Error::duplicate_field("coefficient"));
                     }
                     coefficient = Some(map.next_value()?);
                 }
-                "scale" => {
+                BigDecimalPayloadField::Scale => {
                     if scale.is_some() {
                         return Err(Error::duplicate_field("scale"));
                     }
                     scale = Some(map.next_value()?);
                 }
-                _ => return Err(Error::unknown_field(&key, &["coefficient", "scale"])),
             }
         }
         Ok(BigDecimalPayload {

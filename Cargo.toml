@@ -75,6 +75,11 @@ path = "tests/wire_preparation_allocation_tests.rs"
 required-features = ["json"]
 
 [[test]]
+name = "wire_field_allocation_tests"
+path = "tests/wire_field_allocation_tests.rs"
+required-features = ["json"]
+
+[[test]]
 name = "preflight_allocation_tests"
 path = "tests/preflight_allocation_tests.rs"
 required-features = ["big-decimal", "json"]

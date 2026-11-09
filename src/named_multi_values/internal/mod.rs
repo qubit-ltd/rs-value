@@ -8,6 +8,8 @@
 
 //! Private wire representations for [`super::NamedMultiValues`].
 
+mod named_multi_values_field;
+mod named_multi_values_field_visitor;
 mod named_multi_values_wire_owned;
 mod named_multi_values_wire_owned_visitor;
 mod named_multi_values_wire_ref;

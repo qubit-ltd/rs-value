@@ -11,6 +11,10 @@
 #[cfg(feature = "big-decimal")]
 mod big_decimal_payload;
 #[cfg(feature = "big-decimal")]
+mod big_decimal_payload_field;
+#[cfg(feature = "big-decimal")]
+mod big_decimal_payload_field_visitor;
+#[cfg(feature = "big-decimal")]
 mod big_decimal_payload_visitor;
 #[cfg(feature = "json")]
 mod canonical_json;
@@ -18,6 +22,8 @@ mod canonical_json;
 mod canonical_json_frame;
 mod canonical_string_map;
 mod duration_payload;
+mod duration_payload_field;
+mod duration_payload_field_visitor;
 mod duration_payload_visitor;
 #[cfg(feature = "json")]
 mod fixed_number_text;

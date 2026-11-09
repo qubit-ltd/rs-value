@@ -13,6 +13,8 @@ mod collection_wire_ref;
 mod scalar_wire_owned;
 mod scalar_wire_ref;
 mod wire_data_type_v1;
+mod wire_envelope_field;
+mod wire_envelope_field_visitor;
 mod wire_envelope_owned;
 mod wire_envelope_owned_visitor;
 mod wire_envelope_ref;

@@ -8,6 +8,7 @@
 
 //! Tests for contracts that require crate-internal access.
 
+pub(crate) mod allocation_support;
 mod finite_float_tests;
 #[cfg(feature = "json")]
 mod wire_api_tests;

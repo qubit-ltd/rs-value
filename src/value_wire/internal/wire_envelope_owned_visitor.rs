@@ -15,6 +15,7 @@ use serde::de::SeqAccess;
 use serde::de::Visitor;
 
 use super::WireEnvelopeOwned;
+use super::wire_envelope_field::WireEnvelopeField;
 
 /// Reads an envelope with exactly one `version` and one `value` field.
 ///
@@ -127,21 +128,20 @@ impl<'de> Visitor<'de> for WireEnvelopeOwnedVisitor {
         // Map representations require both recognized fields exactly once.
         let mut version = None;
         let mut value = None;
-        while let Some(key) = map.next_key::<String>()? {
-            match key.as_str() {
-                "version" => {
+        while let Some(key) = map.next_key::<WireEnvelopeField>()? {
+            match key {
+                WireEnvelopeField::Version => {
                     if version.is_some() {
                         return Err(Error::duplicate_field("version"));
                     }
                     version = Some(map.next_value()?);
                 }
-                "value" => {
+                WireEnvelopeField::Value => {
                     if value.is_some() {
                         return Err(Error::duplicate_field("value"));
                     }
                     value = Some(map.next_value()?);
                 }
-                _ => return Err(Error::unknown_field(&key, &["version", "value"])),
             }
         }
         Ok(WireEnvelopeOwned {
