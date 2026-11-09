@@ -17,7 +17,7 @@ libfuzzer-sys = "^0.4"
 qubit-budget = { version = "^0.10", features = ["json"] }
 qubit-datatype = { version = "^0.15", features = ["json"] }
 qubit-json = "^0.12"
-qubit-value = { path = "..", features = ["all"] }
+qubit-value = { path = "../", features = ["all"] , version = "^0.13" }
 serde_json = { version = "^1.0", features = ["float_roundtrip"] }
 bigdecimal = "^0.4"
 chrono = { version = "^0.4", default-features = false, features = ["std"] }
