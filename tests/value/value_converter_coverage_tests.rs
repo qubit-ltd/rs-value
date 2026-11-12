@@ -33,12 +33,12 @@ use qubit_datatype::ConversionLimits;
 #[cfg(feature = "big-integer")]
 use qubit_datatype::ConversionPolicy;
 use qubit_datatype::DataType;
-#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
+#[cfg(feature = "big-integer")]
 use qubit_datatype::InvalidValueReason;
 #[cfg(feature = "big-integer")]
 use qubit_datatype::NumericConversionPolicy;
 use qubit_value::Value;
-#[cfg(any(feature = "big-integer", feature = "big-decimal"))]
+#[cfg(feature = "big-integer")]
 use qubit_value::ValueError;
 #[cfg(feature = "json")]
 use serde_json::Value as JsonValue;
