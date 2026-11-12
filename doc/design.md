@@ -506,9 +506,9 @@ These integrations define the intended layering:
 3. `qubit-budget` and `qubit-json` perform shared bounded JSON accounting and
    I/O.
 
-New public behavior should be checked against both direct downstream crates,
-especially changes to borrowed views, missing semantics, Wire DTOs, seeds,
-preflight accumulation, or feature gates.
+`qubit-value` CI verifies this crate's public contract. Direct consumer
+integration belongs to each downstream crate's own CI; this crate's required
+checks do not depend on pinned consumer revisions.
 
 <a id="evolution-rules"></a>
 ## Evolution Rules
@@ -516,7 +516,9 @@ preflight accumulation, or feature gates.
 Maintainers should apply the following rules to future changes:
 
 1. Preserve public method signatures and semantics within a compatible release;
-   use semver checks and direct downstream tests to detect accidental breaks.
+   use semver checks and focused contract tests in this crate to detect
+   accidental breaks. Consumer-specific integration coverage belongs in the
+   downstream repository's own CI.
 2. Add a runtime type through the central value table and update both owned
    containers, borrowed views, conversion behavior, identity, Natural JSON,
    Wire handling, feature tests, and documentation as one change.

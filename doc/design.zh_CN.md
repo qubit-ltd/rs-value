@@ -387,15 +387,16 @@ Metadata 的 `get` 系列执行严格读取，`convert` 系列显式请求转换
 2. `qubit-value` 负责 typed payload 校验、标量/集合语义和 V1 payload 编码；
 3. `qubit-budget` 与 `qubit-json` 负责共享的有界 JSON 记账和 I/O。
 
-新增公共行为时，需要同时检查两个直接下游，尤其是借用视图、missing 语义、Wire DTO、seed、
-preflight 累计行为或 feature gate 发生变化时。
+`qubit-value` 的 CI 负责验证本 crate 的公共契约。直接消费端的集成由各下游 crate 自己的 CI
+负责；本 crate 的必需检查不依赖固定的下游 revision。
 
 <a id="evolution-rules"></a>
 ## 演进规则
 
 后续变更应遵循以下规则：
 
-1. 在兼容版本内保持公共方法签名和语义；使用 semver 检查及直接下游测试发现意外破坏。
+1. 在兼容版本内保持公共方法签名和语义；使用 semver 检查及本 crate 的契约测试发现意外破坏。
+   消费端的集成测试由下游仓库自己的 CI 负责。
 2. 新增运行时类型时，通过中央 value table 同步更新两个 owned 容器、借用视图、转换行为、
    identity、自然 JSON、Wire 处理、feature 测试和文档。
 3. 维持 `Eq`/`Hash` 一致性。即使具体 hash 输出不稳定，语义相等的变化仍属于可观察 API 变化。
