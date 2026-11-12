@@ -21,12 +21,12 @@ use super::deserialize_wire;
 /// for the surrounding document. For complete JSON input, prefer the bounded
 /// JSON decode helpers on `ValueWireV1`.
 ///
-/// This generic Serde seed preserves the surrounding deserializer's error
-/// semantics; its diagnostics may contain input-derived text. Bounded helpers
-/// map target-deserialization failures to `InvalidJson` metadata containing
-/// only the Serde category and location. Resource limits do not sanitize
-/// diagnostics, and reader or writer I/O sources may contain
-/// application-defined details that require the application's logging policy.
+/// Errors from decoding the envelope use a fixed diagnostic so malformed
+/// field names and values from untrusted input are not disclosed. Bounded
+/// helpers provide richer safe metadata through `InvalidJson`. Resource
+/// limits do not sanitize diagnostics, and reader or writer I/O sources may
+/// contain application-defined details that require the application's logging
+/// policy.
 ///
 /// # Examples
 ///
@@ -93,8 +93,8 @@ impl<'de> DeserializeSeed<'de> for ValueWireV1Seed {
     /// # Errors
     ///
     /// Returns `D::Error` if decoding fails or the envelope declares an
-    /// unsupported version. Diagnostics retain the deserializer's error
-    /// semantics and may contain input-derived text.
+    /// unsupported version. Malformed envelope diagnostics do not include
+    /// input-derived field names or values.
     #[inline(always)]
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where

@@ -9,6 +9,7 @@
 //! Wide-integer wire visitor behavior.
 
 use qubit_value::Value;
+use qubit_value::ValueWirePayloadV1Seed;
 use qubit_value::ValueWireV1Seed;
 use serde::de::DeserializeSeed;
 use serde::de::IntoDeserializer;
@@ -26,11 +27,9 @@ fn test_wide_integer_wire_rejects_number_payload() {
 #[test]
 fn test_wide_integer_wire_rejects_invalid_decimal_text() {
     for text in ["", "+1", "01", "12x", "-1"] {
-        let input = json!({
-            "version": 1,
-            "value": {"scalar": {"uint128": text}},
-        });
-        let error = crate::decode_value_wire_value(input).expect_err("invalid unsigned integer text must be rejected");
+        let input = json!({"scalar": {"uint128": text}});
+        let error =
+            crate::decode_value_wire_payload_value(input).expect_err("invalid unsigned integer text must be rejected");
         let message = error.to_string();
         if matches!(text, "+1" | "01") {
             assert!(message.contains("canonical"), "unexpected error for {text:?}: {error}");
@@ -92,8 +91,8 @@ fn test_wide_integer_wire_parses_owned_extreme_strings() {
 /// error.
 #[test]
 fn test_wide_integer_wire_rejects_owned_noncanonical_string_precisely() {
-    let input = json!({"version": 1, "value": {"scalar": {"int128": "+1"}}});
-    let error = ValueWireV1Seed::new()
+    let input = json!({"scalar": {"int128": "+1"}});
+    let error = ValueWirePayloadV1Seed::new()
         .deserialize(input.into_deserializer())
         .expect_err("owned non-canonical integer string must be rejected");
     assert_eq!(error.to_string(), "non-canonical 128-bit integer string",);

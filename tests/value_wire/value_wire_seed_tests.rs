@@ -103,6 +103,20 @@ fn test_value_wire_v1_seed_rejects_an_unsupported_version_precisely() {
 }
 
 #[test]
+fn test_value_wire_v1_seed_does_not_disclose_invalid_payload_fields() {
+    let secret = "wire-secret-marker-7fc3";
+    let input = format!(r#"{{"version":1,"value":{{"scalar":{{"{secret}":"{secret}"}}}}}}"#);
+    let mut deserializer = Deserializer::from_str(&input);
+
+    let error = ValueWireV1Seed::new()
+        .deserialize(&mut deserializer)
+        .expect_err("an invalid payload must be rejected");
+
+    assert!(!error.to_string().contains(secret));
+    assert!(!format!("{error:?}").contains(secret));
+}
+
+#[test]
 fn test_wire_record_json_rejects_sequence_form() {
     for input in [
         r#"[1,{"scalar":{"int32":7}}]"#,
@@ -291,7 +305,10 @@ fn test_wire_envelope_non_human_readable_deserialize_struct_reports_observed_ext
         .deserialize(NonHumanReadableDeserializer(input.into_deserializer()))
         .expect_err("an extra sequence element must be rejected");
 
-    assert!(error.to_string().contains("invalid length 3"), "{error}");
+    assert!(
+        error.to_string().contains("invalid qubit-value wire envelope"),
+        "{error}"
+    );
 }
 
 #[test]

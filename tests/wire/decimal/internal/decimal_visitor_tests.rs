@@ -13,6 +13,8 @@ use num_bigint::BigInt;
 #[cfg(feature = "big-integer")]
 use qubit_value::Value;
 #[cfg(feature = "big-integer")]
+use qubit_value::ValueWirePayloadV1Seed;
+#[cfg(feature = "big-integer")]
 use qubit_value::ValueWireV1Seed;
 #[cfg(feature = "big-integer")]
 use serde::de::DeserializeSeed;
@@ -39,11 +41,9 @@ fn test_big_integer_wire_rejects_noncanonical_string() {
 #[test]
 fn test_big_integer_wire_rejects_invalid_decimal_text() {
     for text in ["", "+1", "01", "-0", "12x"] {
-        let input = json!({
-            "version": 1,
-            "value": {"scalar": {"biginteger": text}},
-        });
-        let error = crate::decode_value_wire_value(input).expect_err("invalid big integer text must be rejected");
+        let input = json!({"scalar": {"biginteger": text}});
+        let error =
+            crate::decode_value_wire_payload_value(input).expect_err("invalid big integer text must be rejected");
         let message = error.to_string();
         if matches!(text, "+1" | "01" | "-0") {
             assert!(message.contains("canonical"), "unexpected error for {text:?}: {error}");
@@ -82,11 +82,8 @@ fn test_big_integer_wire_parses_owned_extreme_string() {
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_rejects_owned_noncanonical_string_precisely() {
-    let input = json!({
-        "version": 1,
-        "value": {"scalar": {"biginteger": "+1"}},
-    });
-    let error = ValueWireV1Seed::new()
+    let input = json!({"scalar": {"biginteger": "+1"}});
+    let error = ValueWirePayloadV1Seed::new()
         .deserialize(input.into_deserializer())
         .expect_err("owned non-canonical integer string must be rejected");
     assert_eq!(

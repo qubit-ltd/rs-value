@@ -520,8 +520,7 @@ fn test_wire_instant_rejects_invalid_timestamp() {
 /// Removes input coordinates so malformed collection fixtures can compare error
 /// precedence.
 fn collection_payload_error_without_location(payload: &str) -> String {
-    let input = format!(r#"{{"version":1,"value":{payload}}}"#);
-    decode_value_wire_str(&input)
+    crate::decode_value_wire_payload_str(payload)
         .expect_err("invalid collection payload must be rejected")
         .to_string()
         .split(" at line ")

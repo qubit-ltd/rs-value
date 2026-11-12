@@ -218,7 +218,7 @@ fn test_value_wire_v1_rejects_excessive_big_decimal_scale_on_decode() {
 
     let error = decode_value_wire_value(input).expect_err("excessive decimal scale must be rejected");
 
-    assert!(error.to_string().contains("maximum absolute scale"));
+    assert_eq!(error.to_string(), "invalid qubit-value wire envelope");
 }
 
 /// Handles the minimum signed exponent without overflowing scale validation.

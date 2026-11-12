@@ -216,7 +216,11 @@ fn deserialize_wire<'de, D>(deserializer: D) -> Result<ValueContainer, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let envelope = WireEnvelopeOwned::deserialize(deserializer)?;
+    // A nested deserializer may include an offending key or value in its
+    // diagnostic. Keep the explicit seed safe to use inside larger wire
+    // documents by replacing that error at this boundary.
+    let envelope = WireEnvelopeOwned::deserialize(deserializer)
+        .map_err(|_| D::Error::custom("invalid qubit-value wire envelope"))?;
     if envelope.version != VALUE_WIRE_V1_VERSION {
         return Err(D::Error::custom(format_args!(
             "unsupported qubit-value wire version {}",

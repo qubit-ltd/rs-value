@@ -12,9 +12,7 @@
 use qubit_value::Value as RuntimeValue;
 #[cfg(feature = "json")]
 use qubit_value::ValueContainer;
-#[cfg(feature = "json")]
 use qubit_value::ValueWirePayloadV1;
-#[cfg(feature = "json")]
 use qubit_value::ValueWirePayloadV1Seed;
 use qubit_value::ValueWireV1;
 use qubit_value::ValueWireV1Seed;
@@ -45,14 +43,12 @@ pub(crate) fn decode_value_wire_slice(input: &[u8]) -> Result<ValueWireV1, Error
 }
 
 /// Decodes an unversioned V1 payload with the public deserialization seed.
-#[cfg(feature = "json")]
 pub(crate) fn decode_value_wire_payload_str(input: &str) -> Result<ValueWirePayloadV1, Error> {
     let mut deserializer = Deserializer::from_str(input);
     ValueWirePayloadV1Seed::new().deserialize(&mut deserializer)
 }
 
 /// Serializes a JSON fixture before decoding it as an unversioned V1 payload.
-#[cfg(feature = "json")]
 pub(crate) fn decode_value_wire_payload_value(input: JsonValue) -> Result<ValueWirePayloadV1, Error> {
     let input = to_string(&input).expect("test JSON value should serialize");
     decode_value_wire_payload_str(&input)
