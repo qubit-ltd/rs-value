@@ -14,10 +14,39 @@ use std::alloc::System;
 use std::cell::Cell;
 
 use serde::Deserialize;
+use serde::Deserializer;
+use serde::de::Visitor;
 use serde::de::value::BorrowedStrDeserializer;
 use serde::de::value::Error as ValueError;
 use serde::de::value::StrDeserializer;
 use serde::de::value::StringDeserializer;
+use serde::forward_to_deserialize_any;
+
+struct ByteBufIdentifierDeserializer(Vec<u8>);
+
+impl<'de> Deserializer<'de> for ByteBufIdentifierDeserializer {
+    type Error = ValueError;
+
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        self.deserialize_identifier(visitor)
+    }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_byte_buf(self.0)
+    }
+
+    forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string bytes
+        byte_buf option unit unit_struct newtype_struct seq tuple tuple_struct map struct
+        enum ignored_any
+    }
+}
 
 struct CountingAllocator;
 
@@ -134,6 +163,15 @@ where
     let old_valid = String::deserialize(BytesDeserializer::<ValueError>::new(valid_bytes));
     let new_valid = T::deserialize(BytesDeserializer::<ValueError>::new(valid_bytes));
     assert_eq!(old_valid.is_ok(), new_valid.is_ok());
+
+    let owned_bytes = valid_bytes.to_vec();
+    let old_owned_bytes = String::deserialize(ByteBufIdentifierDeserializer(owned_bytes.clone()));
+    let new_owned_bytes = T::deserialize(ByteBufIdentifierDeserializer(owned_bytes));
+    assert_eq!(old_owned_bytes.is_ok(), new_owned_bytes.is_ok());
+
+    let old_json_string = String::deserialize(serde_json::Value::String(field.to_owned()));
+    let new_json_string = T::deserialize(serde_json::Value::String(field.to_owned()));
+    assert_eq!(old_json_string.is_ok(), new_json_string.is_ok());
 
     let invalid_utf8 = [0xff];
     let old_invalid = String::deserialize(BytesDeserializer::<ValueError>::new(&invalid_utf8));

@@ -117,6 +117,7 @@ pub(crate) struct Runner {
     rustdoc: OsString,
     externs: Vec<(String, PathBuf)>,
     dependency_paths: BTreeSet<PathBuf>,
+    _build_temp: TempDir,
 }
 
 impl Runner {
@@ -194,6 +195,12 @@ impl Runner {
             }
         }
 
+        // The enclosing `cargo test` may run crate doctests alongside this
+        // integration test. Keep this nested build out of Cargo's shared
+        // target directory so it cannot replace artifacts that those doctests
+        // are compiling against.
+        let build_temp = TempDir::create()?;
+        let build_target = build_temp.path.join("target");
         let build = Command::new(&cargo)
             .args([
                 "build",
@@ -205,6 +212,7 @@ impl Runner {
                 "--offline",
                 "--message-format=json",
             ])
+            .env("CARGO_TARGET_DIR", &build_target)
             .current_dir(root)
             .output()
             .map_err(|error| format!("failed to run cargo build: {error}"))?;
@@ -293,6 +301,7 @@ impl Runner {
             rustdoc,
             externs,
             dependency_paths,
+            _build_temp: build_temp,
         })
     }
 

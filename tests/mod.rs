@@ -10,7 +10,7 @@
 //! Provides integration tests for the value processing framework.
 
 mod helpers_tests;
-#[cfg(feature = "json")]
+pub(crate) use helpers_tests::decode_value_wire_payload_str;
 pub(crate) use helpers_tests::decode_value_wire_payload_value;
 #[cfg(feature = "json")]
 pub(crate) use helpers_tests::decode_value_wire_slice;
