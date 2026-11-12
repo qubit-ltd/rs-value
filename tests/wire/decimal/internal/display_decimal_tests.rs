@@ -21,7 +21,8 @@ use serde_json::to_value;
 #[test]
 fn test_big_integer_wire_serializes_negative_value() {
     let wire = to_value(
-        ValueWireV1::try_from(Value::BigInteger(BigInt::from(-42))).expect("big integer converts to wire value"),
+        ValueWireV1::try_from(Value::BigInteger(BigInt::from(-42)))
+            .expect("big integer converts to wire value"),
     )
     .expect("wire value serializes");
 
@@ -35,9 +36,13 @@ fn test_big_integer_wire_serializes_negative_value() {
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_serializes_large_value_as_text() {
-    let value = BigInt::parse_bytes(b"123456789012345678901234567890", 10).expect("large integer fixture");
-    let wire = to_value(ValueWireV1::try_from(Value::BigInteger(value)).expect("big integer converts to wire value"))
-        .expect("serialize large integer");
+    let value =
+        BigInt::parse_bytes(b"123456789012345678901234567890", 10).expect("large integer fixture");
+    let wire = to_value(
+        ValueWireV1::try_from(Value::BigInteger(value))
+            .expect("big integer converts to wire value"),
+    )
+    .expect("serialize large integer");
 
     assert_eq!(
         wire["value"]["scalar"]["biginteger"], "123456789012345678901234567890",

@@ -167,7 +167,10 @@ impl<'a> ValueWireRefV1<'a> {
     #[cfg(feature = "json")]
     #[inline]
     #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
-    pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+    pub fn to_json_vec_with_limits(
+        &self,
+        limits: JsonEncodeLimits,
+    ) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.value.check_encode_preflight(limits)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)

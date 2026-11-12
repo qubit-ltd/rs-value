@@ -158,9 +158,17 @@ fn test_natural_json_deep_projection_child() {
     }
 
     eprintln!("teardown output iteratively");
-    assert_eq!(projected_nodes, DEPTH + 1, "projected JSON node count changed");
+    assert_eq!(
+        projected_nodes,
+        DEPTH + 1,
+        "projected JSON node count changed"
+    );
     assert_eq!(projected_depth, DEPTH, "projected JSON depth changed");
-    assert_eq!(deepest_bool, Some((DEPTH, true)), "projected JSON leaf changed");
+    assert_eq!(
+        deepest_bool,
+        Some((DEPTH, true)),
+        "projected JSON leaf changed"
+    );
     let input_json = JsonValue::try_from(input).expect("deep input retains its JSON type");
     dismantle_json(input_json);
     eprintln!("teardown input iteratively");
@@ -206,7 +214,11 @@ fn rustc_version() -> String {
 fn test_natural_json_enforces_cumulative_projection_limits() {
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(5).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_output_bytes(5)
+                .build(),
+        )
         .build();
     let values = MultiValues::String(vec!["abc".into(), "def".into()]);
     let error = values
@@ -222,7 +234,11 @@ fn test_natural_json_enforces_cumulative_projection_limits() {
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_items(0).build())
         .build();
-    assert!(Value::Int32(1).to_json_value_with(&policy, &limits).is_err());
+    assert!(
+        Value::Int32(1)
+            .to_json_value_with(&policy, &limits)
+            .is_err()
+    );
 }
 
 /// Float budgets measure the projected JSON representation at exact boundaries.
@@ -239,13 +255,27 @@ fn test_natural_json_float_budget_matches_projected_number() {
         let projected = value.to_json_value().expect("finite float projection");
         let bytes = projected.to_string().len() as u64;
         let limits = ConversionLimits::builder()
-            .operation_limits(ConversionOperationLimits::builder().max_output_bytes(bytes).build())
+            .operation_limits(
+                ConversionOperationLimits::builder()
+                    .max_output_bytes(bytes)
+                    .build(),
+            )
             .build();
-        assert_eq!(value.to_json_value_with(&policy, &limits).unwrap(), projected);
+        assert_eq!(
+            value.to_json_value_with(&policy, &limits).unwrap(),
+            projected
+        );
         let limits = ConversionLimits::builder()
-            .operation_limits(ConversionOperationLimits::builder().max_output_bytes(bytes - 1).build())
+            .operation_limits(
+                ConversionOperationLimits::builder()
+                    .max_output_bytes(bytes - 1)
+                    .build(),
+            )
             .build();
-        assert!(value.to_json_value_with(&policy, &limits).is_err(), "{projected}");
+        assert!(
+            value.to_json_value_with(&policy, &limits).is_err(),
+            "{projected}"
+        );
     }
 }
 
@@ -262,11 +292,18 @@ fn test_natural_json_enforces_structure_before_materializing() {
                 .build(),
         )
         .build();
-    assert!(Value::Json(json!([[0]])).to_json_value_with(&policy, &limits).is_err());
     assert!(
-        Value::StringMap(HashMap::from([("a".into(), "1".into()), ("b".into(), "2".into())]))
+        Value::Json(json!([[0]]))
             .to_json_value_with(&policy, &limits)
             .is_err()
+    );
+    assert!(
+        Value::StringMap(HashMap::from([
+            ("a".into(), "1".into()),
+            ("b".into(), "2".into())
+        ]))
+        .to_json_value_with(&policy, &limits)
+        .is_err()
     );
     assert!(
         MultiValues::Int32(vec![1, 2])
@@ -274,7 +311,11 @@ fn test_natural_json_enforces_structure_before_materializing() {
             .is_err()
     );
     let limits = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_structured_nodes(1).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_structured_nodes(1)
+                .build(),
+        )
         .build();
     assert!(
         MultiValues::Int32(vec![1])
@@ -290,7 +331,11 @@ fn test_natural_json_duration_budget_error_scalar_and_collection() {
     let duration = Value::Duration(Duration::from_secs(1));
     let policy = ConversionPolicy::default();
     let zero_output = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(0).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_output_bytes(0)
+                .build(),
+        )
         .build();
     let direct_error = match duration.to_with::<String>(&policy, &zero_output) {
         Err(ValueError::Conversion(error)) => error,
@@ -317,17 +362,29 @@ fn test_natural_json_duration_budget_error_scalar_and_collection() {
         Some(source.budget_error().unwrap().configured_limit())
     );
     assert_eq!(direct_error.used(), source.budget_error().unwrap().used());
-    assert_eq!(direct_error.remaining(), source.budget_error().unwrap().remaining());
-    assert_eq!(direct_error.requested(), source.budget_error().unwrap().requested());
+    assert_eq!(
+        direct_error.remaining(),
+        source.budget_error().unwrap().remaining()
+    );
+    assert_eq!(
+        direct_error.requested(),
+        source.budget_error().unwrap().requested()
+    );
 
     let limits = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_output_bytes(6)
+                .build(),
+        )
         .build();
     let collection_error = MultiValues::Duration(vec![Duration::from_secs(1); 2])
         .to_json_value_with(&policy, &limits)
         .expect_err("second duration exceeds cumulative output capacity");
     let ValueError::JsonProjectionLimit {
-        source_index, source, ..
+        source_index,
+        source,
+        ..
     } = collection_error
     else {
         panic!("expected a structured projection limit error");
@@ -352,7 +409,11 @@ fn test_natural_json_duration_budget_error_scalar_and_collection() {
 fn test_natural_json_duration_budget_error_exact_fit_and_non_finite_float() {
     let policy = ConversionPolicy::default();
     let exact = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_output_bytes(6)
+                .build(),
+        )
         .build();
     assert_eq!(
         Value::Duration(Duration::from_secs(1))
@@ -372,9 +433,17 @@ fn test_natural_json_duration_budget_error_exact_fit_and_non_finite_float() {
 fn test_natural_json_bounds_wide_number_text() {
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(6).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_output_bytes(6)
+                .build(),
+        )
         .build();
-    assert!(Value::Int128(i128::MAX).to_json_value_with(&policy, &limits).is_err());
+    assert!(
+        Value::Int128(i128::MAX)
+            .to_json_value_with(&policy, &limits)
+            .is_err()
+    );
     assert!(
         Value::BigDecimal("123456789.123".parse().expect("decimal"))
             .to_json_value_with(&policy, &limits)
@@ -384,7 +453,10 @@ fn test_natural_json_bounds_wide_number_text() {
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_natural_json_projects_scalar() {
-    assert_eq!(Value::Int32(42).to_json_value().expect("project scalar"), json!(42),);
+    assert_eq!(
+        Value::Int32(42).to_json_value().expect("project scalar"),
+        json!(42),
+    );
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -433,13 +505,19 @@ fn test_natural_json_projects_every_scalar_variant() {
     #[cfg(feature = "big-integer")]
     assert_scalar!(Value::BigInteger(BigInt::from(7)), json!("7"));
     #[cfg(feature = "big-decimal")]
-    assert_scalar!(Value::BigDecimal("7.5".parse::<BigDecimal>().unwrap()), json!("7.5"));
+    assert_scalar!(
+        Value::BigDecimal("7.5".parse::<BigDecimal>().unwrap()),
+        json!("7.5")
+    );
     #[cfg(feature = "url")]
     assert_scalar!(
         Value::Url(Url::parse("https://example.com").unwrap()),
         json!("https://example.com/")
     );
-    assert_scalar!(Value::Json(json!({"z": 1, "a": 2})), json!({"a": 2, "z": 1}));
+    assert_scalar!(
+        Value::Json(json!({"z": 1, "a": 2})),
+        json!({"a": 2, "z": 1})
+    );
 }
 
 #[cfg(all(feature = "converter", feature = "json"))]
@@ -486,7 +564,9 @@ fn test_natural_json_projects_float32_without_widening() {
         0x2696_F5F4_u32, // 0.000000000000001047500658
     ] {
         let value = f32::from_bits(bits);
-        let projected = Value::Float32(value).to_json_value().expect("project float32");
+        let projected = Value::Float32(value)
+            .to_json_value()
+            .expect("project float32");
         let projected_text = to_string(&projected).expect("serialize json");
 
         let legacy_text = to_string(&JsonValue::Number(
@@ -514,7 +594,9 @@ fn test_natural_json_projects_string_map_keys_in_dictionary_order() {
         ("a".to_owned(), "1".to_owned()),
         ("m".to_owned(), "13".to_owned()),
     ]);
-    let projected = Value::StringMap(map).to_json_value().expect("project string map");
+    let projected = Value::StringMap(map)
+        .to_json_value()
+        .expect("project string map");
 
     assert_eq!(
         to_string(&projected).expect("serialize projected map"),
@@ -570,7 +652,8 @@ fn test_natural_json_canonicalizes_objects_nested_inside_arrays() {
 #[test]
 fn test_natural_json_canonicalizes_mixed_empty_and_primitive_values() {
     let value = Value::Json(
-        from_str(r#"{"z":[{"b":2,"a":1},{}],"a":[{"q":[],"p":{}},true]}"#).expect("parse mixed JSON value"),
+        from_str(r#"{"z":[{"b":2,"a":1},{}],"a":[{"q":[],"p":{}},true]}"#)
+            .expect("parse mixed JSON value"),
     );
     let projected = value.to_json_value().expect("project mixed JSON value");
     assert_eq!(
@@ -589,7 +672,10 @@ fn test_natural_json_canonicalizes_mixed_empty_and_primitive_values() {
 fn test_natural_json_projects_every_collection_variant() {
     macro_rules! assert_collection {
         ($values:expr, $expected:expr) => {
-            assert_eq!($values.to_json_value().expect("project collection"), $expected);
+            assert_eq!(
+                $values.to_json_value().expect("project collection"),
+                $expected
+            );
         };
     }
 
@@ -625,9 +711,15 @@ fn test_natural_json_projects_every_collection_variant() {
             .unwrap()
             .and_hms_opt(1, 2, 3)
             .unwrap();
-        assert_collection!(MultiValues::DateTime(vec![datetime]), json!(["2025-01-01 01:02:03"]));
+        assert_collection!(
+            MultiValues::DateTime(vec![datetime]),
+            json!(["2025-01-01 01:02:03"])
+        );
         let instant = DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc);
-        assert_collection!(MultiValues::Instant(vec![instant]), json!(["2025-01-01 01:02:03 UTC"]));
+        assert_collection!(
+            MultiValues::Instant(vec![instant]),
+            json!(["2025-01-01 01:02:03 UTC"])
+        );
     }
     #[cfg(feature = "big-integer")]
     assert_collection!(MultiValues::BigInteger(vec![BigInt::from(7)]), json!(["7"]));
@@ -636,14 +728,20 @@ fn test_natural_json_projects_every_collection_variant() {
         MultiValues::BigDecimal(vec!["7.5".parse::<BigDecimal>().unwrap()]),
         json!(["7.5"])
     );
-    assert_collection!(MultiValues::Duration(vec![Duration::from_secs(1)]), json!(["1000ms"]));
+    assert_collection!(
+        MultiValues::Duration(vec![Duration::from_secs(1)]),
+        json!(["1000ms"])
+    );
     #[cfg(feature = "url")]
     assert_collection!(
         MultiValues::Url(vec![Url::parse("https://example.com").unwrap()]),
         json!(["https://example.com/"])
     );
     assert_collection!(
-        MultiValues::StringMap(vec![HashMap::from([("key".to_string(), "value".to_string()),])]),
+        MultiValues::StringMap(vec![HashMap::from([(
+            "key".to_string(),
+            "value".to_string()
+        ),])]),
         json!([{"key": "value"}])
     );
     assert_collection!(
@@ -658,7 +756,11 @@ fn test_natural_json_projects_every_collection_variant() {
 fn test_natural_json_limit_error_preserves_budget_facts() {
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(5).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_output_bytes(5)
+                .build(),
+        )
         .build();
     let error = MultiValues::String(vec!["abc".into(), "def".into()])
         .to_json_value_with(&policy, &limits)
@@ -690,7 +792,11 @@ fn test_natural_json_limit_error_preserves_budget_facts() {
 fn test_natural_json_projection_boundary_matrix() {
     let policy = ConversionPolicy::default();
     let input = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_input_bytes(2).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_input_bytes(2)
+                .build(),
+        )
         .build();
     for value in [
         Value::from("abc"),
@@ -754,7 +860,11 @@ fn test_natural_json_projection_boundary_matrix() {
 fn test_natural_json_checks_big_integer_limits() {
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
-        .numeric_limits(NumericConversionLimits::builder().max_big_integer_digits(10).build())
+        .numeric_limits(
+            NumericConversionLimits::builder()
+                .max_big_integer_digits(10)
+                .build(),
+        )
         .build();
     let value = Value::BigInteger(BigInt::from(-1_234_567_890_i64));
 
@@ -764,7 +874,11 @@ fn test_natural_json_checks_big_integer_limits() {
     );
 
     let limits = ConversionLimits::builder()
-        .numeric_limits(NumericConversionLimits::builder().max_big_integer_digits(9).build())
+        .numeric_limits(
+            NumericConversionLimits::builder()
+                .max_big_integer_digits(9)
+                .build(),
+        )
         .build();
     assert!(value.to_json_value_with(&policy, &limits).is_err());
 }
@@ -774,7 +888,11 @@ fn test_natural_json_checks_big_integer_limits() {
 fn test_natural_json_keys_and_values_share_output_budget() {
     let policy = ConversionPolicy::default();
     let limits = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(1).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_output_bytes(1)
+                .build(),
+        )
         .build();
     for value in [
         Value::Json(json!({"ab": null})),
@@ -790,14 +908,20 @@ fn test_natural_json_keys_and_values_share_output_budget() {
         assert_eq!(source.budget_error().unwrap().configured_limit(), 1);
     }
     let limits = ConversionLimits::builder()
-        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(3).build())
+        .operation_limits(
+            ConversionOperationLimits::builder()
+                .max_output_bytes(3)
+                .build(),
+        )
         .build();
     let values = MultiValues::Json(vec![json!({"a": "b"}), json!({"c": "d"})]);
     let error = values
         .to_json_value_with(&policy, &limits)
         .expect_err("four bytes across two objects");
     let ValueError::JsonProjectionLimit {
-        source_index, source, ..
+        source_index,
+        source,
+        ..
     } = error
     else {
         panic!("expected a projection budget failure");
@@ -814,14 +938,22 @@ fn test_natural_json_keys_and_values_share_output_budget() {
 #[test]
 fn test_natural_json_text_limit_applies_inside_json_and_maps() {
     let limits = ConversionLimits::builder()
-        .structured_limits(StructuredConversionLimits::builder().max_text_bytes(2).build())
+        .structured_limits(
+            StructuredConversionLimits::builder()
+                .max_text_bytes(2)
+                .build(),
+        )
         .build();
     for value in [
         Value::from("abc"),
         Value::Json(json!("abc")),
         Value::StringMap(HashMap::from([("a".into(), "abc".into())])),
     ] {
-        assert!(value.to_json_value_with(&ConversionPolicy::default(), &limits).is_err());
+        assert!(
+            value
+                .to_json_value_with(&ConversionPolicy::default(), &limits)
+                .is_err()
+        );
     }
 }
 
@@ -830,7 +962,11 @@ fn test_natural_json_text_limit_applies_inside_json_and_maps() {
 #[test]
 fn test_natural_json_text_limit_numbers_keys_and_utf8() {
     let limits = ConversionLimits::builder()
-        .structured_limits(StructuredConversionLimits::builder().max_text_bytes(2).build())
+        .structured_limits(
+            StructuredConversionLimits::builder()
+                .max_text_bytes(2)
+                .build(),
+        )
         .build();
     let policy = ConversionPolicy::default();
     for value in [Value::Int32(123), Value::from("中文")] {
@@ -841,14 +977,24 @@ fn test_natural_json_text_limit_numbers_keys_and_utf8() {
             panic!("expected projection limit");
         };
         assert_eq!(*source.resource(), ConversionResource::StructuredTextBytes);
-        assert_eq!(source.budget_error().expect("budget facts").configured_limit(), 2);
+        assert_eq!(
+            source
+                .budget_error()
+                .expect("budget facts")
+                .configured_limit(),
+            2
+        );
     }
     assert_eq!(
-        Value::Int32(12).to_json_value_with(&policy, &limits).unwrap(),
+        Value::Int32(12)
+            .to_json_value_with(&policy, &limits)
+            .unwrap(),
         json!(12)
     );
     assert_eq!(
-        Value::from("é").to_json_value_with(&policy, &limits).unwrap(),
+        Value::from("é")
+            .to_json_value_with(&policy, &limits)
+            .unwrap(),
         json!("é")
     );
     let object = json!({"long-key": "ab"});
@@ -874,7 +1020,11 @@ fn test_natural_json_reports_each_projection_budget_resource_precisely() {
         (
             Value::String("abc".to_owned()),
             ConversionLimits::builder()
-                .operation_limits(ConversionOperationLimits::builder().max_input_bytes(2).build())
+                .operation_limits(
+                    ConversionOperationLimits::builder()
+                        .max_input_bytes(2)
+                        .build(),
+                )
                 .build(),
             ConversionResource::InputBytes,
             2_u64,
@@ -882,7 +1032,11 @@ fn test_natural_json_reports_each_projection_budget_resource_precisely() {
         (
             Value::String("abc".to_owned()),
             ConversionLimits::builder()
-                .structured_limits(StructuredConversionLimits::builder().max_text_bytes(2).build())
+                .structured_limits(
+                    StructuredConversionLimits::builder()
+                        .max_text_bytes(2)
+                        .build(),
+                )
                 .build(),
             ConversionResource::StructuredTextBytes,
             2,
@@ -902,7 +1056,11 @@ fn test_natural_json_reports_each_projection_budget_resource_precisely() {
         (
             Value::Bool(true),
             ConversionLimits::builder()
-                .operation_limits(ConversionOperationLimits::builder().max_structured_nodes(0).build())
+                .operation_limits(
+                    ConversionOperationLimits::builder()
+                        .max_structured_nodes(0)
+                        .build(),
+                )
                 .build(),
             ConversionResource::StructuredNodes,
             0,
@@ -963,7 +1121,8 @@ fn test_natural_json_canonicalization_handles_empty_and_wide_arrays_without_muta
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_natural_json_canonicalization_preserves_number_identity_and_sorts_mixed_objects() {
-    let source_json = from_str::<JsonValue>(r#"[{"z":1.0,"a":[1e+30,{"y":2,"b":3}]},{}]"#).expect("parse mixed JSON");
+    let source_json = from_str::<JsonValue>(r#"[{"z":1.0,"a":[1e+30,{"y":2,"b":3}]},{}]"#)
+        .expect("parse mixed JSON");
     let original = source_json.clone();
     let source = Value::Json(source_json);
     let projected = source.to_json_value().expect("project mixed JSON");
@@ -974,8 +1133,15 @@ fn test_natural_json_canonicalization_preserves_number_identity_and_sorts_mixed_
     let JsonValue::Object(first) = &items[0] else {
         panic!("object child");
     };
-    assert_eq!(first.keys().map(String::as_str).collect::<Vec<_>>(), ["a", "z"]);
+    assert_eq!(
+        first.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["a", "z"]
+    );
     assert_eq!(first["z"].as_number().unwrap().to_string(), "1.0");
     assert_eq!(first["a"][0].as_number().unwrap().to_string(), "1e+30");
-    assert_eq!(source, Value::Json(original), "projection leaves its input unchanged");
+    assert_eq!(
+        source,
+        Value::Json(original),
+        "projection leaves its input unchanged"
+    );
 }

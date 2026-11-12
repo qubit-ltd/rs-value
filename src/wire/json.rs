@@ -79,7 +79,8 @@ pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Value, D::Error>
 where
     D: Deserializer<'de>,
 {
-    DuplicateKeyRejectingJsonValue::deserialize(deserializer).map(DuplicateKeyRejectingJsonValue::into_inner)
+    DuplicateKeyRejectingJsonValue::deserialize(deserializer)
+        .map(DuplicateKeyRejectingJsonValue::into_inner)
 }
 
 /// Checks whether a JSON number survives the V1 decoder's number model
@@ -199,7 +200,8 @@ pub(crate) fn validate_numbers(value: &Value) -> Result<(), ValueWireEncodeError
             match node {
                 Value::Number(number) => validate_number(number)?,
                 Value::Array(_) | Value::Object(_) => {
-                    frames.push(JsonNumberChildren::new(node).expect("container has child iterator"));
+                    frames
+                        .push(JsonNumberChildren::new(node).expect("container has child iterator"));
                 }
                 _ => {}
             }

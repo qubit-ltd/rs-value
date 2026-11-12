@@ -18,7 +18,10 @@ use qubit_value::ValueMissingReason;
 
 #[test]
 fn test_missing_error_exposes_default_semantics() {
-    let error = ValueError::from(DataConversionError::missing(DataType::String, DataType::Int32));
+    let error = ValueError::from(DataConversionError::missing(
+        DataType::String,
+        DataType::Int32,
+    ));
     assert!(error.is_missing());
     let missing = error.missing().unwrap();
     assert_eq!(missing.source_type(), Some(DataType::String));
@@ -33,22 +36,41 @@ fn test_value_error_display_includes_context() {
         expected: DataType::String,
         actual: DataType::Int32,
     };
-    assert_eq!(mismatch.to_string(), "Type mismatch: expected string, actual int32");
+    assert_eq!(
+        mismatch.to_string(),
+        "Type mismatch: expected string, actual int32"
+    );
 }
 
 #[test]
 fn test_value_error_variants_compare_by_payload() {
     assert_eq!(
-        ValueError::Missing(ValueMissing::unset_scalar(DataType::String, DataType::String)),
-        ValueError::Missing(ValueMissing::unset_scalar(DataType::String, DataType::String)),
+        ValueError::Missing(ValueMissing::unset_scalar(
+            DataType::String,
+            DataType::String
+        )),
+        ValueError::Missing(ValueMissing::unset_scalar(
+            DataType::String,
+            DataType::String
+        )),
     );
-    let source = DataConversionError::invalid(DataType::String, DataType::Int32, InvalidValueReason::OutOfRange);
+    let source = DataConversionError::invalid(
+        DataType::String,
+        DataType::Int32,
+        InvalidValueReason::OutOfRange,
+    );
     let single = ValueError::Conversion(source.clone());
-    assert_eq!(single.source().and_then(|error| error.downcast_ref()), Some(&source),);
+    assert_eq!(
+        single.source().and_then(|error| error.downcast_ref()),
+        Some(&source),
+    );
 
     let list_source = DataListConversionError::new(2, source);
     let list = ValueError::ListConversion(list_source.clone());
-    assert_eq!(list.source().and_then(|error| error.downcast_ref()), Some(&list_source),);
+    assert_eq!(
+        list.source().and_then(|error| error.downcast_ref()),
+        Some(&list_source),
+    );
 }
 
 #[test]
@@ -84,7 +106,10 @@ fn test_value_missing_preserves_collection_item_context() {
 
 #[test]
 fn test_conversion_missing_errors_are_promoted_to_value_missing() {
-    let scalar = ValueError::from(DataConversionError::missing(DataType::String, DataType::Int32));
+    let scalar = ValueError::from(DataConversionError::missing(
+        DataType::String,
+        DataType::Int32,
+    ));
     let missing = scalar.missing().unwrap();
     assert_eq!(missing.reason(), ValueMissingReason::Conversion);
     assert_eq!(missing.source_type(), Some(DataType::String));
@@ -106,7 +131,11 @@ fn test_conversion_missing_errors_are_promoted_to_value_missing() {
 
 #[test]
 fn test_value_error_clone_preserves_structured_source() {
-    let source = DataConversionError::invalid(DataType::String, DataType::Int32, InvalidValueReason::OutOfRange);
+    let source = DataConversionError::invalid(
+        DataType::String,
+        DataType::Int32,
+        InvalidValueReason::OutOfRange,
+    );
     let error = ValueError::ListConversion(DataListConversionError::new(3, source));
 
     assert_eq!(error.clone(), error);
@@ -131,7 +160,11 @@ fn test_value_error_accessors_cover_non_missing_variants() {
 
     let list = ValueError::ListConversion(DataListConversionError::new(
         0,
-        DataConversionError::invalid(DataType::String, DataType::Int32, InvalidValueReason::OutOfRange),
+        DataConversionError::invalid(
+            DataType::String,
+            DataType::Int32,
+            InvalidValueReason::OutOfRange,
+        ),
     ));
     assert!(!list.is_missing());
     assert_eq!(list.missing(), None);

@@ -202,7 +202,9 @@ mod tests {
         let result = visitor.deserialize(SeqDeserializer::<_, ValueError>::new(&mut values));
 
         assert_eq!(
-            result.expect_err("the first payload is invalid").to_string(),
+            result
+                .expect_err("the first payload is invalid")
+                .to_string(),
             "invalid first item",
         );
         assert_eq!(values.reads, 1, "the tail must remain unread");
@@ -212,13 +214,17 @@ mod tests {
     fn test_empty_sequence_returns_empty_vector() {
         let visitor = ValidatedSequenceVisitor::<i32, i32, _>::new(Ok);
         let result = visitor.deserialize(SeqDeserializer::<_, ValueError>::new(empty::<i32>()));
-        assert_eq!(result.expect("empty input is a valid sequence"), Vec::<i32>::new());
+        assert_eq!(
+            result.expect("empty input is a valid sequence"),
+            Vec::<i32>::new()
+        );
     }
 
     #[test]
     fn test_successful_sequence_preserves_order() {
         let visitor = ValidatedSequenceVisitor::<i32, i32, _>::new(Ok);
-        let result = visitor.deserialize(SeqDeserializer::<_, ValueError>::new([3, 1, 2].into_iter()));
+        let result =
+            visitor.deserialize(SeqDeserializer::<_, ValueError>::new([3, 1, 2].into_iter()));
         assert_eq!(result.expect("all payloads are valid"), vec![3, 1, 2]);
     }
 
@@ -239,7 +245,9 @@ mod tests {
         let result = visitor.deserialize(SeqDeserializer::<_, ValueError>::new(&mut values));
 
         assert_eq!(
-            result.expect_err("the second payload is invalid").to_string(),
+            result
+                .expect_err("the second payload is invalid")
+                .to_string(),
             "invalid second item",
         );
         assert_eq!(values.reads, 2, "the remaining tail must stay unread");

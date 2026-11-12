@@ -143,7 +143,10 @@ impl ValueWirePayloadV1 {
     #[cfg(feature = "json")]
     #[inline]
     #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
-    pub fn decode_json_slice_with_limits(input: &[u8], limits: JsonDecodeLimits) -> Result<Self, ValueWireDecodeError> {
+    pub fn decode_json_slice_with_limits(
+        input: &[u8],
+        limits: JsonDecodeLimits,
+    ) -> Result<Self, ValueWireDecodeError> {
         let session = JsonDecodeSession::from_limits(limits);
         JsonDecoder::new(session)
             .decode_unique_seed_utf8(ValueWirePayloadV1Seed::new(), input)
@@ -236,7 +239,10 @@ impl ValueWirePayloadV1 {
     /// exceeds `limits`, or the payload cannot be serialized.
     #[cfg(feature = "json")]
     #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
-    pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
+    pub fn to_json_vec_with_limits(
+        &self,
+        limits: JsonEncodeLimits,
+    ) -> Result<Vec<u8>, ValueWireEncodeError> {
         ValueWireEncodePreflight::new(limits)
             .check_container(self.container())
             .map_err(ValueWireEncodeError::from)?;

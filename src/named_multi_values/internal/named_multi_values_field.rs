@@ -43,7 +43,9 @@ impl<'de> Deserialize<'de> for NamedMultiValuesField {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_identifier(super::named_multi_values_field_visitor::NamedMultiValuesFieldVisitor)
+        deserializer.deserialize_identifier(
+            super::named_multi_values_field_visitor::NamedMultiValuesFieldVisitor,
+        )
     }
 }
 

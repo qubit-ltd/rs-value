@@ -221,7 +221,10 @@ fn test_wide_natural_json_projection_allocation_evidence() {
         assert_eq!(reference.as_array().unwrap().len(), size);
         eprintln!(
             "natural_array/{size}: cumulative={} peak_live={} direct_output: cumulative={} peak_live={}",
-            reading.cumulative, reading.peak_live, reference_reading.cumulative, reference_reading.peak_live
+            reading.cumulative,
+            reading.peak_live,
+            reference_reading.cumulative,
+            reference_reading.peak_live
         );
         readings.push((size, reading, reference_reading));
     }
@@ -244,7 +247,8 @@ fn test_wide_natural_json_object_allocation_evidence() {
     let mut readings = Vec::new();
     for size in [16, 1024, 4096] {
         let (source, value) = object_fixture(size);
-        let (projected, projection) = measured(|| value.to_json_value().expect("object projection"));
+        let (projected, projection) =
+            measured(|| value.to_json_value().expect("object projection"));
         let (reference, direct) = direct_object_reference(&source);
         assert_eq!(projected, reference);
         eprintln!(
@@ -277,7 +281,8 @@ fn test_wide_natural_json_string_map_allocation_evidence() {
     for size in [16, 1024, 4096] {
         let source = string_map_fixture(size);
         let value = Value::StringMap(source.clone());
-        let (projected, projection) = measured(|| value.to_json_value().expect("string map projection"));
+        let (projected, projection) =
+            measured(|| value.to_json_value().expect("string map projection"));
         let (reference, direct) = direct_string_map_reference(&source);
         assert_eq!(projected, reference);
         eprintln!(

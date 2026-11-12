@@ -130,24 +130,37 @@ pub(crate) fn assert_string_forms_allocate_nothing<T>(field: &str)
 where
     for<'de> T: Deserialize<'de>,
 {
-    let (from_str, allocations, bytes) = measure(|| T::deserialize(StrDeserializer::<ValueError>::new(field)));
-    assert!(from_str.is_ok(), "expected field {field:?} to be recognized");
+    let (from_str, allocations, bytes) =
+        measure(|| T::deserialize(StrDeserializer::<ValueError>::new(field)));
+    assert!(
+        from_str.is_ok(),
+        "expected field {field:?} to be recognized"
+    );
     assert_eq!((allocations, bytes), (0, 0), "StrDeserializer");
 
     let (from_borrowed, allocations, bytes) =
         measure(|| T::deserialize(BorrowedStrDeserializer::<ValueError>::new(field)));
-    assert!(from_borrowed.is_ok(), "expected field {field:?} to be recognized");
+    assert!(
+        from_borrowed.is_ok(),
+        "expected field {field:?} to be recognized"
+    );
     assert_eq!((allocations, bytes), (0, 0), "BorrowedStrDeserializer");
 
     let owned_field = field.to_owned();
     let (from_owned, allocations, bytes) =
         measure(|| T::deserialize(StringDeserializer::<ValueError>::new(owned_field)));
-    assert!(from_owned.is_ok(), "expected field {field:?} to be recognized");
+    assert!(
+        from_owned.is_ok(),
+        "expected field {field:?} to be recognized"
+    );
     assert_eq!((allocations, bytes), (0, 0), "StringDeserializer");
 
     let json = format!("\"{field}\"");
     let (from_json, allocations, bytes) = measure(|| serde_json::from_str::<T>(&json));
-    assert!(from_json.is_ok(), "expected JSON field {field:?} to be recognized");
+    assert!(
+        from_json.is_ok(),
+        "expected JSON field {field:?} to be recognized"
+    );
     assert_eq!((allocations, bytes), (0, 0), "unescaped serde_json field");
 }
 
@@ -189,7 +202,10 @@ where
         old_integer.as_ref().err().map(ToString::to_string),
         new_integer.as_ref().err().map(ToString::to_string)
     );
-    assert!(old_integer.is_err(), "String key deserialization rejects integers");
+    assert!(
+        old_integer.is_err(),
+        "String key deserialization rejects integers"
+    );
 }
 
 /// Confirms JSON string escapes are decoded before field classification.
@@ -197,5 +213,8 @@ pub(crate) fn assert_escaped_field_is_recognized<T>(json: &str)
 where
     for<'de> T: Deserialize<'de>,
 {
-    assert!(serde_json::from_str::<T>(json).is_ok(), "expected escaped field {json}");
+    assert!(
+        serde_json::from_str::<T>(json).is_ok(),
+        "expected escaped field {json}"
+    );
 }

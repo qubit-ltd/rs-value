@@ -31,7 +31,10 @@ impl<'a> NumberTextComparator<'a> {
     #[must_use]
     #[inline]
     pub(in crate::wire) fn new(expected: &'a [u8]) -> Self {
-        Self { expected, offset: 0 }
+        Self {
+            expected,
+            offset: 0,
+        }
     }
 
     /// Returns whether all expected bytes have been matched.

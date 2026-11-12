@@ -62,9 +62,14 @@ fn test_safe_wire_json_data_error_preserves_facts_without_input() {
         source = error.source();
     }
 
-    let source = mapped.source().expect("safe metadata remains in the source chain");
+    let source = mapped
+        .source()
+        .expect("safe metadata remains in the source chain");
     assert!(source.downcast_ref::<ValueWireJsonError>().is_some());
-    assert!(source.source().is_none(), "safe metadata has no nested source");
+    assert!(
+        source.source().is_none(),
+        "safe metadata has no nested source"
+    );
 }
 
 #[test]
@@ -96,12 +101,16 @@ fn test_value_wire_decode_error_preserves_budget_source() {
         error.to_string().contains("InputBytes"),
         "budget errors should identify the limited resource"
     );
-    assert!(error.source().is_some(), "budget errors should preserve their source");
+    assert!(
+        error.source().is_some(),
+        "budget errors should preserve their source"
+    );
 }
 
 #[test]
 fn test_value_wire_decode_error_preserves_json_source() {
-    let source = from_slice::<u64>(br#""TOP_SECRET""#).expect_err("a JSON string cannot deserialize into u64");
+    let source = from_slice::<u64>(br#""TOP_SECRET""#)
+        .expect_err("a JSON string cannot deserialize into u64");
     let error = ValueWireDecodeError::from(source);
 
     assert!(
@@ -116,7 +125,9 @@ fn test_value_wire_decode_error_preserves_json_source() {
     );
     let source = error.source().expect("JSON errors expose safe metadata");
     assert!(
-        source.to_string().starts_with("JSON deserialization failed"),
+        source
+            .to_string()
+            .starts_with("JSON deserialization failed"),
         "the source should expose safe JSON metadata"
     );
     assert!(
@@ -127,8 +138,8 @@ fn test_value_wire_decode_error_preserves_json_source() {
 
 #[test]
 fn test_value_wire_decode_error_maps_strict_deserialize_metadata() {
-    let error =
-        ValueWireV1::decode_json_slice(br#"{"version":1,"value":false}"#).expect_err("a boolean is not a V1 payload");
+    let error = ValueWireV1::decode_json_slice(br#"{"version":1,"value":false}"#)
+        .expect_err("a boolean is not a V1 payload");
 
     assert!(
         matches!(&error, ValueWireDecodeError::InvalidJson(_)),
@@ -143,10 +154,19 @@ fn test_value_wire_decode_error_maps_strict_deserialize_metadata() {
 
 #[test]
 fn test_value_wire_decode_error_reports_unsupported_version() {
-    let error = ValueWireDecodeError::UnsupportedVersion { expected: 1, actual: 2 };
+    let error = ValueWireDecodeError::UnsupportedVersion {
+        expected: 1,
+        actual: 2,
+    };
 
-    assert_eq!(error.to_string(), "unsupported qubit-value wire version 2; expected 1");
-    assert!(error.source().is_none(), "unsupported versions have no source error");
+    assert_eq!(
+        error.to_string(),
+        "unsupported qubit-value wire version 2; expected 1"
+    );
+    assert!(
+        error.source().is_none(),
+        "unsupported versions have no source error"
+    );
 }
 
 #[test]

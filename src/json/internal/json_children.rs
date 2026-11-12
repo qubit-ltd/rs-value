@@ -54,7 +54,9 @@ impl<'a> JsonChildren<'a> {
     pub(in crate::json) fn next(&mut self) -> Option<(Option<&'a str>, &'a Value, usize)> {
         match self {
             Self::Array(values, depth) => values.next().map(|value| (None, value, *depth)),
-            Self::Object(values, depth) => values.next().map(|(key, value)| (Some(key.as_str()), value, *depth)),
+            Self::Object(values, depth) => values
+                .next()
+                .map(|(key, value)| (Some(key.as_str()), value, *depth)),
         }
     }
 }

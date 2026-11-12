@@ -21,7 +21,10 @@ fn test_adding_same_type_scalars_promotes_to_an_ordered_collection() {
         .add(ValueContainer::Scalar(Value::Int32(8)))
         .expect("adding a scalar of the same type should succeed");
 
-    assert_eq!(container, ValueContainer::Collection(MultiValues::Int32(vec![7, 8])));
+    assert_eq!(
+        container,
+        ValueContainer::Collection(MultiValues::Int32(vec![7, 8]))
+    );
 }
 
 #[test]

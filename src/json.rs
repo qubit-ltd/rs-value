@@ -97,19 +97,23 @@ macro_rules! prepare_payload {
         Ok(PreparedScalar::Borrowed($view))
     }};
     ($variant:ident, json_float32, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
-        let number = Number::from_str(&$value.to_string())
-            .map_err(|_| DataConversionError::invalid($from, DataType::Json, InvalidValueReason::NonFinite))?;
+        let number = Number::from_str(&$value.to_string()).map_err(|_| {
+            DataConversionError::invalid($from, DataType::Json, InvalidValueReason::NonFinite)
+        })?;
         $budget.display(&number, $depth, true)?;
         Ok(PreparedScalar::Number(number))
     }};
     ($variant:ident, json_float64, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
-        let number = Number::from_f64($value)
-            .ok_or_else(|| DataConversionError::invalid($from, DataType::Json, InvalidValueReason::NonFinite))?;
+        let number = Number::from_f64($value).ok_or_else(|| {
+            DataConversionError::invalid($from, DataType::Json, InvalidValueReason::NonFinite)
+        })?;
         $budget.display(&number, $depth, true)?;
         Ok(PreparedScalar::Number(number))
     }};
     ($variant:ident, json_string, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {
-        $budget.format(&$value, $depth).map(PreparedScalar::Formatted)
+        $budget
+            .format(&$value, $depth)
+            .map(PreparedScalar::Formatted)
     };
     ($variant:ident, json_duration, $value:expr, $view:expr, $from:expr, $budget:expr, $depth:expr) => {{
         let text = DataConverter::from($value)
@@ -235,7 +239,9 @@ fn prepare_collection<'a>(
     let mut prepared = Vec::new();
     for index in 0..view.len() {
         budget.source_index = Some(index);
-        let item = view.get(index).expect("index is inside the source collection");
+        let item = view
+            .get(index)
+            .expect("index is inside the source collection");
         let scalar = prepare_scalar(item, budget, 2).map_err(|error| match error {
             ValueError::Conversion(source) => DataListConversionError::new(index, source).into(),
             error => error,
@@ -269,7 +275,11 @@ fn prepare_collection<'a>(
 ///
 /// Returns an error when a configured resource limit is exceeded or a JSON
 /// number is outside the supported projection range.
-fn admit_json(value: &JsonValue, depth: usize, budget: &mut ProjectionBudget<'_>) -> ValueResult<()> {
+fn admit_json(
+    value: &JsonValue,
+    depth: usize,
+    budget: &mut ProjectionBudget<'_>,
+) -> ValueResult<()> {
     let mut frames = Vec::<JsonChildren<'_>>::new();
     let mut next = Some((None, value, depth));
     while let Some((key, value, depth)) = next.take() {
@@ -430,6 +440,8 @@ pub(crate) fn value_container_to_json_value_with(
 ) -> ValueResult<JsonValue> {
     match container {
         ValueContainer::Scalar(value) => value_to_json_value_with(value, policy, limits),
-        ValueContainer::Collection(values) => multi_values_to_json_value_with(values, policy, limits),
+        ValueContainer::Collection(values) => {
+            multi_values_to_json_value_with(values, policy, limits)
+        }
     }
 }

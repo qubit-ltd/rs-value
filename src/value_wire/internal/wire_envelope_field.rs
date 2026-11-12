@@ -43,7 +43,8 @@ impl<'de> Deserialize<'de> for WireEnvelopeField {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_identifier(super::wire_envelope_field_visitor::WireEnvelopeFieldVisitor)
+        deserializer
+            .deserialize_identifier(super::wire_envelope_field_visitor::WireEnvelopeFieldVisitor)
     }
 }
 

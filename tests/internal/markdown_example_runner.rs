@@ -77,7 +77,11 @@ fn check_runner_behavior(root: &Path, runner: &Runner) -> Result<(), String> {
             ExampleMode::Compile,
             "let value: i32 = \"not an integer\";",
         ),
-        ("panic-run", ExampleMode::Run, "panic!(\"run mode must observe this\");"),
+        (
+            "panic-run",
+            ExampleMode::Run,
+            "panic!(\"run mode must observe this\");",
+        ),
         (
             "panic-compile",
             ExampleMode::Compile,
@@ -101,7 +105,9 @@ fn check_runner_behavior(root: &Path, runner: &Runner) -> Result<(), String> {
                     }
                 }
                 if !error.contains(" failed\n") || !error.contains("stderr:\n") {
-                    return Err(format!("synthetic example did not reach rustdoc failure: {error}"));
+                    return Err(format!(
+                        "synthetic example did not reach rustdoc failure: {error}"
+                    ));
                 }
                 runner.discard_expected_failure(&error)?;
             }
@@ -142,8 +148,8 @@ impl Runner {
         if !metadata.status.success() {
             return Err(process_error("cargo metadata", &metadata));
         }
-        let metadata_json: Value =
-            from_slice(&metadata.stdout).map_err(|error| format!("could not parse cargo metadata JSON: {error}"))?;
+        let metadata_json: Value = from_slice(&metadata.stdout)
+            .map_err(|error| format!("could not parse cargo metadata JSON: {error}"))?;
         let root_package_id = metadata_json["resolve"]["root"]
             .as_str()
             .ok_or("cargo metadata did not identify the root package")?;
@@ -186,10 +192,14 @@ impl Runner {
             }
             if let Some(targets) = package["targets"].as_array() {
                 for target in targets {
-                    if let (Some(target_name), Some(target_kind)) = (target["name"].as_str(), target["kind"].as_array())
+                    if let (Some(target_name), Some(target_kind)) =
+                        (target["name"].as_str(), target["kind"].as_array())
                         && target_kind.iter().any(|kind| kind == "lib")
                     {
-                        package_targets.insert((package_id.to_owned(), target_name.to_owned()), target_name.to_owned());
+                        package_targets.insert(
+                            (package_id.to_owned(), target_name.to_owned()),
+                            target_name.to_owned(),
+                        );
                     }
                 }
             }
@@ -227,9 +237,10 @@ impl Runner {
             if message["reason"] != "compiler-artifact" {
                 continue;
             }
-            let (Some(package_id), Some(target_name)) =
-                (message["package_id"].as_str(), message["target"]["name"].as_str())
-            else {
+            let (Some(package_id), Some(target_name)) = (
+                message["package_id"].as_str(),
+                message["target"]["name"].as_str(),
+            ) else {
                 continue;
             };
             if !package_targets.contains_key(&(package_id.to_owned(), target_name.to_owned())) {
@@ -261,7 +272,9 @@ impl Runner {
             }
             if let Some(targets) = package["targets"].as_array() {
                 for target in targets {
-                    let (Some(name), Some(kinds)) = (target["name"].as_str(), target["kind"].as_array()) else {
+                    let (Some(name), Some(kinds)) =
+                        (target["name"].as_str(), target["kind"].as_array())
+                    else {
                         continue;
                     };
                     if kinds.iter().any(|kind| kind == "lib") {
@@ -276,18 +289,18 @@ impl Runner {
             if key.0 != root_package_id && !REQUIRED_EXTERN_NAMES.contains(&extern_name.as_str()) {
                 continue;
             }
-            let files = artifacts
-                .get(&key)
-                .ok_or_else(|| format!("Cargo build JSON has no .rlib artifact for {target_name}"))?;
+            let files = artifacts.get(&key).ok_or_else(|| {
+                format!("Cargo build JSON has no .rlib artifact for {target_name}")
+            })?;
             if files.len() != 1 {
                 return Err(format!(
                     "expected exactly one .rlib for {target_name}, found {}",
                     files.len()
                 ));
             }
-            let path = files[0]
-                .canonicalize()
-                .map_err(|error| format!("could not resolve artifact {}: {error}", files[0].display()))?;
+            let path = files[0].canonicalize().map_err(|error| {
+                format!("could not resolve artifact {}: {error}", files[0].display())
+            })?;
             dependency_paths.insert(
                 path.parent()
                     .ok_or_else(|| format!("artifact has no parent: {}", path.display()))?
@@ -315,7 +328,9 @@ impl Runner {
         document_index: usize,
     ) -> Result<(), String> {
         let mut temp = TempDir::create()?;
-        let markdown = temp.path.join(format!("{document_index}-{}.md", example.id));
+        let markdown = temp
+            .path
+            .join(format!("{document_index}-{}.md", example.id));
         let output_dir = temp.path.join("doctests");
         fs::create_dir(&output_dir).map_err(|error| {
             format!(
@@ -331,8 +346,12 @@ impl Runner {
             "```{fence}\nfn main() -> Result<(), Box<dyn std::error::Error>> {{\n{}\n    Ok(())\n}}\n```\n",
             indent_source(&example.source),
         );
-        fs::write(&markdown, content)
-            .map_err(|error| format!("{}: could not write temporary Markdown: {error}", markdown.display()))?;
+        fs::write(&markdown, content).map_err(|error| {
+            format!(
+                "{}: could not write temporary Markdown: {error}",
+                markdown.display()
+            )
+        })?;
         let mut command = Command::new(&self.rustdoc);
         command
             .arg("--test")
@@ -345,10 +364,14 @@ impl Runner {
             .env("TMPDIR", &output_dir)
             .current_dir(root);
         for (name, path) in &self.externs {
-            command.arg("--extern").arg(format!("{name}={}", path.display()));
+            command
+                .arg("--extern")
+                .arg(format!("{name}={}", path.display()));
         }
         for path in &self.dependency_paths {
-            command.arg("-L").arg(format!("dependency={}", path.display()));
+            command
+                .arg("-L")
+                .arg(format!("dependency={}", path.display()));
         }
         let output = command.output().map_err(|error| {
             temp.preserve_on_drop = true;
@@ -399,7 +422,9 @@ impl Runner {
     /// and process prefix.
     fn discard_expected_failure(&self, error: &str) -> Result<(), String> {
         let Some((_, directory)) = error.rsplit_once("\ntemporary output: ") else {
-            return Err(format!("expected failure has no temporary output path: {error}"));
+            return Err(format!(
+                "expected failure has no temporary output path: {error}"
+            ));
         };
         let directory = Path::new(directory);
         let expected_parent = std::env::temp_dir();
@@ -464,7 +489,10 @@ impl TempDir {
     fn create() -> Result<Self, String> {
         let parent = std::env::temp_dir();
         for attempt in 0..100_u32 {
-            let path = parent.join(format!("qubit-value-markdown-{}-{attempt}", std::process::id()));
+            let path = parent.join(format!(
+                "qubit-value-markdown-{}-{attempt}",
+                std::process::id()
+            ));
             match fs::create_dir(&path) {
                 Ok(()) => {
                     return Ok(Self {

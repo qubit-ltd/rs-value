@@ -52,7 +52,8 @@ unsafe impl GlobalAlloc for CountingAllocator {
         if !pointer.is_null() {
             COUNT_ALLOCATIONS.with(|enabled| {
                 if enabled.get() {
-                    ALLOCATED_BYTES.with(|bytes| bytes.set(bytes.get().saturating_add(layout.size())));
+                    ALLOCATED_BYTES
+                        .with(|bytes| bytes.set(bytes.get().saturating_add(layout.size())));
                 }
             });
         }
@@ -181,8 +182,10 @@ fn test_borrowed_wire_preparation_allocation_does_not_scale_with_json_object() {
     let _ = ValueWirePayloadRefV1::from_value(&small).unwrap();
     let _ = ValueWirePayloadRefV1::from_value(&large).unwrap();
 
-    let (small_payload, small_bytes) = measured_allocations(|| ValueWirePayloadRefV1::from_value(&small));
-    let (large_payload, large_bytes) = measured_allocations(|| ValueWirePayloadRefV1::from_value(&large));
+    let (small_payload, small_bytes) =
+        measured_allocations(|| ValueWirePayloadRefV1::from_value(&small));
+    let (large_payload, large_bytes) =
+        measured_allocations(|| ValueWirePayloadRefV1::from_value(&large));
     assert!(small_payload.is_ok());
     assert!(large_payload.is_ok());
     assert!(
@@ -198,8 +201,10 @@ fn test_borrowed_wire_preparation_allocation_does_not_scale_with_string_collecti
     let _ = ValueWirePayloadRefV1::from_values(&short).unwrap();
     let _ = ValueWirePayloadRefV1::from_values(&long).unwrap();
 
-    let (short_payload, short_bytes) = measured_allocations(|| ValueWirePayloadRefV1::from_values(&short));
-    let (long_payload, long_bytes) = measured_allocations(|| ValueWirePayloadRefV1::from_values(&long));
+    let (short_payload, short_bytes) =
+        measured_allocations(|| ValueWirePayloadRefV1::from_values(&short));
+    let (long_payload, long_bytes) =
+        measured_allocations(|| ValueWirePayloadRefV1::from_values(&long));
     assert!(short_payload.is_ok());
     assert!(long_payload.is_ok());
     assert!(
@@ -274,8 +279,10 @@ fn test_canonical_json_rejection_admits_object_before_sorting_entries() {
     let _ = small.to_json_vec_with_limits(limits);
     let _ = large.to_json_vec_with_limits(limits);
 
-    let (small_result, small_bytes) = measured_allocations(|| small.to_json_vec_with_limits(limits));
-    let (large_result, large_bytes) = measured_allocations(|| large.to_json_vec_with_limits(limits));
+    let (small_result, small_bytes) =
+        measured_allocations(|| small.to_json_vec_with_limits(limits));
+    let (large_result, large_bytes) =
+        measured_allocations(|| large.to_json_vec_with_limits(limits));
     assert_node_rejection(small_result, 2);
     assert_node_rejection(large_result, 2);
     assert!(
@@ -342,8 +349,10 @@ fn test_string_map_rejection_admits_map_before_sorting_entries() {
             "collection depth",
         ),
     ] {
-        let (small_result, small_bytes) = measured_allocations(|| small_wire.to_json_vec_with_limits(limits));
-        let (large_result, large_bytes) = measured_allocations(|| large_wire.to_json_vec_with_limits(limits));
+        let (small_result, small_bytes) =
+            measured_allocations(|| small_wire.to_json_vec_with_limits(limits));
+        let (large_result, large_bytes) =
+            measured_allocations(|| large_wire.to_json_vec_with_limits(limits));
         if is_depth {
             assert_depth_rejection(small_result, limit);
             assert_depth_rejection(large_result, limit);
@@ -431,8 +440,10 @@ fn test_url_rejected_encoding_allocation_does_not_scale_with_text_length() {
         let large_wire = ValueWirePayloadRefV1::from_container(&large).unwrap();
         let _ = small_wire.to_json_vec_with_limits(limits);
         let _ = large_wire.to_json_vec_with_limits(limits);
-        let (small_result, small_bytes) = measured_allocations(|| small_wire.to_json_vec_with_limits(limits));
-        let (large_result, large_bytes) = measured_allocations(|| large_wire.to_json_vec_with_limits(limits));
+        let (small_result, small_bytes) =
+            measured_allocations(|| small_wire.to_json_vec_with_limits(limits));
+        let (large_result, large_bytes) =
+            measured_allocations(|| large_wire.to_json_vec_with_limits(limits));
         for result in [small_result, large_result] {
             assert!(matches!(
                 result,

@@ -18,7 +18,8 @@ use serde_json::json;
 #[test]
 fn test_wide_integer_wire_rejects_number_payload() {
     assert!(
-        crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"int128": 1}}})).is_err(),
+        crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"int128": 1}}}))
+            .is_err(),
         "wide integers must reject numeric wire payloads",
     );
 }
@@ -28,11 +29,14 @@ fn test_wide_integer_wire_rejects_number_payload() {
 fn test_wide_integer_wire_rejects_invalid_decimal_text() {
     for text in ["", "+1", "01", "12x", "-1"] {
         let input = json!({"scalar": {"uint128": text}});
-        let error =
-            crate::decode_value_wire_payload_value(input).expect_err("invalid unsigned integer text must be rejected");
+        let error = crate::decode_value_wire_payload_value(input)
+            .expect_err("invalid unsigned integer text must be rejected");
         let message = error.to_string();
         if matches!(text, "+1" | "01") {
-            assert!(message.contains("canonical"), "unexpected error for {text:?}: {error}");
+            assert!(
+                message.contains("canonical"),
+                "unexpected error for {text:?}: {error}"
+            );
         } else {
             assert!(
                 message.contains("invalid") || message.contains("empty"),
@@ -51,9 +55,11 @@ fn test_wide_integer_wire_parses_extreme_values() {
         (i128::MAX.to_string(), Value::Int128(i128::MAX).into()),
     ] {
         assert_eq!(
-            crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"int128": text}}}))
-                .expect("signed limit must decode")
-                .into_container(),
+            crate::decode_value_wire_value(
+                json!({"version": 1, "value": {"scalar": {"int128": text}}})
+            )
+            .expect("signed limit must decode")
+            .into_container(),
             expected,
         );
     }
@@ -63,9 +69,11 @@ fn test_wide_integer_wire_parses_extreme_values() {
         (u128::MAX.to_string(), Value::UInt128(u128::MAX).into()),
     ] {
         assert_eq!(
-            crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"uint128": text}}}))
-                .expect("unsigned limit must decode")
-                .into_container(),
+            crate::decode_value_wire_value(
+                json!({"version": 1, "value": {"scalar": {"uint128": text}}})
+            )
+            .expect("unsigned limit must decode")
+            .into_container(),
             expected,
         );
     }

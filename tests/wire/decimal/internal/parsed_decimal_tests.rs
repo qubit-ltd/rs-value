@@ -50,8 +50,12 @@ fn test_big_integer_wire_decodes_extreme_collection() {
 #[cfg(feature = "big-integer")]
 #[test]
 fn test_big_integer_wire_rejects_noncanonical_collection_item() {
-    let error = crate::decode_value_wire_payload_value(json!({"collection": {"biginteger": ["1", "02"]}}))
-        .expect_err("non-canonical collection item must be rejected");
+    let error =
+        crate::decode_value_wire_payload_value(json!({"collection": {"biginteger": ["1", "02"]}}))
+            .expect_err("non-canonical collection item must be rejected");
 
-    assert!(error.to_string().contains("canonical"), "unexpected error: {error}");
+    assert!(
+        error.to_string().contains("canonical"),
+        "unexpected error: {error}"
+    );
 }

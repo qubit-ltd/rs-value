@@ -55,7 +55,11 @@ fn test_float32_sequence_keeps_valid_prefix_and_stops_before_tail() {
         });
         let result = float32_vec::deserialize(SeqDeserializer::<_, Error>::new(items));
         assert!(result.is_err(), "non-finite sequence item must be rejected");
-        assert_eq!(reads.get(), 2, "only prefix and invalid item may be requested");
+        assert_eq!(
+            reads.get(),
+            2,
+            "only prefix and invalid item may be requested"
+        );
     }
 }
 
@@ -68,7 +72,11 @@ fn test_float64_sequence_keeps_valid_prefix_and_stops_before_tail() {
         });
         let result = float64_vec::deserialize(SeqDeserializer::<_, Error>::new(items));
         assert!(result.is_err(), "non-finite sequence item must be rejected");
-        assert_eq!(reads.get(), 2, "only prefix and invalid item may be requested");
+        assert_eq!(
+            reads.get(),
+            2,
+            "only prefix and invalid item may be requested"
+        );
     }
 }
 
@@ -82,17 +90,25 @@ fn test_finite_sequences_preserve_empty_and_boundary_values() {
     assert!(empty64.is_empty(), "empty f64 sequence must remain empty");
     let values32 = [f32::MIN, -0.0, 0.0, f32::from_bits(1), f32::MAX];
     let values64 = [f64::MIN, -0.0, 0.0, f64::from_bits(1), f64::MAX];
-    let decoded32 = float32_vec::deserialize(SeqDeserializer::<_, Error>::new(values32.into_iter()))
-        .expect("finite f32 values must keep their representation");
-    let decoded64 = float64_vec::deserialize(SeqDeserializer::<_, Error>::new(values64.into_iter()))
-        .expect("finite f64 values must keep their representation");
+    let decoded32 =
+        float32_vec::deserialize(SeqDeserializer::<_, Error>::new(values32.into_iter()))
+            .expect("finite f32 values must keep their representation");
+    let decoded64 =
+        float64_vec::deserialize(SeqDeserializer::<_, Error>::new(values64.into_iter()))
+            .expect("finite f64 values must keep their representation");
     assert_eq!(
-        decoded32.iter().map(|value| value.to_bits()).collect::<Vec<_>>(),
+        decoded32
+            .iter()
+            .map(|value| value.to_bits())
+            .collect::<Vec<_>>(),
         values32.map(f32::to_bits).to_vec(),
         "finite f32 sequence must preserve order and exact bits"
     );
     assert_eq!(
-        decoded64.iter().map(|value| value.to_bits()).collect::<Vec<_>>(),
+        decoded64
+            .iter()
+            .map(|value| value.to_bits())
+            .collect::<Vec<_>>(),
         values64.map(f64::to_bits).to_vec(),
         "finite f64 sequence must preserve order and exact bits"
     );

@@ -96,7 +96,10 @@ where
                     entry.insert(map.next_value::<V>()?);
                 }
                 Entry::Occupied(entry) => {
-                    return Err(DeError::custom(format!("duplicate map key '{}'", entry.key())));
+                    return Err(DeError::custom(format!(
+                        "duplicate map key '{}'",
+                        entry.key()
+                    )));
                 }
             }
         }
@@ -168,8 +171,14 @@ mod tests {
         DESERIALIZE_COUNT.with(|count| count.set(0));
         let values = decode(r#"{"a":"one","b":"two"}"#).unwrap();
         assert_eq!(values.len(), 2, "both unique keys must be retained");
-        assert!(values.contains_key("a"), "the first unique key must be retained");
-        assert!(values.contains_key("b"), "the second unique key must be retained");
+        assert!(
+            values.contains_key("a"),
+            "the first unique key must be retained"
+        );
+        assert!(
+            values.contains_key("b"),
+            "the second unique key must be retained"
+        );
         DESERIALIZE_COUNT.with(|count| {
             assert_eq!(count.get(), 2, "both unique values must be decoded");
         });
@@ -181,7 +190,10 @@ mod tests {
         DESERIALIZE_COUNT.with(|count| {
             assert_eq!(count.get(), 0, "empty input must not decode a value");
         });
-        assert!(decode(r#"{"a":1}"#).is_err(), "non-string values must be rejected");
+        assert!(
+            decode(r#"{"a":1}"#).is_err(),
+            "non-string values must be rejected"
+        );
         DESERIALIZE_COUNT.with(|count| {
             assert_eq!(count.get(), 1, "exactly one value decode must be attempted");
         });

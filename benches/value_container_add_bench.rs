@@ -26,7 +26,9 @@ fn benchmark_append_scalar_to_collection(c: &mut Criterion) {
                 ValueContainer::from(values)
             },
             |mut container| {
-                container.add(black_box(2_i32)).expect("matching scalar should append");
+                container
+                    .add(black_box(2_i32))
+                    .expect("matching scalar should append");
                 black_box(container)
             },
             BatchSize::SmallInput,
@@ -40,7 +42,9 @@ fn benchmark_promote_scalar_with_scalar(c: &mut Criterion) {
         bencher.iter_batched(
             || ValueContainer::from(1_i32),
             |mut container| {
-                container.add(black_box(2_i32)).expect("matching scalar should append");
+                container
+                    .add(black_box(2_i32))
+                    .expect("matching scalar should append");
                 black_box(container)
             },
             BatchSize::SmallInput,

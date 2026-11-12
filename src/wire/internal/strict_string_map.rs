@@ -69,6 +69,8 @@ where
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_map(StrictStringMapVisitor::new()).map(Self)
+        deserializer
+            .deserialize_map(StrictStringMapVisitor::new())
+            .map(Self)
     }
 }

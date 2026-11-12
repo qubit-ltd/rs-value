@@ -101,9 +101,13 @@ fn measured<T>(f: impl FnOnce() -> T) -> (T, usize, usize) {
 #[test]
 fn test_old_string_classifier_is_detected() {
     let key = "secs";
-    let (old, allocations, bytes) = measured(|| String::deserialize(StrDeserializer::<ValueError>::new(key)));
+    let (old, allocations, bytes) =
+        measured(|| String::deserialize(StrDeserializer::<ValueError>::new(key)));
     assert_eq!(old.as_deref(), Ok(key));
-    assert!(allocations > 0 && bytes > 0, "old String path must allocate");
+    assert!(
+        allocations > 0 && bytes > 0,
+        "old String path must allocate"
+    );
 }
 
 #[test]
@@ -112,7 +116,8 @@ fn test_public_seed_duration_batch_allocation_counts() {
         let records = std::iter::repeat_n(r#"{"secs":1,"nanos":2}"#, size)
             .collect::<Vec<_>>()
             .join(",");
-        let input = format!(r#"{{"version":1,"value":{{"collection":{{"duration":[{records}]}}}}}}"#);
+        let input =
+            format!(r#"{{"version":1,"value":{{"collection":{{"duration":[{records}]}}}}}}"#);
         let decode = || {
             let mut deserializer = serde_json::Deserializer::from_str(&input);
             ValueWireV1Seed::new().deserialize(&mut deserializer)

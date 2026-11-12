@@ -31,7 +31,8 @@ fn test_finite_float_wire_contract() {
 
 #[test]
 fn test_float_wire_accepts_finite_value() {
-    let wire = ValueWireV1::try_from(Value::Float64(1.25)).expect("finite float wire value should construct");
+    let wire = ValueWireV1::try_from(Value::Float64(1.25))
+        .expect("finite float wire value should construct");
 
     to_value(wire).expect("finite float wire value should serialize");
 }

@@ -75,7 +75,9 @@ impl<'a> CanonicalJsonFrame<'a> {
         match self {
             Self::Array { remaining, .. } => remaining.next(),
             Self::Object {
-                remaining, pending_key, ..
+                remaining,
+                pending_key,
+                ..
             } => {
                 debug_assert!(pending_key.is_none());
                 let (key, value) = remaining.next()?;
@@ -95,7 +97,9 @@ impl<'a> CanonicalJsonFrame<'a> {
         match self {
             Self::Array { output, .. } => output.push(child),
             Self::Object {
-                pending_key, output, ..
+                pending_key,
+                output,
+                ..
             } => {
                 let key = pending_key.take().expect("object child has a pending key");
                 output.insert(key.to_owned(), child);

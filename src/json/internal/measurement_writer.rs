@@ -60,7 +60,9 @@ impl MeasurementWriter {
     /// Returns the most recent resource or quantity error recorded while
     /// writing.
     #[inline]
-    pub(in crate::json) fn finish(self) -> Result<u64, MeasuredBudgetError<ConversionResource, u64>> {
+    pub(in crate::json) fn finish(
+        self,
+    ) -> Result<u64, MeasuredBudgetError<ConversionResource, u64>> {
         match self.error {
             Some(error) => Err(error),
             None => Ok(self.budget.used() - self.initial),

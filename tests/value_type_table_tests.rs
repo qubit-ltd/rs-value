@@ -63,17 +63,21 @@ fn value_for_data_type(data_type: DataType) -> Value {
         DataType::Float32 => Value::Float32(0.0),
         DataType::Float64 => Value::Float64(0.0),
         DataType::String => Value::String(String::new()),
-        DataType::Date => Value::Date(NaiveDate::from_ymd_opt(1970, 1, 1).expect("contract test date should be valid")),
-        DataType::Time => Value::Time(NaiveTime::from_hms_opt(0, 0, 0).expect("contract test time should be valid")),
+        DataType::Date => Value::Date(
+            NaiveDate::from_ymd_opt(1970, 1, 1).expect("contract test date should be valid"),
+        ),
+        DataType::Time => Value::Time(
+            NaiveTime::from_hms_opt(0, 0, 0).expect("contract test time should be valid"),
+        ),
         DataType::DateTime => Value::DateTime(
             NaiveDate::from_ymd_opt(1970, 1, 1)
                 .expect("contract test date should be valid")
                 .and_hms_opt(0, 0, 0)
                 .expect("contract test datetime should be valid"),
         ),
-        DataType::Instant => {
-            Value::Instant(DateTime::from_timestamp(0, 0).expect("contract test instant should be valid"))
-        }
+        DataType::Instant => Value::Instant(
+            DateTime::from_timestamp(0, 0).expect("contract test instant should be valid"),
+        ),
         DataType::BigInteger => Value::BigInteger(BigInt::from(0)),
         DataType::BigDecimal => Value::BigDecimal(BigDecimal::from(0)),
         DataType::Duration => Value::Duration(Duration::ZERO),

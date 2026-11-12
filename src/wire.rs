@@ -154,7 +154,11 @@ where
 ///
 /// Returns `D::Error` for deserialization, parsing, or non-canonical text.
 #[cfg(any(feature = "chrono", feature = "url"))]
-fn deserialize_canonical<'de, D, T, P, F>(deserializer: D, parse: P, format: F) -> Result<T, D::Error>
+fn deserialize_canonical<'de, D, T, P, F>(
+    deserializer: D,
+    parse: P,
+    format: F,
+) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     P: FnOnce(&str) -> Result<T, String>,
@@ -191,7 +195,11 @@ where
 /// Returns `S::Error` when sequence serialization fails.
 #[cfg(feature = "chrono")]
 #[inline]
-fn serialize_canonical_vec<S, T, F>(values: &[T], serializer: S, format: F) -> Result<S::Ok, S::Error>
+fn serialize_canonical_vec<S, T, F>(
+    values: &[T],
+    serializer: S,
+    format: F,
+) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
     F: Fn(&T) -> String,
@@ -222,7 +230,11 @@ where
 ///
 /// Returns `D::Error` for deserialization, parsing, or non-canonical text.
 #[cfg(any(feature = "chrono", feature = "url"))]
-fn deserialize_canonical_vec<'de, D, T, P, F>(deserializer: D, parse: P, format: F) -> Result<Vec<T>, D::Error>
+fn deserialize_canonical_vec<'de, D, T, P, F>(
+    deserializer: D,
+    parse: P,
+    format: F,
+) -> Result<Vec<T>, D::Error>
 where
     D: Deserializer<'de>,
     P: Fn(&str) -> Result<T, String>,
@@ -399,7 +411,8 @@ define_chrono_wire!(
     datetime_vec,
     [chrono::NaiveDateTime],
     NaiveDateTime,
-    |input| NaiveDateTime::parse_from_str(input, "%Y-%m-%dT%H:%M:%S%.f").map_err(|error| error.to_string()),
+    |input| NaiveDateTime::parse_from_str(input, "%Y-%m-%dT%H:%M:%S%.f")
+        .map_err(|error| error.to_string()),
     |value: &NaiveDateTime| value.format("%Y-%m-%dT%H:%M:%S%.f").to_string()
 );
 
@@ -816,9 +829,9 @@ pub(crate) mod big_decimal_vec {
     where
         D: Deserializer<'de>,
     {
-        ValidatedSequenceVisitor::<BigDecimalPayload, BigDecimal, _>::new(|value: BigDecimalPayload| {
-            value.try_into().map_err(str::to_owned)
-        })
+        ValidatedSequenceVisitor::<BigDecimalPayload, BigDecimal, _>::new(
+            |value: BigDecimalPayload| value.try_into().map_err(str::to_owned),
+        )
         .deserialize(deserializer)
     }
 }

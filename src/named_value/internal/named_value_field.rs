@@ -43,7 +43,8 @@ impl<'de> Deserialize<'de> for NamedValueField {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_identifier(super::named_value_field_visitor::NamedValueFieldVisitor)
+        deserializer
+            .deserialize_identifier(super::named_value_field_visitor::NamedValueFieldVisitor)
     }
 }
 

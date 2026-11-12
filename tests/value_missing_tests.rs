@@ -101,16 +101,23 @@ fn test_missing_policy_scalar_defaults_but_collection_item_does_not() {
     assert!(missing.is_defaultable_for_conversion());
     assert_eq!(value.to_or_with::<i32>(7, &policy, limits), Ok(7));
     assert_eq!(value.get::<String>().unwrap(), " ");
-    for (texts, index) in [(vec!["1".to_owned(), " ".to_owned()], 1), (vec![" ".to_owned()], 0)] {
+    for (texts, index) in [
+        (vec!["1".to_owned(), " ".to_owned()], 1),
+        (vec![" ".to_owned()], 0),
+    ] {
         let values = MultiValues::String(texts);
-        let error = values.to_list_or_with::<i32>(vec![7], &policy, limits).unwrap_err();
+        let error = values
+            .to_list_or_with::<i32>(vec![7], &policy, limits)
+            .unwrap_err();
         let missing = error.missing().unwrap();
         assert_eq!(missing.source_index(), Some(index));
         assert_eq!(missing.reason(), ValueMissingReason::Conversion);
         assert!(!missing.is_defaultable_for_conversion());
     }
     let first = MultiValues::String(vec![" ".to_owned()]);
-    let error = first.to_first_or_with::<i32>(7, &policy, limits).unwrap_err();
+    let error = first
+        .to_first_or_with::<i32>(7, &policy, limits)
+        .unwrap_err();
     assert_eq!(error.missing().unwrap().source_index(), Some(0));
 }
 
@@ -125,10 +132,16 @@ fn test_missing_conversion_source_chain_is_preserved() {
         Some(&original)
     );
     assert_eq!(error.missing().unwrap().conversion_error(), Some(&original));
-    let strict = ValueError::Missing(ValueMissing::unset_scalar(DataType::String, DataType::String));
+    let strict = ValueError::Missing(ValueMissing::unset_scalar(
+        DataType::String,
+        DataType::String,
+    ));
     assert!(strict.source().unwrap().source().is_none());
     let indexed = ValueError::from(DataListConversionError::new(3, original.clone()));
-    assert_eq!(indexed.missing().unwrap().conversion_error(), Some(&original));
+    assert_eq!(
+        indexed.missing().unwrap().conversion_error(),
+        Some(&original)
+    );
     assert_eq!(indexed.missing().unwrap().source_index(), Some(3));
     assert_eq!(indexed.clone(), indexed);
 }
@@ -150,8 +163,13 @@ fn test_missing_session_reads_preserve_storage_and_item_context() {
     let policy = missing_policy();
     let limits = ConversionLimits::default();
     let mut session = ConversionSession::new(&policy, &limits);
-    let error = Value::Unset(DataType::String).to_in::<i32>(&mut session).unwrap_err();
-    assert_eq!(error.missing().unwrap().reason(), ValueMissingReason::UnsetScalar);
+    let error = Value::Unset(DataType::String)
+        .to_in::<i32>(&mut session)
+        .unwrap_err();
+    assert_eq!(
+        error.missing().unwrap().reason(),
+        ValueMissingReason::UnsetScalar
+    );
     let unset = MultiValues::Unset(DataType::String);
     for error in [
         unset.to_first_in::<i64>(&mut session).unwrap_err(),
@@ -165,8 +183,14 @@ fn test_missing_session_reads_preserve_storage_and_item_context() {
     }
     let empty = MultiValues::Int32(Vec::new());
     let error = empty.to_first_in::<i64>(&mut session).unwrap_err();
-    assert_eq!(error.missing().unwrap().reason(), ValueMissingReason::EmptyCollection);
-    assert_eq!(error.missing().unwrap().source_type(), Some(DataType::Int32));
+    assert_eq!(
+        error.missing().unwrap().reason(),
+        ValueMissingReason::EmptyCollection
+    );
+    assert_eq!(
+        error.missing().unwrap().source_type(),
+        Some(DataType::Int32)
+    );
     let values = MultiValues::String(vec![" ".to_owned()]);
     for error in [
         values.to_first_in::<i64>(&mut session).unwrap_err(),
@@ -180,8 +204,14 @@ fn test_missing_session_reads_preserve_storage_and_item_context() {
 #[test]
 fn test_missing_strict_mismatch_and_invalid_conversion_never_default() {
     let unset = Value::Unset(DataType::String);
-    assert!(matches!(unset.get_or::<i32>(7), Err(ValueError::TypeMismatch { .. })));
-    for value in [Value::from("invalid"), Value::from("999999999999999999999999999999")] {
+    assert!(matches!(
+        unset.get_or::<i32>(7),
+        Err(ValueError::TypeMismatch { .. })
+    ));
+    for value in [
+        Value::from("invalid"),
+        Value::from("999999999999999999999999999999"),
+    ] {
         let mut called = false;
         assert!(
             value
@@ -200,9 +230,15 @@ fn test_missing_enrichment_preserves_admission_error_priority() {
     let policy = missing_policy();
     for (limit, missing) in [(0, false), (1, true), (2, true)] {
         let limits = ConversionLimits::builder()
-            .operation_limits(ConversionOperationLimits::builder().max_input_bytes(limit).build())
+            .operation_limits(
+                ConversionOperationLimits::builder()
+                    .max_input_bytes(limit)
+                    .build(),
+            )
             .build();
-        let error = Value::from(" ").to_with::<i32>(&policy, &limits).unwrap_err();
+        let error = Value::from(" ")
+            .to_with::<i32>(&policy, &limits)
+            .unwrap_err();
         assert_eq!(error.is_missing(), missing);
         let mut called = false;
         let result = Value::from(" ").to_or_else_with::<i32, _>(

@@ -90,7 +90,10 @@ fn test_root_leaf_hash_allocation_evidence() {
                 serde_json::Number::from_f64(42.5).expect("finite float"),
             )),
         ),
-        ("string_empty", Value::Json(JsonValue::String(String::new()))),
+        (
+            "string_empty",
+            Value::Json(JsonValue::String(String::new())),
+        ),
         (
             "string_nonempty",
             Value::Json(JsonValue::String(String::from("json identity"))),
@@ -109,7 +112,10 @@ fn test_root_leaf_hash_allocation_evidence() {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         let reading = allocated_by(|| value.hash(&mut hasher));
         std::hint::black_box(hasher.finish());
-        eprintln!("json_root/{name}: allocations={} bytes={}", reading.0, reading.1);
+        eprintln!(
+            "json_root/{name}: allocations={} bytes={}",
+            reading.0, reading.1
+        );
         readings.push((*name, reading));
     }
     let direct_number = serde_json::Number::from(42);
@@ -132,12 +138,19 @@ fn test_root_leaf_hash_allocation_evidence() {
     std::hint::black_box(value_lexical_hasher.finish());
     eprintln!(
         "large_number: Value allocations={} bytes={} direct Number allocations={} bytes={}",
-        value_lexical_reading.0, value_lexical_reading.1, direct_lexical_reading.0, direct_lexical_reading.1,
+        value_lexical_reading.0,
+        value_lexical_reading.1,
+        direct_lexical_reading.0,
+        direct_lexical_reading.1,
     );
 
     for (name, reading) in readings {
         if matches!(name, "null" | "bool" | "string_empty" | "string_nonempty") {
-            assert_eq!(reading, (0, 0), "{name} root hashing should allocate nothing");
+            assert_eq!(
+                reading,
+                (0, 0),
+                "{name} root hashing should allocate nothing"
+            );
         }
     }
     let mut integer_hasher = std::collections::hash_map::DefaultHasher::new();

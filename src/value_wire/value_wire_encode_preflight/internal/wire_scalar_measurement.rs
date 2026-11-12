@@ -50,7 +50,11 @@ pub(crate) fn decimal_len(value: i128) -> usize {
 #[must_use]
 #[inline]
 pub(crate) fn unsigned_decimal_len(value: u128) -> usize {
-    if value < 10 { 1 } else { value.ilog10() as usize + 1 }
+    if value < 10 {
+        1
+    } else {
+        value.ilog10() as usize + 1
+    }
 }
 
 /// Returns the byte length serde_json's compact formatter writes for a finite

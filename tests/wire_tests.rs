@@ -92,7 +92,8 @@ fn test_named_collection_and_wire_writers_accept_sink() {
         .expect("named collection writes to a sink");
 
     let wire = ValueWireV1::try_from(ValueContainer::from(42_i32)).expect("construct V1 wire");
-    wire.to_json_writer(&mut sink).expect("V1 wire writes to a sink");
+    wire.to_json_writer(&mut sink)
+        .expect("V1 wire writes to a sink");
 }
 
 #[test]
@@ -119,7 +120,10 @@ fn test_non_human_readable_named_and_wire_records_accept_exact_sequences() {
         {"version": 1, "value": {"scalar": {"int32": 42}}}
     ]);
     let decoded = NamedValue::deserialize(NonHumanReadableSequence(
-        named_scalar.as_array().expect("fixture is an array").clone(),
+        named_scalar
+            .as_array()
+            .expect("fixture is an array")
+            .clone(),
     ))
     .expect("named scalar sequence should decode");
     assert_eq!(decoded, NamedValue::new("port", Value::Int32(42)));
@@ -129,7 +133,10 @@ fn test_non_human_readable_named_and_wire_records_accept_exact_sequences() {
         {"version": 1, "value": {"collection": {"int32": [42, 43]}}}
     ]);
     let decoded = NamedMultiValues::deserialize(NonHumanReadableSequence(
-        named_values.as_array().expect("fixture is an array").clone(),
+        named_values
+            .as_array()
+            .expect("fixture is an array")
+            .clone(),
     ))
     .expect("named collection sequence should decode");
     assert_eq!(
@@ -168,7 +175,11 @@ fn test_non_human_readable_owned_record_sequences_require_exact_lengths() {
         serde_json::json!([1, {"scalar": {"int32": 7}}, true]),
     ] {
         let fields = input.as_array().expect("fixture is an array").clone();
-        assert!(ValueWireV1Seed.deserialize(NonHumanReadableSequence(fields)).is_err());
+        assert!(
+            ValueWireV1Seed
+                .deserialize(NonHumanReadableSequence(fields))
+                .is_err()
+        );
     }
 }
 
@@ -189,7 +200,10 @@ fn test_non_human_readable_borrowed_named_and_wire_sequences() {
     ]);
     let decoded = NamedMultiValues::deserialize(NonHumanReadableValue(&named_values))
         .expect("borrowed named collection sequence should decode");
-    assert_eq!(decoded, NamedMultiValues::new("ports", MultiValues::Int32(vec![42])));
+    assert_eq!(
+        decoded,
+        NamedMultiValues::new("ports", MultiValues::Int32(vec![42]))
+    );
 
     let wire = serde_json::json!([1, {"scalar": {"int32": 7}}]);
     let decoded = ValueWireV1Seed
@@ -221,7 +235,10 @@ fn test_owned_wire_records_decode_from_json_values() {
     );
 
     let envelope = ValueWireV1Seed::new()
-        .deserialize(serde_json::json!({"version": 1, "value": {"scalar": {"int32": 7}}}).into_deserializer())
+        .deserialize(
+            serde_json::json!({"version": 1, "value": {"scalar": {"int32": 7}}})
+                .into_deserializer(),
+        )
         .expect("V1 envelope map should decode");
     assert_eq!(envelope.container(), &ValueContainer::from(7_i32));
 
@@ -233,7 +250,10 @@ fn test_owned_wire_records_decode_from_json_values() {
     let collection = ValueWirePayloadV1Seed::new()
         .deserialize(serde_json::json!({"collection": {"int32": [7, 11]}}).into_deserializer())
         .expect("unversioned collection payload should decode");
-    assert_eq!(collection.into_container(), ValueContainer::from(vec![7_i32, 11]));
+    assert_eq!(
+        collection.into_container(),
+        ValueContainer::from(vec![7_i32, 11])
+    );
 }
 
 /// Presents a JSON array as a non-human-readable struct sequence.
@@ -302,7 +322,9 @@ fn test_ron_wire_seed_roundtrip() {
     let wire = ValueWireV1::try_from(original.clone()).expect("construct wire");
     let text = to_ron_string(&wire).expect("serialize wire");
     let mut decoder = RonDeserializer::from_str(&text).expect("RON input");
-    let restored = ValueWireV1Seed::new().deserialize(&mut decoder).expect("decode wire");
+    let restored = ValueWireV1Seed::new()
+        .deserialize(&mut decoder)
+        .expect("decode wire");
     assert_eq!(restored.into_container(), original);
 }
 
@@ -320,9 +342,12 @@ fn assert_ron_wire_roundtrip(original: ValueContainer) {
     let plain = to_ron_string(&wire).expect("serialize wire");
     assert_eq!(decode_ron_wire(&plain).expect("decode plain RON"), original);
 
-    let named =
-        to_string_pretty(&wire, PrettyConfig::default().struct_names(true)).expect("serialize named RON structs");
-    assert_eq!(decode_ron_wire(&named).expect("decode named RON structs"), original);
+    let named = to_string_pretty(&wire, PrettyConfig::default().struct_names(true))
+        .expect("serialize named RON structs");
+    assert_eq!(
+        decode_ron_wire(&named).expect("decode named RON structs"),
+        original
+    );
 }
 
 #[test]
@@ -388,7 +413,10 @@ fn test_ron_wire_rejects_invalid_envelope_fields_and_payloads() {
 fn test_ron_big_decimal_roundtrip_preserves_coefficient_and_scale() {
     for original in [
         ValueContainer::Scalar(Value::BigDecimal(BigDecimal::new(BigInt::from(12300), 4))),
-        ValueContainer::Collection(MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(12300), 4)])),
+        ValueContainer::Collection(MultiValues::BigDecimal(vec![BigDecimal::new(
+            BigInt::from(12300),
+            4,
+        )])),
     ] {
         let wire = ValueWireV1::try_from(original.clone()).expect("construct decimal wire");
         let encoded = to_string_pretty(&wire, PrettyConfig::default().struct_names(true))
@@ -490,9 +518,12 @@ fn test_wire_instant_year_boundaries_round_trip() {
         let bytes = to_vec(&wire).expect("in-range instant should serialize");
         assert_eq!(
             from_utf8(&bytes).expect("wire JSON should be UTF-8"),
-            format!("{{\"version\":1,\"value\":{{\"scalar\":{{\"instant\":\"{year:04}-01-01T00:00:00Z\"}}}}}}")
+            format!(
+                "{{\"version\":1,\"value\":{{\"scalar\":{{\"instant\":\"{year:04}-01-01T00:00:00Z\"}}}}}}"
+            )
         );
-        let decoded = ValueWireV1::decode_json_slice(&bytes).expect("in-range instant should decode");
+        let decoded =
+            ValueWireV1::decode_json_slice(&bytes).expect("in-range instant should decode");
         assert_eq!(decoded, wire);
     }
 }
@@ -502,8 +533,8 @@ fn test_wire_instant_year_boundaries_round_trip() {
 fn test_wire_string_map_rejects_sequence_shape() {
     let input = r#"{"scalar":{"stringmap":[]}}"#;
 
-    let error =
-        ValueWirePayloadV1::decode_json_slice(input.as_bytes()).expect_err("a string map must reject a sequence");
+    let error = ValueWirePayloadV1::decode_json_slice(input.as_bytes())
+        .expect_err("a string map must reject a sequence");
     assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
 }
 
@@ -512,8 +543,8 @@ fn test_wire_string_map_rejects_sequence_shape() {
 fn test_wire_instant_rejects_invalid_timestamp() {
     let input = r#"{"scalar":{"instant":"not-an-instant"}}"#;
 
-    let error =
-        ValueWirePayloadV1::decode_json_slice(input.as_bytes()).expect_err("an instant must use RFC 3339 syntax");
+    let error = ValueWirePayloadV1::decode_json_slice(input.as_bytes())
+        .expect_err("an instant must use RFC 3339 syntax");
     assert!(matches!(error, ValueWireDecodeError::InvalidJson(_)));
 }
 
@@ -549,12 +580,16 @@ fn test_wire_date_collection_reports_first_item_error_before_tail_error() {
         .to_string();
     assert!(first_error.contains(&date_error), "{first_error}");
     assert!(!first_error.contains("unknown field"));
-    assert_eq!(collection_payload_error_without_location(with_tail), first_error);
+    assert_eq!(
+        collection_payload_error_without_location(with_tail),
+        first_error
+    );
 }
 
 #[test]
 fn test_wire_duration_collection_reports_first_item_error_before_tail_error() {
-    let valid = r#"{"version":1,"value":{"collection":{"duration":[{"secs":0,"nanos":999999999}]}}}"#;
+    let valid =
+        r#"{"version":1,"value":{"collection":{"duration":[{"secs":0,"nanos":999999999}]}}}"#;
     let restored = decode_value_wire_str(valid)
         .expect("valid duration collection must reach the typed adapter")
         .into_container();
@@ -569,7 +604,10 @@ fn test_wire_duration_collection_reports_first_item_error_before_tail_error() {
         first_error.contains("duration nanoseconds must be less than 1000000000"),
         "{first_error}"
     );
-    assert_eq!(collection_payload_error_without_location(with_tail), first_error);
+    assert_eq!(
+        collection_payload_error_without_location(with_tail),
+        first_error
+    );
 }
 
 #[cfg(feature = "big-decimal")]
@@ -590,7 +628,10 @@ fn test_wire_decimal_collection_reports_first_item_error_before_tail_error() {
         first_error.contains("decimal scale exceeds the V1 maximum absolute scale"),
         "{first_error}"
     );
-    assert_eq!(collection_payload_error_without_location(with_tail), first_error);
+    assert_eq!(
+        collection_payload_error_without_location(with_tail),
+        first_error
+    );
 }
 
 /// Checks every feature enabled V1 payload adapter through the public wire
@@ -632,14 +673,19 @@ fn test_wire_payload_adapters_cover_every_value_type() {
     ];
 
     for value in values {
-        let payload = ValueWirePayloadV1::try_from(value.clone()).expect("supported value should encode");
-        let bytes = payload.to_json_vec().expect("supported value should serialize");
-        let decoded = ValueWirePayloadV1::decode_json_slice(&bytes).expect("supported value should decode");
+        let payload =
+            ValueWirePayloadV1::try_from(value.clone()).expect("supported value should encode");
+        let bytes = payload
+            .to_json_vec()
+            .expect("supported value should serialize");
+        let decoded =
+            ValueWirePayloadV1::decode_json_slice(&bytes).expect("supported value should decode");
         assert_eq!(decoded, payload);
 
         let named = NamedValue::new("field", value.clone());
         let named_bytes = to_vec(&named).expect("named value should serialize");
-        let decoded_named = from_slice::<NamedValue>(&named_bytes).expect("named value should decode");
+        let decoded_named =
+            from_slice::<NamedValue>(&named_bytes).expect("named value should decode");
         assert_eq!(decoded_named, named);
     }
 
@@ -648,7 +694,9 @@ fn test_wire_payload_adapters_cover_every_value_type() {
             let values = $values;
             let payload = ValueWirePayloadV1::try_from(ValueContainer::Collection(values.clone()))
                 .expect("supported collection should encode");
-            let bytes = payload.to_json_vec().expect("supported collection should serialize");
+            let bytes = payload
+                .to_json_vec()
+                .expect("supported collection should serialize");
             assert_eq!(
                 ValueWirePayloadV1::decode_json_slice(&bytes).expect("collection should decode"),
                 payload
@@ -677,12 +725,18 @@ fn test_wire_payload_adapters_cover_every_value_type() {
     assert_collection_round_trip!(MultiValues::UInt128(vec![128, 129]));
     assert_collection_round_trip!(MultiValues::Float32(vec![1.25, 2.5]));
     assert_collection_round_trip!(MultiValues::Float64(vec![1.25, 2.5]));
-    assert_collection_round_trip!(MultiValues::BigInteger(vec![BigInt::from(123), BigInt::from(456)]));
+    assert_collection_round_trip!(MultiValues::BigInteger(vec![
+        BigInt::from(123),
+        BigInt::from(456)
+    ]));
     assert_collection_round_trip!(MultiValues::BigDecimal(vec![
         BigDecimal::from(123),
         BigDecimal::from(456)
     ]));
-    assert_collection_round_trip!(MultiValues::String(vec![String::from("a"), String::from("b")]));
+    assert_collection_round_trip!(MultiValues::String(vec![
+        String::from("a"),
+        String::from("b")
+    ]));
     assert_collection_round_trip!(MultiValues::Date(vec![date]));
     assert_collection_round_trip!(MultiValues::Time(vec![time]));
     assert_collection_round_trip!(MultiValues::DateTime(vec![datetime]));
@@ -713,7 +767,8 @@ fn test_wire_round_trips_scalar_value() {
 /// Verifies nested protocols receive an unversioned but typed V1 payload.
 #[test]
 fn test_wire_payload_preserves_shape_without_version() {
-    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(vec![7_i32])).expect("construct V1 payload");
+    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(vec![7_i32]))
+        .expect("construct V1 payload");
 
     assert_eq!(
         to_value(payload).expect("serialize V1 payload"),

@@ -63,13 +63,23 @@ use crate::deep_json_helpers::run_isolated_test;
 #[test]
 fn test_preflight_key_payload_boundary() {
     let value = Value::StringMap(HashMap::from([("abc".to_owned(), String::new())]));
-    let limits = JsonEncodeLimits::builder().max_payload_bytes(2_usize).build();
-    assert!(ValueWireEncodePreflight::new(limits).check_value(&value).is_err());
+    let limits = JsonEncodeLimits::builder()
+        .max_payload_bytes(2_usize)
+        .build();
+    assert!(
+        ValueWireEncodePreflight::new(limits)
+            .check_value(&value)
+            .is_err()
+    );
     let limits = JsonEncodeLimits::builder()
         .max_payload_bytes(3_usize)
         .max_nodes(2_usize)
         .build();
-    assert!(ValueWireEncodePreflight::new(limits).check_value(&value).is_ok());
+    assert!(
+        ValueWireEncodePreflight::new(limits)
+            .check_value(&value)
+            .is_ok()
+    );
 }
 
 #[test]
@@ -81,27 +91,36 @@ fn test_preflight_key_output_boundaries_and_utf8_lower_bound() {
             .max_nodes(2)
             .build();
         assert_eq!(
-            ValueWireEncodePreflight::new(limits).check_value(&value).is_ok(),
+            ValueWireEncodePreflight::new(limits)
+                .check_value(&value)
+                .is_ok(),
             accepted
         );
     }
 
     let json = Value::Json(json!({"abc": null}));
     for (maximum, accepted) in [(8, false), (9, true)] {
-        let limits = JsonEncodeLimits::builder().max_output_bytes(maximum).build();
+        let limits = JsonEncodeLimits::builder()
+            .max_output_bytes(maximum)
+            .build();
         assert_eq!(
-            ValueWireEncodePreflight::new(limits).check_value(&json).is_ok(),
+            ValueWireEncodePreflight::new(limits)
+                .check_value(&json)
+                .is_ok(),
             accepted
         );
     }
 
     for key in ["", "键", "quote\"slash\\"] {
         let value = Value::StringMap(HashMap::from([(key.to_owned(), String::new())]));
-        let wire = ValueWireV1::try_from(value.clone()).expect("map must have a wire representation");
+        let wire =
+            ValueWireV1::try_from(value.clone()).expect("map must have a wire representation");
         let encoded = wire
             .to_json_vec_with_limits(JsonEncodeLimits::new())
             .expect("encoding must succeed");
-        let limits = JsonEncodeLimits::builder().max_output_bytes(encoded.len()).build();
+        let limits = JsonEncodeLimits::builder()
+            .max_output_bytes(encoded.len())
+            .build();
         ValueWireEncodePreflight::new(limits)
             .check_value(&value)
             .expect("key UTF-8 and quote bytes form a safe output lower bound");
@@ -140,8 +159,11 @@ fn test_preflight_key_payload_accumulates_and_failed_calls_roll_back() {
 }
 
 /// Fills the key payload budget, then checks that a rejected call restores it.
-fn assert_three_key_calls<F>(mut checker: ValueWireEncodePreflight, mut check: F, rollback_message: &str)
-where
+fn assert_three_key_calls<F>(
+    mut checker: ValueWireEncodePreflight,
+    mut check: F,
+    rollback_message: &str,
+) where
     F: FnMut(&mut ValueWireEncodePreflight) -> Result<(), MeasuredBudgetError<JsonResource, usize>>,
 {
     check(&mut checker).expect("first key-bearing value fits");
@@ -164,7 +186,9 @@ fn test_preflight_fixed_object_key_payload_and_output_boundaries() {
             .max_nodes(3)
             .build();
         assert_eq!(
-            ValueWireEncodePreflight::new(limits).check_value(&duration).is_ok(),
+            ValueWireEncodePreflight::new(limits)
+                .check_value(&duration)
+                .is_ok(),
             accepted
         );
     }
@@ -174,7 +198,9 @@ fn test_preflight_fixed_object_key_payload_and_output_boundaries() {
             .max_nodes(3)
             .build();
         assert_eq!(
-            ValueWireEncodePreflight::new(limits).check_value(&duration).is_ok(),
+            ValueWireEncodePreflight::new(limits)
+                .check_value(&duration)
+                .is_ok(),
             accepted
         );
     }
@@ -188,7 +214,9 @@ fn test_preflight_fixed_object_key_payload_and_output_boundaries() {
                 .max_nodes(3)
                 .build();
             assert_eq!(
-                ValueWireEncodePreflight::new(limits).check_value(&decimal).is_ok(),
+                ValueWireEncodePreflight::new(limits)
+                    .check_value(&decimal)
+                    .is_ok(),
                 accepted
             );
         }
@@ -198,7 +226,9 @@ fn test_preflight_fixed_object_key_payload_and_output_boundaries() {
                 .max_nodes(3)
                 .build();
             assert_eq!(
-                ValueWireEncodePreflight::new(limits).check_value(&decimal).is_ok(),
+                ValueWireEncodePreflight::new(limits)
+                    .check_value(&decimal)
+                    .is_ok(),
                 accepted
             );
         }
@@ -215,9 +245,14 @@ fn test_preflight_accepts_encoded_uint128_with_small_number_limit() {
         .into_builder()
         .max_number_bytes(2)
         .build();
-    let wire = ValueWireV1::try_from(value.clone()).expect("the unsigned integer must have a V1 wire value");
+    let wire = ValueWireV1::try_from(value.clone())
+        .expect("the unsigned integer must have a V1 wire value");
     assert!(wire.to_json_vec_with_limits(limits).is_ok());
-    assert!(ValueWireEncodePreflight::new(limits).check_value(&value).is_ok());
+    assert!(
+        ValueWireEncodePreflight::new(limits)
+            .check_value(&value)
+            .is_ok()
+    );
 }
 
 #[test]
@@ -227,9 +262,14 @@ fn test_preflight_accepts_scientific_float_with_small_number_limit() {
         .into_builder()
         .max_number_bytes(10)
         .build();
-    let wire = ValueWireV1::try_from(value.clone()).expect("the finite float must have a V1 wire value");
+    let wire =
+        ValueWireV1::try_from(value.clone()).expect("the finite float must have a V1 wire value");
     assert!(wire.to_json_vec_with_limits(limits).is_ok());
-    assert!(ValueWireEncodePreflight::new(limits).check_value(&value).is_ok());
+    assert!(
+        ValueWireEncodePreflight::new(limits)
+            .check_value(&value)
+            .is_ok()
+    );
 }
 
 #[test]
@@ -247,13 +287,21 @@ fn test_preflight_counts_duration_payload_nodes_and_keys() {
         .into_builder()
         .max_nodes(2)
         .build();
-    assert!(ValueWireEncodePreflight::new(too_small).check_value(&value).is_err());
+    assert!(
+        ValueWireEncodePreflight::new(too_small)
+            .check_value(&value)
+            .is_err()
+    );
 }
 
 #[test]
 #[cfg(feature = "big-decimal")]
 fn test_preflight_counts_big_decimal_payload_nodes() {
-    let value = Value::BigDecimal("12.5".parse::<BigDecimal>().expect("the decimal literal must parse"));
+    let value = Value::BigDecimal(
+        "12.5"
+            .parse::<BigDecimal>()
+            .expect("the decimal literal must parse"),
+    );
     let limits = ValueWireV1::default_json_encode_limits()
         .into_builder()
         .max_nodes(3)
@@ -266,7 +314,11 @@ fn test_preflight_counts_big_decimal_payload_nodes() {
         .into_builder()
         .max_nodes(2)
         .build();
-    assert!(ValueWireEncodePreflight::new(too_small).check_value(&value).is_err());
+    assert!(
+        ValueWireEncodePreflight::new(too_small)
+            .check_value(&value)
+            .is_err()
+    );
 }
 
 #[test]
@@ -308,9 +360,11 @@ fn test_preflight_big_decimal_small_coefficients_and_rollback() {
         .build();
     for coefficient in [0_i64, 7, -7] {
         let value = Value::BigDecimal(BigDecimal::new(BigInt::from(coefficient), 2));
-        let wire = ValueWireV1::try_from(value.clone()).expect("small decimal should have a wire value");
-        wire.to_json_vec_with_limits(limits)
-            .expect("small decimal coefficient is encoded as a string, independent of number limit");
+        let wire =
+            ValueWireV1::try_from(value.clone()).expect("small decimal should have a wire value");
+        wire.to_json_vec_with_limits(limits).expect(
+            "small decimal coefficient is encoded as a string, independent of number limit",
+        );
         ValueWireEncodePreflight::new(limits)
             .check_value(&value)
             .expect("small coefficient lower bound must fit");
@@ -323,7 +377,9 @@ fn test_preflight_big_decimal_small_coefficients_and_rollback() {
     let small = Value::BigDecimal(BigDecimal::new(BigInt::from(1), 2));
     let large = Value::BigDecimal(BigDecimal::new(BigInt::from(10_u8).pow(4095), 2));
     let mut checker = ValueWireEncodePreflight::new(limits);
-    checker.check_value(&small).expect("initial small coefficient must fit");
+    checker
+        .check_value(&small)
+        .expect("initial small coefficient must fit");
     assert_limit_exceeded(
         checker
             .check_value(&large)
@@ -335,8 +391,12 @@ fn test_preflight_big_decimal_small_coefficients_and_rollback() {
         .expect("failed check must restore all counters");
 
     let mut reference = ValueWireEncodePreflight::new(limits);
-    reference.check_value(&small).expect("reference first value must fit");
-    reference.check_value(&small).expect("reference second value must fit");
+    reference
+        .check_value(&small)
+        .expect("reference first value must fit");
+    reference
+        .check_value(&small)
+        .expect("reference second value must fit");
 }
 
 #[test]
@@ -365,10 +425,12 @@ fn test_preflight_encoding_success_implies_acceptance_at_output_boundaries() {
     ];
 
     let positive = Value::Int32(7);
-    let positive_wire = ValueWireV1::try_from(positive.clone()).expect("int32 must have a V1 wire value");
-    let encoded = JsonEncoder::new(JsonEncodeSession::from_limits(
-        JsonEncodeLimits::<JsonResource, usize>::new(),
-    ))
+    let positive_wire =
+        ValueWireV1::try_from(positive.clone()).expect("int32 must have a V1 wire value");
+    let encoded = JsonEncoder::new(JsonEncodeSession::from_limits(JsonEncodeLimits::<
+        JsonResource,
+        usize,
+    >::new()))
     .to_vec(&positive_wire)
     .expect("the fixed positive sample must encode successfully");
     ValueWireEncodePreflight::new(JsonEncodeLimits::new())
@@ -382,10 +444,11 @@ fn test_preflight_encoding_success_implies_acceptance_at_output_boundaries() {
             Err(_) => continue,
         };
         let unbounded: JsonEncodeLimits = JsonEncodeLimits::new();
-        let encoded = match JsonEncoder::new(JsonEncodeSession::from_limits(unbounded)).to_vec(&wire) {
-            Ok(encoded) => encoded,
-            Err(_) => continue,
-        };
+        let encoded =
+            match JsonEncoder::new(JsonEncodeSession::from_limits(unbounded)).to_vec(&wire) {
+                Ok(encoded) => encoded,
+                Err(_) => continue,
+            };
         let size = encoded.len();
         for max_output_bytes in [size.saturating_sub(1), size, size.saturating_add(1)] {
             let limits = JsonEncodeLimits::builder()
@@ -454,10 +517,12 @@ fn test_preflight_encoding_success_implies_acceptance_for_collections_and_limits
     ];
 
     let positive = ValueContainer::Collection(MultiValues::Int32(vec![1, 2]));
-    let wire = ValueWireV1::try_from(positive.clone()).expect("int32 collection must have a V1 wire value");
-    JsonEncoder::new(JsonEncodeSession::from_limits(
-        JsonEncodeLimits::<JsonResource, usize>::new(),
-    ))
+    let wire = ValueWireV1::try_from(positive.clone())
+        .expect("int32 collection must have a V1 wire value");
+    JsonEncoder::new(JsonEncodeSession::from_limits(JsonEncodeLimits::<
+        JsonResource,
+        usize,
+    >::new()))
     .to_vec(&wire)
     .expect("the fixed collection positive sample must encode successfully");
     ValueWireEncodePreflight::new(JsonEncodeLimits::new())
@@ -495,7 +560,10 @@ fn test_preflight_counts_unset_wire_tag_as_string() {
 }
 
 /// Verifies that an error identifies the expected exhausted JSON resource.
-fn assert_limit_exceeded(error: MeasuredBudgetError<JsonResource, usize>, expected_resource: JsonResource) {
+fn assert_limit_exceeded(
+    error: MeasuredBudgetError<JsonResource, usize>,
+    expected_resource: JsonResource,
+) {
     assert!(
         matches!(
             error,
@@ -637,7 +705,10 @@ fn test_check_value_traverses_every_scalar_shape_and_accumulates_nodes() {
         #[cfg(feature = "big-integer")]
         (Value::BigInteger(BigInt::from(-7)), 1),
         #[cfg(feature = "big-decimal")]
-        (Value::BigDecimal("7.5".parse::<BigDecimal>().expect("decimal")), 3),
+        (
+            Value::BigDecimal("7.5".parse::<BigDecimal>().expect("decimal")),
+            3,
+        ),
         (Value::Duration(Duration::from_secs(1)), 3),
         #[cfg(feature = "chrono")]
         (Value::Date(date), 1),
@@ -648,7 +719,10 @@ fn test_check_value_traverses_every_scalar_shape_and_accumulates_nodes() {
         #[cfg(feature = "chrono")]
         (Value::Instant(instant), 1),
         #[cfg(feature = "url")]
-        (Value::Url(Url::parse("https://example.com/path").expect("URL")), 1),
+        (
+            Value::Url(Url::parse("https://example.com/path").expect("URL")),
+            1,
+        ),
         (
             Value::StringMap(HashMap::from([("key".to_owned(), "value".to_owned())])),
             2,
@@ -661,7 +735,8 @@ fn test_check_value_traverses_every_scalar_shape_and_accumulates_nodes() {
         ),
     ];
     let maximum_nodes = values.iter().map(|(_, nodes)| nodes).sum::<usize>();
-    let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_nodes(maximum_nodes).build());
+    let mut checker =
+        ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_nodes(maximum_nodes).build());
 
     for (value, _) in &values {
         checker
@@ -680,9 +755,15 @@ fn test_check_values_traverses_specialized_collection_shapes() {
     let collections = vec![
         (MultiValues::Bool(vec![true, false]), 3_usize),
         (MultiValues::Char(vec!['a', 'λ']), 3),
-        (MultiValues::String(vec!["a".to_owned(), "bc".to_owned()]), 3),
         (
-            MultiValues::StringMap(vec![HashMap::from([("key".to_owned(), "value".to_owned())])]),
+            MultiValues::String(vec!["a".to_owned(), "bc".to_owned()]),
+            3,
+        ),
+        (
+            MultiValues::StringMap(vec![HashMap::from([(
+                "key".to_owned(),
+                "value".to_owned(),
+            )])]),
             3,
         ),
         (
@@ -694,7 +775,8 @@ fn test_check_values_traverses_specialized_collection_shapes() {
         (MultiValues::UInt128(vec![1, 2]), 3),
     ];
     let maximum_nodes = collections.iter().map(|(_, nodes)| nodes).sum::<usize>();
-    let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_nodes(maximum_nodes).build());
+    let mut checker =
+        ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_nodes(maximum_nodes).build());
 
     for (values, _) in &collections {
         checker
@@ -720,14 +802,18 @@ fn test_check_value_reports_each_point_limit_precisely() {
         ),
         (
             Value::String("abc".to_owned()),
-            JsonEncodeLimits::builder().max_string_bytes(2_usize).build(),
+            JsonEncodeLimits::builder()
+                .max_string_bytes(2_usize)
+                .build(),
             JsonResource::StringBytes,
             3,
             2,
         ),
         (
             Value::UInt64(123),
-            JsonEncodeLimits::builder().max_number_bytes(2_usize).build(),
+            JsonEncodeLimits::builder()
+                .max_number_bytes(2_usize)
+                .build(),
             JsonResource::NumberBytes,
             3,
             2,
@@ -759,7 +845,11 @@ fn test_check_value_reports_each_point_limit_precisely() {
         assert_exact_limit(error, resource, observed, maximum);
     }
 
-    let mut checker = ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_sequence_items(1_usize).build());
+    let mut checker = ValueWireEncodePreflight::new(
+        JsonEncodeLimits::builder()
+            .max_sequence_items(1_usize)
+            .build(),
+    );
     let error = checker
         .check_values(&MultiValues::Bool(vec![true, false]))
         .expect_err("the sequence-item limit must reject two values");
@@ -775,12 +865,16 @@ fn test_check_value_reports_each_cumulative_limit_precisely() {
             1,
         ),
         (
-            JsonEncodeLimits::builder().max_payload_bytes(2_usize).build(),
+            JsonEncodeLimits::builder()
+                .max_payload_bytes(2_usize)
+                .build(),
             JsonResource::PayloadBytes,
             3,
         ),
         (
-            JsonEncodeLimits::builder().max_output_bytes(4_usize).build(),
+            JsonEncodeLimits::builder()
+                .max_output_bytes(4_usize)
+                .build(),
             JsonResource::OutputBytes,
             5,
         ),
@@ -803,7 +897,8 @@ fn test_preflight_accepts_deep_arrays_with_tight_payload() {
     }
     let value = Value::Json(payload);
     let limits = JsonEncodeLimits::builder().max_payload_bytes(32).build();
-    let wire = ValueWireV1::try_from(value.clone()).expect("JSON value should have a Wire V1 representation");
+    let wire = ValueWireV1::try_from(value.clone())
+        .expect("JSON value should have a Wire V1 representation");
 
     wire.to_json_vec_with_limits(limits)
         .expect("the encoded payload fits the configured limit");
@@ -819,11 +914,14 @@ fn test_preflight_accepts_deep_arrays_at_exact_output_size() {
         payload = JsonValue::Array(vec![payload]);
     }
     let value = Value::Json(payload);
-    let wire = ValueWireV1::try_from(value.clone()).expect("JSON value should have a Wire V1 representation");
+    let wire = ValueWireV1::try_from(value.clone())
+        .expect("JSON value should have a Wire V1 representation");
     let encoded = wire
         .to_json_vec_with_limits(JsonEncodeLimits::new())
         .expect("unlimited encoding should succeed");
-    let limits = JsonEncodeLimits::builder().max_output_bytes(encoded.len()).build();
+    let limits = JsonEncodeLimits::builder()
+        .max_output_bytes(encoded.len())
+        .build();
 
     wire.to_json_vec_with_limits(limits)
         .expect("encoding succeeds at its exact output length");
@@ -834,7 +932,9 @@ fn test_preflight_accepts_deep_arrays_at_exact_output_size() {
 
 #[test]
 fn test_empty_strings_do_not_consume_payload_budget() {
-    let limits = JsonEncodeLimits::builder().max_payload_bytes(0_usize).build();
+    let limits = JsonEncodeLimits::builder()
+        .max_payload_bytes(0_usize)
+        .build();
     let mut checker = ValueWireEncodePreflight::new(limits);
 
     checker
@@ -847,7 +947,9 @@ fn test_empty_strings_do_not_consume_payload_budget() {
 
 #[test]
 fn test_failed_string_check_rolls_back_payload_before_next_check() {
-    let limits = JsonEncodeLimits::builder().max_payload_bytes(3_usize).build();
+    let limits = JsonEncodeLimits::builder()
+        .max_payload_bytes(3_usize)
+        .build();
     let mut checker = ValueWireEncodePreflight::new(limits);
 
     checker
@@ -875,11 +977,14 @@ fn test_preflight_lower_bounds_for_empty_json_containers_and_map_text() {
     ];
 
     for value in cases {
-        let wire = ValueWireV1::try_from(value.clone()).expect("value should have a Wire V1 representation");
+        let wire = ValueWireV1::try_from(value.clone())
+            .expect("value should have a Wire V1 representation");
         let encoded = wire
             .to_json_vec_with_limits(JsonEncodeLimits::new())
             .expect("unlimited encoding should succeed");
-        let limits = JsonEncodeLimits::builder().max_output_bytes(encoded.len()).build();
+        let limits = JsonEncodeLimits::builder()
+            .max_output_bytes(encoded.len())
+            .build();
         wire.to_json_vec_with_limits(limits)
             .expect("encoding succeeds at its exact output length");
         ValueWireEncodePreflight::new(limits)
@@ -930,7 +1035,9 @@ fn test_check_value_failure_does_not_mutate_accumulated_state() {
 
 #[test]
 fn test_check_values_failure_does_not_mutate_accumulated_state() {
-    let limits = JsonEncodeLimits::builder().max_payload_bytes(1_usize).build();
+    let limits = JsonEncodeLimits::builder()
+        .max_payload_bytes(1_usize)
+        .build();
     let mut checker = ValueWireEncodePreflight::new(limits);
 
     checker
@@ -948,7 +1055,9 @@ fn test_check_values_failure_does_not_mutate_accumulated_state() {
 
 #[test]
 fn test_check_container_failure_does_not_mutate_accumulated_state() {
-    let limits = JsonEncodeLimits::builder().max_output_bytes(5_usize).build();
+    let limits = JsonEncodeLimits::builder()
+        .max_output_bytes(5_usize)
+        .build();
     let mut checker = ValueWireEncodePreflight::new(limits);
 
     checker
@@ -999,7 +1108,10 @@ fn test_preflight_handles_deep_json_without_recursion() {
         DEEP_PREFLIGHT_CHILD_ENV,
     );
     let baseline_log = String::from_utf8_lossy(&baseline.stderr);
-    assert!(baseline_log.contains("checking"), "baseline log: {baseline_log}");
+    assert!(
+        baseline_log.contains("checking"),
+        "baseline log: {baseline_log}"
+    );
     assert!(
         baseline_log.contains("checked"),
         "preflight did not complete: {baseline_log}"
@@ -1076,15 +1188,19 @@ fn test_preflight_deep_json_iterative_child() {
     assert!(var_os(DEEP_PREFLIGHT_CHILD_ENV).is_some());
     let value = ManuallyDrop::new(Value::from_json_value(build_deep_json(10_000)));
     eprintln!("checking");
-    let check_succeeded = ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_depth(10_001).build())
-        .check_value(&value)
-        .is_ok();
+    let check_succeeded =
+        ValueWireEncodePreflight::new(JsonEncodeLimits::builder().max_depth(10_001).build())
+            .check_value(&value)
+            .is_ok();
     eprintln!("checked");
     dismantle_json(build_deep_json(10_000));
     eprintln!("iterative teardown fixture completed");
     // `Value` has no safe consuming JSON getter. Keep the checked input in
     // `ManuallyDrop`; the isolated child process reclaims it when it exits.
-    assert!(check_succeeded, "deep JSON preflight rejected the configured budget");
+    assert!(
+        check_succeeded,
+        "deep JSON preflight rejected the configured budget"
+    );
     eprintln!("done");
 }
 

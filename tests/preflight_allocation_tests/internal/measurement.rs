@@ -38,7 +38,8 @@ unsafe impl GlobalAlloc for CountingAllocator {
         if !pointer.is_null() {
             COUNT_ALLOCATIONS.with(|enabled| {
                 if enabled.get() {
-                    ALLOCATED_BYTES.with(|bytes| bytes.set(bytes.get().saturating_add(layout.size())));
+                    ALLOCATED_BYTES
+                        .with(|bytes| bytes.set(bytes.get().saturating_add(layout.size())));
                 }
             });
         }
@@ -68,8 +69,9 @@ unsafe impl GlobalAlloc for CountingAllocator {
 /// Counts unbounded preflight allocations, checking acceptance after counting
 /// stops.
 pub(crate) fn measured_preflight_bytes(value: &Value) -> usize {
-    let (result, bytes) =
-        measured_allocations(|| ValueWireEncodePreflight::new(JsonEncodeLimits::new()).check_value(value));
+    let (result, bytes) = measured_allocations(|| {
+        ValueWireEncodePreflight::new(JsonEncodeLimits::new()).check_value(value)
+    });
     result.expect("an unbounded preflight must accept the fixture");
     bytes
 }

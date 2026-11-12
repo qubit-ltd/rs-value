@@ -19,7 +19,10 @@ use qubit_value::Value;
 fn test_float_identity_normalizes_nan_payloads() {
     let left = Value::Float64(f64::from_bits(0x7ff8_0000_0000_0001));
     let right = Value::Float64(f64::from_bits(0x7fff_ffff_ffff_ffff));
-    assert_eq!(left, right, "NaN payload bits must not affect value identity");
+    assert_eq!(
+        left, right,
+        "NaN payload bits must not affect value identity"
+    );
 }
 
 /// Verifies signed zero has one identity and one hash representation.

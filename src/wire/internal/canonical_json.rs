@@ -105,7 +105,10 @@ mod tests {
             let rendered = number.to_string();
             let restored = if rendered == "-0" {
                 Number::from_f64(-0.0)
-            } else if rendered.bytes().any(|byte| matches!(byte, b'.' | b'e' | b'E')) {
+            } else if rendered
+                .bytes()
+                .any(|byte| matches!(byte, b'.' | b'e' | b'E'))
+            {
                 rendered.parse::<f64>().ok().and_then(Number::from_f64)
             } else if rendered.starts_with('-') {
                 rendered.parse::<i64>().ok().map(Number::from)
@@ -116,11 +119,15 @@ mod tests {
                 continue;
             }
             let value = Value::Number(number);
-            assert!(to_vec(&CanonicalJson(&value)).is_err(), "serde_json accepted {text}");
             assert!(
-                JsonEncoder::new(JsonEncodeSession::from_limits(
-                    JsonEncodeLimits::<JsonResource, usize>::new(),
-                ))
+                to_vec(&CanonicalJson(&value)).is_err(),
+                "serde_json accepted {text}"
+            );
+            assert!(
+                JsonEncoder::new(JsonEncodeSession::from_limits(JsonEncodeLimits::<
+                    JsonResource,
+                    usize,
+                >::new(),))
                 .to_vec(&CanonicalJson(&value))
                 .is_err(),
                 "JsonEncoder accepted {text}"
@@ -130,13 +137,20 @@ mod tests {
 
     #[test]
     fn test_canonical_json_serializes_standard_number() {
-        for number in [Number::from(42_u64), Number::from_f64(0.125).expect("finite fixture")] {
+        for number in [
+            Number::from(42_u64),
+            Number::from_f64(0.125).expect("finite fixture"),
+        ] {
             let value = Value::Number(number);
-            assert!(to_vec(&CanonicalJson(&value)).is_ok(), "serde_json rejected {value}");
             assert!(
-                JsonEncoder::new(JsonEncodeSession::from_limits(
-                    JsonEncodeLimits::<JsonResource, usize>::new(),
-                ))
+                to_vec(&CanonicalJson(&value)).is_ok(),
+                "serde_json rejected {value}"
+            );
+            assert!(
+                JsonEncoder::new(JsonEncodeSession::from_limits(JsonEncodeLimits::<
+                    JsonResource,
+                    usize,
+                >::new(),))
                 .to_vec(&CanonicalJson(&value))
                 .is_ok(),
                 "JsonEncoder rejected {value}"

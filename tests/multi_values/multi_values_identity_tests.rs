@@ -130,17 +130,32 @@ fn test_multi_values_float_identity_is_reflexive_and_hash_consistent() {
 /// Verifies unset metadata, variant tags, and outer order remain significant.
 #[test]
 fn test_multi_values_unset_variant_and_order_remain_part_of_identity() {
-    assert_ne!(MultiValues::Unset(DataType::Int32), MultiValues::Int32(Vec::new()),);
-    assert_ne!(MultiValues::Unset(DataType::Int32), MultiValues::Unset(DataType::Int64),);
-    assert_ne!(MultiValues::Int32(vec![1, 2]), MultiValues::Int32(vec![2, 1]),);
+    assert_ne!(
+        MultiValues::Unset(DataType::Int32),
+        MultiValues::Int32(Vec::new()),
+    );
+    assert_ne!(
+        MultiValues::Unset(DataType::Int32),
+        MultiValues::Unset(DataType::Int64),
+    );
+    assert_ne!(
+        MultiValues::Int32(vec![1, 2]),
+        MultiValues::Int32(vec![2, 1]),
+    );
     assert_ne!(MultiValues::Int32(vec![1]), MultiValues::Int64(vec![1]),);
 }
 
 /// Verifies structurally unordered payloads receive order-independent hashes.
 #[test]
 fn test_multi_values_unordered_payloads_hash_structurally() {
-    let left_map = HashMap::from([("b".to_owned(), "2".to_owned()), ("a".to_owned(), "1".to_owned())]);
-    let right_map = HashMap::from([("a".to_owned(), "1".to_owned()), ("b".to_owned(), "2".to_owned())]);
+    let left_map = HashMap::from([
+        ("b".to_owned(), "2".to_owned()),
+        ("a".to_owned(), "1".to_owned()),
+    ]);
+    let right_map = HashMap::from([
+        ("a".to_owned(), "1".to_owned()),
+        ("b".to_owned(), "2".to_owned()),
+    ]);
     assert_equal_hash(
         &MultiValues::StringMap(vec![left_map]),
         &MultiValues::StringMap(vec![right_map]),
@@ -184,7 +199,10 @@ fn test_multi_values_identity_covers_every_variant() {
         MultiValues::Float32(vec![f32::NAN]),
         MultiValues::Float64(vec![f64::NAN]),
         MultiValues::String(vec!["text".to_owned()]),
-        MultiValues::StringMap(vec![HashMap::from([("key".to_owned(), "value".to_owned())])]),
+        MultiValues::StringMap(vec![HashMap::from([(
+            "key".to_owned(),
+            "value".to_owned(),
+        )])]),
         MultiValues::Duration(vec![Duration::new(8, 9)]),
     ];
     #[cfg(any(
@@ -201,14 +219,18 @@ fn test_multi_values_identity_covers_every_variant() {
     values.push(MultiValues::BigDecimal(vec![BigDecimal::from(7)]));
     #[cfg(feature = "chrono")]
     {
-        let date = NaiveDate::from_ymd_opt(2026, 7, 17).expect("the test fixture date must be valid");
-        let time = NaiveTime::from_hms_nano_opt(12, 34, 56, 789).expect("the test fixture time must be valid");
+        let date =
+            NaiveDate::from_ymd_opt(2026, 7, 17).expect("the test fixture date must be valid");
+        let time = NaiveTime::from_hms_nano_opt(12, 34, 56, 789)
+            .expect("the test fixture time must be valid");
         let datetime = date.and_time(time);
         values.extend([
             MultiValues::Date(vec![date]),
             MultiValues::Time(vec![time]),
             MultiValues::DateTime(vec![datetime]),
-            MultiValues::Instant(vec![DateTime::<Utc>::from_naive_utc_and_offset(datetime, Utc)]),
+            MultiValues::Instant(vec![DateTime::<Utc>::from_naive_utc_and_offset(
+                datetime, Utc,
+            )]),
         ]);
     }
     #[cfg(feature = "url")]
@@ -276,7 +298,9 @@ fn test_multi_values_hash_with_json_budget_preserves_identity() {
 #[test]
 fn test_multi_values_hash_with_json_budget_panic_rolls_back_and_reuses_budget() {
     let values = MultiValues::Json(vec![json!(null)]);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .budget();
 
     let result = catch_unwind(AssertUnwindSafe(|| {
         values.hash_with_json_budget(&mut PanickingHasher, &mut budget)

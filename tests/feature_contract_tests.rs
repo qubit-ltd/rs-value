@@ -121,7 +121,8 @@ fn assert_wire_serialization(value: impl Into<ValueContainer>) {
     let _encoded = to_string(&wire).expect("serialize wire payload");
     #[cfg(feature = "json")]
     {
-        let decoded = ValueWirePayloadV1::decode_json_slice(_encoded.as_bytes()).expect("deserialize wire payload");
+        let decoded = ValueWirePayloadV1::decode_json_slice(_encoded.as_bytes())
+            .expect("deserialize wire payload");
         assert_eq!(decoded, wire);
     }
 }
@@ -133,7 +134,10 @@ fn test_converter_feature_converts_core_values() {
     let collection = ValueContainer::from(vec![43_i32, 44]);
 
     assert_eq!(scalar.to_first::<i64>().expect("convert scalar"), 42);
-    assert_eq!(collection.to_list::<i64>().expect("convert collection"), vec![43, 44]);
+    assert_eq!(
+        collection.to_list::<i64>().expect("convert collection"),
+        vec![43, 44]
+    );
     assert_wire_serialization(collection);
 }
 
@@ -199,8 +203,14 @@ fn test_big_integer_feature_preserves_values_and_wire_payloads() {
     let integer_value = Value::BigInteger(integer.clone());
     let integers = MultiValues::BigInteger(vec![integer.clone()]);
 
-    assert_eq!(integer_value.get::<BigInt>().expect("read big integer"), integer);
-    assert_eq!(integers.get_bigintegers().expect("read big integers"), &[integer]);
+    assert_eq!(
+        integer_value.get::<BigInt>().expect("read big integer"),
+        integer
+    );
+    assert_eq!(
+        integers.get_bigintegers().expect("read big integers"),
+        &[integer]
+    );
     assert_wire_serialization(integer_value);
     assert_wire_serialization(integers);
 }
@@ -212,8 +222,14 @@ fn test_big_decimal_feature_preserves_values_and_wire_payloads() {
     let decimal_value = Value::BigDecimal(decimal.clone());
     let decimals = MultiValues::BigDecimal(vec![decimal.clone()]);
 
-    assert_eq!(decimal_value.get::<BigDecimal>().expect("read big decimal"), decimal);
-    assert_eq!(decimals.get_bigdecimals().expect("read big decimals"), &[decimal]);
+    assert_eq!(
+        decimal_value.get::<BigDecimal>().expect("read big decimal"),
+        decimal
+    );
+    assert_eq!(
+        decimals.get_bigdecimals().expect("read big decimals"),
+        &[decimal]
+    );
     assert_wire_serialization(decimal_value);
     assert_wire_serialization(decimals);
 }
@@ -271,9 +287,10 @@ fn test_redact_feature_masks_sensitive_named_non_strings_as_opaque_values() {
     let value = NamedValue::new("secret_number", Value::Int32(12345));
     let policy = RedactionPolicy::builder()
         .fields(|fields| {
-            fields
-                .raise("secret_number", Sensitivity::Low)
-                .mask(Sensitivity::Low, MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0));
+            fields.raise("secret_number", Sensitivity::Low).mask(
+                Sensitivity::Low,
+                MaskPolicy::preserve_edges(1, 1, "OPAQUE", 0),
+            );
         })
         .expect("the test policy should be valid")
         .build()
@@ -323,7 +340,10 @@ fn test_redact_feature_recursively_masks_sensitive_json_object_entries() {
 #[cfg(feature = "redact")]
 #[test]
 fn test_redact_feature_stops_before_unadmitted_collection_elements() {
-    let values = MultiValues::String(vec!["visible".to_owned(), "must-not-be-formatted".to_owned()]);
+    let values = MultiValues::String(vec![
+        "visible".to_owned(),
+        "must-not-be-formatted".to_owned(),
+    ]);
     let policy = RedactionPolicy::builder()
         .limits(|limits| {
             limits.max_nodes(64).max_collection_items(1).max_depth(8);
@@ -333,7 +353,10 @@ fn test_redact_feature_stops_before_unadmitted_collection_elements() {
         .expect("the test domain limits should build a policy");
 
     let result = Redactor::new(policy).redact_text(&values);
-    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
     let output = result.text().as_str();
 
     assert!(output.contains("visible"), "{output}");
@@ -353,9 +376,20 @@ fn test_redact_primitive_collection_obeys_item_budget() {
         .expect("valid policy");
     let result = Redactor::new(policy).redact_text(&MultiValues::Int32(vec![17, 934751]));
 
-    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
-    assert!(result.text().as_str().contains("17"), "{}", result.text().as_str());
-    assert!(!result.text().as_str().contains("934751"), "{}", result.text().as_str());
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    assert!(
+        result.text().as_str().contains("17"),
+        "{}",
+        result.text().as_str()
+    );
+    assert!(
+        !result.text().as_str().contains("934751"),
+        "{}",
+        result.text().as_str()
+    );
 }
 
 #[cfg(feature = "redact")]
@@ -370,9 +404,20 @@ fn test_redact_boolean_collection_obeys_item_budget() {
         .expect("valid policy");
     let result = Redactor::new(policy).redact_text(&MultiValues::Bool(vec![true, false]));
 
-    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
-    assert!(result.text().as_str().contains("true"), "{}", result.text().as_str());
-    assert!(!result.text().as_str().contains("false"), "{}", result.text().as_str());
+    assert_eq!(
+        result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
+    assert!(
+        result.text().as_str().contains("true"),
+        "{}",
+        result.text().as_str()
+    );
+    assert!(
+        !result.text().as_str().contains("false"),
+        "{}",
+        result.text().as_str()
+    );
 }
 
 #[cfg(feature = "redact")]
@@ -396,7 +441,11 @@ fn test_redact_primitive_collection_preserves_shape_and_empty_unset() {
 
     let unset = Redactor::new(policy).redact_text(&MultiValues::Unset(DataType::Int32));
     assert_eq!(unset.summary().completion(), RedactionCompletion::Complete);
-    assert!(unset.text().as_str().contains("Int32"), "{}", unset.text().as_str());
+    assert!(
+        unset.text().as_str().contains("Int32"),
+        "{}",
+        unset.text().as_str()
+    );
 }
 
 #[cfg(feature = "redact")]
@@ -411,7 +460,10 @@ fn test_redact_primitive_collection_obeys_node_and_depth_limits() {
         .build()
         .expect("valid policy");
     let node_result = Redactor::new(node_policy).redact_text(&values);
-    assert_eq!(node_result.summary().completion(), RedactionCompletion::Truncated);
+    assert_eq!(
+        node_result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
     assert!(
         !node_result.text().as_str().contains("17"),
         "{}",
@@ -431,7 +483,10 @@ fn test_redact_primitive_collection_obeys_node_and_depth_limits() {
         .build()
         .expect("valid policy");
     let depth_result = Redactor::new(depth_policy).redact_text(&values);
-    assert_eq!(depth_result.summary().completion(), RedactionCompletion::Truncated);
+    assert_eq!(
+        depth_result.summary().completion(),
+        RedactionCompletion::Truncated
+    );
     assert!(
         !depth_result.text().as_str().contains("17"),
         "{}",
@@ -508,7 +563,10 @@ fn test_converter_json_features_convert_text_to_json() {
 fn test_natural_json_feature_combination_preserves_shape() {
     let scalar = ValueContainer::from("one");
     let collection = ValueContainer::from(vec!["one".to_owned()]);
-    assert_eq!(scalar.to_json_value().expect("scalar projection"), json!("one"));
+    assert_eq!(
+        scalar.to_json_value().expect("scalar projection"),
+        json!("one")
+    );
     assert_eq!(
         collection.to_json_value().expect("collection projection"),
         json!(["one"])

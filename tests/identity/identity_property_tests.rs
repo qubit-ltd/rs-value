@@ -93,5 +93,8 @@ fn test_identity_property_rejects_equal_values_with_different_hashes() {
             "negative oracle",
         );
     });
-    assert!(result.is_err(), "oracle must reject unequal hashes for equal values");
+    assert!(
+        result.is_err(),
+        "oracle must reject unequal hashes for equal values"
+    );
 }

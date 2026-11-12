@@ -49,7 +49,9 @@ pub(crate) fn decode_value_wire_payload_str(input: &str) -> Result<ValueWirePayl
 }
 
 /// Serializes a JSON fixture before decoding it as an unversioned V1 payload.
-pub(crate) fn decode_value_wire_payload_value(input: JsonValue) -> Result<ValueWirePayloadV1, Error> {
+pub(crate) fn decode_value_wire_payload_value(
+    input: JsonValue,
+) -> Result<ValueWirePayloadV1, Error> {
     let input = to_string(&input).expect("test JSON value should serialize");
     decode_value_wire_payload_str(&input)
 }
@@ -59,9 +61,15 @@ pub(crate) fn decode_value_wire_payload_value(input: JsonValue) -> Result<ValueW
 fn test_wire_decode_helpers_are_available_with_json_feature() {
     let wire = crate::decode_value_wire_slice(br#"{"version":1,"value":{"scalar":{"int32":7}}}"#)
         .expect("decode the V1 envelope through the shared slice helper");
-    assert_eq!(wire.into_container(), ValueContainer::Scalar(RuntimeValue::Int32(7)));
+    assert_eq!(
+        wire.into_container(),
+        ValueContainer::Scalar(RuntimeValue::Int32(7))
+    );
 
     let payload = crate::decode_value_wire_payload_value(json!({"scalar":{"int32":7}}))
         .expect("decode the unversioned V1 payload through the shared helper");
-    assert_eq!(payload.into_container(), ValueContainer::Scalar(RuntimeValue::Int32(7)));
+    assert_eq!(
+        payload.into_container(),
+        ValueContainer::Scalar(RuntimeValue::Int32(7))
+    );
 }

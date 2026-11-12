@@ -61,13 +61,17 @@ fn test_named_value_json_numbers_round_trip() {
         decoded, expected,
         "JSON numbers and literal marker objects must remain distinct"
     );
-    assert_eq!(decoded.to_json_vec().expect("re-encode named JSON value"), encoded);
+    assert_eq!(
+        decoded.to_json_vec().expect("re-encode named JSON value"),
+        encoded
+    );
 }
 
 /// Rejects schema fields outside the stable named-value wrapper contract.
 #[test]
 fn test_named_value_rejects_unknown_fields() {
-    let input = r#"{"name":"port","value":{"version":1,"value":{"scalar":{"int32":42}}},"extra":true}"#;
+    let input =
+        r#"{"name":"port","value":{"version":1,"value":{"scalar":{"int32":42}}},"extra":true}"#;
 
     assert!(
         from_str::<NamedValue>(input).is_err(),
@@ -79,7 +83,8 @@ fn test_named_value_rejects_unknown_fields() {
 fn test_named_value_rejects_collection_wire_payload() {
     let input = r#"{"name":"port","value":{"version":1,"value":{"collection":{"int32":[42]}}}}"#;
 
-    let error = from_str::<NamedValue>(input).expect_err("a named scalar must reject a collection payload");
+    let error =
+        from_str::<NamedValue>(input).expect_err("a named scalar must reject a collection payload");
     assert!(
         error
             .to_string()
@@ -149,7 +154,9 @@ fn test_named_value_bounded_decode_reuses_value_budget() {
 #[cfg(feature = "json")]
 fn test_named_value_default_encoding_round_trips() {
     let named = NamedValue::new("port", Value::Int32(42));
-    let encoded = named.to_json_vec().expect("default limits should encode named value");
+    let encoded = named
+        .to_json_vec()
+        .expect("default limits should encode named value");
 
     assert_eq!(
         NamedValue::decode_json_slice(&encoded).expect("default limits should decode named value"),
@@ -162,7 +169,9 @@ fn test_named_value_default_encoding_round_trips() {
 fn test_named_value_writer_matches_vec_and_rejects_output_limit() {
     let named = NamedValue::new("port", Value::Int32(42));
     let mut output = Vec::new();
-    named.to_json_writer(&mut output).expect("write named scalar");
+    named
+        .to_json_writer(&mut output)
+        .expect("write named scalar");
     assert_eq!(output, named.to_json_vec().expect("encode named scalar"));
 
     let mut constrained = Vec::new();
@@ -349,7 +358,10 @@ fn test_named_value_get_string() {
 #[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_get_date() {
-    let nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()));
+    let nv = NamedValue::new(
+        "d",
+        Value::Date(NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()),
+    );
     assert_eq!(
         nv.value().get_date().unwrap(),
         NaiveDate::from_ymd_opt(2020, 5, 17).unwrap()
@@ -523,7 +535,10 @@ fn test_named_value_set_get_string() {
 #[cfg(feature = "chrono")]
 #[test]
 fn test_named_value_set_get_date() {
-    let mut nv = NamedValue::new("d", Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()));
+    let mut nv = NamedValue::new(
+        "d",
+        Value::Date(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()),
+    );
     let date = NaiveDate::from_ymd_opt(2020, 5, 17).unwrap();
     nv.value_mut().set(date);
     let got: NaiveDate = nv.value().get().unwrap();

@@ -117,11 +117,17 @@ fn test_all_type_table_rows_construct_value_containers_from_owned_and_borrowed_i
                     container.is_collection(),
                     "collection input must retain collection shape"
                 );
-                assert_eq!(container.len(), 1, "collection constructor must retain its single item");
+                assert_eq!(
+                    container.len(),
+                    1,
+                    "collection constructor must retain its single item"
+                );
             }
 
             let mut promoted = ValueContainer::from(value.clone());
-            promoted.add(value.clone()).expect("same-type scalar should promote");
+            promoted
+                .add(value.clone())
+                .expect("same-type scalar should promote");
             assert_eq!(
                 promoted.data_type(),
                 $data_type,
@@ -134,7 +140,9 @@ fn test_all_type_table_rows_construct_value_containers_from_owned_and_borrowed_i
             );
 
             let mut extended = ValueContainer::from(vec![value.clone()]);
-            extended.add(value.clone()).expect("same-type item should append");
+            extended
+                .add(value.clone())
+                .expect("same-type item should append");
             assert_eq!(
                 extended.data_type(),
                 $data_type,
@@ -185,7 +193,9 @@ fn test_all_type_table_rows_construct_value_containers_from_owned_and_borrowed_i
                 Ok(from_ref(&value)),
                 "slice access must return the original item"
             );
-            multi_values.add(value.clone()).expect("same-type value should append");
+            multi_values
+                .add(value.clone())
+                .expect("same-type value should append");
             assert_eq!(multi_values.len(), 2, "append must retain both items");
             multi_values.set(vec![value]);
             assert_eq!(multi_values.len(), 1, "replacement must retain one item");
@@ -219,7 +229,10 @@ fn test_all_type_table_rows_construct_value_containers_from_owned_and_borrowed_i
     assert_constructors!(datetime, DataType::DateTime);
     assert_constructors!(instant, DataType::Instant);
     assert_constructors!(Duration::from_secs(1), DataType::Duration);
-    assert_constructors!(Url::parse("https://example.com").expect("valid URL"), DataType::Url);
+    assert_constructors!(
+        Url::parse("https://example.com").expect("valid URL"),
+        DataType::Url
+    );
     assert_constructors!(
         HashMap::from([(String::from("key"), String::from("value"))]),
         DataType::StringMap
