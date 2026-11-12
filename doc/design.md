@@ -451,15 +451,19 @@ still carry its original conversion failure. Callers use
 than assuming every missing result permits a fallback. A missing collection
 item and a first-item read from a concrete empty collection never default.
 
-Bounded Wire decode helpers map target-deserialization failures to
-`ValueWireDecodeError::InvalidJson` metadata containing only the Serde category
-and location. Generic `Deserialize` implementations and seeds retain the
-surrounding deserializer's error semantics; their diagnostics may contain
-input-derived field names, keys, or other text. Reader and writer I/O sources
-may contain application-defined details and require the application's logging
-policy. Resource budgets constrain input and decoded work independently of
-diagnostic sanitization; the `redact` feature creates policy-aware views of
-values and is not a sanitizer for arbitrary errors. Both `ValueError` and Wire
+Wire decoding has distinct diagnostic boundaries:
+
+| Entry point | Diagnostic behavior |
+| --- | --- |
+| Bounded JSON decode helpers | Target-deserialization failures become `ValueWireDecodeError::InvalidJson`, containing only the Serde category and location. Target failures through the unique-key intermediate tree have no source coordinates and report zero for line and column. |
+| Full envelope (`WireEnvelopeOwned::Deserialize` through `ValueWireV1Seed`) | Envelope decoding failures are replaced at this crate boundary with a fixed diagnostic; unsupported versions report only the constrained version number. |
+| Payload `Deserialize` / `ValueWirePayloadV1Seed` | Preserves the supplied deserializer's error semantics; diagnostics may contain input-derived text. |
+| Outer decoder, protocol wrapper, or reader/writer I/O | Outside the envelope replacement guarantee; follows that layer's diagnostic behavior and application logging policy. |
+
+Resource budgets constrain input and decoded work independently of diagnostic
+sanitization; the `redact` feature creates policy-aware views of values and is
+not a sanitizer for arbitrary errors. Ordinary `Debug` formatting is not
+implicitly redacted. Both `ValueError` and Wire
 error enums are non-exhaustive where downstream code must tolerate future
 diagnostic variants; downstream matches therefore need a fallback arm.
 

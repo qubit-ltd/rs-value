@@ -346,16 +346,22 @@ Fallback 遵循以下真值表：
 | 策略判定为 missing 的集合元素（包括第 0 项） | 错误 | 错误 |
 | 普通转换错误或类型错误 | 错误 | 错误 |
 
-有界 Wire decode helper 会将目标反序列化失败映射为 `ValueWireDecodeError::InvalidJson`，其中只含
-Serde 类别和位置元数据。通用 `Deserialize` 实现及 seed 保留外层 deserializer 的错误语义；其诊断可能
-包含由输入派生的字段名、键或其他文本。reader 和 writer 的 I/O 错误源可能包含应用自定义详情，应按
-应用的日志策略处理。资源预算独立限制输入和解码工作，不会净化诊断；`redact` feature 生成的是按策略处理的
-值视图，不是任意错误的净化器。`ValueError` 和 Wire 错误 enum 在需要允许未来增加诊断变体时使用
+Wire 解码有不同的诊断边界：
+
+| 入口 | 诊断行为 |
+| --- | --- |
+| 有界 JSON decode helper | 目标反序列化失败会映射为只含 Serde 类别和位置元数据的 `ValueWireDecodeError::InvalidJson`。通过唯一键中间树发生的目标类型错误没有源码坐标，line 和 column 为零。 |
+| 完整 envelope（`ValueWireV1Seed` 使用的 `WireEnvelopeOwned::Deserialize`） | envelope 解码失败会在本 crate 边界替换为固定诊断；不支持的版本只报告受约束的版本号。 |
+| payload `Deserialize` / `ValueWirePayloadV1Seed` | 保留所提供 deserializer 的错误语义；诊断可能包含由输入派生的文本。 |
+| 外层 decoder、协议包装或 reader/writer I/O | 不在 envelope 替换保证范围内；遵循各自层的诊断行为和应用日志策略。 |
+
+资源预算独立限制输入和解码工作，不会净化诊断；`redact` feature 生成的是按策略处理的
+值视图，不是任意错误的净化器。普通 `Debug` 格式化不会自动脱敏。`ValueError` 和 Wire 错误 enum 在需要允许未来增加诊断变体时使用
 `non_exhaustive`，下游 match 因此必须有 fallback 分支。
 
 `ValueWireDecodeError::InvalidJson` 现在携带 `ValueWireJsonError`，只保留 Serde 类别、行和列，
-不保留原始错误或输入。此保证针对有界 helper 的 `InvalidJson` 映射，不适用于通用 deserializer 错误或
-I/O 错误源。无法获得源码位置的目标反序列化失败使用零值。这会把载荷类型从
+不保留原始错误或输入。envelope 替换保证仅适用于 envelope 解码；外层协议和 I/O 错误仍由各自的层处理。
+无法获得源码位置的目标反序列化失败使用零值。这会把载荷类型从
 `serde_json::Error` 改为安全元数据；直接构造该变体或向下转型错误源的调用方需要迁移到这些访问器。
 
 <a id="downstream-integration"></a>

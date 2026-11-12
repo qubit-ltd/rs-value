@@ -866,16 +866,21 @@ assert_eq!(json.to_string(), r#"{"host":"localhost"}"#);
 | `ValueWireDecodeError` | JSON、版本、shape、feature 或资源限制校验失败 |
 
 应把缺失值和非法值分开处理。对于有意缺失的配置属性可以使用默认值；对于错误的 port 或
-类型不匹配，不应使用默认值掩盖问题。如果诊断输出包含字符串 map 或 JSON object，并且应用
-有敏感字段，应使用显式的 `redact` 视图；普通 `Debug` 格式化不会自动脱敏。对于有界 Wire decode helper，
-目标反序列化失败会映射为只含 Serde 类别和位置元数据的 `ValueWireDecodeError::InvalidJson`。通用
-`Deserialize` 实现及 seed 保留外层 deserializer 的错误语义；其诊断可能包含由输入派生的字段名、键或其他文本。
-reader 和 writer 的 I/O 错误源可能包含应用自定义详情，应按应用日志策略处理。资源预算不会净化诊断；
-`redact` 视图处理的是值，不是任意错误。
+类型不匹配，不应使用默认值掩盖问题。Wire 解码有不同的诊断边界：
+
+| 入口 | 诊断行为 |
+| --- | --- |
+| 有界 JSON decode helper | 目标反序列化失败会映射为只含 Serde 类别和位置元数据的 `ValueWireDecodeError::InvalidJson`。通过唯一键中间树发生的目标类型错误没有源码坐标，line 和 column 为零。 |
+| 完整 envelope（`ValueWireV1Seed` 使用的 `WireEnvelopeOwned::Deserialize`） | envelope 解码失败会在本 crate 边界替换为固定诊断；不支持的版本只报告受约束的版本号。 |
+| payload `Deserialize` / `ValueWirePayloadV1Seed` | 保留所提供 deserializer 的错误语义；诊断可能包含由输入派生的文本。 |
+| 外层 decoder、协议包装或 reader/writer I/O | 不在 envelope 替换保证范围内；遵循各自层的诊断行为和应用日志策略。 |
+
+资源预算不会净化诊断。如果诊断输出包含字符串 map 或 JSON object，并且应用有敏感字段，应使用显式的
+`redact` 视图；普通 `Debug` 格式化不会自动脱敏。`redact` 视图处理的是值，不是任意错误。
 
 `ValueWireDecodeError::InvalidJson` 携带 `ValueWireJsonError`，只暴露 Serde 类别和行列元数据，
-不会保留原始错误消息或输入文本。通过唯一键中间树解码时发生的 target 类型错误没有原始源码位置，
-因此 line 和 column 为零。此保证不适用于通用 Serde 错误或 reader/writer I/O 错误源。
+不会保留原始错误消息或输入文本。envelope 替换保证仅适用于 envelope 解码；外层协议和 I/O 错误仍由
+各自的层处理。
 
 此例转换直接的 Serde 错误，因此会保留源码坐标。
 
