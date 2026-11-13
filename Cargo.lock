@@ -553,9 +553,9 @@ dependencies = [
 
 [[package]]
 name = "qubit-redact"
-version = "0.10.2"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "928304809102caccb5e278ab88f6872d7654ccd66e8f0ea457702f4387bb4b17"
+checksum = "7d217d6f987adc5f32b9daa5d506e99c5a435f99b1493d5ab3ef55caf27a3c86"
 dependencies = [
  "qubit-budget",
  "qubit-json",
@@ -571,7 +571,7 @@ checksum = "89e16644d9ad9d6eafa3216b8a1d50db0cec09ef364f6cbd082ff49ea87bf154"
 
 [[package]]
 name = "qubit-value"
-version = "0.13.1"
+version = "0.13.2"
 dependencies = [
  "bigdecimal",
  "chrono",
