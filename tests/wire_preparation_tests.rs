@@ -30,10 +30,7 @@ fn test_bounded_wire_entry_still_serializes_valid_values() {
     let value = Value::from(42_i32);
     let wire = ValueWireRefV1::from_value(&value).unwrap();
     let encoded = wire.to_json_vec_with_limits(limits).unwrap();
-    assert!(
-        !encoded.is_empty(),
-        "bounded serialization should produce JSON"
-    );
+    assert!(!encoded.is_empty(), "bounded serialization should produce JSON");
 }
 
 #[test]
@@ -49,10 +46,7 @@ fn test_direct_wire_helpers_preserve_success_bytes_and_budget_boundaries() {
 
     #[cfg(feature = "big-decimal")]
     {
-        let decimal = ValueContainer::from(Value::BigDecimal(BigDecimal::new(
-            BigInt::from(12345_i32),
-            2,
-        )));
+        let decimal = ValueContainer::from(Value::BigDecimal(BigDecimal::new(BigInt::from(12345_i32), 2)));
         assert_all_wire_helpers_match_serde_and_limits(&decimal);
     }
 }
@@ -61,8 +55,7 @@ fn test_direct_wire_helpers_preserve_success_bytes_and_budget_boundaries() {
 /// including exact output budgets and preservation of a writer prefix on
 /// failure.
 fn assert_all_wire_helpers_match_serde_and_limits(value: &ValueContainer) {
-    let payload_ref =
-        ValueWirePayloadRefV1::from_container(value).expect("borrowed payload validates");
+    let payload_ref = ValueWirePayloadRefV1::from_container(value).expect("borrowed payload validates");
     let wire_ref = ValueWireRefV1::from_container(value).expect("borrowed envelope validates");
     let payload = ValueWirePayloadV1::try_from(value.clone()).expect("owned payload validates");
     let wire = ValueWireV1::try_from(value.clone()).expect("owned envelope validates");
@@ -70,15 +63,8 @@ fn assert_all_wire_helpers_match_serde_and_limits(value: &ValueContainer) {
     macro_rules! verify {
         ($dto:expr, $label:literal) => {{
             let expected = to_vec($dto).expect("Serde encoding succeeds");
-            assert_eq!(
-                $dto.to_json_vec().unwrap(),
-                expected,
-                "{} default bytes",
-                $label
-            );
-            let exact = JsonEncodeLimits::builder()
-                .max_output_bytes(expected.len())
-                .build();
+            assert_eq!($dto.to_json_vec().unwrap(), expected, "{} default bytes", $label);
+            let exact = JsonEncodeLimits::builder().max_output_bytes(expected.len()).build();
             assert_eq!(
                 $dto.to_json_vec_with_limits(exact).unwrap(),
                 expected,
@@ -90,9 +76,7 @@ fn assert_all_wire_helpers_match_serde_and_limits(value: &ValueContainer) {
             $dto.to_json_writer_with_limits(&mut writer, exact).unwrap();
             assert_eq!(writer, expected, "{} exact writer bytes", $label);
 
-            let too_small = JsonEncodeLimits::builder()
-                .max_output_bytes(expected.len() - 1)
-                .build();
+            let too_small = JsonEncodeLimits::builder().max_output_bytes(expected.len() - 1).build();
             let vector_error = $dto.to_json_vec_with_limits(too_small).unwrap_err();
             assert!(
                 matches!(vector_error, ValueWireEncodeError::Budget(_)),
@@ -124,8 +108,5 @@ fn test_wire_envelope_limit_still_counts_the_envelope() {
     let wire = ValueWireRefV1::from_value(&value).unwrap();
     let limits = JsonEncodeLimits::builder().max_nodes(1).build();
     let error = wire.to_json_vec_with_limits(limits).unwrap_err();
-    assert!(
-        matches!(error, ValueWireEncodeError::Budget(_)),
-        "{error:?}"
-    );
+    assert!(matches!(error, ValueWireEncodeError::Budget(_)), "{error:?}");
 }

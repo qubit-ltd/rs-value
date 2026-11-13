@@ -34,9 +34,7 @@ const DIAGNOSTIC_LIMIT: usize = 64 * 1024;
 /// destruction at large depths.
 #[must_use]
 pub(crate) fn build_deep_json(depth: usize) -> JsonValue {
-    (0..depth).fold(JsonValue::Bool(true), |value, _| {
-        JsonValue::Array(vec![value])
-    })
+    (0..depth).fold(JsonValue::Bool(true), |value, _| JsonValue::Array(vec![value]))
 }
 
 /// Consumes a JSON tree iteratively to avoid overflowing the stack during

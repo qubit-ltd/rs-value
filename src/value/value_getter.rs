@@ -196,9 +196,9 @@ impl<'a> TryFrom<&'a Value> for &'a str {
     fn try_from(value: &'a Value) -> ValueResult<Self> {
         match &value.repr {
             ValueRepr::String(value) => Ok(value.as_str()),
-            ValueRepr::Unset(actual) if *actual == DataType::String => Err(ValueError::Missing(
-                ValueMissing::unset_scalar(*actual, *actual),
-            )),
+            ValueRepr::Unset(actual) if *actual == DataType::String => {
+                Err(ValueError::Missing(ValueMissing::unset_scalar(*actual, *actual)))
+            }
             _ => Err(ValueError::TypeMismatch {
                 expected: DataType::String,
                 actual: value.data_type(),

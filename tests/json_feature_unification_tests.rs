@@ -93,8 +93,7 @@ fn test_wire_json_number_round_trip_boundary() {
         };
         let value = Value::Json(number.clone());
         if expected_standard.as_ref() == number.as_number() {
-            let wire =
-                ValueWireV1::try_from(value.clone()).expect("standardized number is accepted");
+            let wire = ValueWireV1::try_from(value.clone()).expect("standardized number is accepted");
             let bytes = wire.to_json_vec().expect("standardized number encodes");
             assert_eq!(
                 ValueWireV1::decode_json_slice(&bytes)
@@ -210,24 +209,19 @@ fn test_wire_json_number_named_standard_wrappers_round_trip() {
     assert_eq!(serde_value.value(), &value);
 
     let bounded_bytes = named_value.to_json_vec().expect("bounded named encoding");
-    let bounded_value =
-        NamedValue::decode_json_slice(&bounded_bytes).expect("bounded named decoding");
+    let bounded_value = NamedValue::decode_json_slice(&bounded_bytes).expect("bounded named decoding");
     assert_eq!(bounded_value.name(), "answer");
     assert_eq!(bounded_value.value(), &value);
 
     let values = MultiValues::Json(vec![JsonValue::from(42_u64), JsonValue::from(43_u64)]);
     let named_values = NamedMultiValues::new("answers", values.clone());
     let serde_bytes = to_vec(&named_values).expect("ordinary named-list Serde encoding");
-    let serde_values: NamedMultiValues =
-        from_slice(&serde_bytes).expect("ordinary named-list Serde decoding");
+    let serde_values: NamedMultiValues = from_slice(&serde_bytes).expect("ordinary named-list Serde decoding");
     assert_eq!(serde_values.name(), "answers");
     assert_eq!(serde_values.values(), &values);
 
-    let bounded_bytes = named_values
-        .to_json_vec()
-        .expect("bounded named-list encoding");
-    let bounded_values =
-        NamedMultiValues::decode_json_slice(&bounded_bytes).expect("bounded named-list decoding");
+    let bounded_bytes = named_values.to_json_vec().expect("bounded named-list encoding");
+    let bounded_values = NamedMultiValues::decode_json_slice(&bounded_bytes).expect("bounded named-list decoding");
     assert_eq!(bounded_values.name(), "answers");
     assert_eq!(bounded_values.values(), &values);
 }
@@ -270,9 +264,7 @@ fn assert_wide_integer_is_rejected(input: &str, expected: InvalidValueReason) {
     assert_eq!(source.source_index(), 1);
     assert_eq!(source.conversion_error().reason(), Some(&expected));
     assert_projection_conversion_reason(
-        ValueContainer::from(Value::Json(number))
-            .to_json_value()
-            .unwrap_err(),
+        ValueContainer::from(Value::Json(number)).to_json_value().unwrap_err(),
         expected,
     );
 }
@@ -303,10 +295,7 @@ fn test_projection_rejects_unified_wide_json_number() {
             panic!("expected indexed list conversion error");
         };
         assert_eq!(source.source_index(), 1);
-        assert_eq!(
-            source.conversion_error().reason(),
-            Some(&InvalidValueReason::NonFinite)
-        );
+        assert_eq!(source.conversion_error().reason(), Some(&InvalidValueReason::NonFinite));
         assert_projection_conversion_reason(
             ValueContainer::from(Value::Json(non_finite.clone()))
                 .to_json_value()
@@ -322,8 +311,7 @@ fn test_projection_rejects_unified_wide_json_number() {
             )
             .build();
         assert!(matches!(
-            Value::Json(non_finite.clone())
-                .to_json_value_with(&ConversionPolicy::default(), &limits,),
+            Value::Json(non_finite.clone()).to_json_value_with(&ConversionPolicy::default(), &limits,),
             Err(ValueError::JsonProjectionLimit { .. })
         ));
     }
@@ -377,8 +365,7 @@ fn test_natural_projection_retains_number_while_wire_checks_identity() {
             "nested projection must retain {input}"
         );
 
-        let expected_standard: Option<Number> =
-            input.parse::<f64>().ok().and_then(Number::from_f64);
+        let expected_standard: Option<Number> = input.parse::<f64>().ok().and_then(Number::from_f64);
         if expected_standard.as_ref() == number.as_number() {
             let _wire = ValueWireV1::try_from(Value::Json(number.clone()))
                 .expect("identity-preserving Wire number is accepted");
@@ -390,8 +377,8 @@ fn test_natural_projection_retains_number_while_wire_checks_identity() {
             ));
         }
         if expected_standard.as_ref() == number.as_number() {
-            let _wire = ValueWireV1::try_from(Value::Json(nested))
-                .expect("identity-preserving nested Wire number is accepted");
+            let _wire =
+                ValueWireV1::try_from(Value::Json(nested)).expect("identity-preserving nested Wire number is accepted");
         } else {
             assert!(matches!(
                 ValueWireV1::try_from(Value::Json(nested)),
@@ -439,32 +426,22 @@ fn test_json_feature_unification_preserves_native_numbers_in_wire_paths() {
     .expect("bounded envelope should preserve native u64");
     assert_eq!(envelope.into_container(), ValueContainer::from(u64::MAX));
 
-    let payload = ValueWirePayloadV1::decode_json_slice_with_limits(
-        br#"{"scalar":{"int32":-2147483648}}"#,
-        limits,
-    )
-    .expect("native i32 payload should decode");
+    let payload = ValueWirePayloadV1::decode_json_slice_with_limits(br#"{"scalar":{"int32":-2147483648}}"#, limits)
+        .expect("native i32 payload should decode");
     assert_eq!(payload.into_container(), ValueContainer::from(i32::MIN));
 
-    let payload = ValueWirePayloadV1::decode_json_slice_with_limits(
-        br#"{"scalar":{"uint64":18446744073709551615}}"#,
-        limits,
-    )
-    .expect("bounded payload should preserve native u64");
+    let payload =
+        ValueWirePayloadV1::decode_json_slice_with_limits(br#"{"scalar":{"uint64":18446744073709551615}}"#, limits)
+            .expect("bounded payload should preserve native u64");
     assert_eq!(payload.into_container(), ValueContainer::from(u64::MAX));
 
-    let float = ValueWirePayloadV1::decode_json_slice_with_limits(
-        br#"{"scalar":{"float64":1.25e100}}"#,
-        limits,
-    )
-    .expect("finite f64 payload should decode");
+    let float = ValueWirePayloadV1::decode_json_slice_with_limits(br#"{"scalar":{"float64":1.25e100}}"#, limits)
+        .expect("finite f64 payload should decode");
     assert_eq!(float.into_container(), ValueContainer::from(1.25e100_f64));
 
-    let float = ValueWireV1::decode_json_slice_with_limits(
-        br#"{"version":1,"value":{"scalar":{"float64":-0.125}}}"#,
-        limits,
-    )
-    .expect("bounded envelope should preserve finite f64");
+    let float =
+        ValueWireV1::decode_json_slice_with_limits(br#"{"version":1,"value":{"scalar":{"float64":-0.125}}}"#, limits)
+            .expect("bounded envelope should preserve finite f64");
     assert_eq!(float.into_container(), ValueContainer::from(-0.125_f64));
 
     let named = NamedValue::decode_json_slice_with_limits(
@@ -480,10 +457,7 @@ fn test_json_feature_unification_preserves_native_numbers_in_wire_paths() {
     )
     .expect("named collection wrapper should decode");
     assert_eq!(named_many.values().len(), 2);
-    assert_eq!(
-        named_many.values().get::<i32>().expect("int32 values"),
-        vec![1, 2]
-    );
+    assert_eq!(named_many.values().get::<i32>().expect("int32 values"), vec![1, 2]);
 }
 
 #[derive(Debug, Deserialize)]
@@ -504,10 +478,7 @@ fn test_json_feature_unification_embedded_fields_share_budget() {
     let error = decoder
         .decode_unique_utf8::<EmbeddedWires>(input)
         .expect_err("both fields must consume one shared JSON budget");
-    assert!(
-        error.to_string().contains("Nodes"),
-        "unexpected error: {error}"
-    );
+    assert!(error.to_string().contains("Nodes"), "unexpected error: {error}");
     let mut decoder = JsonDecoder::new(JsonDecodeSession::from_limits(
         JsonDecodeLimits::builder()
             .max_input_bytes(input.len())
@@ -525,10 +496,8 @@ fn test_json_feature_unification_embedded_fields_share_budget() {
 
 #[test]
 fn test_json_feature_unification_rejects_duplicate_keys() {
-    let error = ValueWireV1::decode_json_slice(
-        br#"{"version":1,"value":{"scalar":{"int32":1,"int32":2}}}"#,
-    )
-    .expect_err("duplicate wire keys must be rejected");
+    let error = ValueWireV1::decode_json_slice(br#"{"version":1,"value":{"scalar":{"int32":1,"int32":2}}}"#)
+        .expect_err("duplicate wire keys must be rejected");
     let ValueWireDecodeError::InvalidJson(error) = error else {
         panic!("duplicate typed JSON keys should be rejected as invalid data");
     };
@@ -607,14 +576,10 @@ fn test_json_feature_unification_canonical_object_shape_contract() {
     }
     fn assert_pair(value: JsonValue, expected: &str) {
         let value = Value::Json(value);
-        assert_eq!(
-            to_vec(&value.to_json_value().unwrap()).unwrap(),
-            expected.as_bytes()
-        );
+        assert_eq!(to_vec(&value.to_json_value().unwrap()).unwrap(), expected.as_bytes());
         let wire = ValueWireRefV1::from_value(&value).unwrap();
         let bytes = wire.to_json_vec().unwrap();
-        let expected_wire =
-            format!(r#"{{"version":1,"value":{{"scalar":{{"json":{expected}}}}}}}"#);
+        let expected_wire = format!(r#"{{"version":1,"value":{{"scalar":{{"json":{expected}}}}}}}"#);
         assert_eq!(bytes, expected_wire.as_bytes());
     }
     assert_pair(object(&[]), "{}");
@@ -657,10 +622,7 @@ fn test_json_feature_unification_canonicalizes_nested_object_order() {
             .windows(b"\"z\"".len())
             .position(|window| window == b"\"z\"")
             .expect("canonical output should contain the z key");
-        assert!(
-            first < second,
-            "keys should be emitted in lexical order: {bytes:?}"
-        );
+        assert!(first < second, "keys should be emitted in lexical order: {bytes:?}");
     }
 
     let first: JsonValue = from_str(r#"{"outer":{"z":1,"a":2}}"#).unwrap();

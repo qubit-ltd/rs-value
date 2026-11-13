@@ -43,13 +43,8 @@ fn test_generic_mutation_is_available_without_optional_features() {
 
     let mut values = MultiValues::Unset(DataType::Int32);
     values.set([1_i32, 2]);
-    values
-        .add(&[3_i32, 4][..])
-        .expect("appended values have type i32");
-    assert_eq!(
-        values.get_int32s().expect("values have type i32"),
-        &[1, 2, 3, 4]
-    );
+    values.add(&[3_i32, 4][..]).expect("appended values have type i32");
+    assert_eq!(values.get_int32s().expect("values have type i32"), &[1, 2, 3, 4]);
 
     assert!(matches!(
         values.add(true),
@@ -114,9 +109,7 @@ fn test_add_moves_owned_strings_when_promoting_scalar() {
     let appended = vec!["appended".to_string()];
     let appended_ptr = appended[0].as_ptr();
 
-    container
-        .add(appended)
-        .expect("owned strings have the same data type");
+    container.add(appended).expect("owned strings have the same data type");
 
     let ValueContainer::Collection(values) = container else {
         panic!("expected a string collection");
@@ -133,9 +126,7 @@ fn test_add_moves_owned_strings_into_collection() {
     let appended = vec!["appended".to_string()];
     let appended_ptr = appended[0].as_ptr();
 
-    container
-        .add(appended)
-        .expect("owned strings have the same data type");
+    container.add(appended).expect("owned strings have the same data type");
 
     let ValueContainer::Collection(values) = container else {
         panic!("expected a string collection");
@@ -197,17 +188,11 @@ fn test_value_container_mutation_preserves_shape() {
     scalar.set("replacement");
     collection.add(44_i32).expect("append compatible scalar");
     assert_eq!(scalar, ValueContainer::from("replacement"));
-    assert_eq!(
-        collection,
-        ValueContainer::Collection(MultiValues::Int32(vec![43, 44]))
-    );
+    assert_eq!(collection, ValueContainer::Collection(MultiValues::Int32(vec![43, 44])));
 
     scalar.unset();
     collection.unset();
-    assert_eq!(
-        scalar,
-        ValueContainer::Scalar(Value::Unset(DataType::String))
-    );
+    assert_eq!(scalar, ValueContainer::Scalar(Value::Unset(DataType::String)));
     assert_eq!(
         collection,
         ValueContainer::Collection(MultiValues::Unset(DataType::Int32))
@@ -241,10 +226,7 @@ fn test_numeric_classification_depends_on_concrete_state() {
 fn test_named_wrappers_retain_generic_core_access() {
     let mut named = NamedValue::new("port", Value::Int32(8080));
     named.value_mut().set(9090_i32);
-    assert_eq!(
-        named.value().get_int32().expect("named value has type i32"),
-        9090
-    );
+    assert_eq!(named.value().get_int32().expect("named value has type i32"), 9090);
 
     let mut named_values = NamedMultiValues::new("ports", MultiValues::Int32(vec![8080]));
     named_values
@@ -252,10 +234,7 @@ fn test_named_wrappers_retain_generic_core_access() {
         .add(9090_i32)
         .expect("appended value has type i32");
     assert_eq!(
-        named_values
-            .values()
-            .get_int32s()
-            .expect("named values have type i32"),
+        named_values.values().get_int32s().expect("named values have type i32"),
         &[8080, 9090]
     );
 }

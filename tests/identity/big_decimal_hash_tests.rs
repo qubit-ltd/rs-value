@@ -25,10 +25,7 @@ fn test_big_decimal_hash_normalizes_equivalent_encodings() {
     let mut right_hasher = DefaultHasher::new();
     left.hash(&mut left_hasher);
     right.hash(&mut right_hasher);
-    assert_eq!(
-        left, right,
-        "equivalent decimal encodings must compare equal"
-    );
+    assert_eq!(left, right, "equivalent decimal encodings must compare equal");
     assert_eq!(
         left_hasher.finish(),
         right_hasher.finish(),
@@ -47,10 +44,7 @@ fn test_big_decimal_hash_normalizes_zero_extreme_scales() {
     left.hash(&mut left_hasher);
     right.hash(&mut right_hasher);
 
-    assert_eq!(
-        left, right,
-        "zero values with extreme scales must compare equal"
-    );
+    assert_eq!(left, right, "zero values with extreme scales must compare equal");
     assert_eq!(
         left_hasher.finish(),
         right_hasher.finish(),

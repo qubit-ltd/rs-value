@@ -57,10 +57,7 @@ fn test_value_wire_payload_v1_seed_decodes_collection_shape() {
         .deserialize(&mut deserializer)
         .expect("the valid collection V1 payload should decode");
 
-    assert_eq!(
-        payload.into_container(),
-        ValueContainer::from(vec![7_i32, 8])
-    );
+    assert_eq!(payload.into_container(), ValueContainer::from(vec![7_i32, 8]));
 }
 
 #[test]
@@ -100,9 +97,7 @@ fn test_value_wire_v1_seed_rejects_an_unsupported_version_precisely() {
         .expect_err("V1 seed must reject another wire version");
 
     assert!(
-        error
-            .to_string()
-            .contains("unsupported qubit-value wire version 2"),
+        error.to_string().contains("unsupported qubit-value wire version 2"),
         "unexpected seed error: {error}"
     );
 }
@@ -128,10 +123,7 @@ fn test_wire_record_json_rejects_sequence_form() {
         r#"{"version":1,"value":{"scalar":{"duration":[1,2]}}}"#,
         r#"{"version":1,"value":{"collection":{"duration":[[1,2]]}}}"#,
     ] {
-        assert!(
-            ValueWireV1::decode_json_slice(input.as_bytes()).is_err(),
-            "{input}"
-        );
+        assert!(ValueWireV1::decode_json_slice(input.as_bytes()).is_err(), "{input}");
     }
 }
 
@@ -142,10 +134,7 @@ fn test_wire_record_json_requires_known_unique_fields() {
         r#"{"version":1,"value":{"scalar":{"int32":7}},"extra":0}"#,
         r#"{"version":1,"version":1,"value":{"scalar":{"int32":7}}}"#,
     ] {
-        assert!(
-            ValueWireV1::decode_json_slice(input.as_bytes()).is_err(),
-            "{input}"
-        );
+        assert!(ValueWireV1::decode_json_slice(input.as_bytes()).is_err(), "{input}");
     }
 }
 
@@ -164,10 +153,7 @@ fn test_named_wire_records_json_reject_sequence_form() {
         r#"["count",{"version":1,"value":{"scalar":{"int32":7}}}]"#,
         r#"{"name":"count","value":[1,{"scalar":{"int32":7}}]}"#,
     ] {
-        assert!(
-            NamedValue::decode_json_slice(input.as_bytes()).is_err(),
-            "{input}"
-        );
+        assert!(NamedValue::decode_json_slice(input.as_bytes()).is_err(), "{input}");
     }
 
     for input in [
@@ -186,8 +172,7 @@ fn test_named_wire_records_json_accept_reordered_object_fields() {
     let named_value = r#"{"value":{"value":{"scalar":{"int32":7}},"version":1},"name":"count"}"#;
     assert!(NamedValue::decode_json_slice(named_value.as_bytes()).is_ok());
 
-    let named_values =
-        r#"{"value":{"value":{"collection":{"int32":[7]}},"version":1},"name":"counts"}"#;
+    let named_values = r#"{"value":{"value":{"collection":{"int32":[7]}},"version":1},"name":"counts"}"#;
     assert!(NamedMultiValues::decode_json_slice(named_values.as_bytes()).is_ok());
 }
 
@@ -200,10 +185,7 @@ fn test_named_wire_records_json_reject_invalid_map_fields() {
         r#"{"name":"count","value":{"version":1,"value":{"scalar":{"int32":7}}},"value":{"version":1,"value":{"scalar":{"int32":8}}}}"#,
         r#"{"name":"count","value":{"version":1,"value":{"scalar":{"int32":7}}},"extra":0}"#,
     ] {
-        assert!(
-            NamedValue::decode_json_slice(input.as_bytes()).is_err(),
-            "{input}"
-        );
+        assert!(NamedValue::decode_json_slice(input.as_bytes()).is_err(), "{input}");
     }
 
     for input in [
@@ -230,10 +212,7 @@ fn test_duration_wire_record_json_rejects_invalid_map_fields() {
         r#"{"version":1,"value":{"scalar":{"duration":{"secs":1,"nanos":1000000000}}}}"#,
         r#"{"version":1,"value":{"collection":{"duration":[{"secs":1,"nanos":0,"extra":true}]}}}"#,
     ] {
-        assert!(
-            ValueWireV1::decode_json_slice(input.as_bytes()).is_err(),
-            "{input}"
-        );
+        assert!(ValueWireV1::decode_json_slice(input.as_bytes()).is_err(), "{input}");
     }
 }
 
@@ -244,10 +223,7 @@ fn test_big_decimal_wire_record_json_rejects_sequence_form() {
         r#"{"version":1,"value":{"scalar":{"bigdecimal":["1",0]}}}"#,
         r#"{"version":1,"value":{"collection":{"bigdecimal":[["1",0]]}}}"#,
     ] {
-        assert!(
-            ValueWireV1::decode_json_slice(input.as_bytes()).is_err(),
-            "{input}"
-        );
+        assert!(ValueWireV1::decode_json_slice(input.as_bytes()).is_err(), "{input}");
     }
 }
 
@@ -262,10 +238,7 @@ fn test_big_decimal_wire_record_json_rejects_invalid_map_fields() {
         r#"{"version":1,"value":{"collection":{"bigdecimal":[{"coefficient":"1","scale":0,"extra":true}]}}}"#,
         r#"{"version":1,"value":{"scalar":{"bigdecimal":{"coefficient":"1","scale":150001}}}}"#,
     ] {
-        assert!(
-            ValueWireV1::decode_json_slice(input.as_bytes()).is_err(),
-            "{input}"
-        );
+        assert!(ValueWireV1::decode_json_slice(input.as_bytes()).is_err(), "{input}");
     }
 }
 
@@ -286,19 +259,13 @@ fn test_duration_payload_non_human_readable_deserialize_struct_accepts_sequences
     let decoded = ValueWireV1Seed
         .deserialize(NonHumanReadableDeserializer(scalar.into_deserializer()))
         .expect("non-human-readable scalar DurationPayload should retain sequence support");
-    assert_eq!(
-        decoded.container(),
-        &ValueContainer::from(Duration::new(1, 2))
-    );
+    assert_eq!(decoded.container(), &ValueContainer::from(Duration::new(1, 2)));
 
     let collection = json!({"version": 1, "value": {"collection": {"duration": [[1, 2]]}}});
     let decoded = ValueWireV1Seed
         .deserialize(NonHumanReadableDeserializer(collection.into_deserializer()))
         .expect("non-human-readable collection DurationPayload should retain sequence support");
-    assert_eq!(
-        decoded.container(),
-        &ValueContainer::from(vec![Duration::new(1, 2)])
-    );
+    assert_eq!(decoded.container(), &ValueContainer::from(vec![Duration::new(1, 2)]));
 }
 
 #[cfg(feature = "big-decimal")]
@@ -339,9 +306,7 @@ fn test_wire_envelope_non_human_readable_deserialize_struct_reports_observed_ext
         .expect_err("an extra sequence element must be rejected");
 
     assert!(
-        error
-            .to_string()
-            .contains("invalid qubit-value wire envelope"),
+        error.to_string().contains("invalid qubit-value wire envelope"),
         "{error}"
     );
 }
@@ -349,18 +314,14 @@ fn test_wire_envelope_non_human_readable_deserialize_struct_reports_observed_ext
 #[test]
 fn test_named_non_human_readable_deserialize_struct_accepts_sequence() {
     let named_value = json!(["count", {"version": 1, "value": {"scalar": {"int32": 7}}}]);
-    let decoded = NamedValue::deserialize(NonHumanReadableDeserializer(
-        named_value.into_deserializer(),
-    ))
-    .expect("non-human-readable named-value struct should retain sequence support");
+    let decoded = NamedValue::deserialize(NonHumanReadableDeserializer(named_value.into_deserializer()))
+        .expect("non-human-readable named-value struct should retain sequence support");
     assert_eq!(decoded.name(), "count");
     assert_eq!(decoded.value(), &Value::Int32(7));
 
     let named_values = json!(["counts", {"version": 1, "value": {"collection": {"int32": [7]}}}]);
-    let decoded = NamedMultiValues::deserialize(NonHumanReadableDeserializer(
-        named_values.into_deserializer(),
-    ))
-    .expect("non-human-readable named-values struct should retain sequence support");
+    let decoded = NamedMultiValues::deserialize(NonHumanReadableDeserializer(named_values.into_deserializer()))
+        .expect("non-human-readable named-values struct should retain sequence support");
     assert_eq!(decoded.name(), "counts");
     assert_eq!(decoded.values(), &MultiValues::Int32(vec![7]));
 }
@@ -429,17 +390,11 @@ where
     where
         V: Visitor<'de>,
     {
-        self.0
-            .deserialize_tuple(len, NonHumanReadableVisitor(visitor))
+        self.0.deserialize_tuple(len, NonHumanReadableVisitor(visitor))
     }
 
     #[inline]
-    fn deserialize_tuple_struct<V>(
-        self,
-        name: &'static str,
-        len: usize,
-        visitor: V,
-    ) -> Result<V::Value, Self::Error>
+    fn deserialize_tuple_struct<V>(self, name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
@@ -464,11 +419,7 @@ where
     }
 
     #[inline]
-    fn deserialize_newtype_struct<V>(
-        self,
-        name: &'static str,
-        visitor: V,
-    ) -> Result<V::Value, Self::Error>
+    fn deserialize_newtype_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
@@ -504,8 +455,7 @@ where
     where
         D: SerdeDeserializer<'de>,
     {
-        self.0
-            .deserialize(NonHumanReadableDeserializer(deserializer))
+        self.0.deserialize(NonHumanReadableDeserializer(deserializer))
     }
 }
 
@@ -615,16 +565,11 @@ where
     }
 
     #[inline]
-    fn struct_variant<V>(
-        self,
-        fields: &'static [&'static str],
-        visitor: V,
-    ) -> Result<V::Value, Self::Error>
+    fn struct_variant<V>(self, fields: &'static [&'static str], visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        self.0
-            .struct_variant(fields, NonHumanReadableVisitor(visitor))
+        self.0.struct_variant(fields, NonHumanReadableVisitor(visitor))
     }
 }
 
@@ -795,8 +740,7 @@ where
     where
         D: SerdeDeserializer<'de>,
     {
-        self.0
-            .visit_some(NonHumanReadableDeserializer(deserializer))
+        self.0.visit_some(NonHumanReadableDeserializer(deserializer))
     }
     #[inline]
     fn visit_unit<E>(self) -> Result<Self::Value, E>
@@ -810,8 +754,7 @@ where
     where
         D: SerdeDeserializer<'de>,
     {
-        self.0
-            .visit_newtype_struct(NonHumanReadableDeserializer(deserializer))
+        self.0.visit_newtype_struct(NonHumanReadableDeserializer(deserializer))
     }
     #[inline]
     fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>

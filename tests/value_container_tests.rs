@@ -108,17 +108,11 @@ fn policy_with_domain_limits(max_nodes: usize, max_collection_items: usize) -> R
 #[cfg(feature = "redact")]
 #[test]
 fn test_multi_values_stop_before_unadmitted_collection_elements() {
-    let values = MultiValues::String(vec![
-        "visible".to_owned(),
-        "must-not-be-formatted".to_owned(),
-    ]);
+    let values = MultiValues::String(vec!["visible".to_owned(), "must-not-be-formatted".to_owned()]);
     let policy = policy_with_domain_limits(64, 1);
 
     let result = Redactor::new(policy).redact_text(&values);
-    assert_eq!(
-        result.summary().completion(),
-        RedactionCompletion::Truncated
-    );
+    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     let output = result.text().as_str();
 
     assert!(output.contains("visible"), "{output}");
@@ -151,10 +145,7 @@ fn test_value_container_stops_before_unadmitted_variant_payload() {
     let policy = policy_with_domain_limits(1, 8);
 
     let result = Redactor::new(policy).redact_text(&value);
-    assert_eq!(
-        result.summary().completion(),
-        RedactionCompletion::Truncated
-    );
+    assert_eq!(result.summary().completion(), RedactionCompletion::Truncated);
     let output = result.text().as_str();
 
     assert!(!output.contains("must-not-be-formatted"), "{output}");
@@ -200,9 +191,7 @@ fn test_runtime_value_wrappers_implement_hash_key_contract() {
 
     let keys = HashSet::from([
         ValueContainer::Collection(MultiValues::Float64(vec![f64::NAN])),
-        ValueContainer::Collection(MultiValues::Float64(vec![f64::from_bits(
-            0x7fff_ffff_ffff_ffff,
-        )])),
+        ValueContainer::Collection(MultiValues::Float64(vec![f64::from_bits(0x7fff_ffff_ffff_ffff)])),
         ValueContainer::Scalar(Value::Float64(f64::NAN)),
     ]);
     assert_eq!(keys.len(), 2);
@@ -221,10 +210,7 @@ fn test_value_container_preserves_scalar_and_collection_shapes() {
     assert_eq!(scalar.len(), 1);
     assert_eq!(collection.len(), 1);
     assert_eq!(scalar.to_json_value().expect("scalar JSON"), json!(42));
-    assert_eq!(
-        collection.to_json_value().expect("collection JSON"),
-        json!([42])
-    );
+    assert_eq!(collection.to_json_value().expect("collection JSON"), json!([42]));
 }
 
 #[test]
@@ -294,10 +280,7 @@ fn test_value_container_shape_accessors_preserve_values_and_mismatches() {
     assert_eq!(scalar.as_scalar(), Some(&Value::Int32(42)));
     assert_eq!(scalar.as_collection(), None);
     assert_eq!(collection.as_scalar(), None);
-    assert_eq!(
-        collection.as_collection(),
-        Some(&MultiValues::Int32(vec![1, 2, 3]))
-    );
+    assert_eq!(collection.as_collection(), Some(&MultiValues::Int32(vec![1, 2, 3])));
 
     assert_eq!(scalar.clone().into_scalar(), Ok(Value::Int32(42)));
     assert_eq!(scalar.clone().into_collection(), Err(scalar));
@@ -341,10 +324,7 @@ fn test_value_container_add_promotes_scalar_and_checks_type() {
     let mut container = ValueContainer::from(1_i32);
     container.add(2_i32).expect("append compatible value");
 
-    assert_eq!(
-        container,
-        ValueContainer::Collection(MultiValues::Int32(vec![1, 2]))
-    );
+    assert_eq!(container, ValueContainer::Collection(MultiValues::Int32(vec![1, 2])));
     assert!(matches!(
         container.add("wrong type"),
         Err(ValueError::TypeMismatch {
@@ -359,20 +339,14 @@ fn test_value_container_add_initializes_typed_unset_scalar() {
     let mut container = ValueContainer::Scalar(Value::Unset(DataType::Int32));
     container.add(1_i32).expect("initialize typed unset");
 
-    assert_eq!(
-        container,
-        ValueContainer::Collection(MultiValues::Int32(vec![1]))
-    );
+    assert_eq!(container, ValueContainer::Collection(MultiValues::Int32(vec![1])));
 }
 
 #[test]
 fn test_value_container_unset_preserves_shape() {
     let mut scalar = ValueContainer::from(42_i32);
     scalar.unset();
-    assert_eq!(
-        scalar,
-        ValueContainer::Scalar(Value::Unset(DataType::Int32))
-    );
+    assert_eq!(scalar, ValueContainer::Scalar(Value::Unset(DataType::Int32)));
 
     let mut collection = ValueContainer::from(vec![42_i32]);
     collection.unset();
@@ -388,13 +362,11 @@ fn test_value_container_tagged_wire_preserves_shape() {
     let collection = ValueContainer::from(vec![42_i32]);
 
     assert_eq!(
-        to_value(ValueWireV1::try_from(scalar).expect("scalar should fit V1"),)
-            .expect("serialize scalar"),
+        to_value(ValueWireV1::try_from(scalar).expect("scalar should fit V1"),).expect("serialize scalar"),
         json!({"version": 1, "value": {"scalar": {"int32": 42}}})
     );
     assert_eq!(
-        to_value(ValueWireV1::try_from(collection).expect("collection should fit V1"),)
-            .expect("serialize collection"),
+        to_value(ValueWireV1::try_from(collection).expect("collection should fit V1"),).expect("serialize collection"),
         json!({"version": 1, "value": {"collection": {"int32": [42]}}})
     );
 }
@@ -402,8 +374,7 @@ fn test_value_container_tagged_wire_preserves_shape() {
 /// Verifies V1 payloads preserve shape without adding an embedded version.
 #[test]
 fn test_value_wire_payload_v1_preserves_shape_without_version() {
-    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(42_i32))
-        .expect("scalar should fit V1 payload");
+    let payload = ValueWirePayloadV1::try_from(ValueContainer::from(42_i32)).expect("scalar should fit V1 payload");
 
     assert_eq!(
         to_value(payload).expect("serialize V1 payload"),
@@ -482,9 +453,7 @@ fn test_value_container_strict_access_mutation_and_state_cover_both_shapes() {
     scalar.set("replacement");
     assert_eq!(scalar, ValueContainer::from("replacement"));
 
-    collection
-        .add(vec![4_i32, 5])
-        .expect("append explicit collection");
+    collection.add(vec![4_i32, 5]).expect("append explicit collection");
     collection.add(6_i32).expect("append scalar to collection");
     assert_eq!(
         collection,
@@ -543,18 +512,13 @@ fn test_value_container_borrowed_and_session_conversion_paths() {
     let scalar = ValueContainer::from("42");
     let collection = ValueContainer::from(vec!["43", "44"]);
 
-    assert_eq!(
-        scalar.get_first_ref::<String>().expect("scalar first item"),
-        "42"
-    );
+    assert_eq!(scalar.get_first_ref::<String>().expect("scalar first item"), "42");
     assert_eq!(
         scalar.get_slice::<String>().expect("scalar slice"),
         &[String::from("42")]
     );
     assert_eq!(
-        collection
-            .get_first_ref::<String>()
-            .expect("collection first item"),
+        collection.get_first_ref::<String>().expect("collection first item"),
         "43"
     );
     assert_eq!(
@@ -563,20 +527,10 @@ fn test_value_container_borrowed_and_session_conversion_paths() {
     );
 
     assert_eq!(scalar.to_first::<i32>().expect("convert scalar"), 42);
+    assert_eq!(collection.to_first::<i32>().expect("convert collection first item"), 43);
+    assert_eq!(scalar.to_list::<i32>().expect("convert scalar to list"), vec![42]);
     assert_eq!(
-        collection
-            .to_first::<i32>()
-            .expect("convert collection first item"),
-        43
-    );
-    assert_eq!(
-        scalar.to_list::<i32>().expect("convert scalar to list"),
-        vec![42]
-    );
-    assert_eq!(
-        collection
-            .to_list::<i32>()
-            .expect("convert collection to list"),
+        collection.to_list::<i32>().expect("convert collection to list"),
         vec![43, 44]
     );
 
@@ -694,9 +648,7 @@ fn test_value_container_shared_budget_first_item_dispatch() {
 #[test]
 #[cfg(feature = "converter")]
 fn test_value_container_shared_budget_string_and_collection_lists() {
-    let split = CollectionConversionPolicy::builder()
-        .split_scalar_strings(true)
-        .build();
+    let split = CollectionConversionPolicy::builder().split_scalar_strings(true).build();
     let policy = ConversionPolicy::builder().collection_policy(split).build();
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_items(2).build())
@@ -738,12 +690,8 @@ fn test_value_container_shared_budget_string_and_collection_lists() {
 #[test]
 #[cfg(feature = "converter")]
 fn test_value_container_shared_budget_list_failure_index_and_count() {
-    let collection = CollectionConversionPolicy::builder()
-        .split_scalar_strings(true)
-        .build();
-    let policy = ConversionPolicy::builder()
-        .collection_policy(collection)
-        .build();
+    let collection = CollectionConversionPolicy::builder().split_scalar_strings(true).build();
+    let policy = ConversionPolicy::builder().collection_policy(collection).build();
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_items(2).build())
         .build();
@@ -766,9 +714,7 @@ fn test_value_container_shared_budget_failed_conversion_is_charged() {
         .operation_limits(ConversionOperationLimits::builder().max_items(1).build())
         .build();
     let mut session = ConversionSession::new(&policy, &limits);
-    let error = ValueContainer::from("bad")
-        .to_list_in::<i32>(&mut session)
-        .unwrap_err();
+    let error = ValueContainer::from("bad").to_list_in::<i32>(&mut session).unwrap_err();
     assert!(matches!(error, ValueError::ListConversion(ref source)
         if source.source_index() == 0
             && source.conversion_error().resource().is_none()));
@@ -789,11 +735,7 @@ fn test_value_container_shared_budget_failed_conversion_is_charged() {
 fn test_value_container_scalar_list_diagnostic_source_admission() {
     let policy = ConversionPolicy::strict();
     let limits = ConversionLimits::builder()
-        .collection_limits(
-            CollectionConversionLimits::builder()
-                .max_source_bytes(2)
-                .build(),
-        )
+        .collection_limits(CollectionConversionLimits::builder().max_source_bytes(2).build())
         .build();
     let value = ValueContainer::from("41,42");
 
@@ -817,9 +759,7 @@ fn test_value_container_scalar_list_diagnostic_source_admission() {
     let limits = ConversionLimits::builder()
         .operation_limits(ConversionOperationLimits::builder().max_items(0).build())
         .build();
-    let split = CollectionConversionPolicy::builder()
-        .split_scalar_strings(true)
-        .build();
+    let split = CollectionConversionPolicy::builder().split_scalar_strings(true).build();
     let policy = ConversionPolicy::builder().collection_policy(split).build();
     let error = ValueContainer::from("41,42")
         .to_list_with::<i32>(&policy, &limits)
@@ -850,25 +790,16 @@ fn test_value_container_scalar_list_diagnostic_blank_and_unset() {
     let limits = ConversionLimits::default();
     let value = ValueContainer::from("   ");
 
-    assert_eq!(
-        value.to_list_with::<i32>(&policy, &limits).unwrap(),
-        Vec::<i32>::new()
-    );
+    assert_eq!(value.to_list_with::<i32>(&policy, &limits).unwrap(), Vec::<i32>::new());
 
     let mut session = ConversionSession::new(&policy, &limits);
-    assert_eq!(
-        value.to_list_in::<i32>(&mut session).unwrap(),
-        Vec::<i32>::new()
-    );
+    assert_eq!(value.to_list_in::<i32>(&mut session).unwrap(), Vec::<i32>::new());
     assert_eq!(session.items_used(), 0);
 
     let unset = ValueContainer::new_unset_scalar(DataType::String);
     let error = unset.to_list_with::<i32>(&policy, &limits).unwrap_err();
     let missing = error.missing().expect("unset storage is missing");
-    assert_eq!(
-        missing.reason(),
-        qubit_value::ValueMissingReason::UnsetScalar
-    );
+    assert_eq!(missing.reason(), qubit_value::ValueMissingReason::UnsetScalar);
     assert_eq!(missing.source_index(), None);
     assert!(missing.is_defaultable_for_conversion());
 
@@ -887,9 +818,7 @@ fn test_value_container_scalar_list_diagnostic_rejected_empty_item() {
         .split_scalar_strings(true)
         .empty_item_policy(EmptyItemPolicy::Reject)
         .build();
-    let policy = ConversionPolicy::builder()
-        .collection_policy(collection)
-        .build();
+    let policy = ConversionPolicy::builder().collection_policy(collection).build();
     let limits = ConversionLimits::default();
     let value = ValueContainer::from(",42");
 
@@ -914,12 +843,8 @@ fn test_value_container_scalar_list_diagnostic_rejected_empty_item() {
 #[test]
 #[cfg(feature = "converter")]
 fn test_value_container_scalar_list_diagnostic_target_conversion() {
-    let collection = CollectionConversionPolicy::builder()
-        .split_scalar_strings(true)
-        .build();
-    let policy = ConversionPolicy::builder()
-        .collection_policy(collection)
-        .build();
+    let collection = CollectionConversionPolicy::builder().split_scalar_strings(true).build();
+    let policy = ConversionPolicy::builder().collection_policy(collection).build();
     let limits = ConversionLimits::default();
 
     for (source_text, expected_index, expected_items) in [("bad,42", 0, 1), ("41,bad", 1, 2)] {
@@ -1007,17 +932,13 @@ fn test_value_container_json_projection_uses_structured_budgets() {
     let limits = ConversionLimits::default();
     let decimal = ValueContainer::from("123.45".parse::<BigDecimal>().expect("valid decimal"));
     assert_eq!(
-        decimal
-            .to_json_value_with(&policy, &limits)
-            .expect("project decimal"),
+        decimal.to_json_value_with(&policy, &limits).expect("project decimal"),
         json!("123.45")
     );
 
     let duration = ValueContainer::from(Duration::from_millis(1500));
     assert_eq!(
-        duration
-            .to_json_value_with(&policy, &limits)
-            .expect("project duration"),
+        duration.to_json_value_with(&policy, &limits).expect("project duration"),
         json!("1500ms")
     );
 
@@ -1029,21 +950,14 @@ fn test_value_container_json_projection_uses_structured_budgets() {
         json!({"items": ["a", "b"], "enabled": true})
     );
 
-    let map = ValueContainer::from(HashMap::from([(
-        String::from("key"),
-        String::from("value"),
-    )]));
+    let map = ValueContainer::from(HashMap::from([(String::from("key"), String::from("value"))]));
     assert_eq!(
         map.to_json_value().expect("project string map"),
         json!({"key": "value"})
     );
 
     let constrained = ConversionLimits::builder()
-        .operation_limits(
-            ConversionOperationLimits::builder()
-                .max_output_bytes(2)
-                .build(),
-        )
+        .operation_limits(ConversionOperationLimits::builder().max_output_bytes(2).build())
         .build();
     assert!(matches!(
         nested.to_json_value_with(&policy, &constrained),

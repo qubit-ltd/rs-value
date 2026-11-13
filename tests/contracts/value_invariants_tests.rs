@@ -33,9 +33,7 @@ fn test_strict_getter_does_not_convert_a_concrete_value() {
     let value = Value::Int32(7);
 
     assert_eq!(
-        value
-            .get::<i32>()
-            .expect("a matching strict read must succeed"),
+        value.get::<i32>().expect("a matching strict read must succeed"),
         7,
         "a matching strict read must preserve the stored value"
     );
@@ -51,9 +49,6 @@ fn test_empty_collection_is_distinct_from_unset_collection() {
     let unset = MultiValues::new_unset(DataType::Int32);
 
     assert_eq!(empty.len(), 0, "an empty collection must have no elements");
-    assert!(
-        unset.is_unset(),
-        "a newly unset collection must remain unset"
-    );
+    assert!(unset.is_unset(), "a newly unset collection must remain unset");
     assert_ne!(empty, unset, "an empty collection must differ from unset");
 }

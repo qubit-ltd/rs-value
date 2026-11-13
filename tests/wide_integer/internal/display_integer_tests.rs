@@ -28,8 +28,7 @@ fn test_wide_integer_wire_displays_uint128() {
 fn test_wide_integer_wire_displays_extreme_values() {
     let signed_wire = ValueWireV1::try_from(Value::Int128(i128::MIN)).expect("encode signed limit");
     let signed = to_value(signed_wire).expect("serialize signed limit");
-    let unsigned_wire =
-        ValueWireV1::try_from(Value::UInt128(u128::MAX)).expect("encode unsigned limit");
+    let unsigned_wire = ValueWireV1::try_from(Value::UInt128(u128::MAX)).expect("encode unsigned limit");
     let unsigned = to_value(unsigned_wire).expect("serialize unsigned limit");
 
     assert_eq!(

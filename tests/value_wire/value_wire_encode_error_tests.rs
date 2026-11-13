@@ -105,17 +105,11 @@ fn test_value_wire_encode_error_maps_owned_encoder_sources() {
         .expect_err("rejecting writer must fail");
 
     assert!(
-        matches!(
-            ValueWireEncodeError::from(invalid_raw),
-            ValueWireEncodeError::Syntax(_)
-        ),
+        matches!(ValueWireEncodeError::from(invalid_raw), ValueWireEncodeError::Syntax(_)),
         "invalid raw JSON must map to the syntax error variant"
     );
     assert!(
-        matches!(
-            ValueWireEncodeError::from(writer),
-            ValueWireEncodeError::Io(_)
-        ),
+        matches!(ValueWireEncodeError::from(writer), ValueWireEncodeError::Io(_)),
         "writer failure must map to the I/O error variant"
     );
 }
@@ -144,8 +138,7 @@ fn test_value_wire_encode_error_maps_measured_budget_failure_precisely() {
 #[test]
 fn test_value_wire_encode_error_maps_quantity_failure_precisely() {
     let source = QuantityConversionError::new(QuantityMeasurement::U64(u64::MAX), "usize");
-    let quantity =
-        MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::NumberBytes, source);
+    let quantity = MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::NumberBytes, source);
     let quantity_error = ValueWireEncodeError::from(quantity);
     assert!(
         matches!(
@@ -162,8 +155,7 @@ fn test_value_wire_encode_error_maps_quantity_failure_precisely() {
 #[test]
 fn test_value_wire_encode_error_maps_encoder_quantity_failure_precisely() {
     let source = QuantityConversionError::new(QuantityMeasurement::U64(u64::MAX), "usize");
-    let measured =
-        MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::StringBytes, source);
+    let measured = MeasuredBudgetError::<JsonResource, usize>::quantity(JsonResource::StringBytes, source);
     let encoder_error = JsonEncodeError::from(measured);
 
     let wire_error = ValueWireEncodeError::from(encoder_error);

@@ -95,12 +95,8 @@ impl<'de> Visitor<'de> for WireEnvelopeOwnedVisitor {
         }
         // Struct sequences preserve the declared version, value field order
         // and require exactly two elements.
-        let version = seq
-            .next_element()?
-            .ok_or_else(|| Error::invalid_length(0, &self))?;
-        let value = seq
-            .next_element()?
-            .ok_or_else(|| Error::invalid_length(1, &self))?;
+        let version = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
+        let value = seq.next_element()?.ok_or_else(|| Error::invalid_length(1, &self))?;
         if seq.next_element::<IgnoredAny>()?.is_some() {
             return Err(Error::invalid_length(3, &self));
         }

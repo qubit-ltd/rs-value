@@ -167,10 +167,7 @@ impl<'de> Visitor<'de> for WireEnvelopeFieldVisitor {
     {
         match String::from_utf8(value) {
             Ok(value) => self.visit_str(&value),
-            Err(error) => Err(E::invalid_value(
-                Unexpected::Bytes(&error.into_bytes()),
-                &self,
-            )),
+            Err(error) => Err(E::invalid_value(Unexpected::Bytes(&error.into_bytes()), &self)),
         }
     }
 }

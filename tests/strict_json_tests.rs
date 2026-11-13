@@ -86,8 +86,7 @@ fn test_strict_json_rejects_duplicate_object_key() {
 #[cfg(all(feature = "converter", feature = "json"))]
 #[test]
 fn test_strict_json_materializes_raw_value() {
-    let raw = RawValue::from_string(String::from(r#"{"ok":true}"#))
-        .expect("fixture should be valid raw JSON");
+    let raw = RawValue::from_string(String::from(r#"{"ok":true}"#)).expect("fixture should be valid raw JSON");
     let value = Value::from_serializable(&raw).expect("strict RawValue should project");
 
     assert_eq!(

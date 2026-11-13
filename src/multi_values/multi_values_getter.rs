@@ -279,9 +279,9 @@ impl<'a> TryFrom<&'a MultiValues> for &'a str {
                         DataType::String,
                     )))
             }
-            MultiValuesRepr::Unset(actual) if *actual == DataType::String => Err(
-                ValueError::Missing(ValueMissing::unset_collection(*actual, *actual)),
-            ),
+            MultiValuesRepr::Unset(actual) if *actual == DataType::String => {
+                Err(ValueError::Missing(ValueMissing::unset_collection(*actual, *actual)))
+            }
             _ => Err(ValueError::TypeMismatch {
                 expected: DataType::String,
                 actual: values.data_type(),

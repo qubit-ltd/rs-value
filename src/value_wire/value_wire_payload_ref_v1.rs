@@ -199,10 +199,7 @@ impl<'a> ValueWirePayloadRefV1<'a> {
     #[cfg(feature = "json")]
     #[inline]
     #[cfg_attr(docsrs, doc(cfg(feature = "json")))]
-    pub fn to_json_vec_with_limits(
-        &self,
-        limits: JsonEncodeLimits,
-    ) -> Result<Vec<u8>, ValueWireEncodeError> {
+    pub fn to_json_vec_with_limits(&self, limits: JsonEncodeLimits) -> Result<Vec<u8>, ValueWireEncodeError> {
         self.check_encode_preflight(limits)?;
         let session = JsonEncodeSession::from_limits(limits);
         JsonEncoder::new(session)
@@ -414,9 +411,7 @@ pub(in crate::value_wire) fn validate_value(value: &Value) -> Result<(), ValueWi
 /// With the `json` feature, returns `JsonNumberNotRoundTrippable` if any
 /// runtime JSON number in the collection, including a nested number, cannot
 /// preserve its `serde_json::Number` identity under the V1 number model.
-pub(in crate::value_wire) fn validate_values(
-    values: &MultiValues,
-) -> Result<(), ValueWireEncodeError> {
+pub(in crate::value_wire) fn validate_values(values: &MultiValues) -> Result<(), ValueWireEncodeError> {
     #[cfg(feature = "json")]
     if let MultiValuesRepr::Json(values) = &values.repr {
         for value in values {

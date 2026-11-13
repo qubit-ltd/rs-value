@@ -69,11 +69,7 @@ impl ValueWireJsonError {
     /// The metadata containing only the supplied category and coordinates.
     #[inline]
     pub(crate) fn new(category: Category, line: usize, column: usize) -> Self {
-        Self {
-            category,
-            line,
-            column,
-        }
+        Self { category, line, column }
     }
 
     /// Returns the Serde JSON failure category.

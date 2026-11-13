@@ -109,10 +109,7 @@ impl<'a> ProjectionBudget<'a> {
     ///
     /// A projection failure preserving the resource facts.
     #[inline]
-    pub(in crate::json) fn error(
-        &self,
-        source: MeasuredBudgetError<ConversionResource, u64>,
-    ) -> ValueError {
+    pub(in crate::json) fn error(&self, source: MeasuredBudgetError<ConversionResource, u64>) -> ValueError {
         ValueError::JsonProjectionLimit {
             data_type: self.data_type,
             source_index: self.source_index,
@@ -131,9 +128,7 @@ impl<'a> ProjectionBudget<'a> {
     /// Returns a projection limit error when scalar capacity is exhausted.
     #[inline]
     pub(in crate::json) fn item(&mut self) -> ValueResult<()> {
-        self.items
-            .try_consume(1)
-            .map_err(|error| self.error(error.into()))
+        self.items.try_consume(1).map_err(|error| self.error(error.into()))
     }
 
     /// Admits one complete structure measurement before allocating output.
@@ -153,9 +148,7 @@ impl<'a> ProjectionBudget<'a> {
     pub(in crate::json) fn admit(&mut self, measurement: JsonMeasurement) -> ValueResult<()> {
         let result = {
             let mut transaction = self.structure.transaction();
-            transaction
-                .try_admit(measurement)
-                .and_then(|()| transaction.commit())
+            transaction.try_admit(measurement).and_then(|()| transaction.commit())
         };
         result.map_err(|error| self.error(error))
     }
@@ -240,11 +233,7 @@ impl<'a> ProjectionBudget<'a> {
     ///
     /// Returns a projection limit error on a text, quantity or cumulative limit
     /// failure. Earlier successful charges remain applied.
-    pub(in crate::json) fn admit_output_string(
-        &mut self,
-        bytes: usize,
-        depth: usize,
-    ) -> ValueResult<()> {
+    pub(in crate::json) fn admit_output_string(&mut self, bytes: usize, depth: usize) -> ValueResult<()> {
         let amount = u64::try_from_usize(bytes).map_err(|source| {
             self.error(MeasuredBudgetError::quantity(
                 ConversionResource::StructuredTextBytes,
@@ -257,9 +246,7 @@ impl<'a> ProjectionBudget<'a> {
             .check(amount)
             .map_err(|error| self.error(error.into()))?;
         self.admit(JsonMeasurement::String { depth, bytes })?;
-        self.output
-            .try_consume_usize(bytes)
-            .map_err(|error| self.error(error))
+        self.output.try_consume_usize(bytes).map_err(|error| self.error(error))
     }
 
     /// Measures formatted numbers without allocating or retaining their text.
@@ -293,20 +280,14 @@ impl<'a> ProjectionBudget<'a> {
         let formatted = write!(&mut writer, "{value}");
         let bytes = writer.finish().map_err(|error| self.error(error))?;
         formatted.map_err(|_| self.format_error())?;
-        let bytes = usize::try_from_u64(bytes).map_err(|source| {
-            self.error(MeasuredBudgetError::quantity(
-                ConversionResource::OutputBytes,
-                source,
-            ))
-        })?;
+        let bytes = usize::try_from_u64(bytes)
+            .map_err(|source| self.error(MeasuredBudgetError::quantity(ConversionResource::OutputBytes, source)))?;
         self.admit(if number {
             JsonMeasurement::Number { depth, bytes }
         } else {
             JsonMeasurement::String { depth, bytes }
         })?;
-        self.output
-            .try_consume_usize(bytes)
-            .map_err(|error| self.error(error))
+        self.output.try_consume_usize(bytes).map_err(|error| self.error(error))
     }
 
     /// Renders rich text exactly once, retaining the admitted result for
@@ -329,11 +310,7 @@ impl<'a> ProjectionBudget<'a> {
     ///
     /// Returns a projection limit error on resource rejection, or a conversion
     /// error if formatting fails.
-    pub(in crate::json) fn format<T: Display + ?Sized>(
-        &mut self,
-        value: &T,
-        depth: usize,
-    ) -> ValueResult<String> {
+    pub(in crate::json) fn format<T: Display + ?Sized>(&mut self, value: &T, depth: usize) -> ValueResult<String> {
         let text = self
             .rendering_budget(depth, false)?
             .try_write_string(|writer| write!(writer.as_fmt(), "{value}"))
@@ -360,14 +337,10 @@ impl<'a> ProjectionBudget<'a> {
     ///
     /// A projection failure for matching resource causes, otherwise the
     /// original conversion failure.
-    pub(in crate::json) fn duration_conversion_error(
-        &self,
-        error: DataConversionError,
-    ) -> ValueError {
+    pub(in crate::json) fn duration_conversion_error(&self, error: DataConversionError) -> ValueError {
         let measured = match error.kind() {
             DataConversionErrorKind::LimitExceeded => {
-                let source =
-                    find_error_source::<BudgetError<ConversionResource, u64>>(&error).cloned();
+                let source = find_error_source::<BudgetError<ConversionResource, u64>>(&error).cloned();
                 source.map(MeasuredBudgetError::Budget)
             }
             DataConversionErrorKind::Quantity => {
@@ -402,11 +375,7 @@ impl<'a> ProjectionBudget<'a> {
     ///
     /// Returns a projection limit error if the node probe or existing usage
     /// exceeds limits.
-    fn rendering_budget(
-        &mut self,
-        depth: usize,
-        number: bool,
-    ) -> ValueResult<ResourceBudget<ConversionResource, u64>> {
+    fn rendering_budget(&mut self, depth: usize, number: bool) -> ValueResult<ResourceBudget<ConversionResource, u64>> {
         let probe = if number {
             JsonMeasurement::Number { depth, bytes: 0 }
         } else {
@@ -414,18 +383,15 @@ impl<'a> ProjectionBudget<'a> {
         };
         let result = self.structure.transaction().try_admit(probe);
         result.map_err(|error| self.error(error))?;
-        let mut rendering =
-            ResourceBudget::from_limit(*self.limits.operation().output_bytes_limit());
+        let mut rendering = ResourceBudget::from_limit(*self.limits.operation().output_bytes_limit());
         rendering
             .try_consume(self.output.used())
             .map_err(|error| self.error(error.into()))?;
-        let mut payload =
-            ResourceBudget::from_limit(*self.limits.operation().structured_payload_bytes_limit());
+        let mut payload = ResourceBudget::from_limit(*self.limits.operation().structured_payload_bytes_limit());
         payload
             .try_consume(self.structure.used_payload_bytes().unwrap_or(0))
             .map_err(|error| self.error(error.into()))?;
-        let text_limit =
-            ResourceBudget::from_limit(*self.limits.structured().max_text_bytes_limit());
+        let text_limit = ResourceBudget::from_limit(*self.limits.structured().max_text_bytes_limit());
         for candidate in [payload, text_limit] {
             if candidate.remaining() < rendering.remaining() {
                 rendering = candidate;

@@ -475,8 +475,7 @@ impl ValueContainer {
     #[inline(always)]
     pub fn get_first_ref<'a, T: ?Sized>(&'a self) -> ValueResult<&'a T>
     where
-        &'a T:
-            TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
+        &'a T: TryFrom<&'a Value, Error = ValueError> + TryFrom<&'a MultiValues, Error = ValueError>,
     {
         match self {
             Self::Scalar(value) => <&'a T>::try_from(value),
@@ -709,10 +708,7 @@ impl ValueContainer {
     where
         T: DataConversionTarget,
     {
-        self.to_first_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_first_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts a scalar or the first collection item using explicit policy and
@@ -737,11 +733,7 @@ impl ValueContainer {
     #[cfg(feature = "converter")]
     #[inline(always)]
     #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
-    pub fn to_first_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<T>
+    pub fn to_first_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<T>
     where
         T: DataConversionTarget,
     {
@@ -805,10 +797,7 @@ impl ValueContainer {
     where
         T: DataConversionTarget,
     {
-        self.to_list_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_list_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts to a list using explicit conversion policy and limits.
@@ -831,11 +820,7 @@ impl ValueContainer {
     /// Returns the mapped single-value or indexed list conversion error.
     #[cfg(feature = "converter")]
     #[cfg_attr(docsrs, doc(cfg(feature = "converter")))]
-    pub fn to_list_with<T>(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<Vec<T>>
+    pub fn to_list_with<T>(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<Vec<T>>
     where
         T: DataConversionTarget,
     {
@@ -1048,10 +1033,7 @@ impl ValueContainer {
     /// Returns the same structured projection error as the contained value.
     #[inline(always)]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Projects this container using explicit conversion policy and limits.
@@ -1070,11 +1052,7 @@ impl ValueContainer {
     ///
     /// Returns the same structured projection error as the contained value.
     #[inline]
-    pub fn to_json_value_with(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<JsonValue> {
+    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
         crate::json::value_container_to_json_value_with(self, policy, limits)
     }
 }

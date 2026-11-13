@@ -279,9 +279,7 @@ where
                         destination.hash(&values.len());
                         objects.push(ObjectHash::default());
                         frames.push(HashFrame::FinishObject);
-                        frames.push(HashFrame::VisitObject {
-                            entries: values.iter(),
-                        });
+                        frames.push(HashFrame::VisitObject { entries: values.iter() });
                     }
                 }
             }
@@ -314,10 +312,7 @@ where
                 destinations.push(HashDestination::ObjectEntry(entry));
             }
             HashFrame::FinishObjectEntry => {
-                let Some(hash) = destinations
-                    .pop()
-                    .and_then(HashDestination::finish_object_entry)
-                else {
+                let Some(hash) = destinations.pop().and_then(HashDestination::finish_object_entry) else {
                     continue;
                 };
                 let object = objects
@@ -327,12 +322,8 @@ where
                 object.xor ^= hash.rotate_left(17);
             }
             HashFrame::FinishObject => {
-                let ObjectHash { sum, xor } = objects
-                    .pop()
-                    .expect("a finished object must have an aggregate");
-                let destination = destinations
-                    .last_mut()
-                    .expect("an object must have a hash destination");
+                let ObjectHash { sum, xor } = objects.pop().expect("a finished object must have an aggregate");
+                let destination = destinations.last_mut().expect("an object must have a hash destination");
                 destination.hash(&sum);
                 destination.hash(&xor);
             }

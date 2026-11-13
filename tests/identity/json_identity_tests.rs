@@ -99,11 +99,7 @@ fn test_hash_json_root_leaf_write_sequence() {
     let mut null_events = EventHasher::default();
     Value::Json(JsonValue::Null).hash(&mut null_events);
     let mut prefix = null_events.0;
-    assert_eq!(
-        prefix.pop(),
-        Some(vec![0]),
-        "Null's JSON tag is the final write"
-    );
+    assert_eq!(prefix.pop(), Some(vec![0]), "Null's JSON tag is the final write");
 
     for (value, tag, payload) in fixtures {
         let mut actual = EventHasher::default();
@@ -118,10 +114,7 @@ fn test_hash_json_root_leaf_write_sequence() {
                 _ => unreachable!(),
             }
         }
-        assert_eq!(
-            actual.0, expected,
-            "unexpected write sequence for JSON tag {tag}"
-        );
+        assert_eq!(actual.0, expected, "unexpected write sequence for JSON tag {tag}");
     }
 }
 
@@ -246,10 +239,7 @@ fn test_deep_json_identity_hash_in_isolated_process() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_checks_root_inclusive_depth() {
-    let error = hash_json_with_limits(
-        &json!([null]),
-        JsonValueLimits::builder().max_depth(1).build(),
-    );
+    let error = hash_json_with_limits(&json!([null]), JsonValueLimits::builder().max_depth(1).build());
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -369,10 +359,7 @@ fn test_hash_json_with_budget_checks_map_entries() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_checks_key_bytes() {
-    let error = hash_json_with_limits(
-        &json!({"é": null}),
-        JsonValueLimits::builder().max_key_bytes(1).build(),
-    );
+    let error = hash_json_with_limits(&json!({"é": null}), JsonValueLimits::builder().max_key_bytes(1).build());
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -387,10 +374,7 @@ fn test_hash_json_with_budget_checks_key_bytes() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_checks_string_bytes() {
-    let error = hash_json_with_limits(
-        &json!("é"),
-        JsonValueLimits::builder().max_string_bytes(1).build(),
-    );
+    let error = hash_json_with_limits(&json!("é"), JsonValueLimits::builder().max_string_bytes(1).build());
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -405,10 +389,7 @@ fn test_hash_json_with_budget_checks_string_bytes() {
 #[cfg(feature = "json")]
 #[test]
 fn test_hash_json_with_budget_checks_number_bytes() {
-    let error = hash_json_with_limits(
-        &json!(1234),
-        JsonValueLimits::builder().max_number_bytes(3).build(),
-    );
+    let error = hash_json_with_limits(&json!(1234), JsonValueLimits::builder().max_number_bytes(3).build());
     assert!(matches!(
         error,
         MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -424,9 +405,7 @@ fn test_hash_json_with_budget_checks_number_bytes() {
 #[test]
 fn test_hash_json_with_budget_error_is_atomic() {
     let value = json!([null]);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
-        .max_nodes(1)
-        .budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
     let mut state = RecordingHasher::default();
 
     assert!(
@@ -444,9 +423,7 @@ fn test_hash_json_with_budget_error_is_atomic() {
 #[test]
 fn test_hash_json_with_budget_panic_rolls_back_and_reuses_budget() {
     let value = json!(null);
-    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
-        .max_nodes(1)
-        .budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder().max_nodes(1).budget();
 
     let result = catch_unwind(AssertUnwindSafe(|| {
         Value::Json(value.clone()).hash_with_json_budget(&mut PanickingHasher, &mut budget)
@@ -521,10 +498,7 @@ fn test_deep_json_identity_equality_in_isolated_process() {
     let equal = Value::Json(build_deep_json_value(1));
     let unequal = Value::Json(build_deep_json_value(2));
 
-    assert!(
-        left == equal,
-        "matching deeply nested JSON values must be equal"
-    );
+    assert!(left == equal, "matching deeply nested JSON values must be equal");
     assert!(
         left != unequal,
         "leaf differences in deeply nested JSON values must not be equal"
@@ -547,10 +521,7 @@ fn calculate_json_hash(value: &JsonValue) -> u64 {
 
 /// Hashes a JSON value with one limit set and returns the expected failure.
 #[cfg(feature = "json")]
-fn hash_json_with_limits(
-    value: &JsonValue,
-    limits: JsonValueLimits,
-) -> MeasuredBudgetError<JsonResource, usize> {
+fn hash_json_with_limits(value: &JsonValue, limits: JsonValueLimits) -> MeasuredBudgetError<JsonResource, usize> {
     let mut budget = limits.budget();
     let mut state = DefaultHasher::new();
     match Value::Json(value.clone())

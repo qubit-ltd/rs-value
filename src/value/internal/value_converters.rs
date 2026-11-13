@@ -180,9 +180,9 @@ where
 #[inline]
 fn contextual_conversion_error(value: &Value, error: DataConversionError) -> ValueError {
     match ValueError::from(error) {
-        ValueError::Missing(missing) if value.is_unset() => ValueError::Missing(
-            missing.with_storage(value.data_type(), ValueMissingReason::UnsetScalar),
-        ),
+        ValueError::Missing(missing) if value.is_unset() => {
+            ValueError::Missing(missing.with_storage(value.data_type(), ValueMissingReason::UnsetScalar))
+        }
         error => error,
     }
 }

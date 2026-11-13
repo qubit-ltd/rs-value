@@ -15,11 +15,9 @@ use serde_json::json;
 #[test]
 fn test_wide_integer_wire_parses_canonical_string() {
     assert_eq!(
-        crate::decode_value_wire_value(
-            json!({"version": 1, "value": {"scalar": {"uint128": "1"}}})
-        )
-        .expect("canonical unsigned integer string must decode")
-        .into_container(),
+        crate::decode_value_wire_value(json!({"version": 1, "value": {"scalar": {"uint128": "1"}}}))
+            .expect("canonical unsigned integer string must decode")
+            .into_container(),
         Value::UInt128(1).into(),
     );
 }
@@ -35,11 +33,7 @@ fn test_wide_integer_wire_parses_collection_and_rejects_noncanonical_item() {
     .into_container();
     assert_eq!(decoded, MultiValues::Int128(vec![-2, 0, 3]).into());
 
-    let error =
-        crate::decode_value_wire_payload_value(json!({"collection": {"int128": ["-2", "03"]}}))
-            .expect_err("non-canonical collection item must be rejected");
-    assert!(
-        error.to_string().contains("canonical"),
-        "unexpected error: {error}"
-    );
+    let error = crate::decode_value_wire_payload_value(json!({"collection": {"int128": ["-2", "03"]}}))
+        .expect_err("non-canonical collection item must be rejected");
+    assert!(error.to_string().contains("canonical"), "unexpected error: {error}");
 }

@@ -55,8 +55,6 @@ where
     where
         D: Deserializer<'de>,
     {
-        deserializer
-            .deserialize_str(IntegerVisitor(PhantomData))
-            .map(Self)
+        deserializer.deserialize_str(IntegerVisitor(PhantomData)).map(Self)
     }
 }

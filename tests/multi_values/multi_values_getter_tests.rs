@@ -66,10 +66,7 @@ fn test_multi_values_try_from_borrowed_vector_reports_each_storage_state() {
         Vec::<bool>::try_from(&MultiValues::Bool(vec![true, false])),
         Ok(vec![true, false]),
     );
-    assert_eq!(
-        Vec::<bool>::try_from(&MultiValues::Bool(Vec::new())),
-        Ok(Vec::new()),
-    );
+    assert_eq!(Vec::<bool>::try_from(&MultiValues::Bool(Vec::new())), Ok(Vec::new()),);
     assert_eq!(
         Vec::<bool>::try_from(&MultiValues::Unset(DataType::Bool)),
         Err(ValueError::Missing(ValueMissing::unset_collection(
@@ -117,10 +114,7 @@ fn test_multi_values_try_from_borrowed_first_reports_each_storage_state() {
 fn test_multi_values_try_from_borrowed_slice_reports_each_storage_state() {
     let values = MultiValues::Bool(vec![true, false]);
     assert_eq!(<&[bool]>::try_from(&values), Ok([true, false].as_slice()));
-    assert_eq!(
-        <&[bool]>::try_from(&MultiValues::Bool(Vec::new())),
-        Ok([].as_slice()),
-    );
+    assert_eq!(<&[bool]>::try_from(&MultiValues::Bool(Vec::new())), Ok([].as_slice()),);
     assert_eq!(
         <&[bool]>::try_from(&MultiValues::Unset(DataType::Bool)),
         Err(ValueError::Missing(ValueMissing::unset_collection(
@@ -143,10 +137,7 @@ fn test_multi_values_try_from_owned_vector_reports_each_storage_state() {
         Vec::<bool>::try_from(MultiValues::Bool(vec![true, false])),
         Ok(vec![true, false]),
     );
-    assert_eq!(
-        Vec::<bool>::try_from(MultiValues::Bool(Vec::new())),
-        Ok(Vec::new()),
-    );
+    assert_eq!(Vec::<bool>::try_from(MultiValues::Bool(Vec::new())), Ok(Vec::new()),);
     assert_eq!(
         Vec::<bool>::try_from(MultiValues::Unset(DataType::Bool)),
         Err(ValueError::Missing(ValueMissing::unset_collection(

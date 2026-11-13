@@ -55,19 +55,12 @@ impl PreparedProjection<'_> {
     pub(in crate::json) fn materialize(self) -> JsonValue {
         match self {
             Self::Scalar(value) => value.materialize(),
-            Self::Collection(values) => JsonValue::Array(
-                values
-                    .into_iter()
-                    .map(PreparedScalar::materialize)
-                    .collect(),
-            ),
+            Self::Collection(values) => JsonValue::Array(values.into_iter().map(PreparedScalar::materialize).collect()),
             Self::BorrowedCollection(MultiValuesRef::Unset(_)) => JsonValue::Null,
             Self::BorrowedCollection(values) => JsonValue::Array(
                 (0..values.len())
                     .map(|index| {
-                        let value = values
-                            .get(index)
-                            .expect("index is inside the admitted collection");
+                        let value = values.get(index).expect("index is inside the admitted collection");
                         PreparedScalar::Borrowed(value).materialize()
                     })
                     .collect(),

@@ -15,10 +15,7 @@ fn test_value_preserves_type_when_unset() {
     let mut value = Value::String("abc".to_string());
     value.unset();
 
-    assert!(
-        value.is_unset(),
-        "unset must remove the concrete string value"
-    );
+    assert!(value.is_unset(), "unset must remove the concrete string value");
     assert_eq!(
         value.data_type(),
         DataType::String,

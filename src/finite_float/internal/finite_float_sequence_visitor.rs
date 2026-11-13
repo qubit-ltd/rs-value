@@ -43,9 +43,7 @@ impl<T> FiniteFloatSequenceVisitor<T> {
     #[must_use]
     #[inline]
     pub(in crate::finite_float) const fn new() -> Self {
-        Self {
-            marker: PhantomData,
-        }
+        Self { marker: PhantomData }
     }
 }
 

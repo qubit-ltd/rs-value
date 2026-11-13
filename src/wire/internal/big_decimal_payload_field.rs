@@ -43,9 +43,7 @@ impl<'de> Deserialize<'de> for BigDecimalPayloadField {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_identifier(
-            super::big_decimal_payload_field_visitor::BigDecimalPayloadFieldVisitor,
-        )
+        deserializer.deserialize_identifier(super::big_decimal_payload_field_visitor::BigDecimalPayloadFieldVisitor)
     }
 }
 

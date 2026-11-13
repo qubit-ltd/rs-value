@@ -572,9 +572,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.get() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_strict_read() => Ok(default()),
             result => result,
         }
     }
@@ -621,10 +619,7 @@ impl Value {
     where
         T: DataConversionTarget,
     {
-        self.to_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Converts this value to `T`, or returns `default` when storage is unset
@@ -696,9 +691,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to() {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }
@@ -851,9 +844,7 @@ impl Value {
         F: FnOnce() -> T,
     {
         match self.to_with(policy, limits) {
-            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => {
-                Ok(default())
-            }
+            Err(ValueError::Missing(missing)) if missing.is_defaultable_for_conversion() => Ok(default()),
             result => result,
         }
     }
@@ -1051,10 +1042,7 @@ impl Value {
     /// including non-finite floating-point values and inexact durations.
     #[inline]
     pub fn to_json_value(&self) -> ValueResult<JsonValue> {
-        self.to_json_value_with(
-            ConversionPolicy::default_ref(),
-            ConversionLimits::default_ref(),
-        )
+        self.to_json_value_with(ConversionPolicy::default_ref(), ConversionLimits::default_ref())
     }
 
     /// Projects this typed value using explicit conversion policy and limits.
@@ -1074,11 +1062,7 @@ impl Value {
     /// limit is exceeded, or a structured conversion error when JSON
     /// projection or duration formatting violates the requested policy.
     #[inline(always)]
-    pub fn to_json_value_with(
-        &self,
-        policy: &ConversionPolicy,
-        limits: &ConversionLimits,
-    ) -> ValueResult<JsonValue> {
+    pub fn to_json_value_with(&self, policy: &ConversionPolicy, limits: &ConversionLimits) -> ValueResult<JsonValue> {
         crate::json::value_to_json_value_with(self, policy, limits)
     }
 }
@@ -1195,18 +1179,12 @@ impl Value {
         let json = JsonValueEncoder::new().encode(value).map_err(|error| {
             let reason = match error.kind() {
                 JsonSerializationErrorKind::NonFiniteFloat => InvalidValueReason::NonFinite,
-                JsonSerializationErrorKind::IntegerOutOfRange { .. } => {
-                    InvalidValueReason::OutOfRange
-                }
+                JsonSerializationErrorKind::IntegerOutOfRange { .. } => InvalidValueReason::OutOfRange,
                 _ => InvalidValueReason::Serialization {
                     format: DataFormat::Json,
                 },
             };
-            ValueError::from(DataConversionError::invalid(
-                DataType::Json,
-                DataType::Json,
-                reason,
-            ))
+            ValueError::from(DataConversionError::invalid(DataType::Json, DataType::Json, reason))
         })?;
         Ok(Value::Json(json))
     }
@@ -1770,14 +1748,10 @@ impl Value {
         policy: NumericComparisonPolicy,
     ) -> Result<Ordering, NumericComparisonError> {
         if let ValueRepr::Unset(declared) = &self.repr {
-            return Err(NumericComparisonError::LeftMissing {
-                declared: *declared,
-            });
+            return Err(NumericComparisonError::LeftMissing { declared: *declared });
         }
         if let ValueRepr::Unset(declared) = &other.repr {
-            return Err(NumericComparisonError::RightMissing {
-                declared: *declared,
-            });
+            return Err(NumericComparisonError::RightMissing { declared: *declared });
         }
 
         let left = self
@@ -1785,12 +1759,11 @@ impl Value {
             .ok_or_else(|| NumericComparisonError::LeftNotNumeric {
                 actual: self.data_type(),
             })?;
-        let right =
-            other
-                .as_number_ref()
-                .ok_or_else(|| NumericComparisonError::RightNotNumeric {
-                    actual: other.data_type(),
-                })?;
+        let right = other
+            .as_number_ref()
+            .ok_or_else(|| NumericComparisonError::RightNotNumeric {
+                actual: other.data_type(),
+            })?;
 
         match (left.is_nan(), right.is_nan()) {
             (true, true) => return Err(NumericComparisonError::BothNaN),

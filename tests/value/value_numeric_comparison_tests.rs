@@ -20,12 +20,7 @@ use qubit_value::NumericComparisonError;
 use qubit_value::Value;
 
 /// Checks the expected order and its reverse under the same numeric policy.
-fn assert_numeric_order(
-    left: Value,
-    right: Value,
-    policy: NumericComparisonPolicy,
-    expected: Ordering,
-) {
+fn assert_numeric_order(left: Value, right: Value, policy: NumericComparisonPolicy, expected: Ordering) {
     assert_eq!(
         left.numeric_cmp(&right, policy),
         Ok(expected),
@@ -76,11 +71,7 @@ fn test_value_numeric_cmp_preserves_integer_boundaries() {
             Value::Int128(i128::from(i64::MIN)),
             Ordering::Equal,
         ),
-        (
-            Value::Int128(i128::MIN),
-            Value::Int64(i64::MIN),
-            Ordering::Less,
-        ),
+        (Value::Int128(i128::MIN), Value::Int64(i64::MIN), Ordering::Less),
         (
             Value::UInt8(u8::MAX),
             Value::UInt128(u128::from(u8::MAX)),
@@ -101,11 +92,7 @@ fn test_value_numeric_cmp_preserves_integer_boundaries() {
             Value::UInt128(u128::from(u64::MAX)),
             Ordering::Equal,
         ),
-        (
-            Value::UInt128(u128::MAX),
-            Value::UInt64(u64::MAX),
-            Ordering::Greater,
-        ),
+        (Value::UInt128(u128::MAX), Value::UInt64(u64::MAX), Ordering::Greater),
         (
             Value::UInt64(i64::MAX as u64 + 1),
             Value::Int64(i64::MAX),
@@ -147,10 +134,7 @@ fn test_value_numeric_cmp_preserves_float_boundaries() {
         Ordering::Equal,
     );
 
-    for policy in [
-        NumericComparisonPolicy::Exact,
-        NumericComparisonPolicy::Approximate,
-    ] {
+    for policy in [NumericComparisonPolicy::Exact, NumericComparisonPolicy::Approximate] {
         assert_numeric_order(
             Value::Float32(f32::NEG_INFINITY),
             Value::Int128(i128::MIN),
@@ -190,12 +174,7 @@ fn test_value_numeric_cmp_applies_explicit_policy() {
         NumericComparisonPolicy::Exact,
         Ordering::Less,
     );
-    assert_numeric_order(
-        decimal,
-        float,
-        NumericComparisonPolicy::Approximate,
-        Ordering::Equal,
-    );
+    assert_numeric_order(decimal, float, NumericComparisonPolicy::Approximate, Ordering::Equal);
 }
 
 /// Verifies big decimal values compare exactly with built-in integers.
@@ -220,19 +199,13 @@ fn test_value_numeric_cmp_distinguishes_missing_and_non_numeric_operands() {
         }),
     );
     assert_eq!(
-        Value::Int32(1).numeric_cmp(
-            &Value::Unset(DataType::Float64),
-            NumericComparisonPolicy::Exact,
-        ),
+        Value::Int32(1).numeric_cmp(&Value::Unset(DataType::Float64), NumericComparisonPolicy::Exact,),
         Err(NumericComparisonError::RightMissing {
             declared: DataType::Float64,
         }),
     );
     assert_eq!(
-        Value::Unset(DataType::Int32).numeric_cmp(
-            &Value::Unset(DataType::Int64),
-            NumericComparisonPolicy::Exact,
-        ),
+        Value::Unset(DataType::Int32).numeric_cmp(&Value::Unset(DataType::Int64), NumericComparisonPolicy::Exact,),
         Err(NumericComparisonError::LeftMissing {
             declared: DataType::Int32,
         }),
@@ -245,9 +218,7 @@ fn test_value_numeric_cmp_distinguishes_missing_and_non_numeric_operands() {
     );
     assert_eq!(
         Value::Int32(1).numeric_cmp(&Value::Bool(true), NumericComparisonPolicy::Exact),
-        Err(NumericComparisonError::RightNotNumeric {
-            actual: DataType::Bool
-        }),
+        Err(NumericComparisonError::RightNotNumeric { actual: DataType::Bool }),
     );
 }
 
@@ -270,9 +241,7 @@ fn test_value_numeric_cmp_reports_nan_position_after_type_validation() {
     );
     assert_eq!(
         nan.numeric_cmp(&Value::Bool(true), NumericComparisonPolicy::Exact),
-        Err(NumericComparisonError::RightNotNumeric {
-            actual: DataType::Bool
-        }),
+        Err(NumericComparisonError::RightNotNumeric { actual: DataType::Bool }),
     );
 }
 

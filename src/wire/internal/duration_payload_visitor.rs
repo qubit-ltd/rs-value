@@ -94,12 +94,8 @@ impl<'de> Visitor<'de> for DurationPayloadVisitor {
         }
         // The tuple representation is ordered as secs, then nanos, and has
         // exactly two elements.
-        let secs = seq
-            .next_element()?
-            .ok_or_else(|| Error::invalid_length(0, &self))?;
-        let nanos = seq
-            .next_element()?
-            .ok_or_else(|| Error::invalid_length(1, &self))?;
+        let secs = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
+        let nanos = seq.next_element()?.ok_or_else(|| Error::invalid_length(1, &self))?;
         if seq.next_element::<IgnoredAny>()?.is_some() {
             return Err(Error::invalid_length(3, &self));
         }

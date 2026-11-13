@@ -61,25 +61,17 @@ fn test_named_multi_values_bounded_json_api_round_trip_and_mutation() {
         .expect("named collection encodes with explicit limits");
     assert_eq!(explicit_bytes, encoded);
     assert_eq!(
-        NamedMultiValues::decode_json_slice_with_limits(
-            &explicit_bytes,
-            ValueWireV1::default_json_decode_limits(),
-        )
-        .expect("named collection decodes with explicit limits"),
+        NamedMultiValues::decode_json_slice_with_limits(&explicit_bytes, ValueWireV1::default_json_decode_limits(),)
+            .expect("named collection decodes with explicit limits"),
         named
     );
 
     let mut output = Vec::new();
-    named
-        .to_json_writer(&mut output)
-        .expect("named collection writes");
+    named.to_json_writer(&mut output).expect("named collection writes");
     assert_eq!(output, encoded);
     let mut explicit_output = Vec::new();
     named
-        .to_json_writer_with_limits(
-            &mut explicit_output,
-            ValueWireV1::default_json_encode_limits(),
-        )
+        .to_json_writer_with_limits(&mut explicit_output, ValueWireV1::default_json_encode_limits())
         .expect("named collection writes with explicit limits");
     assert_eq!(explicit_output, encoded);
     named
@@ -105,25 +97,17 @@ fn test_named_value_bounded_json_api_round_trip_and_mutation() {
         .expect("named scalar encodes with explicit limits");
     assert_eq!(explicit_bytes, encoded);
     assert_eq!(
-        NamedValue::decode_json_slice_with_limits(
-            &explicit_bytes,
-            ValueWireV1::default_json_decode_limits(),
-        )
-        .expect("named scalar decodes with explicit limits"),
+        NamedValue::decode_json_slice_with_limits(&explicit_bytes, ValueWireV1::default_json_decode_limits(),)
+            .expect("named scalar decodes with explicit limits"),
         named
     );
 
     let mut output = Vec::new();
-    named
-        .to_json_writer(&mut output)
-        .expect("named scalar writes");
+    named.to_json_writer(&mut output).expect("named scalar writes");
     assert_eq!(output, encoded);
     let mut explicit_output = Vec::new();
     named
-        .to_json_writer_with_limits(
-            &mut explicit_output,
-            ValueWireV1::default_json_encode_limits(),
-        )
+        .to_json_writer_with_limits(&mut explicit_output, ValueWireV1::default_json_encode_limits())
         .expect("named scalar writes with explicit limits");
     assert_eq!(explicit_output, encoded);
 
@@ -139,16 +123,11 @@ fn test_value_wire_v1_bounded_json_api_round_trip_and_container_conversion() {
     assert_eq!(ValueContainer::from(wire.clone()), container);
 
     let collection = ValueContainer::from(vec![7_i32, 11]);
-    let collection_wire =
-        ValueWireV1::try_from(collection.clone()).expect("collection container converts to V1");
+    let collection_wire = ValueWireV1::try_from(collection.clone()).expect("collection container converts to V1");
     assert_eq!(ValueContainer::from(collection_wire.clone()), collection);
     assert_eq!(
-        ValueWireV1::decode_json_slice(
-            &collection_wire
-                .to_json_vec()
-                .expect("collection wire encodes"),
-        )
-        .expect("collection wire decodes"),
+        ValueWireV1::decode_json_slice(&collection_wire.to_json_vec().expect("collection wire encodes"),)
+            .expect("collection wire decodes"),
         collection_wire
     );
 
@@ -163,24 +142,17 @@ fn test_value_wire_v1_bounded_json_api_round_trip_and_container_conversion() {
         .expect("V1 document encodes with explicit limits");
     assert_eq!(explicit_bytes, encoded);
     assert_eq!(
-        ValueWireV1::decode_json_slice_with_limits(
-            &explicit_bytes,
-            ValueWireV1::default_json_decode_limits(),
-        )
-        .expect("V1 document decodes with explicit limits"),
+        ValueWireV1::decode_json_slice_with_limits(&explicit_bytes, ValueWireV1::default_json_decode_limits(),)
+            .expect("V1 document decodes with explicit limits"),
         wire
     );
 
     let mut output = Vec::new();
-    wire.to_json_writer(&mut output)
-        .expect("V1 document writes");
+    wire.to_json_writer(&mut output).expect("V1 document writes");
     assert_eq!(output, encoded);
     let mut explicit_output = Vec::new();
-    wire.to_json_writer_with_limits(
-        &mut explicit_output,
-        ValueWireV1::default_json_encode_limits(),
-    )
-    .expect("V1 document writes with explicit limits");
+    wire.to_json_writer_with_limits(&mut explicit_output, ValueWireV1::default_json_encode_limits())
+        .expect("V1 document writes with explicit limits");
     assert_eq!(explicit_output, encoded);
     wire.to_json_writer(&mut std::io::sink())
         .expect("V1 document writes to a sink");
@@ -190,15 +162,9 @@ fn test_value_wire_v1_bounded_json_api_round_trip_and_container_conversion() {
 fn test_value_wire_payload_v1_default_json_decode_round_trip() {
     let scalar = ValueWirePayloadV1::decode_json_slice(br#"{"scalar":{"int32":42}}"#)
         .expect("standalone scalar payload decodes with default limits");
-    assert_eq!(
-        scalar.into_container(),
-        ValueContainer::from(Value::Int32(42))
-    );
+    assert_eq!(scalar.into_container(), ValueContainer::from(Value::Int32(42)));
 
     let collection = ValueWirePayloadV1::decode_json_slice(br#"{"collection":{"int32":[7,11]}}"#)
         .expect("standalone collection payload decodes with default limits");
-    assert_eq!(
-        collection.into_container(),
-        ValueContainer::from(vec![7_i32, 11]),
-    );
+    assert_eq!(collection.into_container(), ValueContainer::from(vec![7_i32, 11]),);
 }

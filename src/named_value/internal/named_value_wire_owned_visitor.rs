@@ -97,9 +97,7 @@ impl<'de> Visitor<'de> for NamedValueWireOwnedVisitor {
         if !self.allow_sequence {
             return Err(Error::custom("human-readable record must use named fields"));
         }
-        let name = seq
-            .next_element()?
-            .ok_or_else(|| Error::invalid_length(0, &self))?;
+        let name = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
         let value = seq
             .next_element_seed(ValueWireV1Seed::new())?
             .ok_or_else(|| Error::invalid_length(1, &self))?;

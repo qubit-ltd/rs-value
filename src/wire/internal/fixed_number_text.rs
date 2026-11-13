@@ -118,11 +118,7 @@ mod tests {
             text.write_str(&"x".repeat(59)).is_err(),
             "a fragment exceeding remaining capacity must fail"
         );
-        assert_eq!(
-            text.as_str(),
-            "prefix",
-            "overflow must preserve written text"
-        );
+        assert_eq!(text.as_str(), "prefix", "overflow must preserve written text");
     }
 
     #[test]

@@ -50,10 +50,7 @@ fn test_collection_view_borrows_indexed_text_and_preserves_shape() {
     assert_eq!(text.as_ptr(), expected);
     assert!(view.get(1).is_none());
     assert!(view.get(usize::MAX).is_none());
-    for values in [
-        MultiValues::Unset(DataType::Int32),
-        MultiValues::Int32(Vec::new()),
-    ] {
+    for values in [MultiValues::Unset(DataType::Int32), MultiValues::Int32(Vec::new())] {
         let view = values.view();
         assert_eq!(view.data_type(), DataType::Int32);
         assert_eq!(view.len(), 0);
@@ -69,25 +66,16 @@ fn test_borrowed_view_converts_without_materializing_value() {
     assert_eq!(DataConverter::from(value.view()).to::<i32>().unwrap(), 123);
     let values = MultiValues::UInt64(vec![42]);
     assert_eq!(
-        DataConverter::from(values.view().get(0).unwrap())
-            .to::<i32>()
-            .unwrap(),
+        DataConverter::from(values.view().get(0).unwrap()).to::<i32>().unwrap(),
         42
     );
     let duration = Value::Duration(Duration::from_secs(2));
     assert_eq!(
-        DataConverter::from(duration.view())
-            .to::<Duration>()
-            .unwrap(),
+        DataConverter::from(duration.view()).to::<Duration>().unwrap(),
         Duration::from_secs(2)
     );
     let unset = Value::Unset(DataType::String);
-    assert!(
-        DataConverter::from(unset.view())
-            .to::<i32>()
-            .unwrap_err()
-            .is_missing()
-    );
+    assert!(DataConverter::from(unset.view()).to::<i32>().unwrap_err().is_missing());
 }
 
 #[cfg(feature = "converter")]
@@ -99,16 +87,8 @@ fn test_rich_collection_views_keep_original_payloads() {
     let ValueRef::StringMap(map) = item else {
         panic!("map view")
     };
-    assert!(eq(
-        map,
-        &values.get_slice::<HashMap<String, String>>().unwrap()[0]
-    ));
-    assert_eq!(
-        DataConverter::from(item)
-            .to::<HashMap<String, String>>()
-            .unwrap(),
-        *map
-    );
+    assert!(eq(map, &values.get_slice::<HashMap<String, String>>().unwrap()[0]));
+    assert_eq!(DataConverter::from(item).to::<HashMap<String, String>>().unwrap(), *map);
     #[cfg(feature = "json")]
     {
         let values = MultiValues::Json(vec![json!({"items": [1, 2]})]);
@@ -123,15 +103,11 @@ fn test_rich_collection_views_keep_original_payloads() {
     {
         let values = MultiValues::Url(vec![Url::parse("https://example.com/").unwrap()]);
         let item = values.view().get(0).unwrap();
-        let ValueRef::Url(url) = item else {
-            panic!("URL view")
-        };
+        let ValueRef::Url(url) = item else { panic!("URL view") };
         assert!(eq(url, &values.get_slice::<Url>().unwrap()[0]));
         assert_eq!(DataConverter::from(item).to::<Url>().unwrap(), *url);
         assert_eq!(
-            DataConverter::from(Value::Url(url.clone()).view())
-                .to::<Url>()
-                .unwrap(),
+            DataConverter::from(Value::Url(url.clone()).view()).to::<Url>().unwrap(),
             *url
         );
     }
@@ -192,16 +168,10 @@ fn test_borrowed_scalar_and_collection_reads_keep_storage() {
 #[test]
 fn test_borrowed_reads_preserve_missing_and_mismatch_errors() {
     let unset = Value::new_unset(DataType::String);
-    assert!(matches!(
-        unset.get_ref::<String>(),
-        Err(ValueError::Missing(_))
-    ));
+    assert!(matches!(unset.get_ref::<String>(), Err(ValueError::Missing(_))));
 
     let empty = MultiValues::String(Vec::new());
-    assert!(matches!(
-        empty.get_first_ref::<String>(),
-        Err(ValueError::Missing(_))
-    ));
+    assert!(matches!(empty.get_first_ref::<String>(), Err(ValueError::Missing(_))));
     let empty_slice: &[String] = empty.get_slice().unwrap();
     assert!(empty_slice.is_empty());
 
@@ -222,10 +192,7 @@ fn test_strict_first_reads_preserve_scalar_collection_and_fallback_contracts() {
 
     let empty = MultiValues::Int32(Vec::new());
     let error = empty.get_first::<i32>().unwrap_err();
-    assert_eq!(
-        error.missing().unwrap().reason(),
-        ValueMissingReason::EmptyCollection
-    );
+    assert_eq!(error.missing().unwrap().reason(), ValueMissingReason::EmptyCollection);
 
     let unset = MultiValues::Unset(DataType::Int32);
     assert_eq!(unset.get_first_or::<i32>(7).unwrap(), 7);

@@ -46,10 +46,7 @@ pub(crate) fn assert_bounded_direct_helper_allocations(
     );
 }
 
-pub(crate) fn assert_expected_limit(
-    error: MeasuredBudgetError<JsonResource, usize>,
-    expected: JsonResource,
-) {
+pub(crate) fn assert_expected_limit(error: MeasuredBudgetError<JsonResource, usize>, expected: JsonResource) {
     assert!(
         matches!(
             error,
@@ -64,20 +61,16 @@ pub(crate) fn assert_expected_limit(
 /// closure.
 pub(crate) fn assert_big_decimal_payload_construction_does_not_copy_coefficient() {
     let coefficient = "9".repeat(128 * 1024);
-    let large_coefficient =
-        BigInt::parse_bytes(coefficient.as_bytes(), 10).expect("large coefficient must parse");
+    let large_coefficient = BigInt::parse_bytes(coefficient.as_bytes(), 10).expect("large coefficient must parse");
 
     let small_scalar = Value::BigDecimal(BigDecimal::new(BigInt::from(123_i32), 2));
     let large_scalar = Value::BigDecimal(BigDecimal::new(large_coefficient.clone(), 2));
     let small_values = MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(123_i32), 2)]);
     let large_values = MultiValues::BigDecimal(vec![BigDecimal::new(large_coefficient.clone(), 2)]);
     let invalid_small_scalar = Value::BigDecimal(BigDecimal::new(BigInt::from(123_i32), i64::MAX));
-    let invalid_large_scalar =
-        Value::BigDecimal(BigDecimal::new(large_coefficient.clone(), i64::MAX));
-    let invalid_small_values =
-        MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(123_i32), i64::MAX)]);
-    let invalid_large_values =
-        MultiValues::BigDecimal(vec![BigDecimal::new(large_coefficient, i64::MAX)]);
+    let invalid_large_scalar = Value::BigDecimal(BigDecimal::new(large_coefficient.clone(), i64::MAX));
+    let invalid_small_values = MultiValues::BigDecimal(vec![BigDecimal::new(BigInt::from(123_i32), i64::MAX)]);
+    let invalid_large_values = MultiValues::BigDecimal(vec![BigDecimal::new(large_coefficient, i64::MAX)]);
 
     let (small_borrowed_scalar, small_borrowed_scalar_bytes) =
         measured_allocations(|| ValueWirePayloadRefV1::from_value(&small_scalar));
@@ -125,16 +118,8 @@ pub(crate) fn assert_big_decimal_payload_construction_does_not_copy_coefficient(
             large_borrowed_values_bytes,
             "borrowed collection",
         ),
-        (
-            small_owned_scalar_bytes,
-            large_owned_scalar_bytes,
-            "owned scalar",
-        ),
-        (
-            small_owned_values_bytes,
-            large_owned_values_bytes,
-            "owned collection",
-        ),
+        (small_owned_scalar_bytes, large_owned_scalar_bytes, "owned scalar"),
+        (small_owned_values_bytes, large_owned_values_bytes, "owned collection"),
     ] {
         assert!(
             large <= small.saturating_add(4096),
@@ -194,27 +179,15 @@ pub(crate) fn assert_big_decimal_payload_construction_does_not_copy_coefficient(
     for (error, label) in [
         (invalid_small_borrowed_scalar.err(), "small borrowed scalar"),
         (invalid_borrowed_scalar.err(), "borrowed scalar"),
-        (
-            invalid_small_borrowed_values.err(),
-            "small borrowed collection",
-        ),
+        (invalid_small_borrowed_values.err(), "small borrowed collection"),
         (invalid_borrowed_values.err(), "borrowed collection"),
-        (
-            invalid_small_owned_scalar_result.err(),
-            "small owned scalar",
-        ),
+        (invalid_small_owned_scalar_result.err(), "small owned scalar"),
         (invalid_owned_scalar_result.err(), "owned scalar"),
-        (
-            invalid_small_owned_values_result.err(),
-            "small owned collection",
-        ),
+        (invalid_small_owned_values_result.err(), "small owned collection"),
         (invalid_owned_values_result.err(), "owned collection"),
     ] {
         assert!(
-            matches!(
-                error,
-                Some(ValueWireEncodeError::BigDecimalScaleTooLarge { .. })
-            ),
+            matches!(error, Some(ValueWireEncodeError::BigDecimalScaleTooLarge { .. })),
             "{label} must preserve the scale error"
         );
     }

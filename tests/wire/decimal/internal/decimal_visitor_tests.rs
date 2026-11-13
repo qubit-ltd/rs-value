@@ -42,14 +42,11 @@ fn test_big_integer_wire_rejects_noncanonical_string() {
 fn test_big_integer_wire_rejects_invalid_decimal_text() {
     for text in ["", "+1", "01", "-0", "12x"] {
         let input = json!({"scalar": {"biginteger": text}});
-        let error = crate::decode_value_wire_payload_value(input)
-            .expect_err("invalid big integer text must be rejected");
+        let error =
+            crate::decode_value_wire_payload_value(input).expect_err("invalid big integer text must be rejected");
         let message = error.to_string();
         if matches!(text, "+1" | "01" | "-0") {
-            assert!(
-                message.contains("canonical"),
-                "unexpected error for {text:?}: {error}"
-            );
+            assert!(message.contains("canonical"), "unexpected error for {text:?}: {error}");
         } else {
             assert!(
                 message.contains("invalid") || message.contains("empty"),

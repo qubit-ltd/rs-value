@@ -31,14 +31,8 @@ struct Profile {
 const PROFILES: &[Profile] = &[
     Profile {
         id: "quick-start",
-        examples: [
-            ("README.md", "quick-start"),
-            ("README.zh_CN.md", "quick-start"),
-        ],
-        dependencies: &[
-            "qubit-value|0.13|converter|false",
-            "qubit-datatype|0.15||false",
-        ],
+        examples: [("README.md", "quick-start"), ("README.zh_CN.md", "quick-start")],
+        dependencies: &["qubit-value|0.13|converter|false", "qubit-datatype|0.15||false"],
     },
     Profile {
         id: "conversion",
@@ -57,10 +51,7 @@ const PROFILES: &[Profile] = &[
             ("doc/user_guide.md", "natural-json"),
             ("doc/user_guide.zh_CN.md", "natural-json"),
         ],
-        dependencies: &[
-            "qubit-value|0.13|natural-json|false",
-            "qubit-datatype|0.15||false",
-        ],
+        dependencies: &["qubit-value|0.13|natural-json|false", "qubit-datatype|0.15||false"],
     },
     Profile {
         id: "redacted-output",
@@ -79,8 +70,7 @@ pub(crate) fn run_minimal_examples(
     documents: &[(&str, BTreeMap<String, MarkdownExample>)],
 ) -> Result<(), String> {
     let temp_root = temp_root();
-    fs::create_dir_all(&temp_root)
-        .map_err(|error| format!("cannot create {}: {error}", temp_root.display()))?;
+    fs::create_dir_all(&temp_root).map_err(|error| format!("cannot create {}: {error}", temp_root.display()))?;
     let result: Result<(), String> = (|| {
         for profile in PROFILES {
             let declarations = profile_declarations(root, profile)?;
@@ -90,12 +80,7 @@ pub(crate) fn run_minimal_examples(
                     .iter()
                     .find(|(path, _)| *path == document)
                     .map(|(_, examples)| examples)
-                    .ok_or_else(|| {
-                        format!(
-                            "{document}: minimal profile `{}` has no extracted document",
-                            profile.id
-                        )
-                    })?;
+                    .ok_or_else(|| format!("{document}: minimal profile `{}` has no extracted document", profile.id))?;
                 let example = extracted.get(example_id).ok_or_else(|| {
                     format!(
                         "{document}: minimal profile `{}` is missing example `{example_id}`",
@@ -111,13 +96,9 @@ pub(crate) fn run_minimal_examples(
     })();
     if let Err(error) = result {
         // A failed fixture is intentionally retained for diagnosis.
-        return Err(format!(
-            "{error}\nfixture retained at {}",
-            temp_root.display()
-        ));
+        return Err(format!("{error}\nfixture retained at {}", temp_root.display()));
     }
-    fs::remove_dir_all(&temp_root)
-        .map_err(|error| format!("cannot remove {}: {error}", temp_root.display()))?;
+    fs::remove_dir_all(&temp_root).map_err(|error| format!("cannot remove {}: {error}", temp_root.display()))?;
     Ok(())
 }
 
@@ -126,8 +107,7 @@ pub(crate) fn run_minimal_examples(
 fn profile_declarations(root: &Path, profile: &Profile) -> Result<String, String> {
     let mut blocks = Vec::new();
     for (document, _) in profile.examples {
-        let text = fs::read_to_string(root.join(document))
-            .map_err(|error| format!("{document}: {error}"))?;
+        let text = fs::read_to_string(root.join(document)).map_err(|error| format!("{document}: {error}"))?;
         let block = marked_toml_block(&text, profile.id).ok_or_else(|| {
             format!(
                 "{document}: missing marked TOML dependencies for profile `{}`",
@@ -146,9 +126,7 @@ fn profile_declarations(root: &Path, profile: &Profile) -> Result<String, String
 fn matching_blocks(profile: &str, blocks: &[String]) -> Result<String, String> {
     let first = blocks.first().ok_or("profile has no language documents")?;
     if blocks.iter().any(|block| block != first) {
-        return Err(format!(
-            "bilingual dependency blocks differ for profile `{profile}`"
-        ));
+        return Err(format!("bilingual dependency blocks differ for profile `{profile}`"));
     }
     Ok(first.clone())
 }
@@ -175,28 +153,14 @@ fn validate_declarations(profile: &Profile, block: &str) -> Result<(), String> {
             continue;
         }
         if !in_dependencies {
-            return Err(format!(
-                "profile `{}` TOML must begin with [dependencies]",
-                profile.id
-            ));
+            return Err(format!("profile `{}` TOML must begin with [dependencies]", profile.id));
         }
-        let (name, value) = line.split_once('=').ok_or_else(|| {
-            format!(
-                "profile `{}` has invalid dependency line `{line}`",
-                profile.id
-            )
-        })?;
+        let (name, value) = line
+            .split_once('=')
+            .ok_or_else(|| format!("profile `{}` has invalid dependency line `{line}`", profile.id))?;
         let (version, features, default_features) = parse_inline_dependency(value.trim())
-            .ok_or_else(|| {
-                format!(
-                    "profile `{}` has invalid inline dependency `{line}`",
-                    profile.id
-                )
-            })?;
-        parsed.insert(
-            name.trim().to_owned(),
-            (version, features, default_features),
-        );
+            .ok_or_else(|| format!("profile `{}` has invalid inline dependency `{line}`", profile.id))?;
+        parsed.insert(name.trim().to_owned(), (version, features, default_features));
     }
     let expected: BTreeMap<String, (String, Vec<String>, bool)> = profile
         .dependencies
@@ -266,18 +230,11 @@ fn check_consumer(
     example: &MarkdownExample,
     declarations: &str,
 ) -> Result<(), String> {
-    let bin = format!(
-        "{}_{}",
-        profile.replace('-', "_"),
-        language_suffix(document)
-    );
+    let bin = format!("{}_{}", profile.replace('-', "_"), language_suffix(document));
     let fixture = temp_root.join(profile).join(language_suffix(document));
     fs::create_dir_all(fixture.join("src/bin")).map_err(|error| error.to_string())?;
     let value_path = toml_string(root.to_str().ok_or("local qubit-value path is not UTF-8")?);
-    let dependency_block = declarations.replace(
-        "qubit-value = {",
-        &format!("qubit-value = {{ path = {value_path},"),
-    );
+    let dependency_block = declarations.replace("qubit-value = {", &format!("qubit-value = {{ path = {value_path},"));
     let manifest = format!(
         "[package]\nname = \"minimal-{bin}\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n{dependency_block}\n\n[workspace]\n"
     );
@@ -327,17 +284,12 @@ fn check_profile(
     let manifest = consumer_manifest(root, profile, declarations)?;
     fs::write(fixture.join("Cargo.toml"), manifest).map_err(|error| error.to_string())?;
     for (document, example) in examples {
-        let bin = format!(
-            "{}_{}",
-            profile.replace('-', "_"),
-            language_suffix(document)
-        );
+        let bin = format!("{}_{}", profile.replace('-', "_"), language_suffix(document));
         let source = format!(
             "fn main() -> Result<(), Box<dyn std::error::Error>> {{\n{}\nOk(())\n}}\n",
             example.source
         );
-        fs::write(fixture.join("src/bin").join(format!("{bin}.rs")), source)
-            .map_err(|error| error.to_string())?;
+        fs::write(fixture.join("src/bin").join(format!("{bin}.rs")), source).map_err(|error| error.to_string())?;
     }
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let target = fixture.join("target");
@@ -366,10 +318,7 @@ fn check_profile(
 /// Builds an isolated consumer manifest with the candidate qubit-value source.
 fn consumer_manifest(root: &Path, profile: &str, declarations: &str) -> Result<String, String> {
     let value_path = toml_string(root.to_str().ok_or("local qubit-value path is not UTF-8")?);
-    let dependency_block = declarations.replace(
-        "qubit-value = {",
-        &format!("qubit-value = {{ path = {value_path},"),
-    );
+    let dependency_block = declarations.replace("qubit-value = {", &format!("qubit-value = {{ path = {value_path},"));
     let manifest = format!(
         "[package]\nname = \"minimal-{}\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n{}\n\n[workspace]\n",
         profile.replace('-', "_"),
@@ -399,15 +348,8 @@ fn check_negative_examples(root: &Path, temp_root: &Path) -> Result<(), String> 
             mode: ExampleMode::Run,
             source: source.to_owned(),
         };
-        let error = check_consumer(
-            root,
-            temp_root,
-            "quick-start",
-            "README.md",
-            &example,
-            QUICK_START,
-        )
-        .expect_err("negative isolated consumers must fail to compile");
+        let error = check_consumer(root, temp_root, "quick-start", "README.md", &example, QUICK_START)
+            .expect_err("negative isolated consumers must fail to compile");
         if !error.contains(expected) {
             return Err(format!(
                 "negative example `{id}` failed for an unexpected reason: {error}"
@@ -422,11 +364,7 @@ fn check_negative_examples(root: &Path, temp_root: &Path) -> Result<(), String> 
 #[must_use]
 #[inline]
 fn language_suffix(document: &str) -> &'static str {
-    if document.ends_with("zh_CN.md") {
-        "zh"
-    } else {
-        "en"
-    }
+    if document.ends_with("zh_CN.md") { "zh" } else { "en" }
 }
 
 /// Quotes a local path as a TOML basic string, escaping delimiters and control
@@ -451,10 +389,7 @@ fn temp_root() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
-    std::env::temp_dir().join(format!(
-        "qubit-value-minimal-examples-{}-{nanos}",
-        std::process::id()
-    ))
+    std::env::temp_dir().join(format!("qubit-value-minimal-examples-{}-{nanos}", std::process::id()))
 }
 
 #[cfg(test)]
@@ -491,10 +426,7 @@ mod tests {
         assert_eq!(value["path"].as_str(), Some(root.to_str().unwrap()));
         assert_eq!(value["version"].as_str(), Some("0.13"));
         assert_eq!(value["default-features"].as_bool(), Some(false));
-        assert_eq!(
-            value["features"].as_array().unwrap()[0].as_str(),
-            Some("converter")
-        );
+        assert_eq!(value["features"].as_array().unwrap()[0].as_str(), Some("converter"));
         assert!(!parsed.contains_key("patch"));
     }
 
@@ -537,21 +469,13 @@ mod tests {
                 r#"{ version = "0.13", default-features = "false" }"#,
                 None,
             ),
-            (
-                "non-array features",
-                r#"{ version = "0.13", features = "json" }"#,
-                None,
-            ),
+            ("non-array features", r#"{ version = "0.13", features = "json" }"#, None),
             (
                 "non-string feature",
                 r#"{ version = "0.13", features = ["json", 1] }"#,
                 None,
             ),
-            (
-                "unknown key",
-                r#"{ version = "0.13", optional = true }"#,
-                None,
-            ),
+            ("unknown key", r#"{ version = "0.13", optional = true }"#, None),
             (
                 "unterminated array",
                 r#"{ version = "0.13", features = ["json" }"#,
@@ -604,17 +528,10 @@ mod tests {
         assert!(super::matching_blocks("quick-start", &["a".into(), "b".into()]).is_err());
         let profile = super::Profile {
             id: "quick-start",
-            examples: [
-                ("README.md", "quick-start"),
-                ("README.zh_CN.md", "quick-start"),
-            ],
-            dependencies: &[
-                "qubit-value|0.13|converter|false",
-                "qubit-datatype|0.15||false",
-            ],
+            examples: [("README.md", "quick-start"), ("README.zh_CN.md", "quick-start")],
+            dependencies: &["qubit-value|0.13|converter|false", "qubit-datatype|0.15||false"],
         };
-        let result =
-            super::profile_declarations(std::path::Path::new(env!("CARGO_MANIFEST_DIR")), &profile);
+        let result = super::profile_declarations(std::path::Path::new(env!("CARGO_MANIFEST_DIR")), &profile);
         assert!(result.is_ok(), "{result:?}");
     }
 }

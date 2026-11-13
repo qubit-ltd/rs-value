@@ -61,10 +61,7 @@ fn test_named_multi_values_json_numbers_round_trip() {
         decoded, expected,
         "JSON numbers and literal marker objects must remain distinct"
     );
-    assert_eq!(
-        decoded.to_json_vec().expect("re-encode named JSON values"),
-        encoded
-    );
+    assert_eq!(decoded.to_json_vec().expect("re-encode named JSON values"), encoded);
 }
 
 /// Rejects schema fields outside the stable named-collection wrapper contract.
@@ -79,8 +76,7 @@ fn test_named_multi_values_rejects_unknown_fields() {
 fn test_named_multi_values_rejects_scalar_wire_payload() {
     let input = r#"{"name":"ports","value":{"version":1,"value":{"scalar":{"int32":42}}}}"#;
 
-    let error = from_str::<NamedMultiValues>(input)
-        .expect_err("a named collection must reject a scalar payload");
+    let error = from_str::<NamedMultiValues>(input).expect_err("a named collection must reject a scalar payload");
     assert!(
         error
             .to_string()
@@ -133,13 +129,10 @@ fn test_named_multi_values_bounded_decode_reuses_collection_budget() {
 #[cfg(feature = "json")]
 fn test_named_multi_values_default_encoding_round_trips() {
     let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![42]));
-    let encoded = named
-        .to_json_vec()
-        .expect("default limits should encode named values");
+    let encoded = named.to_json_vec().expect("default limits should encode named values");
 
     assert_eq!(
-        NamedMultiValues::decode_json_slice(&encoded)
-            .expect("default limits should decode named values"),
+        NamedMultiValues::decode_json_slice(&encoded).expect("default limits should decode named values"),
         named
     );
 }
@@ -149,13 +142,8 @@ fn test_named_multi_values_default_encoding_round_trips() {
 fn test_named_multi_values_writer_matches_vec_and_rejects_output_limit() {
     let named = NamedMultiValues::new("ports", MultiValues::Int32(vec![42, 43]));
     let mut output = Vec::new();
-    named
-        .to_json_writer(&mut output)
-        .expect("write named collection");
-    assert_eq!(
-        output,
-        named.to_json_vec().expect("encode named collection")
-    );
+    named.to_json_writer(&mut output).expect("write named collection");
+    assert_eq!(output, named.to_json_vec().expect("encode named collection"));
 
     let mut constrained = Vec::new();
     let error = named
@@ -205,10 +193,7 @@ fn test_named_multi_value_accessors() {
     nmv.set_name("new_servers");
     assert_eq!(nmv.name(), "new_servers");
 
-    nmv.set_values(MultiValues::String(vec![
-        "s2".to_string(),
-        "s3".to_string(),
-    ]));
+    nmv.set_values(MultiValues::String(vec!["s2".to_string(), "s3".to_string()]));
     assert_eq!(nmv.values().len(), 2);
 }
 
@@ -240,10 +225,7 @@ fn test_named_multi_value_consuming_conversion_reuses_owned_parts() {
 
 #[test]
 fn test_named_multi_value_struct_access() {
-    let nmv = NamedMultiValues::new(
-        "items",
-        MultiValues::String(vec!["a".to_string(), "b".to_string()]),
-    );
+    let nmv = NamedMultiValues::new("items", MultiValues::String(vec!["a".to_string(), "b".to_string()]));
     assert_eq!(nmv.name(), "items");
     assert_eq!(nmv.values().len(), 2);
 }
@@ -281,10 +263,7 @@ fn test_nmv_get_i32_list() {
 
 #[test]
 fn test_nmv_get_string_list() {
-    let nmv = NamedMultiValues::new(
-        "s",
-        MultiValues::String(vec!["a".to_string(), "b".to_string()]),
-    );
+    let nmv = NamedMultiValues::new("s", MultiValues::String(vec!["a".to_string(), "b".to_string()]));
     let v: Vec<String> = nmv.values().get().unwrap();
     assert_eq!(v, vec!["a".to_string(), "b".to_string()]);
 }
@@ -352,10 +331,7 @@ fn test_nmv_get_first_i32() {
 
 #[test]
 fn test_nmv_get_first_string() {
-    let nmv = NamedMultiValues::new(
-        "s",
-        MultiValues::String(vec!["x".to_string(), "y".to_string()]),
-    );
+    let nmv = NamedMultiValues::new("s", MultiValues::String(vec!["x".to_string(), "y".to_string()]));
     let first: String = nmv.values().get_first().unwrap();
     assert_eq!(first, "x");
 }
@@ -427,9 +403,7 @@ fn test_nmv_add_string_single() {
 #[test]
 fn test_nmv_add_string_vec() {
     let mut nmv = NamedMultiValues::new("s", MultiValues::String(vec!["a".to_string()]));
-    nmv.values_mut()
-        .add(vec!["b".to_string(), "c".to_string()])
-        .unwrap();
+    nmv.values_mut().add(vec!["b".to_string(), "c".to_string()]).unwrap();
     assert_eq!(nmv.values().get_strings().unwrap(), &["a", "b", "c"]);
 }
 
@@ -447,10 +421,7 @@ fn test_named_multi_values_first_named_value_empty_preserves_type() {
     let named = nmv.first_named_value();
     assert_eq!(named.name(), "threshold");
     assert_eq!(named.value().data_type(), DataType::Float64);
-    assert!(matches!(
-        named.value().get_float64(),
-        Err(ValueError::Missing(_))
-    ));
+    assert!(matches!(named.value().get_float64(), Err(ValueError::Missing(_))));
 }
 
 #[test]
@@ -460,10 +431,7 @@ fn test_named_multi_values_first_named_value_concrete_empty_preserves_type() {
 
     assert_eq!(named.name(), "threshold");
     assert_eq!(named.value().data_type(), DataType::Float64);
-    assert!(matches!(
-        named.value().get_float64(),
-        Err(ValueError::Missing(_))
-    ));
+    assert!(matches!(named.value().get_float64(), Err(ValueError::Missing(_))));
 }
 
 #[test]

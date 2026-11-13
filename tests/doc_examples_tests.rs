@@ -54,10 +54,7 @@ fn diagnostic(file: &str, id: &str, message: &str) -> String {
 }
 
 /// Extracts fenced Rust fragments carrying an explicit compile or run marker.
-fn extract_examples(
-    file: &str,
-    document: &str,
-) -> Result<BTreeMap<String, MarkdownExample>, String> {
+fn extract_examples(file: &str, document: &str) -> Result<BTreeMap<String, MarkdownExample>, String> {
     let lines: Vec<&str> = document.lines().collect();
     let mut examples = BTreeMap::new();
     let mut index = 0;
@@ -78,10 +75,7 @@ fn extract_examples(
         let fields: Vec<&str> = marker.split_whitespace().collect();
         let mode = fields.get(1).and_then(|value| ExampleMode::parse(value));
         if fields.len() != 2 || mode.is_none() || fields[0].is_empty() {
-            let id = fields
-                .first()
-                .copied()
-                .filter(|id| *id != "compile" && *id != "run");
+            let id = fields.first().copied().filter(|id| *id != "compile" && *id != "run");
             return Err(diagnostic(
                 file,
                 id.unwrap_or("<missing>"),
@@ -194,10 +188,7 @@ fn test_extract_rejects_unknown_mode() {
     let error = extract_examples("unknown-mode.md", document).unwrap_err();
     assert!(error.contains("unknown-mode.md"), "{error}");
     assert!(error.contains("value"), "{error}");
-    assert!(
-        error.contains("compile") && error.contains("run"),
-        "{error}"
-    );
+    assert!(error.contains("compile") && error.contains("run"), "{error}");
 }
 
 #[test]
@@ -208,8 +199,7 @@ fn test_bilingual_example_ids_must_match() {
     )
     .unwrap();
     let chinese = BTreeMap::new();
-    let error =
-        ensure_matching_ids("README.md", &english, "README.zh_CN.md", &chinese).unwrap_err();
+    let error = ensure_matching_ids("README.md", &english, "README.zh_CN.md", &chinese).unwrap_err();
     assert!(error.contains("README.md"), "{error}");
     assert!(error.contains("README.zh_CN.md"), "{error}");
     assert!(error.contains("english-only"), "{error}");
@@ -249,10 +239,8 @@ fn test_bilingual_markdown_example_ids_are_stable() {
         ),
     ];
     for (english_file, chinese_file, expected_ids) in pairs {
-        let english_document =
-            std::fs::read_to_string(root.join(english_file)).expect("read English document");
-        let chinese_document =
-            std::fs::read_to_string(root.join(chinese_file)).expect("read Chinese document");
+        let english_document = std::fs::read_to_string(root.join(english_file)).expect("read English document");
+        let chinese_document = std::fs::read_to_string(root.join(chinese_file)).expect("read Chinese document");
         let english = extract_examples(english_file, &english_document).unwrap();
         let chinese = extract_examples(chinese_file, &chinese_document).unwrap();
         ensure_matching_ids(english_file, &english, chinese_file, &chinese).unwrap();

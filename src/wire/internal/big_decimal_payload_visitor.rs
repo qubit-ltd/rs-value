@@ -95,12 +95,8 @@ impl<'de> Visitor<'de> for BigDecimalPayloadVisitor {
         if !self.allow_sequence {
             return Err(Error::custom("human-readable record must use named fields"));
         }
-        let coefficient = seq
-            .next_element()?
-            .ok_or_else(|| Error::invalid_length(0, &self))?;
-        let scale = seq
-            .next_element()?
-            .ok_or_else(|| Error::invalid_length(1, &self))?;
+        let coefficient = seq.next_element()?.ok_or_else(|| Error::invalid_length(0, &self))?;
+        let scale = seq.next_element()?.ok_or_else(|| Error::invalid_length(1, &self))?;
         if seq.next_element::<IgnoredAny>()?.is_some() {
             return Err(Error::invalid_length(3, &self));
         }

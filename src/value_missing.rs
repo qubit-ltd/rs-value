@@ -309,9 +309,7 @@ impl ValueMissing {
     #[must_use]
     #[inline]
     pub const fn is_defaultable_for_conversion(&self) -> bool {
-        self.is_unset()
-            || (matches!(self.reason, ValueMissingReason::Conversion)
-                && self.source_index.is_none())
+        self.is_unset() || (matches!(self.reason, ValueMissingReason::Conversion) && self.source_index.is_none())
     }
 
     /// Enriches a conversion failure with facts known by its owning container.

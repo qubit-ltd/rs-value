@@ -382,10 +382,7 @@ fn test_to_u16_from_uint128_out_of_range() {
 
 #[test]
 fn test_to_u16_from_string_valid() {
-    assert_eq!(
-        Value::String("65535".to_string()).to::<u16>().unwrap(),
-        65535u16
-    );
+    assert_eq!(Value::String("65535".to_string()).to::<u16>().unwrap(), 65535u16);
 }
 
 #[test]
@@ -476,10 +473,7 @@ fn test_to_u32_from_int64_out_of_range() {
 
 #[test]
 fn test_to_u32_from_int128_in_range() {
-    assert_eq!(
-        Value::Int128(u32::MAX as i128).to::<u32>().unwrap(),
-        u32::MAX
-    );
+    assert_eq!(Value::Int128(u32::MAX as i128).to::<u32>().unwrap(), u32::MAX);
 }
 
 #[test]
@@ -490,10 +484,7 @@ fn test_to_u32_from_int128_out_of_range() {
 
 #[test]
 fn test_to_u32_from_uint64_in_range() {
-    assert_eq!(
-        Value::UInt64(u32::MAX as u64).to::<u32>().unwrap(),
-        u32::MAX
-    );
+    assert_eq!(Value::UInt64(u32::MAX as u64).to::<u32>().unwrap(), u32::MAX);
 }
 
 #[test]
@@ -503,10 +494,7 @@ fn test_to_u32_from_uint64_out_of_range() {
 
 #[test]
 fn test_to_u32_from_uint128_in_range() {
-    assert_eq!(
-        Value::UInt128(u32::MAX as u128).to::<u32>().unwrap(),
-        u32::MAX
-    );
+    assert_eq!(Value::UInt128(u32::MAX as u128).to::<u32>().unwrap(), u32::MAX);
 }
 
 #[test]
@@ -516,10 +504,7 @@ fn test_to_u32_from_uint128_out_of_range() {
 
 #[test]
 fn test_to_u32_from_string_valid() {
-    assert_eq!(
-        Value::String("4294967295".to_string()).to::<u32>().unwrap(),
-        u32::MAX
-    );
+    assert_eq!(Value::String("4294967295".to_string()).to::<u32>().unwrap(), u32::MAX);
 }
 
 #[test]
@@ -553,10 +538,7 @@ fn test_to_u64_from_uint16() {
 
 #[test]
 fn test_to_u64_from_uint32() {
-    assert_eq!(
-        Value::UInt32(u32::MAX).to::<u64>().unwrap(),
-        u32::MAX as u64
-    );
+    assert_eq!(Value::UInt32(u32::MAX).to::<u64>().unwrap(), u32::MAX as u64);
 }
 
 #[test]
@@ -617,10 +599,7 @@ fn test_to_u64_from_int64_negative() {
 
 #[test]
 fn test_to_u64_from_int128_in_range() {
-    assert_eq!(
-        Value::Int128(u64::MAX as i128).to::<u64>().unwrap(),
-        u64::MAX
-    );
+    assert_eq!(Value::Int128(u64::MAX as i128).to::<u64>().unwrap(), u64::MAX);
 }
 
 #[test]
@@ -631,10 +610,7 @@ fn test_to_u64_from_int128_out_of_range() {
 
 #[test]
 fn test_to_u64_from_uint128_in_range() {
-    assert_eq!(
-        Value::UInt128(u64::MAX as u128).to::<u64>().unwrap(),
-        u64::MAX
-    );
+    assert_eq!(Value::UInt128(u64::MAX as u128).to::<u64>().unwrap(), u64::MAX);
 }
 
 #[test]
@@ -645,9 +621,7 @@ fn test_to_u64_from_uint128_out_of_range() {
 #[test]
 fn test_to_u64_from_string_valid() {
     assert_eq!(
-        Value::String("18446744073709551615".to_string())
-            .to::<u64>()
-            .unwrap(),
+        Value::String("18446744073709551615".to_string()).to::<u64>().unwrap(),
         u64::MAX
     );
 }
@@ -683,18 +657,12 @@ fn test_to_u128_from_uint16() {
 
 #[test]
 fn test_to_u128_from_uint32() {
-    assert_eq!(
-        Value::UInt32(u32::MAX).to::<u128>().unwrap(),
-        u32::MAX as u128
-    );
+    assert_eq!(Value::UInt32(u32::MAX).to::<u128>().unwrap(), u32::MAX as u128);
 }
 
 #[test]
 fn test_to_u128_from_uint64() {
-    assert_eq!(
-        Value::UInt64(u64::MAX).to::<u128>().unwrap(),
-        u64::MAX as u128
-    );
+    assert_eq!(Value::UInt64(u64::MAX).to::<u128>().unwrap(), u64::MAX as u128);
 }
 
 #[test]
@@ -735,10 +703,7 @@ fn test_to_u128_from_int16_negative() {
 
 #[test]
 fn test_to_u128_from_int32_positive() {
-    assert_eq!(
-        Value::Int32(i32::MAX).to::<u128>().unwrap(),
-        i32::MAX as u128
-    );
+    assert_eq!(Value::Int32(i32::MAX).to::<u128>().unwrap(), i32::MAX as u128);
 }
 
 #[test]
@@ -748,10 +713,7 @@ fn test_to_u128_from_int32_negative() {
 
 #[test]
 fn test_to_u128_from_int64_positive() {
-    assert_eq!(
-        Value::Int64(i64::MAX).to::<u128>().unwrap(),
-        i64::MAX as u128
-    );
+    assert_eq!(Value::Int64(i64::MAX).to::<u128>().unwrap(), i64::MAX as u128);
 }
 
 #[test]
@@ -761,10 +723,7 @@ fn test_to_u128_from_int64_negative() {
 
 #[test]
 fn test_to_u128_from_int128_positive() {
-    assert_eq!(
-        Value::Int128(i128::MAX).to::<u128>().unwrap(),
-        i128::MAX as u128
-    );
+    assert_eq!(Value::Int128(i128::MAX).to::<u128>().unwrap(), i128::MAX as u128);
 }
 
 #[test]
@@ -894,10 +853,7 @@ fn test_to_f32_from_uint128() {
 
 #[test]
 fn test_to_f32_from_string_valid() {
-    assert_eq!(
-        Value::String("2.25".to_string()).to::<f32>().unwrap(),
-        2.25f32
-    );
+    assert_eq!(Value::String("2.25".to_string()).to::<f32>().unwrap(), 2.25f32);
 }
 
 #[test]

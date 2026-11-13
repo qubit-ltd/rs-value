@@ -136,10 +136,8 @@ fn test_direct_wire_helpers_reject_large_decimal_before_formatting() {
     let large_payload_ref = ValueWirePayloadRefV1::from_value(&large_scalar).unwrap();
     let small_wire_ref = ValueWireRefV1::from_value(&small_scalar).unwrap();
     let large_wire_ref = ValueWireRefV1::from_value(&large_scalar).unwrap();
-    let small_collection_payload_ref =
-        ValueWirePayloadRefV1::from_values(&small_collection).unwrap();
-    let large_collection_payload_ref =
-        ValueWirePayloadRefV1::from_values(&large_collection).unwrap();
+    let small_collection_payload_ref = ValueWirePayloadRefV1::from_values(&small_collection).unwrap();
+    let large_collection_payload_ref = ValueWirePayloadRefV1::from_values(&large_collection).unwrap();
     let small_collection_wire_ref = ValueWireRefV1::from_values(&small_collection).unwrap();
     let large_collection_wire_ref = ValueWireRefV1::from_values(&large_collection).unwrap();
 
@@ -170,48 +168,28 @@ fn test_direct_wire_helpers_reject_large_decimal_before_formatting() {
                 ),
             ];
             for (limits, resource) in profiles {
-                let (small_result, small_bytes) =
-                    measured_allocations(|| $small.to_json_vec_with_limits(limits));
-                let (large_result, large_bytes) =
-                    measured_allocations(|| $large.to_json_vec_with_limits(limits));
+                let (small_result, small_bytes) = measured_allocations(|| $small.to_json_vec_with_limits(limits));
+                let (large_result, large_bytes) = measured_allocations(|| $large.to_json_vec_with_limits(limits));
                 assert_expected_encode_limit(small_result.unwrap_err(), resource, $label, "vector");
                 assert_expected_encode_limit(large_result.unwrap_err(), resource, $label, "vector");
-                assert_bounded_direct_helper_allocations(
-                    $label,
-                    "vector",
-                    resource,
-                    small_bytes,
-                    large_bytes,
-                );
+                assert_bounded_direct_helper_allocations($label, "vector", resource, small_bytes, large_bytes);
 
                 let mut small_writer = b"prefix".to_vec();
                 let mut large_writer = b"prefix".to_vec();
-                let (small_result, small_bytes) = measured_allocations(|| {
-                    $small.to_json_writer_with_limits(&mut small_writer, limits)
-                });
-                let (large_result, large_bytes) = measured_allocations(|| {
-                    $large.to_json_writer_with_limits(&mut large_writer, limits)
-                });
+                let (small_result, small_bytes) =
+                    measured_allocations(|| $small.to_json_writer_with_limits(&mut small_writer, limits));
+                let (large_result, large_bytes) =
+                    measured_allocations(|| $large.to_json_writer_with_limits(&mut large_writer, limits));
                 assert_expected_encode_limit(small_result.unwrap_err(), resource, $label, "writer");
                 assert_expected_encode_limit(large_result.unwrap_err(), resource, $label, "writer");
                 assert_eq!(small_writer, b"prefix", "{} writer changed prefix", $label);
                 assert_eq!(large_writer, b"prefix", "{} writer changed prefix", $label);
-                assert_bounded_direct_helper_allocations(
-                    $label,
-                    "writer",
-                    resource,
-                    small_bytes,
-                    large_bytes,
-                );
+                assert_bounded_direct_helper_allocations($label, "writer", resource, small_bytes, large_bytes);
             }
         }};
     }
 
-    check_helpers!(
-        "ValueWirePayloadRefV1 scalar",
-        &small_payload_ref,
-        &large_payload_ref
-    );
+    check_helpers!("ValueWirePayloadRefV1 scalar", &small_payload_ref, &large_payload_ref);
     check_helpers!("ValueWireRefV1 scalar", &small_wire_ref, &large_wire_ref);
     check_helpers!("ValueWirePayloadV1 scalar", &small_payload, &large_payload);
     check_helpers!("ValueWireV1 scalar", &small_wire, &large_wire);
@@ -230,11 +208,7 @@ fn test_direct_wire_helpers_reject_large_decimal_before_formatting() {
         &small_collection_payload,
         &large_collection_payload
     );
-    check_helpers!(
-        "ValueWireV1 collection",
-        &small_collection_wire,
-        &large_collection_wire
-    );
+    check_helpers!("ValueWireV1 collection", &small_collection_wire, &large_collection_wire);
 }
 
 #[test]
@@ -266,8 +240,8 @@ fn test_json_number_payload_construction_avoids_per_float_string_allocation() {
         // standard Number formatter's allocation regression assertion.
         for size in [1, 256, 4096] {
             let value = json_number_fixture(size, true);
-            let payload = ValueWirePayloadRefV1::from_value(&value)
-                .expect("arbitrary-precision number fixture must be accepted");
+            let payload =
+                ValueWirePayloadRefV1::from_value(&value).expect("arbitrary-precision number fixture must be accepted");
             assert!(payload.to_json_vec().is_ok(), "number fixture must encode");
         }
     } else {
@@ -290,10 +264,8 @@ fn test_json_number_payload_construction_avoids_per_float_string_allocation() {
 fn test_named_helpers_reject_large_decimal_before_formatting() {
     let small_digits = "9".repeat(4096);
     let large_digits = "9".repeat(128 * 1024);
-    let small_coefficient =
-        BigInt::parse_bytes(small_digits.as_bytes(), 10).expect("small coefficient must parse");
-    let large_coefficient =
-        BigInt::parse_bytes(large_digits.as_bytes(), 10).expect("large coefficient must parse");
+    let small_coefficient = BigInt::parse_bytes(small_digits.as_bytes(), 10).expect("small coefficient must parse");
+    let large_coefficient = BigInt::parse_bytes(large_digits.as_bytes(), 10).expect("large coefficient must parse");
     let small_scalar = NamedValue::new(
         "decimal",
         Value::BigDecimal(BigDecimal::new(small_coefficient.clone(), 2)),
@@ -328,39 +300,23 @@ fn test_named_helpers_reject_large_decimal_before_formatting() {
                 ),
             ];
             for (limits, resource) in profiles {
-                let (small_result, small_bytes) =
-                    measured_allocations(|| $small.to_json_vec_with_limits(limits));
-                let (large_result, large_bytes) =
-                    measured_allocations(|| $large.to_json_vec_with_limits(limits));
+                let (small_result, small_bytes) = measured_allocations(|| $small.to_json_vec_with_limits(limits));
+                let (large_result, large_bytes) = measured_allocations(|| $large.to_json_vec_with_limits(limits));
                 assert_expected_encode_limit(small_result.unwrap_err(), resource, $label, "vector");
                 assert_expected_encode_limit(large_result.unwrap_err(), resource, $label, "vector");
-                assert_bounded_direct_helper_allocations(
-                    $label,
-                    "vector",
-                    resource,
-                    small_bytes,
-                    large_bytes,
-                );
+                assert_bounded_direct_helper_allocations($label, "vector", resource, small_bytes, large_bytes);
 
                 let mut small_writer = b"prefix".to_vec();
                 let mut large_writer = b"prefix".to_vec();
-                let (small_result, small_bytes) = measured_allocations(|| {
-                    $small.to_json_writer_with_limits(&mut small_writer, limits)
-                });
-                let (large_result, large_bytes) = measured_allocations(|| {
-                    $large.to_json_writer_with_limits(&mut large_writer, limits)
-                });
+                let (small_result, small_bytes) =
+                    measured_allocations(|| $small.to_json_writer_with_limits(&mut small_writer, limits));
+                let (large_result, large_bytes) =
+                    measured_allocations(|| $large.to_json_writer_with_limits(&mut large_writer, limits));
                 assert_expected_encode_limit(small_result.unwrap_err(), resource, $label, "writer");
                 assert_expected_encode_limit(large_result.unwrap_err(), resource, $label, "writer");
                 assert_eq!(small_writer, b"prefix", "{} writer changed prefix", $label);
                 assert_eq!(large_writer, b"prefix", "{} writer changed prefix", $label);
-                assert_bounded_direct_helper_allocations(
-                    $label,
-                    "writer",
-                    resource,
-                    small_bytes,
-                    large_bytes,
-                );
+                assert_bounded_direct_helper_allocations($label, "writer", resource, small_bytes, large_bytes);
             }
 
             let small_default = $small
@@ -400,17 +356,12 @@ fn test_named_helpers_keep_name_and_complete_output_limits() {
     );
     let mut writer = b"prefix".to_vec();
     assert_expected_encode_limit(
-        named
-            .to_json_writer_with_limits(&mut writer, limits)
-            .unwrap_err(),
+        named.to_json_writer_with_limits(&mut writer, limits).unwrap_err(),
         JsonResource::StringBytes,
         "NamedValue name",
         "writer",
     );
-    assert_eq!(
-        writer, b"prefix",
-        "name rejection must leave writer prefix unchanged"
-    );
+    assert_eq!(writer, b"prefix", "name rejection must leave writer prefix unchanged");
 
     let small = NamedValue::new("ok", Value::Int32(7));
     let wide = JsonEncodeLimits::new();
@@ -420,22 +371,14 @@ fn test_named_helpers_keep_name_and_complete_output_limits() {
     let complete_len = encoded.len();
     assert!(
         small
-            .to_json_vec_with_limits(
-                JsonEncodeLimits::builder()
-                    .max_output_bytes(complete_len)
-                    .build()
-            )
+            .to_json_vec_with_limits(JsonEncodeLimits::builder().max_output_bytes(complete_len).build())
             .is_ok(),
         "the exact complete output limit must accept the named wrapper",
     );
     assert!(
         matches!(
             small
-                .to_json_vec_with_limits(
-                    JsonEncodeLimits::builder()
-                        .max_output_bytes(complete_len - 1)
-                        .build(),
-                )
+                .to_json_vec_with_limits(JsonEncodeLimits::builder().max_output_bytes(complete_len - 1).build(),)
                 .unwrap_err(),
             ValueWireEncodeError::Budget(BudgetError::Insufficient {
                 resource: JsonResource::OutputBytes,

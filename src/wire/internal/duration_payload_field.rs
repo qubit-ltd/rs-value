@@ -43,9 +43,7 @@ impl<'de> Deserialize<'de> for DurationPayloadField {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_identifier(
-            super::duration_payload_field_visitor::DurationPayloadFieldVisitor,
-        )
+        deserializer.deserialize_identifier(super::duration_payload_field_visitor::DurationPayloadFieldVisitor)
     }
 }
 

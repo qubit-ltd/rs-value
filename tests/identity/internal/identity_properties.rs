@@ -63,16 +63,8 @@ where
     );
     let mut map = HashMap::new();
     map.insert(a.clone(), 1_u8);
-    assert_eq!(
-        map.insert(b.clone(), 2_u8),
-        Some(1),
-        "{context}: HashMap replacement"
-    );
-    assert_eq!(
-        map.len(),
-        1,
-        "{context}: HashMap retains one equivalent key"
-    );
+    assert_eq!(map.insert(b.clone(), 2_u8), Some(1), "{context}: HashMap replacement");
+    assert_eq!(map.len(), 1, "{context}: HashMap retains one equivalent key");
 }
 
 fn hash<T: Hash>(value: &T) -> u64 {
@@ -89,12 +81,7 @@ where
 {
     let values = [a, b, c];
     let wrapped = values.clone().map(value);
-    assert_equivalent_triplet(
-        &wrapped[0],
-        &wrapped[1],
-        &wrapped[2],
-        &format!("{context}/Value"),
-    );
+    assert_equivalent_triplet(&wrapped[0], &wrapped[1], &wrapped[2], &format!("{context}/Value"));
 
     for length in [0, 1, 3] {
         let collections = values.clone().map(|item| multi(vec![item; length]));
@@ -119,22 +106,14 @@ where
         &scalars[2],
         &format!("{context}/ValueContainer/Scalar"),
     );
-    assert_ne!(
-        scalars[0],
-        ValueContainer::Collection(multi(vec![values[0].clone()]))
-    );
+    assert_ne!(scalars[0], ValueContainer::Collection(multi(vec![values[0].clone()])));
 }
 
 fn check_value_wrappers<F>(values: [Value; 3], multi: F, context: &str)
 where
     F: Fn(usize, usize) -> MultiValues,
 {
-    assert_equivalent_triplet(
-        &values[0],
-        &values[1],
-        &values[2],
-        &format!("{context}/Value"),
-    );
+    assert_equivalent_triplet(&values[0], &values[1], &values[2], &format!("{context}/Value"));
     for length in [0, 1, 3] {
         let collections = [multi(0, length), multi(1, length), multi(2, length)];
         assert_equivalent_triplet(
@@ -229,10 +208,7 @@ fn check_decimal(cursor: &mut Cursor<'_>) {
     }
     for (scale, delta) in [(i64::MIN, 32_i64), (i64::MAX - 32, 32_i64)] {
         let left = BigDecimal::new(BigInt::from(-7), scale);
-        let right = BigDecimal::new(
-            BigInt::from(-7) * BigInt::from(10_u8).pow(delta as u32),
-            scale + delta,
-        );
+        let right = BigDecimal::new(BigInt::from(-7) * BigInt::from(10_u8).pow(delta as u32), scale + delta);
         let third = left.clone();
         check_wrappers(
             left,
@@ -296,14 +272,7 @@ fn check_json(cursor: &mut Cursor<'_>) {
     let tree = make_json(cursor, 0, &mut 0);
     let reordered = reorder_json(&tree, cursor, false);
     let third = reorder_json(&reordered, cursor, true);
-    check_wrappers(
-        tree,
-        reordered,
-        third,
-        Value::Json,
-        MultiValues::Json,
-        "JSON/order",
-    );
+    check_wrappers(tree, reordered, third, Value::Json, MultiValues::Json, "JSON/order");
 }
 
 fn make_json(cursor: &mut Cursor<'_>, depth: usize, nodes: &mut usize) -> Json {
@@ -344,9 +313,7 @@ fn leaf_json(cursor: &mut Cursor<'_>) -> Json {
         0 => Json::Null,
         1 => Json::Bool(cursor.next_u8() & 1 != 0),
         2 => Json::Number(Number::from(i64::from(cursor.next_u8()))),
-        3 => Json::Number(
-            Number::from_f64(if cursor.next_u8() & 1 == 0 { 0.0 } else { -0.0 }).unwrap(),
-        ),
+        3 => Json::Number(Number::from_f64(if cursor.next_u8() & 1 == 0 { 0.0 } else { -0.0 }).unwrap()),
         4 => {
             let length = usize::from(cursor.next_u8() % 33);
             Json::String(String::from_utf8_lossy(&cursor.take(length)).into_owned())
@@ -357,12 +324,7 @@ fn leaf_json(cursor: &mut Cursor<'_>) -> Json {
 
 fn reorder_json(value: &Json, cursor: &mut Cursor<'_>, rotate: bool) -> Json {
     match value {
-        Json::Array(items) => Json::Array(
-            items
-                .iter()
-                .map(|item| reorder_json(item, cursor, rotate))
-                .collect(),
-        ),
+        Json::Array(items) => Json::Array(items.iter().map(|item| reorder_json(item, cursor, rotate)).collect()),
         Json::Object(object) => {
             let mut entries = object.iter().collect::<Vec<_>>();
             let use_rotation = cursor.next_u8() & 1 == if rotate { 0 } else { 1 };
@@ -396,12 +358,7 @@ impl Cursor<'_> {
     }
 
     fn next_u32(&mut self) -> u32 {
-        u32::from_le_bytes([
-            self.next_u8(),
-            self.next_u8(),
-            self.next_u8(),
-            self.next_u8(),
-        ])
+        u32::from_le_bytes([self.next_u8(), self.next_u8(), self.next_u8(), self.next_u8()])
     }
 
     fn next_u64(&mut self) -> u64 {
